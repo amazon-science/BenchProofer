@@ -1,0 +1,412 @@
+{
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real iter_bezier(simplify=None) gather count never exceeds the full gather count",
+      "encoded_property": "Ensures(0 <= Result() and Result() <= len(verts)) -- a sub-selection never invents vertices and never grows the count; the weakest sufficient contract",
+      "kind": "A-consumed",
+      "models": "the number of vertices the appearance-preserving condensation (Path.iter_bezier() default simplify=None) retains",
+      "name": "subsel_len",
+      "provenance": "lib/matplotlib/path.py:420 (iter_bezier) -> :354 (iter_segments) -> :467 (cleaned) -> _path.cleanup_path; should_simplify True for long MOVETO/LINETO paths (path.py:202-207, len(vertices)>=128 and codes<=LINETO)",
+      "purity": "@Pure @ContractOnly (used inside the prepatch loop guard/bound and in subsel_at's Requires)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): every value the real iter_bezier(simplify=None) gather emits occurs among the path's vertices; regression-outline witness shows the condensation drops the interior y-extreme",
+      "encoded_property": "Requires(0 <= idx < subsel_len(verts)); Ensures(Exists j. 0 <= j < len(verts) and Result() == verts[j]) -- MEMBERSHIP only; deliberately promises NOTHING about preserving the extremes (that omission is the regression)",
+      "kind": "A-consumed",
+      "models": "the idx-th retained vertex value of the appearance-preserving condensation (Path.iter_bezier() default)",
+      "name": "subsel_at",
+      "provenance": "lib/matplotlib/path.py:420 iter_bezier default simplify=None -> _path.cleanup_path drops interior near-collinear vertices, keeping a SUBSET of the originals; never synthesizes coordinate values",
+      "purity": "@Pure @ContractOnly (consumed by the prepatch gather; its membership-only guarantee is why the prepatch cannot discharge the enclosing postcondition)"
+    }
+  ],
+  "base_commit": "493d608e39d32a67173c23a7bbc47d6bfedcef61",
+  "changed_files": [
+    "lib/matplotlib/axes/_base.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): runs the real Path.iter_bezier(simplify=False) gather (as _update_patch_limits does) and asserts the gathered max >= every path vertex (and min <= every vertex) over 4 boundary + 4000 fuzz outlines",
+      "encoded_property": "seq_max(s): the largest value over a non-empty sequence; front-recursive @Pure fold (one unfold per loop step). lemma_seq_max_dominates proves it bounds every element (enclosing direction); lemma_seq_max_attained proves it equals some element (tightness direction -- the bound is one of the inputs, not larger).",
+      "kind": "A-reference",
+      "models": "the per-axis maximum of the gathered vertices that update_datalim/Bbox forms into the autoscaled data-limit extent (the upper end of the enclosing interval)",
+      "name": "seq_max",
+      "provenance": "lib/matplotlib/axes/_base.py:2457 (update_datalim of the gathered vertices); the gather source is iter_bezier(simplify=False) at :2437 post-patch",
+      "role": "deep model (pure region) of the gathered-vertex maximum; consumed by enclosing_upper_bound's two postconditions (Forall k. Result() >= verts[k] AND Exists j. Result() == verts[j]); NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T09:25:04+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: condensation membership (condensed_len/condensed_at weakest sound contract) verified; full-gather (simplify=False) encloses every vertex (deep seq_max A-reference); regression-outline witness shows the condensation drops the interior y-extreme over 4 boundary + 4000 fuzz outlines.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "41dd4c5bbe0106f28b55736ad648176525a6ebd5a6a10d53b535b121adc3cf31",
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T09:25:57+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100156,
+          "disagreements": 0,
+          "seed": 24177,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100156, \"disagreements\": 0, \"seed\": 24177, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "836ca69ed49667d3c89d2103231049e5fc6740406251206c77e6680850415854",
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:39:08+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb",
+        "model_prepatch.py": "2f02a87e3f9b67a36f59097adda64cb6e49f464cc0f4f3b2164b492c59a475d6"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T11:40:24+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:40:00+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb",
+        "model_prepatch.py": "2f02a87e3f9b67a36f59097adda64cb6e49f464cc0f4f3b2164b492c59a475d6"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T09:24:37+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "d558451d826e7730fe5f043779bf5a1729543f53480fd803a7a81cb12b560e5b",
+          "impl": "b58182b18e037b17f266df11477523691033660966feeaa99de27d3141365548",
+          "invariants": "500a91303f67af4e5b1a903cad55f2ecc5c387ebdb9f2b7dce12c039259883cc",
+          "post-conditions": "d87e73bde1c03d49f7d5439e2c9d75d4c9461df1fe38d9a82082156c34e92f3f",
+          "pre-conditions": "002fe9c713511e2c918e96f637d1552c47f6b8ce16489ea2334f45d1e04d31c4",
+          "pure": "99fcea58d69f79eaa3042bea940191f71e9960d63ab015f8c13088f66ad817e5",
+          "spec_view": "9e6c37530d592b941a5e101909631d71f55eeb8e9d98914d9831b78e2d21e809"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T09:24:37+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "46362537d633d121b4ebfa661233598a2fa762a9331f703a009d45e83fd402ca",
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T09:24:38+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T12:36:43+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 19,
+        "survivors": [
+          "line 167: '>' -> '>='"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 19/20 (95%); survivors: [\"line 167: '>' -> '>='\"]",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T11:40:26+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) check for matplotlib__matplotlib-24177 nagini.\n\nMODELED FUNCTION: enclosing_upper_bound(verts: List[int]) over PSeq[int]. Requires non-empty. Two postconditions: (1) enclosing \u2014 Result() >= verts[k] for all k; (2) attained \u2014 Result() == verts[j] for some j. Both are exactly the mathematical max over the input coordinates.\n\nREAL CALLEE (mapping.md): Axes._update_patch_limits gathering vertices via iter_bezier(simplify=False) and feeding them to update_datalim; the observable is the per-axis dataLim upper end. For a pure MOVETO/LINETO polyline, the gathered points ARE the path vertices, so the dataLim upper end is exactly max(gathered coordinates).\n\nWhy the spec is NOT too strong:\n- Enclosing clause: max is trivially >= every element. Holds for the real dataLim (max of gathered data). Faithful.\n- Attained clause: the real dataLim upper end is the max OF the gathered data (no padding \u2014 margins/nonsingular expansion are applied later in the autoscale path via handle_single_axis, NOT in _update_patch_limits/dataLim). So Result()==verts[j] for some j is exactly the real behavior; the tightness clause is calibrated to the dataLim boundary, not the margin-padded view limit, so it does not over-strengthen. Correctly excludes only a padded over-approximation, which the real callee never produces at the dataLim level.\n- Carrier abstraction (List[int] over one axis; simplify=False gather = path vertices) is documented and G-AX-validated.\n\nMACHINE-CHECKABLE EVIDENCE:\n- same-spec (nagini) on model.py itself: exit 0 (SAME \u2014 shares the frozen spec).\n- nagini_verify.sh model.py: Verification successful (17.25s), so both postconditions are provable of the modeled max.\n- G-CONF (recorded meta.json + reviewed conformance_check.py): contract-stripped impl region compared against the REAL _update_patch_limits dataLim upper end on 100,156 inputs, 0 disagreements, exact integer-in-float64 equality; domain covers single elements, duplicates, extremes at every position (first/last/interior), negatives, large magnitude (\u00b11e6), and long (>=128-vertex) scaled step outlines where full-vertex coverage is load-bearing. seed 24177.\n- G-AX: full gather encloses every vertex and is attained; regression-outline witness confirms condensation drops the interior y-extreme (0.25 < 0.33) while full gather captures it \u2014 over 4 boundary + 4000 fuzz outlines, exit 0.\n\nSearched for a diverging input where the modeled max disagrees with the real dataLim upper end over the Requires-satisfying domain (non-empty integer list). None exists: max is exactly the dataLim upper end for a pure polyline, structurally and per the 100k-input exact differential check. No spec-too-strong drift found.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (no diff markers, no reproduced gold-patch line, no patched file/module path, no spec-view identifier or comment naming the patched symbol 'update_patch_limits', no bug/fix narration). Semantic review confirms no leakage beyond the public problem_statement.\n\nGold edit: lib/matplotlib/axes/_base.py:2437, 'p.iter_bezier()' -> 'p.iter_bezier(simplify=False)' (disable the appearance-preserving path condensation so the vertex gather visits every vertex, so the autoscaled extent encloses the whole outline).\n\nPublic problem_statement reveals ONLY the user symptom: histogram density axis not auto-scaled with histtype='step'. It names no repo symbol, no iter_bezier, no simplify, and no vertex-condensation mechanism. (The condensation/iter_bezier mechanism appears only in hints_text, which is NOT the leakage baseline.)\n\nSpec view (model.py projection): names no patched symbol, no iter_bezier/simplify/Path, no _base.py, no file/module path. It abstracts the contract to a domain-neutral 'upper bound over a numeric sequence that is >= every element and is attained', plus an axiomatized 'sub-selection whose only guaranteed property is MEMBERSHIP -- no guarantee the largest value is kept'. That membership-only subset abstraction is the correct behavioral contract (its job is to describe correct behavior), not a disclosure of the concrete edit's identity or location; a solver cannot reconstruct 'iter_bezier(simplify=False)' at _base.py:2437 from any spec-view line that they couldn't already infer from the public statement. The only repo references are the instance id and pointers to sibling bundle files (refinement.md/mapping.md/axiom_check.py), which do not appear in the spec view's disclosure surface and do not spell out the edit.\n\nNo spec-view line leaks the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) check for matplotlib__matplotlib-24177 nagini.\n\nMODELED FUNCTION: enclosing_upper_bound(verts: List[int]) over PSeq[int]. Requires non-empty. Two postconditions: (1) enclosing \u2014 Result() >= verts[k] for all k; (2) attained \u2014 Result() == verts[j] for some j. Both are exactly the mathematical max over the input coordinates.\n\nREAL CALLEE (mapping.md): Axes._update_patch_limits gathering vertices via iter_bezier(simplify=False) and feeding them to update_datalim; the observable is the per-axis dataLim upper end. For a pure MOVETO/LINETO polyline, the gathered points ARE the path vertices, so the dataLim upper end is exactly max(gathered coordinates).\n\nWhy the spec is NOT too strong:\n- Enclosing clause: max is trivially >= every element. Holds for the real dataLim (max of gathered data). Faithful.\n- Attained clause: the real dataLim upper end is the max OF the gathered data (no padding \u2014 margins/nonsingular expansion are applied later in the autoscale path via handle_single_axis, NOT in _update_patch_limits/dataLim). So Result()==verts[j] for some j is exactly the real behavior; the tightness clause is calibrated to the dataLim boundary, not the margin-padded view limit, so it does not over-strengthen. Correctly excludes only a padded over-approximation, which the real callee never produces at the dataLim level.\n- Carrier abstraction (List[int] over one axis; simplify=False gather = path vertices) is documented and G-AX-validated.\n\nMACHINE-CHECKABLE EVIDENCE:\n- same-spec (nagini) on model.py itself: exit 0 (SAME \u2014 shares the frozen spec).\n- nagini_verify.sh model.py: Verification successful (17.25s), so both postconditions are provable of the modeled max.\n- G-CONF (recorded meta.json + reviewed conformance_check.py): contract-stripped impl region compared against the REAL _update_patch_limits dataLim upper end on 100,156 inputs, 0 disagreements, exact integer-in-float64 equality; domain covers single elements, duplicates, extremes at every position (first/last/interior), negatives, large magnitude (\u00b11e6), and long (>=128-vertex) scaled step outlines where full-vertex coverage is load-bearing. seed 24177.\n- G-AX: full gather encloses every vertex and is attained; regression-outline witness confirms condensation drops the interior y-extreme (0.25 < 0.33) while full gather captures it \u2014 over 4 boundary + 4000 fuzz outlines, exit 0.\n\nSearched for a diverging input where the modeled max disagrees with the real dataLim upper end over the Requires-satisfying domain (non-empty integer list). None exists: max is exactly the dataLim upper end for a pure polyline, structurally and per the 100k-input exact differential check. No spec-too-strong drift found.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (no diff markers, no reproduced gold-patch line, no patched file/module path, no spec-view identifier or comment naming the patched symbol 'update_patch_limits', no bug/fix narration). Semantic review confirms no leakage beyond the public problem_statement.\n\nGold edit: lib/matplotlib/axes/_base.py:2437, 'p.iter_bezier()' -> 'p.iter_bezier(simplify=False)' (disable the appearance-preserving path condensation so the vertex gather visits every vertex, so the autoscaled extent encloses the whole outline).\n\nPublic problem_statement reveals ONLY the user symptom: histogram density axis not auto-scaled with histtype='step'. It names no repo symbol, no iter_bezier, no simplify, and no vertex-condensation mechanism. (The condensation/iter_bezier mechanism appears only in hints_text, which is NOT the leakage baseline.)\n\nSpec view (model.py projection): names no patched symbol, no iter_bezier/simplify/Path, no _base.py, no file/module path. It abstracts the contract to a domain-neutral 'upper bound over a numeric sequence that is >= every element and is attained', plus an axiomatized 'sub-selection whose only guaranteed property is MEMBERSHIP -- no guarantee the largest value is kept'. That membership-only subset abstraction is the correct behavioral contract (its job is to describe correct behavior), not a disclosure of the concrete edit's identity or location; a solver cannot reconstruct 'iter_bezier(simplify=False)' at _base.py:2437 from any spec-view line that they couldn't already infer from the public statement. The only repo references are the instance id and pointers to sibling bundle files (refinement.md/mapping.md/axiom_check.py), which do not appear in the spec view's disclosure surface and do not spell out the edit.\n\nNo spec-view line leaks the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) check for matplotlib__matplotlib-24177 nagini.\n\nMODELED FUNCTION: enclosing_upper_bound(verts: List[int]) over PSeq[int]. Requires non-empty. Two postconditions: (1) enclosing \u2014 Result() >= verts[k] for all k; (2) attained \u2014 Result() == verts[j] for some j. Both are exactly the mathematical max over the input coordinates.\n\nREAL CALLEE (mapping.md): Axes._update_patch_limits gathering vertices via iter_bezier(simplify=False) and feeding them to update_datalim; the observable is the per-axis dataLim upper end. For a pure MOVETO/LINETO polyline, the gathered points ARE the path vertices, so the dataLim upper end is exactly max(gathered coordinates).\n\nWhy the spec is NOT too strong:\n- Enclosing clause: max is trivially >= every element. Holds for the real dataLim (max of gathered data). Faithful.\n- Attained clause: the real dataLim upper end is the max OF the gathered data (no padding \u2014 margins/nonsingular expansion are applied later in the autoscale path via handle_single_axis, NOT in _update_patch_limits/dataLim). So Result()==verts[j] for some j is exactly the real behavior; the tightness clause is calibrated to the dataLim boundary, not the margin-padded view limit, so it does not over-strengthen. Correctly excludes only a padded over-approximation, which the real callee never produces at the dataLim level.\n- Carrier abstraction (List[int] over one axis; simplify=False gather = path vertices) is documented and G-AX-validated.\n\nMACHINE-CHECKABLE EVIDENCE:\n- same-spec (nagini) on model.py itself: exit 0 (SAME \u2014 shares the frozen spec).\n- nagini_verify.sh model.py: Verification successful (17.25s), so both postconditions are provable of the modeled max.\n- G-CONF (recorded meta.json + reviewed conformance_check.py): contract-stripped impl region compared against the REAL _update_patch_limits dataLim upper end on 100,156 inputs, 0 disagreements, exact integer-in-float64 equality; domain covers single elements, duplicates, extremes at every position (first/last/interior), negatives, large magnitude (\u00b11e6), and long (>=128-vertex) scaled step outlines where full-vertex coverage is load-bearing. seed 24177.\n- G-AX: full gather encloses every vertex and is attained; regression-outline witness confirms condensation drops the interior y-extreme (0.25 < 0.33) while full gather captures it \u2014 over 4 boundary + 4000 fuzz outlines, exit 0.\n\nSearched for a diverging input where the modeled max disagrees with the real dataLim upper end over the Requires-satisfying domain (non-empty integer list). None exists: max is exactly the dataLim upper end for a pure polyline, structurally and per the 100k-input exact differential check. No spec-too-strong drift found.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (no diff markers, no reproduced gold-patch line, no patched file/module path, no spec-view identifier or comment naming the patched symbol 'update_patch_limits', no bug/fix narration). Semantic review confirms no leakage beyond the public problem_statement.\n\nGold edit: lib/matplotlib/axes/_base.py:2437, 'p.iter_bezier()' -> 'p.iter_bezier(simplify=False)' (disable the appearance-preserving path condensation so the vertex gather visits every vertex, so the autoscaled extent encloses the whole outline).\n\nPublic problem_statement reveals ONLY the user symptom: histogram density axis not auto-scaled with histtype='step'. It names no repo symbol, no iter_bezier, no simplify, and no vertex-condensation mechanism. (The condensation/iter_bezier mechanism appears only in hints_text, which is NOT the leakage baseline.)\n\nSpec view (model.py projection): names no patched symbol, no iter_bezier/simplify/Path, no _base.py, no file/module path. It abstracts the contract to a domain-neutral 'upper bound over a numeric sequence that is >= every element and is attained', plus an axiomatized 'sub-selection whose only guaranteed property is MEMBERSHIP -- no guarantee the largest value is kept'. That membership-only subset abstraction is the correct behavioral contract (its job is to describe correct behavior), not a disclosure of the concrete edit's identity or location; a solver cannot reconstruct 'iter_bezier(simplify=False)' at _base.py:2437 from any spec-view line that they couldn't already infer from the public statement. The only repo references are the instance id and pointers to sibling bundle files (refinement.md/mapping.md/axiom_check.py), which do not appear in the spec view's disclosure surface and do not spell out the edit.\n\nNo spec-view line leaks the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:37:35+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-direct-seqmax",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 36.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 38.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-selfcall",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 36.6
+          },
+          {
+            "expect": "reject",
+            "id": "rival-frame-mutate-verts",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-return-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 38.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-return-last-seed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.6
+          },
+          {
+            "expect": "reject",
+            "id": "rival-value-mask-odd",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "a92112b6bfaa47806e62be76e82c914d500d3356059973ffb03913059aeb05b3",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb",
+        "properties.py": "a92112b6bfaa47806e62be76e82c914d500d3356059973ffb03913059aeb05b3"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T14:59:40+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:02:38+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 16.3
+      },
+      "detail": "verified in 16.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8f3d4a7e2a277c7ac576a42ae89d8e94e479c0d1e20cc82d5fe8bef28d6975eb"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "matplotlib__matplotlib-24177",
+  "modeled_functions": [
+    {
+      "carrier_type": "per-axis gathered coordinate values (np.ndarray of float) -> List[int]; specification over PSeq[int]",
+      "model_symbol": "enclosing_upper_bound",
+      "repo_location": "lib/matplotlib/axes/_base.py:2420 (changed gather loop at :2437; extent fed to update_datalim at :2457)",
+      "repo_symbol": "matplotlib.axes._base._AxesBase._update_patch_limits (the per-segment vertex gather)",
+      "role": "modeled changed function (single hunk): the path-vertex gather whose data-limit extent must enclose the whole path"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Forall k. Result() >= verts[k] -- the enclosing clause; the membership-only condensation cannot cover a dropped extreme (Nagini reports this exact clause at model_prepatch.py:128)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "_update_patch_limits gather (single hunk): iter_bezier() default (simplify enabled) -> iter_bezier(simplify=False)",
+      "reverted_to": "the extent is gathered over the appearance-preserving condensation (subsel_len/subsel_at), seeded by the first vertex, instead of over every vertex"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "d558451d826e7730fe5f043779bf5a1729543f53480fd803a7a81cb12b560e5b",
+    "impl": "7b04ad6353f95975cea064f3f0778b0ae2ce8ab8fd48996b0a7d6df70adc2dc3",
+    "invariants": "19c6692a44dc993ea31590c763e7365851b1b82c336ad1dd89b9fdca859b3578",
+    "post-conditions": "d87e73bde1c03d49f7d5439e2c9d75d4c9461df1fe38d9a82082156c34e92f3f",
+    "pre-conditions": "a4c64d038a5f40e8398f94a5a3366ce4ae153d125f78e8f3a95fecdff130fc13",
+    "pure": "99fcea58d69f79eaa3042bea940191f71e9960d63ab015f8c13088f66ad817e5",
+    "spec_view": "d2e502d8dc4cff58a57477a124b8cb41d81668c32542eb189bb9e25aae40ec07"
+  },
+  "repo": "matplotlib/matplotlib",
+  "schema_version": 1,
+  "string_modeling": "n/a -- gathered per-axis coordinate values modeled as List[int] (the tested behavior is WHICH vertices are gathered, i.e. inclusion of the extreme-bearing vertex, not floating-point precision); specification carried by PSeq[int] via ToSeq; the gather maximum spelled out by the front-recursive seq_max fold + dominance lemma",
+  "version": "3.6"
+}

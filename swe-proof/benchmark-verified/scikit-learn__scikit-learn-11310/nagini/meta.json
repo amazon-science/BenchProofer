@@ -1,0 +1,420 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "non-behavioural; makes the stdlib timer available (modeled by the clock_after axiom). No failing prepatch variant.",
+      "repo_location": "sklearn/model_selection/_search.py:20 (added)",
+      "repo_symbol": "import time"
+    },
+    {
+      "handling": "pure documentation; the F2P test checks the attribute value, never its docstring. No failing prepatch variant.",
+      "repo_location": "sklearn/model_selection/_search.py:~1076 and ~1387 (added)",
+      "repo_symbol": "GridSearchCV / RandomizedSearchCV docstring 'refit_time_ : float' Attributes entries"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real time.time() over 200000 back-to-back pairs, later reading never earlier than the reference, 0 violations",
+      "encoded_property": "monotonicity across sequential reads: a reading taken after a reference instant is never earlier than it, clock_after(reference) >= reference (weakest sufficient; F2P needs nothing stronger)",
+      "kind": "A-reference",
+      "kind_note": "A-reference: the two readings are abstracted as the ordered inputs start, end with Requires(end >= start), so the proof does NOT consume this axiom's Ensures; axiom_check.py validates that the REAL time.time() produces end >= start, grounding the precondition (the modeled timer monotonicity).",
+      "models": "time.time() (CPython stdlib)",
+      "name": "clock_after",
+      "provenance": "Python stdlib time module; gold patch reads it twice (refit_start_time/refit_end_time bracketing the refit fit, _search.py:770,772 post-patch); docs.python.org/3/library/time.html#time.time",
+      "purity": "@Pure @ContractOnly"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real subtraction later-earlier >= 0 on 7 boundary pairs (incl. zero-length (0.0,0.0)) + ~2000 real time.time() ordered pairs + 200000 randomized ordered pairs, 0 violations",
+      "consumed_in_postcondition": "the postcondition pins Result() == elapsed_between(start, end), binding the reported duration to the float-typed real subtraction of the two readings; this defeats the int / non-real counterexamples (result=0, int-typed var, result=5) a magnitude-only Result()>=0.0 postcondition admitted, and grounds the result in the real op (directive 8, refinement.md SE)",
+      "encoded_property": "Requires(later >= earlier) => Ensures(Result() >= 0.0): the difference of an ordered pair (later minus earlier) is non-negative (weakest sufficient)",
+      "kind": "A-consumed",
+      "models": "builtin float subtraction refit_end_time - refit_start_time",
+      "name": "elapsed_between",
+      "provenance": "_search.py:773 post-patch (self.refit_time_ = refit_end_time - refit_start_time); an unchanged arithmetic builtin, not the behaviour under change",
+      "purity": "@Pure @ContractOnly",
+      "rationale": "Nagini 1.2.0 leaves float +/- essentially uninterpreted even under --float-encoding=real (minimal a>=b => a-b>=0 does not verify; float ordering does); the genuinely-true real-arithmetic facts (timer monotonicity, ordered-difference non-negativity) are captured as weakest @ContractOnly axioms and G-AX-validated against the real operations"
+    }
+  ],
+  "base_commit": "553b5fb8f84ba05c8397f26dd079deece2b05029",
+  "changed_files": [
+    "sklearn/model_selection/_search.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": "real",
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:34:06+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: clock_after (time.time() monotone over 200000 sequential pairs, 0 violations) + elapsed_between (later-earlier >= 0 over 2007 boundary + 200000 fuzz ordered pairs) sound",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "52a1171a70581f0676d94c86d8b0fd2fa9c6e32694fc6b89a9dc490208ac2e48",
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:35:44+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100028,
+          "disagreements": 0,
+          "seed": 11310,
+          "shadow": "direct (contract-stripped impl region; axiom callee = the real float subtraction)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100028, \"disagreements\": 0, \"seed\": 11310, \"shadow\": \"direct (contract-stripped impl region; axiom callee = the real float subtraction)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "fdc638e878a766c599fe69c3c552a59275410396dd03e348d810c864d69ce738",
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:54:18+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2",
+        "model_prepatch.py": "d9be8d46fbfdf654c6bb71185b435c147371d37d5bb210c1062940e6e2dd8aa5"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T00:42:54+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:54:59+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2",
+        "model_prepatch.py": "d9be8d46fbfdf654c6bb71185b435c147371d37d5bb210c1062940e6e2dd8aa5"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:33:59+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "d94ca36651c398a6efebd10e727eaf9babe21999950f055bee7974be033a5bd2",
+          "impl": "be2be68a0cd7315520d6ee8f2dbef61fe83b0ef0d5d2a007b39314bb3c4147e5",
+          "post-conditions": "5e9534d644dc368a7935819fd252fbbdda03c9cbd8b478a946e0ea22858e304e",
+          "pre-conditions": "c7bf8c1db5c9a92edd7df0ed3a559fa5b8dba398e88a69ed6d118a37c005b396",
+          "pure": "41b462a6bb145bdf605a499c48e67a330fe15fdbade202a3dfc79649e4ba90e3",
+          "spec_view": "428c7f552039db19d36eddc39f91239d9eb66baea3c1d047e5ca6528d100a838"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:34:00+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8fd666aa5e50222cc27dc9cbb6a6ec1e2ae6ad2619d37b7014b6578e16681b55",
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:34:00+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T07:31:13+00:00",
+      "code_version": "77ca0a596-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "ca075d093bcf",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T00:42:55+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Modeled function recorded_refit_duration(do_final_fit, start, end) -> Optional[float] with Requires(end>=start), Ensures(do_final_fit==(Result() is not None)), Ensures(Implies(Result() is not None, Result()==elapsed_between(start,end))). Models the refit-timing branch of BaseSearchCV.fit (sklearn/model_selection/_search.py, PR #11310). Gold patch adds refit_start_time=time.time() before the fit, refit_end_time=time.time() after, self.refit_time_=refit_end_time-refit_start_time inside `if self.refit:`; attribute unset when refit falsy.\n\nMachine facts: gold model.py verifies with --float-encoding=real (exit 0, 11.8s); same-spec on gold copy = SAME (spec region byte-identical); model_prepatch (bare pass in the if body) fails post(1) do_final_fit==(Result() is not None), so the modeled diff is genuine.\n\nSpec-vs-real on modeled domain: post(1) biconditional matches gold exactly (attribute present iff self.refit truthy; absent->None, matching P2P test_no_refit). post(2) pins Result to elapsed_between(start,end), a @Pure @ContractOnly model of the REAL builtin subtraction end-start (Requires discharged by end>=start) \u2014 exactly the gold assignment refit_end_time-refit_start_time, not an oracle. The Requires(end>=start) precondition is a DOMAIN RESTRICTION (spec-too-weak flavor, out of this gate's scope) reflecting timer monotonicity validated by axiom_check.py over 200k real time.time() pairs; the real code would itself violate the F2P `>= 0` assertion on a backwards clock, so excluding that region is a faithful modeling boundary, not drift/over-strength. No in-domain input yields a modeled result diverging from gold behavior. The spec is not too strong and does not drift. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (leakage.screen -> passed=True, hard_failures=[]); no relaxed_leakage flag, meta G-LEAK status=pass. Semantic review of the full spec_view confirms no leak of the gold edit beyond the public problem_statement.\n\nPublic problem_statement already discloses: (a) refitting the best model on the full data after grid/random search; (b) desire for an attribute giving 'the time it took to refit the best model'; (c) the timing-by-subtraction mechanism ('time the whole search procedure and subtract the time it took to fit the single folds'). The gold patch adds `import time`, brackets the refit with `refit_start_time = time.time()` / `refit_end_time = time.time()`, and sets `self.refit_time_ = refit_end_time - refit_start_time`, plus two docstring Attributes entries.\n\nThe spec view describes ONLY this publicly-requested behavior in abstract terms: a final fit on the whole data, reporting its wall-clock duration as (later reading - earlier reading), present exactly when the final fit occurs. It does NOT reveal any gold-edit specifics beyond the public statement:\n- No patched file path (sklearn/model_selection/_search.py), no diff markers, no module path.\n- No verbatim patched repo symbols: uses abstract identifiers recorded_refit_duration / clock_after / elapsed_between; never names refit_time_, time.time(), refit_start_time/refit_end_time, GridSearchCV, RandomizedSearchCV, or _store. (Changed symbols GridSearchCV/RandomizedSearchCV/store do not appear in the spec view.)\n- No bug/fix/patch narration; framed as 'desired behaviour, not as an edit'.\n\nThe clock-reading/subtraction framing does not exceed the problem_statement, which itself invokes timing and subtraction; it is the obvious mechanism for 'time it took to refit' and localizes no edit site. The two @ContractOnly axioms model unchanged stdlib operations (clock monotonicity, ordered-difference non-negativity), not the behaviour under change. Spec view is a faithful restatement of the public feature request; NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Modeled function recorded_refit_duration(do_final_fit, start, end) -> Optional[float] with Requires(end>=start), Ensures(do_final_fit==(Result() is not None)), Ensures(Implies(Result() is not None, Result()==elapsed_between(start,end))). Models the refit-timing branch of BaseSearchCV.fit (sklearn/model_selection/_search.py, PR #11310). Gold patch adds refit_start_time=time.time() before the fit, refit_end_time=time.time() after, self.refit_time_=refit_end_time-refit_start_time inside `if self.refit:`; attribute unset when refit falsy.\n\nMachine facts: gold model.py verifies with --float-encoding=real (exit 0, 11.8s); same-spec on gold copy = SAME (spec region byte-identical); model_prepatch (bare pass in the if body) fails post(1) do_final_fit==(Result() is not None), so the modeled diff is genuine.\n\nSpec-vs-real on modeled domain: post(1) biconditional matches gold exactly (attribute present iff self.refit truthy; absent->None, matching P2P test_no_refit). post(2) pins Result to elapsed_between(start,end), a @Pure @ContractOnly model of the REAL builtin subtraction end-start (Requires discharged by end>=start) \u2014 exactly the gold assignment refit_end_time-refit_start_time, not an oracle. The Requires(end>=start) precondition is a DOMAIN RESTRICTION (spec-too-weak flavor, out of this gate's scope) reflecting timer monotonicity validated by axiom_check.py over 200k real time.time() pairs; the real code would itself violate the F2P `>= 0` assertion on a backwards clock, so excluding that region is a faithful modeling boundary, not drift/over-strength. No in-domain input yields a modeled result diverging from gold behavior. The spec is not too strong and does not drift. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (leakage.screen -> passed=True, hard_failures=[]); no relaxed_leakage flag, meta G-LEAK status=pass. Semantic review of the full spec_view confirms no leak of the gold edit beyond the public problem_statement.\n\nPublic problem_statement already discloses: (a) refitting the best model on the full data after grid/random search; (b) desire for an attribute giving 'the time it took to refit the best model'; (c) the timing-by-subtraction mechanism ('time the whole search procedure and subtract the time it took to fit the single folds'). The gold patch adds `import time`, brackets the refit with `refit_start_time = time.time()` / `refit_end_time = time.time()`, and sets `self.refit_time_ = refit_end_time - refit_start_time`, plus two docstring Attributes entries.\n\nThe spec view describes ONLY this publicly-requested behavior in abstract terms: a final fit on the whole data, reporting its wall-clock duration as (later reading - earlier reading), present exactly when the final fit occurs. It does NOT reveal any gold-edit specifics beyond the public statement:\n- No patched file path (sklearn/model_selection/_search.py), no diff markers, no module path.\n- No verbatim patched repo symbols: uses abstract identifiers recorded_refit_duration / clock_after / elapsed_between; never names refit_time_, time.time(), refit_start_time/refit_end_time, GridSearchCV, RandomizedSearchCV, or _store. (Changed symbols GridSearchCV/RandomizedSearchCV/store do not appear in the spec view.)\n- No bug/fix/patch narration; framed as 'desired behaviour, not as an edit'.\n\nThe clock-reading/subtraction framing does not exceed the problem_statement, which itself invokes timing and subtraction; it is the obvious mechanism for 'time it took to refit' and localizes no edit site. The two @ContractOnly axioms model unchanged stdlib operations (clock monotonicity, ordered-difference non-negativity), not the behaviour under change. Spec view is a faithful restatement of the public feature request; NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Modeled function recorded_refit_duration(do_final_fit, start, end) -> Optional[float] with Requires(end>=start), Ensures(do_final_fit==(Result() is not None)), Ensures(Implies(Result() is not None, Result()==elapsed_between(start,end))). Models the refit-timing branch of BaseSearchCV.fit (sklearn/model_selection/_search.py, PR #11310). Gold patch adds refit_start_time=time.time() before the fit, refit_end_time=time.time() after, self.refit_time_=refit_end_time-refit_start_time inside `if self.refit:`; attribute unset when refit falsy.\n\nMachine facts: gold model.py verifies with --float-encoding=real (exit 0, 11.8s); same-spec on gold copy = SAME (spec region byte-identical); model_prepatch (bare pass in the if body) fails post(1) do_final_fit==(Result() is not None), so the modeled diff is genuine.\n\nSpec-vs-real on modeled domain: post(1) biconditional matches gold exactly (attribute present iff self.refit truthy; absent->None, matching P2P test_no_refit). post(2) pins Result to elapsed_between(start,end), a @Pure @ContractOnly model of the REAL builtin subtraction end-start (Requires discharged by end>=start) \u2014 exactly the gold assignment refit_end_time-refit_start_time, not an oracle. The Requires(end>=start) precondition is a DOMAIN RESTRICTION (spec-too-weak flavor, out of this gate's scope) reflecting timer monotonicity validated by axiom_check.py over 200k real time.time() pairs; the real code would itself violate the F2P `>= 0` assertion on a backwards clock, so excluding that region is a faithful modeling boundary, not drift/over-strength. No in-domain input yields a modeled result diverging from gold behavior. The spec is not too strong and does not drift. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (leakage.screen -> passed=True, hard_failures=[]); no relaxed_leakage flag, meta G-LEAK status=pass. Semantic review of the full spec_view confirms no leak of the gold edit beyond the public problem_statement.\n\nPublic problem_statement already discloses: (a) refitting the best model on the full data after grid/random search; (b) desire for an attribute giving 'the time it took to refit the best model'; (c) the timing-by-subtraction mechanism ('time the whole search procedure and subtract the time it took to fit the single folds'). The gold patch adds `import time`, brackets the refit with `refit_start_time = time.time()` / `refit_end_time = time.time()`, and sets `self.refit_time_ = refit_end_time - refit_start_time`, plus two docstring Attributes entries.\n\nThe spec view describes ONLY this publicly-requested behavior in abstract terms: a final fit on the whole data, reporting its wall-clock duration as (later reading - earlier reading), present exactly when the final fit occurs. It does NOT reveal any gold-edit specifics beyond the public statement:\n- No patched file path (sklearn/model_selection/_search.py), no diff markers, no module path.\n- No verbatim patched repo symbols: uses abstract identifiers recorded_refit_duration / clock_after / elapsed_between; never names refit_time_, time.time(), refit_start_time/refit_end_time, GridSearchCV, RandomizedSearchCV, or _store. (Changed symbols GridSearchCV/RandomizedSearchCV/store do not appear in the spec view.)\n- No bug/fix/patch narration; framed as 'desired behaviour, not as an edit'.\n\nThe clock-reading/subtraction framing does not exceed the problem_statement, which itself invokes timing and subtraction; it is the obvious mechanism for 'time it took to refit' and localizes no edit site. The two @ContractOnly axioms model unchanged stdlib operations (clock monotonicity, ordered-difference non-negativity), not the behaviour under change. Spec view is a faithful restatement of the public feature request; NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:26:24+00:00",
+      "code_version": "aa0954627-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-early-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-compute-then-select",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-true-branch",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-false-and-zero",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-never-present",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-present",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-const-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-end",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-swapped-args",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "27c5ebdb362e306d099a21fd4138e999828a85ed6c5eb5442ec19192d9b525a4",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2",
+        "properties.py": "27c5ebdb362e306d099a21fd4138e999828a85ed6c5eb5442ec19192d9b525a4"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:46:19+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:03:12+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 11.3
+      },
+      "detail": "verified in 11.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8c31c7352a74cbb5992ea2f64ae53645fdaf63308f5eb69b8944a05f353c1cc2"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-11310",
+  "modeled_functions": [
+    {
+      "carrier_type": "self.refit truthiness -> do_final_fit: bool; the two time.time() readings (refit_start_time/refit_end_time) -> start, end: float params with Requires(end >= start); self.refit_time_ float attribute / its absence -> Optional[float]; clock readings and duration are interpreted reals",
+      "model_symbol": "recorded_refit_duration",
+      "repo_location": "sklearn/model_selection/_search.py:766-771",
+      "repo_symbol": "sklearn.model_selection._search.BaseSearchCV.fit (refit branch)",
+      "role": "modeled changed behaviour: record the wall-clock duration of the final refit, present exactly when the refit runs and equal to the real-valued elapsed interval of the two bracketing readings (hence a non-negative float)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition do_final_fit == (Result() is not None) (the duration is absent even when the final fit happens); model_prepatch.py:94",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "recording the refit duration when the refit runs",
+      "reverted_to": "pre-patch code: the refit branch performs the fit but never reads the clock or sets the duration (the if body is a bare pass; result stays None)"
+    }
+  ],
+  "refinement_note": "Batch-05 adversarial-panel fix (DEFECT 1, NEEDS-REFINEMENT -> refined): the value postcondition was strengthened from a magnitude-only Implies(Result() is not None, Result() >= 0.0) to Implies(Result() is not None, Result() == elapsed_between(start, end)). The two time.time() readings are now the ordered float params start, end (Requires(end >= start)); pinning the result to the float-typed elapsed_between defeats the int/non-real counterexamples (atk_9 result=0, atk_10 int-typed var, atk_11 result=5) that Nagini's int<:float subtyping admitted under the old spec (they would refine to self.refit_time_=int and fail the F2P isinstance(refit_time_, float)). All three now FAIL verification; the gold-faithful result=elapsed_between(start,end) verifies. Grounding (directive 8) preserved: elapsed_between models the REAL subtraction, not an oracle. clock_after reclassified A-consumed -> A-reference (it now justifies the end >= start precondition; axiom_check.py validates real time.time() against it). Spec applied identically to model.py and model_prepatch.py (same_spec: spec_view hashes match).",
+  "region_hashes": {
+    "axioms": "d94ca36651c398a6efebd10e727eaf9babe21999950f055bee7974be033a5bd2",
+    "impl": "be2be68a0cd7315520d6ee8f2dbef61fe83b0ef0d5d2a007b39314bb3c4147e5",
+    "post-conditions": "5e9534d644dc368a7935819fd252fbbdda03c9cbd8b478a946e0ea22858e304e",
+    "pre-conditions": "a78d4e3f2cca7ddee1e5f230f159aa766c3759ee9801c45a27758af507424a34",
+    "pure": "41b462a6bb145bdf605a499c48e67a330fe15fdbade202a3dfc79649e4ba90e3",
+    "spec_view": "cd65ca72265c2fd926956c3c7e5f586dec079e68095632ca478413867c67bfe8"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "0.20"
+}

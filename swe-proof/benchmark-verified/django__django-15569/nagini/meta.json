@@ -1,0 +1,540 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "884b4c27f506b3c29d58509fc83a35c30ea10d94",
+  "changed_files": [
+    "django/db/models/query_utils.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real RegisterLookupMixin subclasses, register/read/unregister sequences, deep model == real resolution over 4 boundary + 2000 fuzz name pairs in BOTH the fixed and the buggy removal states",
+      "encoded_property": "after delete+clear: the removed name is absent from the recomputed get_lookups() (view[name]==unregistered()); every OTHER registered name still resolves to its same lookup (view[other]==Old(view[other])); class_lookups no longer has the name (store[name]==unregistered()). The view models the EFFECTIVE post-recompute answer, not raw cache internals.",
+      "kind": "A-reference",
+      "models": "RegisterLookupMixin._clear_cached_lookups + the lru_cache-memoised get_lookups recompute (django/db/models/query_utils.py:196-199, 157-163)",
+      "name": "view-invalidation step (view[name] = unregistered())",
+      "provenance": "query_utils.py: get_lookups is @functools.lru_cache(maxsize=None); _clear_cached_lookups calls subclass.get_lookups.cache_clear() for cls and subclasses; reads (_get_lookup -> get_lookups().get(name)) answer from the memoised mapping. register_lookup (the correct sibling, line 208) already calls _clear_cached_lookups(); the gold patch adds the same call to _unregister_lookup. (_clear_cached_lookups renamed _clear_cached_class_lookups in later releases; axiom_check resolves whichever the tree provides.)",
+      "role": "deep model (impl region) of the added cache-invalidation operation; NOT a consumed axiom -- there is no @ContractOnly axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T06:40:10+00:00",
+      "code_version": "63df5ae21-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: under the gold behaviour (delete + clear cache, self-applied at runtime), the deep model (A-reference) == real RegisterLookupMixin lookup resolution on 10 boundary + 2000 fuzz + 5 read-range sequences (2 of the latter refuting a full-MRO binding of the enclosing layer, i.e. played on the real classes whose get_lookups override truncates the merge range; the other two families on a fresh real four-level hierarchy) (the target's own backing store loses the name; a read of the removed name reports exactly what the enclosing registration layer provides, via the real merge_dicts over the target's own probed read range -- nothing in the 526 non-shadowing sequences, the ANCESTOR's lookup in the 1489 sequences where an ancestor registers it too; unrelated names still resolve to the same lookup); under the base_commit removal (no cache clear) the stale memoised view STILL reports the target's own removed lookup, so the observable discriminates fixed from buggy in both families. A THIRD state was exercised on 513 sequences (3 of them on the real classes the F2P test uses): a COMPONENT-ONLY removal that deletes the local registration and brings only the target's own memoised read in line -- it satisfies both of the previous clauses and STILL leaves a read through a dependent subclass reporting the removed lookup, because get_lookups is memoised per class and only the real _clear_cached_lookups' walk over cls.__subclasses__() reaches those entries; so the A-reference's reader_view[name] == reader_rest[name] has observable content that view[name] == inherited[name] does not.",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "b087a1a8410c401e10870537a7c707c91f37ffa7cbd2204c2a3afbe72b88f554",
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T06:39:59+00:00",
+      "code_version": "63df5ae21-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 15,
+          "checked": 100022,
+          "component_only_controls": 277,
+          "component_only_discriminating": 277,
+          "disagreements": 0,
+          "f2p_component_only_controls": 1,
+          "f2p_component_only_discriminating": 1,
+          "f2p_shapes": 2,
+          "fuzz": 100000,
+          "inherited_shadowing_inputs": 34675,
+          "inherited_shadowing_overeager_controls": 142,
+          "inherited_shadowing_overeager_discriminating": 142,
+          "mutation_controls": 420,
+          "mutation_controls_degenerate_same_lookup_object": 53,
+          "mutation_controls_discriminating": 367,
+          "oracle": "called: RegisterLookupMixin._unregister_lookup (django/db/models/query_utils.py, gold-patched)",
+          "read_range_prepatch_controls": 5,
+          "read_range_prepatch_discriminating": 5,
+          "read_range_shapes": 5,
+          "read_range_shapes_refuting_full_mro_binding": 2,
+          "reader_sees_local_registration_inputs": 276,
+          "seed": 15569,
+          "shadow": "direct (contract-stripped impl region of model.py)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100022, \"disagreements\": 0, \"seed\": 15569, \"shadow\": \"direct (contract-stripped impl region of model.py)\", \"oracle\": \"called: RegisterLookupMixin._unregister_lookup (django/db/models/query_utils.py, gold-patched)\", \"boundary\": 15, \"f2p_shapes\": 2, \"read_range_shapes\": 5, \"read_range_shapes_refuting_full_mro_binding\": 2, \"read_range_prepatch_controls\": 5, \"read_range_prepatch_discriminating\": 5, \"fuzz\": 100000, \"mutation_controls\": 420, \"mutation_controls_discriminating\": 367, \"mutation_controls_degenerate_same_lookup_object\": 53, \"inherited_shadowing_inputs\": 34675, \"inherited_shadowing_overeager_controls\": 142, \"inherited_shadowing_overeager_discriminating\": 142, \"reader_sees_local_registration_inputs\": 276, \"component_only_controls\": 277, \"component_only_discriminating\": 277, \"f2p_component_only_controls\": 1, \"f2p_component_only_discriminating\": 1}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "087040cc0cc1102f9062a7b56fdbbc97c9f88da2ca244648ff16db867c336cdd",
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:19:06+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553",
+        "model_prepatch.py": "35ae3c0fc9ee232ca6355418d4d467c5239cb5d1b8d3548083bf257733b2c3fa"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T11:08:11+00:00",
+      "code_version": "1684194d9-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_9.py`, `atk_11.py`, `atk_14.py`, `atk_15.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_8.py`, `atk_10.py`, `atk_12.py`, `atk_13.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553",
+        "properties.py": "bf5a32989bbcc12595dc357294c49c107fb0192a8d55ee7d0c5b037513bbe713"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:20:00+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553",
+        "model_prepatch.py": "35ae3c0fc9ee232ca6355418d4d467c5239cb5d1b8d3548083bf257733b2c3fa"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T06:35:31+00:00",
+      "code_version": "3adb50a02-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "c56513d9e4863ccd72c95296023b1a77b726868abf0cc35f88105344cb640c7e",
+          "impl": "6b7f98e7d18fe0d331abc7ee3712ae813db40d4e7f4314b8423344972f3ec18b",
+          "post-conditions": "09d8b666d2e1d1930c322bf80313af6893e56ce820dd46168b96566cba743310",
+          "pre-conditions": "7b50e46423cd3cf945a4e0e735ffb0ca1b160b2375e07c11f7309fe66c5b8b15",
+          "pure": "f1f1b953afebba48f5d3d870d8600ae4b2f3f4016f541f8c845d0699c9cd4f56",
+          "spec_view": "9fe47775e60be7ad8d3090ace90716fba8668459e92387506a98262d03d8768d"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T06:35:31+00:00",
+      "code_version": "3adb50a02-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "502e1ae4bc5dcbda8b7e7219790f1c384f4b79f19af19dc0b881072d338621da",
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T06:35:31+00:00",
+      "code_version": "3adb50a02-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T06:34:35+00:00",
+      "code_version": "3adb50a02-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T11:08:12+00:00",
+      "code_version": "1684194d9-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SPEC REGION IDENTITY: `adversary same-spec nagini django__django-15569 atk.py` on an unmodified copy of model.py => exit 0 (\"SAME \u2014 attack shares the bundle's exact specification\"). model.py verifies under the pinned verifier (`scripts/nagini_verify.sh`, \"Verification successful\", 15.2s). model_prepatch.py FAILS on exactly the discriminating clause: `model_prepatch.py:218 Postcondition ... Assertion (view[name] == inherited[name]) might not hold` \u2014 so the spec is sharply localized to the added `cls._clear_cached_lookups()` and is not vacuous.\n\nREFERENCE USED: /tmp worktree of django_django.git at base_commit 884b4c27f5 with the gold hunk (`+cls._clear_cached_lookups()` in `RegisterLookupMixin._unregister_lookup`) APPLIED, per the task rule that the modelled function's reference is the patched tree. Base commit used only for the untouched collaborators (`get_lookups` lru_cache, `merge_dicts`, `subclasses`, `_clear_cached_lookups`, `ForeignObject.get_lookups`).\n\n*** ENVIRONMENT TRAP THAT ALMOST PRODUCED A FALSE UNFAITHFUL \u2014 the main finding of this run ***\nMy first three independent harnesses reported large, deterministic, reproducible disagreement counts (2614, 1756, 1272, and 4185 across exotic hierarchies), all of the shape `oracle view[name] = <the removed local token>` vs model `inherited[name]` \u2014 i.e. textbook PRE-PATCH stale-cache behavior, exactly the reject lane. Every one was an artifact. Root cause: top-level `django` resolved to an unrelated Django 3.2 alpha in which ``_unregister_lookup`` has no cache clear, and that copy took precedence over the working directory. So ANY `python script.py` measured the wrong, unpatched Django, while a stdin repro (`python - <<EOF`, where sys.path[0] is the working directory) measured the worktree. That is why hand-repros of the very same inputs always agreed while the scripts always \"disagreed\".\nHow it was caught: I ran MY OWN driver loop against the BUNDLE'S OWN unmodified 4-level hierarchy as a control \u2014 the bundle's full script passes 100022 inputs there, so any disagreement had to be mine. It reported 366/415. Diagnostic `python which.py` vs stdin showed `django:   PATCHED? False` vs `  PATCHED? True`. With `PYTHONPATH=<worktree>` the same control went to 0/415 and every prior \"disagreement\" evaporated. Two genuine bugs in my own harnesses were also found and fixed en route: `delattr(models.Field,'class_lookups')` DESTROYS Django's 17 builtin lookups process-wide and poisons all later cases; and `mappingproxy.pop` AttributeError. Consistent with memory: host/environment defects read as spec defects, and a retained attack label must not carry the oracle verdict.\n\nEVIDENCE AFTER FIXING THE ENVIRONMENT (all with PYTHONPATH forced to the patched worktree):\n1. Bundled G-CONF re-run in my own worktree: exit 0, 100022 Requires-satisfying inputs, 0 disagreements; 34675 inherited-shadowing inputs; 367/420 prepatch controls discriminating with the other 53 PROVEN degenerate (ancestor registers the removed name to the SAME lookup object, so the real repo's gold and prepatch post-states genuinely coincide); 142/142 over-eager controls; 277/277 component-only controls (276 inputs where the reader reports the local registration) \u2014 the per-reader clause has real observable content.\n2. Bundled G-AX re-run: exit 0; gold / prepatch / component-only all witnessed, 513 sequences witnessing the component-only state, 2 of 5 read-range shapes refuting a full-MRO binding.\n3. MY INDEPENDENT ATTACK on hierarchy families the bundle NEVER generates (its scenarios hardcode a linear 4-class chain with target at index 2), reusing the bundle's trusted priming/probing/abstraction/oracle-call and swapping only the class graph: DIAMOND with target on one side (reader merges a sibling the target does not), DIAMOND with target as the join class, COUSIN reader that does NOT reach the target, and READER-IS-AN-ANCESTOR. 4860 inputs total (1215 each), reader_sees_local 885+885, inherited_shadowing 224/407/407/407 => 0 DISAGREEMENTS. Multiple inheritance / MRO-merge order does not break `view[name]==inherited[name]` or `reader_view[name]==reader_rest[name]`.\n4. PRECONDITION STRENGTH (the real over-strong risk): 4000 deliberately perturbed reachable states (removing the other_name() registration, forcing an ancestor to register the removed name to the same variant) => 4000/4000 ADMITTED, zero excluded by any clause, and zero admitted-but-disagreeing. Both F2P shapes and all 5 read-range shapes admitted with 0 errors. The Requires are satisfied by the states the F2P tests actually produce, so the spec is not over-strong.\n5. Hand-confirmed the two semantic claims that would make the spec over-claim if wrong: (a) RESURFACING is EXACT, not absence \u2014 ancestor P registers 'zz'->LkA, child C registers 'zz'->LkB; after `C._unregister_lookup` a read of C returns LkA (so `view[name]==inherited[name]`, and the stronger `view[name]==unregistered()` would be UNSATISFIABLE by the real code, vindicating the fallback formulation); (b) the ForeignObject TRUNCATION is honoured \u2014 'zz' registered on Field is NOT visible to ForeignObject (`'zz' in FO.get_lookups()` False), and after removing FO's own 'zz' the read is None rather than Field's LkA, so binding `inherited` to the full MRO would invert the claim on that family. mapping.md binds it to the probed read range, which is correct.\n6. Also confirmed the load-bearing lru_cache fact: `get_lookups` is `@functools.lru_cache` on the classmethod, so `B.get_lookups.cache_clear()` clears the SHARED wrapper (currsize 2->0) while each class is a DISTINCT cache KEY holding a distinct merged dict \u2014 which is why the `subclasses(cls)` walk is needed and why `reader_view` is a genuinely separate observable held at full permission.\n\nCONCLUSION: no diverging input exists between the modelled `remove_registration` and the real patched `_unregister_lookup` on any reachable state I could construct, including hierarchy families outside the bundle's generator. `inherited`/`reader_rest` at half permission match the real removal touching only `cls.class_lookups` (frame verified: no change to either carrier across all runs). Verdict FAITHFUL \u2014 the spec does not drift from and is not stronger than real repo behavior. Anyone re-auditing this cell must pin the import to the base_commit worktree (or run the probe via stdin); an unpatched Django reached by any other route silently substitutes itself and manufactures a full set of prepatch-shaped 'divergences'.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE / IDENTITY. Judged the consumer spec view I regenerated myself: markers.spec_view(model.py, get_backend('nagini')) -> leak15569_specview.txt, 251 lines; diff against model.py shows the ONLY difference is the 3-line impl region replaced by '...  # implementation elided \u2014 supplied by the consumer', so the elision is present and nothing else is hidden. model.py sha256 = ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553, which equals meta.gates['G-LEAK'].sources['model.py'] exactly, so I judged the same bytes the G-LEAK gate did. Positive control: `python -m swebench_unified.adversary same-spec nagini django__django-15569 <bundle model.py copy>` -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification'.\n\nNO RELAXATION IN THIS BUNDLE. `'relaxed_leakage' in meta` -> False (top keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); no RELAXED_LEAKAGE.md (ls | grep -i relax -> empty). So this is a plain strict-mode review, no inherited disposition to re-derive.\n\nNO REVIEWER-DIRECTED CONTENT. Ran leakage.reviewer_directed() over every non-directory file in the bundle (model.py, model_prepatch.py, refinement.md, mapping.md, properties.py, axiom_check.py, conformance_check.py, meta.json, verdict.md, pbt_result.json, plus one transient build artifact) -> 'clean' on all four rules for all 11 files. Hand-grepped additionally for 'you are/should/must', 'your verdict', 'the honest/correct verdict', 'submit', 'NO-LEAKAGE', 'record ... verdict', 'do not report/flag', 'ignore previous' -> the only hits are inside verdict.md, which is the pipeline's own record of PRIOR audit-role outcomes (it reports past statuses; it does not address me or prescribe a recording). Nothing in the bundle tells me what to submit.\n\nMECHANICAL SCREEN (re-derived, not trusted). leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. I re-derived its inputs from data/swe_bench_verified/test.jsonl: changed_lines = ['cls._clear_cached_lookups()']; changed_files = ['django/db/models/query_utils.py']; changed_symbols = {'unregister_lookup'}. That sole changed symbol is exempt under the screen's own rule ONLY because it is public \u2014 and I confirmed that independently: the problem_statement literally reads 'RegisterLookupMixin._unregister_lookup() should clear the lookup cache' and 'in the _unregister_lookup method, ... the cache is not cleared, which should be done, as it is done in register_lookup'. So the exemption is not taken on faith.\n\nVOCABULARY SWEEP of the 251-line spec view (case-insensitive counts): clear_cached 0, cached_lookups 0, class_lookups 0, get_lookups 0, cache_clear 0, query_utils 0, lru 0, functools 0, merge_dicts 0, foreignobject 0, registerlookupmixin 0, mro 0, 'cls.' 0, '_unregister' 0, 'register_lookup' 0, 'subclasses(' 0, stale 0, invalidat 0, field 0, transform 0, constraint 0, schema 0, test 0. The 14 'unregister' hits are all the model's own carrier sentinel `unregistered()` (a Dict-state value, not the repo symbol) \u2014 verified line by line. 'django' occurs twice, both in the instance-id string on docstring line 1 ('Twin-artifact model for django__django-15569'), the task identifier the consumer already has. 'lookup' occurs once, as the generic English 'derived lookup view' (line 10), which is weaker than the problem_statement's own 'the lookup cache'.\n\nDIRECTION-OF-LEAKAGE CHECK. The public problem_statement already discloses the discriminator outright: which method (_unregister_lookup), which file (query_utils.py, by URL), what to do (clear the cache), and the precedent (as register_lookup does). Substring checks on the lowercased statement: '_unregister_lookup' True, 'cache' True, 'clear' True, 'register_lookup' True, 'not cleared' True, 'query_utils' True. The spec view is strictly MORE abstract than the statement \u2014 generic 'registry component / local backing store / enclosing registration layer / derived memoised view', zero Django symbols. Nothing in the view narrows the solver's search beyond what the public issue gives.\n\nLOAD-BEARING (strip-the-narration) MEASUREMENT \u2014 run even though no relaxation is claimed, because the shipped model.py is a NEWER revision than the one the recorded Role-4 note in verdict.md reviewed (that note cites 505f2171.../169 lines; the live file is ad86deb5.../251 lines and adds the reader_view/reader_rest carriers), so I re-measured rather than inheriting. Built gold_nc.py and pre_nc.py = model.py / model_prepatch.py with the module docstring collapsed to '\\\"\\\"\\\"m\\\"\\\"\\\"' and EVERY non-marker comment tokenize-deleted (10 region markers preserved; 0 prose comments left). `bash scripts/nagini_verify.sh gold_nc.py` -> exit 0, 'Verification successful' (16.03s). `bash scripts/nagini_verify.sh pre_nc.py` -> exit 1, 'pre_nc.py:64:13: Postcondition of remove_registration might not hold. Assertion (view[name] == inherited[name]) might not hold.' So with 100% of the narration removed the spec still verifies against the gold impl and still REJECTS the PRE-patch impl on exactly the clause G-DIFF reports. The discriminator is carried entirely by the formal clauses Ensures(view[name] == inherited[name]) and Ensures(reader_view[name] == reader_rest[name]) over the model's own abstract carriers \u2014 no comment in the view is load-bearing for the leak question, and none names the edit.\n\nNARRATION CHECK. The _NARRATION vocabulary (bug/fix/patch/stale/previously/incorrectly/wrong/broken/regression/off-by-one) does not fire anywhere in the view. The failing shape is described as an unlabelled behavioural alternative ('a removal that updates only the local store but leaves memoised answers reporting the old answer', 'view-blind removal (store-only)') \u2014 behaviour under specification, not an edit narrative, and downstream of a problem_statement that already says the cache is not cleared.\n\nINCIDENTAL, NOT A LEAKAGE FINDING (recorded so it is on the record for the integrity/hygiene lane): meta.json's TOP-LEVEL region_hashes block is stale against the shipped model.py \u2014 recomputed markers.region_hashes gives axioms c56513d9..., pure f1f1b953..., pre-conditions 7b50e464..., post-conditions 09d8b666..., impl 6b7f98e7..., spec_view 9fe47775..., whereas meta records 3f157be9/a9b31e0c/242e444d/26f58f2e/19b2eaa0/e80ae03c \u2014 all six differ (note this also differs from the earlier recorded note, which found `axioms` agreeing, consistent with model.py having moved again since). The gate that actually consumes the model bytes for MY question, G-LEAK, records the correct live sha (ad86deb5...), and I regenerated the spec view from model.py directly rather than trusting any recorded hash, so this has no bearing on leakage. Also noting for context (not my axis): verdict.md records G-PANEL-1 fail and an older G-PANEL/G-EQ source sha; a weakness or faithfulness defect is a different axis and would not become a leak either way \u2014 I did not re-adjudicate it.\n\nCONCLUSION: NO-LEAKAGE. The current spec view reproduces no gold-patch line, contains no diff marker, names no patched file or module path, contains no identifier or comment embedding a patched repo symbol outside the public problem_statement, and carries no bug/fix narration; the discriminator is formal-clause-borne (proved by the narration-stripped verify/reject pair above), and independently the gold edit's content is already fully public in the problem_statement, so the view leaks nothing the solver does not already have.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SPEC REGION IDENTITY: `adversary same-spec nagini django__django-15569 atk.py` on an unmodified copy of model.py => exit 0 (\"SAME \u2014 attack shares the bundle's exact specification\"). model.py verifies under the pinned verifier (`scripts/nagini_verify.sh`, \"Verification successful\", 15.2s). model_prepatch.py FAILS on exactly the discriminating clause: `model_prepatch.py:218 Postcondition ... Assertion (view[name] == inherited[name]) might not hold` \u2014 so the spec is sharply localized to the added `cls._clear_cached_lookups()` and is not vacuous.\n\nREFERENCE USED: /tmp worktree of django_django.git at base_commit 884b4c27f5 with the gold hunk (`+cls._clear_cached_lookups()` in `RegisterLookupMixin._unregister_lookup`) APPLIED, per the task rule that the modelled function's reference is the patched tree. Base commit used only for the untouched collaborators (`get_lookups` lru_cache, `merge_dicts`, `subclasses`, `_clear_cached_lookups`, `ForeignObject.get_lookups`).\n\n*** ENVIRONMENT TRAP THAT ALMOST PRODUCED A FALSE UNFAITHFUL \u2014 the main finding of this run ***\nMy first three independent harnesses reported large, deterministic, reproducible disagreement counts (2614, 1756, 1272, and 4185 across exotic hierarchies), all of the shape `oracle view[name] = <the removed local token>` vs model `inherited[name]` \u2014 i.e. textbook PRE-PATCH stale-cache behavior, exactly the reject lane. Every one was an artifact. Root cause: top-level `django` resolved to an unrelated Django 3.2 alpha in which ``_unregister_lookup`` has no cache clear, and that copy took precedence over the working directory. So ANY `python script.py` measured the wrong, unpatched Django, while a stdin repro (`python - <<EOF`, where sys.path[0] is the working directory) measured the worktree. That is why hand-repros of the very same inputs always agreed while the scripts always \"disagreed\".\nHow it was caught: I ran MY OWN driver loop against the BUNDLE'S OWN unmodified 4-level hierarchy as a control \u2014 the bundle's full script passes 100022 inputs there, so any disagreement had to be mine. It reported 366/415. Diagnostic `python which.py` vs stdin showed `django:   PATCHED? False` vs `  PATCHED? True`. With `PYTHONPATH=<worktree>` the same control went to 0/415 and every prior \"disagreement\" evaporated. Two genuine bugs in my own harnesses were also found and fixed en route: `delattr(models.Field,'class_lookups')` DESTROYS Django's 17 builtin lookups process-wide and poisons all later cases; and `mappingproxy.pop` AttributeError. Consistent with memory: host/environment defects read as spec defects, and a retained attack label must not carry the oracle verdict.\n\nEVIDENCE AFTER FIXING THE ENVIRONMENT (all with PYTHONPATH forced to the patched worktree):\n1. Bundled G-CONF re-run in my own worktree: exit 0, 100022 Requires-satisfying inputs, 0 disagreements; 34675 inherited-shadowing inputs; 367/420 prepatch controls discriminating with the other 53 PROVEN degenerate (ancestor registers the removed name to the SAME lookup object, so the real repo's gold and prepatch post-states genuinely coincide); 142/142 over-eager controls; 277/277 component-only controls (276 inputs where the reader reports the local registration) \u2014 the per-reader clause has real observable content.\n2. Bundled G-AX re-run: exit 0; gold / prepatch / component-only all witnessed, 513 sequences witnessing the component-only state, 2 of 5 read-range shapes refuting a full-MRO binding.\n3. MY INDEPENDENT ATTACK on hierarchy families the bundle NEVER generates (its scenarios hardcode a linear 4-class chain with target at index 2), reusing the bundle's trusted priming/probing/abstraction/oracle-call and swapping only the class graph: DIAMOND with target on one side (reader merges a sibling the target does not), DIAMOND with target as the join class, COUSIN reader that does NOT reach the target, and READER-IS-AN-ANCESTOR. 4860 inputs total (1215 each), reader_sees_local 885+885, inherited_shadowing 224/407/407/407 => 0 DISAGREEMENTS. Multiple inheritance / MRO-merge order does not break `view[name]==inherited[name]` or `reader_view[name]==reader_rest[name]`.\n4. PRECONDITION STRENGTH (the real over-strong risk): 4000 deliberately perturbed reachable states (removing the other_name() registration, forcing an ancestor to register the removed name to the same variant) => 4000/4000 ADMITTED, zero excluded by any clause, and zero admitted-but-disagreeing. Both F2P shapes and all 5 read-range shapes admitted with 0 errors. The Requires are satisfied by the states the F2P tests actually produce, so the spec is not over-strong.\n5. Hand-confirmed the two semantic claims that would make the spec over-claim if wrong: (a) RESURFACING is EXACT, not absence \u2014 ancestor P registers 'zz'->LkA, child C registers 'zz'->LkB; after `C._unregister_lookup` a read of C returns LkA (so `view[name]==inherited[name]`, and the stronger `view[name]==unregistered()` would be UNSATISFIABLE by the real code, vindicating the fallback formulation); (b) the ForeignObject TRUNCATION is honoured \u2014 'zz' registered on Field is NOT visible to ForeignObject (`'zz' in FO.get_lookups()` False), and after removing FO's own 'zz' the read is None rather than Field's LkA, so binding `inherited` to the full MRO would invert the claim on that family. mapping.md binds it to the probed read range, which is correct.\n6. Also confirmed the load-bearing lru_cache fact: `get_lookups` is `@functools.lru_cache` on the classmethod, so `B.get_lookups.cache_clear()` clears the SHARED wrapper (currsize 2->0) while each class is a DISTINCT cache KEY holding a distinct merged dict \u2014 which is why the `subclasses(cls)` walk is needed and why `reader_view` is a genuinely separate observable held at full permission.\n\nCONCLUSION: no diverging input exists between the modelled `remove_registration` and the real patched `_unregister_lookup` on any reachable state I could construct, including hierarchy families outside the bundle's generator. `inherited`/`reader_rest` at half permission match the real removal touching only `cls.class_lookups` (frame verified: no change to either carrier across all runs). Verdict FAITHFUL \u2014 the spec does not drift from and is not stronger than real repo behavior. Anyone re-auditing this cell must pin the import to the base_commit worktree (or run the probe via stdin); an unpatched Django reached by any other route silently substitutes itself and manufactures a full set of prepatch-shaped 'divergences'.; G-PANEL-3 (leakage): pass \u2014 SCOPE / IDENTITY. Judged the consumer spec view I regenerated myself: markers.spec_view(model.py, get_backend('nagini')) -> leak15569_specview.txt, 251 lines; diff against model.py shows the ONLY difference is the 3-line impl region replaced by '...  # implementation elided \u2014 supplied by the consumer', so the elision is present and nothing else is hidden. model.py sha256 = ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553, which equals meta.gates['G-LEAK'].sources['model.py'] exactly, so I judged the same bytes the G-LEAK gate did. Positive control: `python -m swebench_unified.adversary same-spec nagini django__django-15569 <bundle model.py copy>` -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification'.\n\nNO RELAXATION IN THIS BUNDLE. `'relaxed_leakage' in meta` -> False (top keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); no RELAXED_LEAKAGE.md (ls | grep -i relax -> empty). So this is a plain strict-mode review, no inherited disposition to re-derive.\n\nNO REVIEWER-DIRECTED CONTENT. Ran leakage.reviewer_directed() over every non-directory file in the bundle (model.py, model_prepatch.py, refinement.md, mapping.md, properties.py, axiom_check.py, conformance_check.py, meta.json, verdict.md, pbt_result.json, plus one transient build artifact) -> 'clean' on all four rules for all 11 files. Hand-grepped additionally for 'you are/should/must', 'your verdict', 'the honest/correct verdict', 'submit', 'NO-LEAKAGE', 'record ... verdict', 'do not report/flag', 'ignore previous' -> the only hits are inside verdict.md, which is the pipeline's own record of PRIOR audit-role outcomes (it reports past statuses; it does not address me or prescribe a recording). Nothing in the bundle tells me what to submit.\n\nMECHANICAL SCREEN (re-derived, not trusted). leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. I re-derived its inputs from data/swe_bench_verified/test.jsonl: changed_lines = ['cls._clear_cached_lookups()']; changed_files = ['django/db/models/query_utils.py']; changed_symbols = {'unregister_lookup'}. That sole changed symbol is exempt under the screen's own rule ONLY because it is public \u2014 and I confirmed that independently: the problem_statement literally reads 'RegisterLookupMixin._unregister_lookup() should clear the lookup cache' and 'in the _unregister_lookup method, ... the cache is not cleared, which should be done, as it is done in register_lookup'. So the exemption is not taken on faith.\n\nVOCABULARY SWEEP of the 251-line spec view (case-insensitive counts): clear_cached 0, cached_lookups 0, class_lookups 0, get_lookups 0, cache_clear 0, query_utils 0, lru 0, functools 0, merge_dicts 0, foreignobject 0, registerlookupmixin 0, mro 0, 'cls.' 0, '_unregister' 0, 'register_lookup' 0, 'subclasses(' 0, stale 0, invalidat 0, field 0, transform 0, constraint 0, schema 0, test 0. The 14 'unregister' hits are all the model's own carrier sentinel `unregistered()` (a Dict-state value, not the repo symbol) \u2014 verified line by line. 'django' occurs twice, both in the instance-id string on docstring line 1 ('Twin-artifact model for django__django-15569'), the task identifier the consumer already has. 'lookup' occurs once, as the generic English 'derived lookup view' (line 10), which is weaker than the problem_statement's own 'the lookup cache'.\n\nDIRECTION-OF-LEAKAGE CHECK. The public problem_statement already discloses the discriminator outright: which method (_unregister_lookup), which file (query_utils.py, by URL), what to do (clear the cache), and the precedent (as register_lookup does). Substring checks on the lowercased statement: '_unregister_lookup' True, 'cache' True, 'clear' True, 'register_lookup' True, 'not cleared' True, 'query_utils' True. The spec view is strictly MORE abstract than the statement \u2014 generic 'registry component / local backing store / enclosing registration layer / derived memoised view', zero Django symbols. Nothing in the view narrows the solver's search beyond what the public issue gives.\n\nLOAD-BEARING (strip-the-narration) MEASUREMENT \u2014 run even though no relaxation is claimed, because the shipped model.py is a NEWER revision than the one the recorded Role-4 note in verdict.md reviewed (that note cites 505f2171.../169 lines; the live file is ad86deb5.../251 lines and adds the reader_view/reader_rest carriers), so I re-measured rather than inheriting. Built gold_nc.py and pre_nc.py = model.py / model_prepatch.py with the module docstring collapsed to '\\\"\\\"\\\"m\\\"\\\"\\\"' and EVERY non-marker comment tokenize-deleted (10 region markers preserved; 0 prose comments left). `bash scripts/nagini_verify.sh gold_nc.py` -> exit 0, 'Verification successful' (16.03s). `bash scripts/nagini_verify.sh pre_nc.py` -> exit 1, 'pre_nc.py:64:13: Postcondition of remove_registration might not hold. Assertion (view[name] == inherited[name]) might not hold.' So with 100% of the narration removed the spec still verifies against the gold impl and still REJECTS the PRE-patch impl on exactly the clause G-DIFF reports. The discriminator is carried entirely by the formal clauses Ensures(view[name] == inherited[name]) and Ensures(reader_view[name] == reader_rest[name]) over the model's own abstract carriers \u2014 no comment in the view is load-bearing for the leak question, and none names the edit.\n\nNARRATION CHECK. The _NARRATION vocabulary (bug/fix/patch/stale/previously/incorrectly/wrong/broken/regression/off-by-one) does not fire anywhere in the view. The failing shape is described as an unlabelled behavioural alternative ('a removal that updates only the local store but leaves memoised answers reporting the old answer', 'view-blind removal (store-only)') \u2014 behaviour under specification, not an edit narrative, and downstream of a problem_statement that already says the cache is not cleared.\n\nINCIDENTAL, NOT A LEAKAGE FINDING (recorded so it is on the record for the integrity/hygiene lane): meta.json's TOP-LEVEL region_hashes block is stale against the shipped model.py \u2014 recomputed markers.region_hashes gives axioms c56513d9..., pure f1f1b953..., pre-conditions 7b50e464..., post-conditions 09d8b666..., impl 6b7f98e7..., spec_view 9fe47775..., whereas meta records 3f157be9/a9b31e0c/242e444d/26f58f2e/19b2eaa0/e80ae03c \u2014 all six differ (note this also differs from the earlier recorded note, which found `axioms` agreeing, consistent with model.py having moved again since). The gate that actually consumes the model bytes for MY question, G-LEAK, records the correct live sha (ad86deb5...), and I regenerated the spec view from model.py directly rather than trusting any recorded hash, so this has no bearing on leakage. Also noting for context (not my axis): verdict.md records G-PANEL-1 fail and an older G-PANEL/G-EQ source sha; a weakness or faithfulness defect is a different axis and would not become a leak either way \u2014 I did not re-adjudicate it.\n\nCONCLUSION: NO-LEAKAGE. The current spec view reproduces no gold-patch line, contains no diff marker, names no patched file or module path, contains no identifier or comment embedding a patched repo symbol outside the public problem_statement, and carries no bug/fix narration; the discriminator is formal-clause-borne (proved by the narration-stripped verify/reject pair above), and independently the gold edit's content is already fully public in the problem_statement, so the view leaks nothing the solver does not already have.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553",
+        "properties.py": "bf5a32989bbcc12595dc357294c49c107fb0192a8d55ee7d0c5b037513bbe713"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T11:08:11+00:00",
+      "code_version": "1684194d9-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_9.py`, `atk_11.py`, `atk_14.py`, `atk_15.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_8.py`, `atk_10.py`, `atk_12.py`, `atk_13.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553",
+        "properties.py": "bf5a32989bbcc12595dc357294c49c107fb0192a8d55ee7d0c5b037513bbe713"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T10:10:31+00:00",
+      "code_version": "dd6644da7-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SPEC REGION IDENTITY: `adversary same-spec nagini django__django-15569 atk.py` on an unmodified copy of model.py => exit 0 (\"SAME \u2014 attack shares the bundle's exact specification\"). model.py verifies under the pinned verifier (`scripts/nagini_verify.sh`, \"Verification successful\", 15.2s). model_prepatch.py FAILS on exactly the discriminating clause: `model_prepatch.py:218 Postcondition ... Assertion (view[name] == inherited[name]) might not hold` \u2014 so the spec is sharply localized to the added `cls._clear_cached_lookups()` and is not vacuous.\n\nREFERENCE USED: /tmp worktree of django_django.git at base_commit 884b4c27f5 with the gold hunk (`+cls._clear_cached_lookups()` in `RegisterLookupMixin._unregister_lookup`) APPLIED, per the task rule that the modelled function's reference is the patched tree. Base commit used only for the untouched collaborators (`get_lookups` lru_cache, `merge_dicts`, `subclasses`, `_clear_cached_lookups`, `ForeignObject.get_lookups`).\n\n*** ENVIRONMENT TRAP THAT ALMOST PRODUCED A FALSE UNFAITHFUL \u2014 the main finding of this run *** My first three independent harnesses reported large, deterministic, reproducible disagreement counts (2614, 1756, 1272, and 4185 across exotic hierarchies), all of the shape `oracle view[name] = <the removed local token>` vs model `inherited[name]` \u2014 i.e. textbook PRE-PATCH stale-cache behavior, exactly the reject lane. Every one was an artifact. Root cause: top-level `django` resolved to an unrelated Django 3.2 alpha in which ``_unregister_lookup`` has no cache clear, and that copy took precedence over the working directory.\n\nSo ANY `python script.py` measured the wrong, unpatched Django, while a stdin repro (`python - <<EOF`, where sys.path[0] is the working directory) measured the worktree. That is why hand-repros of the very same inputs always agreed while the scripts always \"disagreed\". How it was caught: I ran MY OWN driver loop against the BUNDLE'S OWN unmodified 4-level hierarchy as a control \u2014 the bundle's full script passes 100022 inputs there, so any disagreement had to be mine. It reported 366/415. Diagnostic `python which.py` vs stdin showed `django:   PATCHED? False` vs `  PATCHED? True`. With `PYTHONPATH=<worktree>` the same control went to 0/415 and every prior \"disagreement\" evaporated.\n\nTwo genuine bugs in my own harnesses were also found and fixed en route: `delattr(models.Field,'class_lookups')` DESTROYS Django's 17 builtin lookups process-wide and poisons all later cases; and `mappingproxy.pop` AttributeError. Consistent with memory: host/environment defects read as spec defects, and a retained attack label must not carry the oracle verdict.\n\nEVIDENCE AFTER FIXING THE ENVIRONMENT (all with PYTHONPATH forced to the patched worktree):\n1. Bundled G-CONF re-run in my own worktree: exit 0, 100022 Requires-satisfying inputs, 0 disagreements; 34675 inherited-shadowing inputs; 367/420 prepatch controls discriminating with the other 53 PROVEN degenerate (ancestor registers the removed name to the SAME lookup object, so the real repo's gold and prepatch post-states genuinely coincide); 142/142 over-eager controls; 277/277 component-only controls (276 inputs where the reader reports the local registration) \u2014 the per-reader clause has real observable content.\n2. Bundled G-AX re-run: exit 0; gold / prepatch / component-only all witnessed, 513 sequences witnessing the component-only state, 2 of 5 read-range shapes refuting a full-MRO binding.\n3. MY INDEPENDENT ATTACK on hierarchy families the bundle NEVER generates (its scenarios hardcode a linear 4-class chain with target at index 2), reusing the bundle's trusted priming/probing/abstraction/oracle-call and swapping only the class graph: DIAMOND with target on one side (reader merges a sibling the target does not), DIAMOND with target as the join class, COUSIN reader that does NOT reach the target, and READER-IS-AN-ANCESTOR. 4860 inputs total (1215 each), reader_sees_local 885+885, inherited_shadowing 224/407/407/407 => 0 DISAGREEMENTS. Multiple inheritance / MRO-merge order does not break `view[name]==inherited[name]` or `reader_view[name]==reader_rest[name]`.\n4. PRECONDITION STRENGTH (the real over-strong risk): 4000 deliberately perturbed reachable states (removing the other_name() registration, forcing an ancestor to register the removed name to the same variant) => 4000/4000 ADMITTED, zero excluded by any clause, and zero admitted-but-disagreeing. Both F2P shapes and all 5 read-range shapes admitted with 0 errors. The Requires are satisfied by the states the F2P tests actually produce, so the spec is not over-strong.\n5. Hand-confirmed the two semantic claims that would make the spec over-claim if wrong: (a) RESURFACING is EXACT, not absence \u2014 ancestor P registers 'zz'->LkA, child C registers 'zz'->LkB; after `C._unregister_lookup` a read of C returns LkA (so `view[name]==inherited[name]`, and the stronger `view[name]==unregistered()` would be UNSATISFIABLE by the real code, vindicating the fallback formulation); (b) the ForeignObject TRUNCATION is honoured \u2014 'zz' registered on Field is NOT visible to ForeignObject (`'zz' in FO.get_lookups()` False), and after removing FO's own 'zz' the read is None rather than Field's LkA, so binding `inherited` to the full MRO would invert the claim on that family. mapping.md binds it to the probed read range, which is correct.\n6. Also confirmed the load-bearing lru_cache fact: `get_lookups` is `@functools.lru_cache` on the classmethod, so `B.get_lookups.cache_clear()` clears the SHARED wrapper (currsize 2->0) while each class is a DISTINCT cache KEY holding a distinct merged dict \u2014 which is why the `subclasses(cls)` walk is needed and why `reader_view` is a genuinely separate observable held at full permission.\n\nCONCLUSION: no diverging input exists between the modelled `remove_registration` and the real patched `_unregister_lookup` on any reachable state I could construct, including hierarchy families outside the bundle's generator. `inherited`/`reader_rest` at half permission match the real removal touching only `cls.class_lookups` (frame verified: no change to either carrier across all runs). Verdict FAITHFUL \u2014 the spec does not drift from and is not stronger than real repo behavior. Anyone re-auditing this cell must pin the import to the base_commit worktree (or run the probe via stdin); an unpatched Django reached by any other route silently substitutes itself and manufactures a full set of prepatch-shaped 'divergences'.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T10:12:02+00:00",
+      "code_version": "dd6644da7-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE / IDENTITY. Judged the consumer spec view I regenerated myself: markers.spec_view(model.py, get_backend('nagini')) -> leak15569_specview.txt, 251 lines; diff against model.py shows the ONLY difference is the 3-line impl region replaced by '...  # implementation elided \u2014 supplied by the consumer', so the elision is present and nothing else is hidden. model.py sha256 = ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553, which equals meta.gates['G-LEAK'].sources['model.py'] exactly, so I judged the same bytes the G-LEAK gate did. Positive control: `python -m swebench_unified.adversary same-spec nagini django__django-15569 <bundle model.py copy>` -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification'.\n\nNO RELAXATION IN THIS BUNDLE. `'relaxed_leakage' in meta` -> False (top keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); no RELAXED_LEAKAGE.md (ls | grep -i relax -> empty). So this is a plain strict-mode review, no inherited disposition to re-derive.\n\nNO REVIEWER-DIRECTED CONTENT. Ran leakage.reviewer_directed() over every non-directory file in the bundle (model.py, model_prepatch.py, refinement.md, mapping.md, properties.py, axiom_check.py, conformance_check.py, meta.json, verdict.md, pbt_result.json, plus one transient build artifact) -> 'clean' on all four rules for all 11 files. Hand-grepped additionally for 'you are/should/must', 'your verdict', 'the honest/correct verdict', 'submit', 'NO-LEAKAGE', 'record ... verdict', 'do not report/flag', 'ignore previous' -> the only hits are inside verdict.md, which is the pipeline's own record of PRIOR audit-role outcomes (it reports past statuses; it does not address me or prescribe a recording). Nothing in the bundle tells me what to submit.\n\nMECHANICAL SCREEN (re-derived, not trusted). leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. I re-derived its inputs from data/swe_bench_verified/test.jsonl: changed_lines = ['cls._clear_cached_lookups()']; changed_files = ['django/db/models/query_utils.py']; changed_symbols = {'unregister_lookup'}. That sole changed symbol is exempt under the screen's own rule ONLY because it is public \u2014 and I confirmed that independently: the problem_statement literally reads 'RegisterLookupMixin._unregister_lookup() should clear the lookup cache' and 'in the _unregister_lookup method, ... the cache is not cleared, which should be done, as it is done in register_lookup'. So the exemption is not taken on faith.\n\nVOCABULARY SWEEP of the 251-line spec view (case-insensitive counts): clear_cached 0, cached_lookups 0, class_lookups 0, get_lookups 0, cache_clear 0, query_utils 0, lru 0, functools 0, merge_dicts 0, foreignobject 0, registerlookupmixin 0, mro 0, 'cls.' 0, '_unregister' 0, 'register_lookup' 0, 'subclasses(' 0, stale 0, invalidat 0, field 0, transform 0, constraint 0, schema 0, test 0. The 14 'unregister' hits are all the model's own carrier sentinel `unregistered()` (a Dict-state value, not the repo symbol) \u2014 verified line by line. 'django' occurs twice, both in the instance-id string on docstring line 1 ('Twin-artifact model for django__django-15569'), the task identifier the consumer already has. 'lookup' occurs once, as the generic English 'derived lookup view' (line 10), which is weaker than the problem_statement's own 'the lookup cache'.\n\nDIRECTION-OF-LEAKAGE CHECK. The public problem_statement already discloses the discriminator outright: which method (_unregister_lookup), which file (query_utils.py, by URL), what to do (clear the cache), and the precedent (as register_lookup does). Substring checks on the lowercased statement: '_unregister_lookup' True, 'cache' True, 'clear' True, 'register_lookup' True, 'not cleared' True, 'query_utils' True. The spec view is strictly MORE abstract than the statement \u2014 generic 'registry component / local backing store / enclosing registration layer / derived memoised view', zero Django symbols. Nothing in the view narrows the solver's search beyond what the public issue gives.\n\nLOAD-BEARING (strip-the-narration) MEASUREMENT \u2014 run even though no relaxation is claimed, because the shipped model.py is a NEWER revision than the one the recorded Role-4 note in verdict.md reviewed (that note cites 505f2171.../169 lines; the live file is ad86deb5.../251 lines and adds the reader_view/reader_rest carriers), so I re-measured rather than inheriting. Built gold_nc.py and pre_nc.py = model.py / model_prepatch.py with the module docstring collapsed to '\\\"\\\"\\\"m\\\"\\\"\\\"' and EVERY non-marker comment tokenize-deleted (10 region markers preserved; 0 prose comments left). `bash scripts/nagini_verify.sh gold_nc.py` -> exit 0, 'Verification successful' (16.03s). `bash scripts/nagini_verify.sh pre_nc.py` -> exit 1, 'pre_nc.py:64:13: Postcondition of remove_registration might not hold.\n\nAssertion (view[name] == inherited[name]) might not hold.' So with 100% of the narration removed the spec still verifies against the gold impl and still REJECTS the PRE-patch impl on exactly the clause G-DIFF reports. The discriminator is carried entirely by the formal clauses Ensures(view[name] == inherited[name]) and Ensures(reader_view[name] == reader_rest[name]) over the model's own abstract carriers \u2014 no comment in the view is load-bearing for the leak question, and none names the edit.\n\nNARRATION CHECK. The _NARRATION vocabulary (bug/fix/patch/stale/previously/incorrectly/wrong/broken/regression/off-by-one) does not fire anywhere in the view. The failing shape is described as an unlabelled behavioural alternative ('a removal that updates only the local store but leaves memoised answers reporting the old answer', 'view-blind removal (store-only)') \u2014 behaviour under specification, not an edit narrative, and downstream of a problem_statement that already says the cache is not cleared.\n\nINCIDENTAL, NOT A LEAKAGE FINDING (recorded so it is on the record for the integrity/hygiene lane): meta.json's TOP-LEVEL region_hashes block is stale against the shipped model.py \u2014 recomputed markers.region_hashes gives axioms c56513d9..., pure f1f1b953..., pre-conditions 7b50e464..., post-conditions 09d8b666..., impl 6b7f98e7..., spec_view 9fe47775..., whereas meta records 3f157be9/a9b31e0c/242e444d/26f58f2e/19b2eaa0/e80ae03c \u2014 all six differ (note this also differs from the earlier recorded note, which found `axioms` agreeing, consistent with model.py having moved again since). The gate that actually consumes the model bytes for MY question, G-LEAK, records the correct live sha (ad86deb5...), and I regenerated the spec view from model.py directly rather than trusting any recorded hash, so this has no bearing on leakage. Also noting for context (not my axis): verdict.md records G-PANEL-1 fail and an older G-PANEL/G-EQ source sha; a weakness or faithfulness defect is a different axis and would not become a leak either way \u2014 I did not re-adjudicate it.\n\nCONCLUSION: NO-LEAKAGE. The current spec view reproduces no gold-patch line, contains no diff marker, names no patched file or module path, contains no identifier or comment embedding a patched repo symbol outside the public problem_statement, and carries no bug/fix narration; the discriminator is formal-clause-borne (proved by the narration-stripped verify/reject pair above), and independently the gold edit's content is already fully public in the problem_statement, so the view leaks nothing the solver does not already have.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:35:35+00:00",
+      "code_version": "f2e98864a-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder-writes",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-local-temp",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.2
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-incoming-precond-noncontradictory",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-caller-in-region",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-store-only-viewblind",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-view-only-no-delete",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-noop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-frame-store-other-clobber",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-frame-view-other-clobber",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-view-bogus-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-view-unconditional-unresolve",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-write-inherited",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-view-echo-incoming",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-view-echo-other-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-view-branch-halfright",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reader-blind-component-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reader-blind-via-temp",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reader-frame-other-clobber",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-write-reader-rest",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reader-echo-incoming",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 2,
+          "uniqueness": 16
+        },
+        "manifest_sha256": "bf5a32989bbcc12595dc357294c49c107fb0192a8d55ee7d0c5b037513bbe713",
+        "n_cases": 20,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 20 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553",
+        "properties.py": "bf5a32989bbcc12595dc357294c49c107fb0192a8d55ee7d0c5b037513bbe713"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T06:39:42+00:00",
+      "code_version": "63df5ae21-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "502e1ae4bc5dcbda8b7e7219790f1c384f4b79f19af19dc0b881072d338621da",
+        "patch.diff": "541931ea346593d3b8d0f80724b337efb409c53b3587070ae0ef2b4b72868ff6"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T06:33:43+00:00",
+      "code_version": "3adb50a02-dirty",
+      "data": {
+        "wall_time_s": 15.0
+      },
+      "detail": "verified in 15.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ad86deb5951da9073f38e921999aeace4c8e77cdf390fdd57d499d8f7da03553"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15569",
+  "modeled_functions": [
+    {
+      "carrier_type": "class_lookups dict (str->Lookup) and the get_lookups() memoised view -> Dict[int,int] name-token->identity-token; key absence modelled by the unregistered() sentinel value (Nagini bans dict key deletion)",
+      "model_symbol": "remove_registration",
+      "repo_location": "django/db/models/query_utils.py:212-219",
+      "repo_symbol": "django.db.models.query_utils.RegisterLookupMixin._unregister_lookup",
+      "role": "modeled changed operation: remove a registered lookup from the backing store AND invalidate the derived (lru_cache-memoised) lookup view, so a subsequent read no longer reports the removed name"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (the single +cls._clear_cached_lookups() line; applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition view[name] == unregistered() (model_prepatch.py:108): the derived view still reports the removed name",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "_unregister_lookup cache invalidation",
+      "reverted_to": "the base_commit removal: delete from the backing store only (store[name]=unregistered()), no view invalidation"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3f157be92b611489b258a4bbbc9982ef0282b5ee87db3373f57d02ca8536c529",
+    "impl": "19b2eaa06ea0f7c9b545f162ca2bd4e43b71db6b59e6e89c4239eeef63eb1918",
+    "post-conditions": "26f58f2e6b16e53cf49cf415826c0b978906e10fc51dcb4f3e352870c3af8179",
+    "pre-conditions": "242e444d42b914487e7464cb3a00062a46c1854686fbc3aa3d32ef0db055ce40",
+    "pure": "a9b31e0c03362f77272787daa9cc92e6b8c915474f1879973bdcd533326bff82",
+    "spec_view": "e80ae03c618013acce202a9990ae0b1d57b189d4fc8c703986e65a504f67a6ee"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "no strings modeled; lookup names and lookup-class identities are Dict[int,int] name-token->identity-token; dict key absence modelled by the unregistered() sentinel value because Nagini does not support dict key deletion",
+  "version": "4.1"
+}

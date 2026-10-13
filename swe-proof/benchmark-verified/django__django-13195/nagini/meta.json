@@ -1,0 +1,568 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "pure call-site wiring (I): adds samesite=settings.SESSION_COOKIE_SAMESITE to the delete_cookie(...) call; behaviour identical to the modelled delete_cookie reached with policy=SESSION_COOKIE_SAMESITE; no separate contracted function. refinement.md \u00a7B.",
+      "repo_location": "django/contrib/sessions/middleware.py:41-45",
+      "repo_symbol": "django.contrib.sessions.middleware.SessionMiddleware.process_response delete_cookie call"
+    },
+    {
+      "handling": "pure call-site wiring (I): adds samesite=settings.SESSION_COOKIE_SAMESITE to the delete_cookie(...) call; behaviour identical to the modelled delete_cookie. refinement.md \u00a7B.",
+      "repo_location": "django/contrib/messages/storage/cookie.py:92-96",
+      "repo_symbol": "django.contrib.messages.storage.cookie.CookieStorage._update_cookie delete_cookie call"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): the real set_cookie, called exactly as the expiry routine calls it (max_age=0, expires='Thu, 01 Jan 1970 00:00:00 GMT'), over names x {None,'',lax/Lax/LAX,none/None/NONE/nOnE,strict/Strict/STRICT} x {secure True/False} x reach preimages for path and domain (omitted, None, '', '/', custom paths and hosts) + seeded fuzz -- 10240 cases, each also re-run against a record already held under the same name so every Old(...) clause is measured on a non-trivial pre-state; plus an (A-domain) section that measures the consumed domain itself -- is_storable_name == 'the real set_cookie records a cookie under this name' AND == 'the real post-patch delete_cookie returns rather than raising CookieError', on 4364 names (boundary names, full printable-ASCII sweep in three shapes, the nine reserved names in five casings, the empty name, non-ASCII, 4000 seeded fuzz), every boundary name inside the domain; plus 108 reach probes asserting the recording places no restriction of its own on the path and domain values it is handed.",
+      "encoded_property": "records the whole observable footprint of the cookie the expiry emits, CUMULATIVELY where the real setter accumulates (a set branch, no clearing branch, writing into whatever morsel is already held under the name): storing stamps the already-elapsed lifetime (cookie.expired -- the epoch expires, Max-Age 0 and the empty value together, which is what makes the emitted cookie an expiry at all); the transport-secure flag accumulates (cookie.secure == (Old(cookie.secure) or secure)); a non-empty cross-site value installs itself verbatim while an empty one changes nothing (cookie.has_policy == (Old(cookie.has_policy) or len(policy) > 0); policy forwarded verbatim when non-empty, left untouched when empty); and the reach the request named is recorded the same way for each scope argument -- a non-empty path installs itself verbatim (cookie.has_path and ToSeq(cookie.path) == ToSeq(path)), an empty one installs none of its own (whatever path the record carries afterwards is one it already carried, unchanged), and both clauses again for domain. The read-only argument values are returned untouched. Weakest sufficient contract: the reach clauses are what make the emitted expiry apply to the cookie being deleted rather than to some other scope -- a record whose two touched attributes read correctly but whose reach was lost or invented is a browser no-op -- and they constrain the recorder, never which values a caller may pass (measured: no restriction on 5096 path x domain pairs). Both of the setter's refusal paths are outside the consumed domain, and the caller's Requires exclude them: the invalid-token ValueError (only recognised policy tokens flow through delete_cookie -- Requires(Implies(len(policy)>0, is_known_policy(policy)))) and the Morsel.set CookieError for a name the machinery records nothing under (empty, outside the header grammar's name alphabet, or any casing of the nine reserved attribute names -- Requires(is_storable_name(key)); the name is not a parameter here, the Cookie IS the morsel held under it).",
+      "models": "django.http.response.HttpResponseBase.set_cookie (unchanged callee)",
+      "name": "store_cookie",
+      "provenance": "django/http/response.py:158 set_cookie, as the expiry routine invokes it: the elapsed lifetime at 168-175 (max-age + expires), the reach at 188-191 (if path is not None: cookies[key]['path'] = path; if domain is not None: cookies[key]['domain'] = domain), the secure/samesite recording at 195-202 (if secure: cookies[key]['secure']=True; if samesite: validate then cookies[key]['samesite']=samesite)",
+      "purity": "@ContractOnly (NOT @Pure: used as a statement, mutates the Cookie morsel; not referenced inside any Ensures)"
+    }
+  ],
+  "base_commit": "156a2138db20abc89933121e4ff2ee2ce56a173a",
+  "changed_files": [
+    "django/http/response.py",
+    "django/contrib/sessions/middleware.py",
+    "django/contrib/messages/storage/cookie.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts that every postcondition delete_cookie states holds of the real post-patch routine's emitted morsel -- the secure flag == expiry_secure, the samesite value forwarded verbatim, the already-elapsed lifetime, and the recorded path/domain reach -- over a names x policies x reach cross product + seeded fuzz (7300 cases), including the omitted-path call form and pre-existing records; the same run's (A-domain) section measures the name domain the postconditions are stated on (4364 names, both directions)",
+      "encoded_property": "expiry_secure(key, policy) = has_security_prefix(key) or is_none_ci(policy); has_security_prefix = startswith '__Secure-' or '__Host-'; is_none_ci = length-4 ASCII-folded code points spelling n,o,n,e; falsey policy (empty list) is never 'none' and never forwarded",
+      "kind": "A-reference",
+      "models": "the secure-flag decision of post-patch django.http.response.HttpResponseBase.delete_cookie, plus the verbatim samesite forwarding",
+      "name": "expiry_secure (with has_security_prefix, is_none_ci, lower_cp, starts_with)",
+      "provenance": "django/http/response.py:218-225 post-patch: secure = key.startswith(('__Secure-','__Host-')) or (samesite and samesite.lower()=='none'); set_cookie(..., samesite=samesite)",
+      "role": "deep model (pure region) of the changed secure decision + forwarding; NOT a consumed axiom \u2014 there is no delete_cookie @ContractOnly"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T05:42:35+00:00",
+      "code_version": "bbccd3869-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: name domain (is_storable_name == 'the real setter/expiry records a cookie under this name') exact on 4364 names; reach values unrestricted and recorded verbatim on 108 probes; store_cookie axiom (== set_cookie as the expiry invokes it, cumulative clauses measured over pre-existing records) sound on 10240 cases; deep model (expiry_secure + forwarding + reach == real delete_cookie) sound on 7300 cases.",
+      "gate": "G-AX",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "3b0c164e350f8d57e3f147257c44d259f500739cc579d499fa0f3d0785884cb3",
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T05:42:56+00:00",
+      "code_version": "bbccd3869-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: shadow impl (contract-stripped model.py impl region, store_cookie bridged to the real setter) == real patched expiry routine on the full emitted-cookie projection (elapsed lifetime, reach path, host domain, secure flag, cross-site policy) over 200836 inputs (100000 in-domain fuzz, seed 13196; 500 boundary + 336 reach cross product + 100000 unrestricted fuzz, seed 13195 -- outside the Requires both sides refuse the request identically).",
+      "gate": "G-CONF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "7ac51ab087b80240384d2505c2c899225fd5d667a1f2fca955b89f7b4bc517e4",
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T06:02:03+00:00",
+      "code_version": "27c51b649-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed",
+          "model_prepatch_3.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed; model_prepatch_3.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1",
+        "model_prepatch.py": "ad61a7a8043a2131a9b5f303fc441bd11e1fea228977f242d65b02552839304a",
+        "model_prepatch_2.py": "d9545bc8ba6c7cf734580351161b4472c4df0a206d981958bc5bf33058634283",
+        "model_prepatch_3.py": "757c26cd658b847127effa946a18e5c2ca7fd8955ae2711c49c610b80c29be03"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T15:26:33+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 20 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_11.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_9.py`, `atk_10.py`, `atk_12.py`, `atk_19.py`, `atk_20.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T15:56:37+00:00",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1",
+        "properties.py": "7c6cac763078bc1eaa4b6441599ad374155eddfb53e2b10b716425ab95370d01"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T06:11:50+00:00",
+      "code_version": "2ed86156f-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1",
+        "model_prepatch.py": "ad61a7a8043a2131a9b5f303fc441bd11e1fea228977f242d65b02552839304a",
+        "model_prepatch_2.py": "d9545bc8ba6c7cf734580351161b4472c4df0a206d981958bc5bf33058634283",
+        "model_prepatch_3.py": "757c26cd658b847127effa946a18e5c2ca7fd8955ae2711c49c610b80c29be03"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T06:11:50+00:00",
+      "code_version": "2ed86156f-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "64bf500752927782e77ace4a72c8e2e2538bdb92af79f722bc70572a37408ca5",
+          "impl": "3ce383f11bdb56565ca5020400c208b4ab2692f8d91e807ce2506938c333cd73",
+          "post-conditions": "981936ade4518536d0077041169e14637c234d07b3a2e6164c31a64521236196",
+          "pre-conditions": "cb3e61681320e56a84c7bf523854b6ef7defc39293a5fc4f3e33d14c4329477e",
+          "pure": "a39b948f75bdb435f4479c6a295f5d5eb64ba53c786a178ff4584eef56b47cb0",
+          "spec_view": "40f3d9c7a0bb8c07c3a90bc9d93e198e89abcc9125051d163b52aa76289dddf2"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T06:11:50+00:00",
+      "code_version": "2ed86156f-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "d7150ff8d5ea30b0350e6031450cee97be8dd7e1f5d4f91b8fa73e204996ba44",
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T06:11:50+00:00",
+      "code_version": "2ed86156f-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T05:51:57+00:00",
+      "code_version": "55990d09e-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T07:57:46+00:00",
+      "code_version": "e270ccb33-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK: faithfulness-break \u2014 is the spec too strong / does the modeled function disagree with the real callee on some input? Reference = base_commit worktree with patch.diff APPLIED (gold patch reconstructed from inst_13195.json, 2611 bytes, applies clean at 156a2138db). Result: NO divergence found; spec is faithful.\n\nSETUP. Fresh worktree * at 156a2138db + gold patch. CRITICAL environment finding: I first ran the differential on the HOST python (3.12.3) and got 117,966 apparent violations \u2014 a 'RAISED-IN-DOMAIN' hit where delete_cookie('c', path='/a\\tb') raises CookieError from _has_control_character in Lib/http/cookies.py:305, an input the model admits (path/domain carry NO Requires). That would have been a genuine spec-too-strong finding. It is an ARTIFACT: _has_control_character does not exist in the graded interpreter. The graded image swebench/sweb.eval.x86_64.django_1776_django-13195 runs Python 3.6.13 (conda testbed, /testbed), where hasattr(http.cookies,'_has_control_character') is False and every control-char path/domain ('\\t', '/a\\tb', '/a\\nb', '/a\\x00b', '/a\\x7fb', domain 'a\\tb') RECORDS VERBATIM and returns. I discarded the host result and re-ran everything IN the graded container. Reporting the host hit would have been a false UNFAITHFUL off the wrong interpreter.\n\nMETHOD. Transcribed model.py's spec verbatim into Python (lower_cp / is_none_ci / is_relaxed_ci / is_restrictive_ci / is_known_policy / starts_with / has_security_prefix / is_name_char / all_name_chars / equals_ci / is_reserved_name / is_storable_name / expiry_secure) and projected the real Morsel at response.cookies[key] onto the model Cookie (expired = expires=='Thu, 01 Jan 1970 00:00:00 GMT' AND max-age==0 AND value=='' ; secure ; has_path/path ; has_domain/domain ; has_policy/policy), then checked EVERY Ensures of model.py's delete_cookie against the real patched routine.\n\nIN-CONTAINER RESULTS (all zero):\n1. DOMAIN agreement, names: is_storable_name(key) == real returns-vs-raises over the boundary name list, the full 0x00-0x10f codepoint sweep in 4 shapes, non-ASCII incl. U+212A KELVIN / U+0130 / U+0131, the 9 reserved names x 5 casings, empty name, + 30,000 seeded fuzz names => 0 mismatches. So Requires(is_storable_name) carves out EXACTLY the refusal region \u2014 it is not over-restrictive (no admitted name raises) and not under-restrictive.\n2. DOMAIN agreement, policy: Implies(len>0, is_known_policy) == returns-vs-raises over all case permutations of none/lax/strict, boundary junk ('bogus','none ',' none','nonee','non','n\u00e9ne','NONEK','no\u0131e','\u0130one') + 6,000 fuzz => 0 mismatches.\n3. Reach args are genuinely UNRESTRICTED in the graded env, matching the spec's deliberate absence of a path/domain Requires: separators, spaces, quotes, commas, semicolons, non-ASCII AND control chars all record verbatim on 3.6.13.\n4. POSTCONDITION SWEEP: 388,800 in-domain cases (565,920 correctly excluded), names x policies x paths x domains x 18 pre-existing-record shapes => 0 violations of any clause.\n5. WIDE FUZZ: 200,000 in-domain random tuples (incl. \\x00/\\t/non-ASCII reach values and random pre-states) => 0 violations.\n6. Old(...) CUMULATIVE clauses \u2014 the sharpest risk, since they are vacuous on a fresh morsel \u2014 exercised against pre-states built through the SAME real setter (path='/old', path='', path=None, domain='.old.com', domain='', secure=True/False, samesite=Lax/Strict/None, combined, +httponly/max_age/value). secure==(Old(secure) or expiry_secure), has_policy==(Old(has_policy) or len>0), policy-untouched-when-empty, and both installs-nothing-of-its-own reach clauses all hold => 0 violations.\n7. UNICODE CASE FOLD: exhaustive scan of all 0x110000 codepoints under the container's unicodedata \u2014 ZERO non-ASCII codepoints whose str.lower() lands in any substring of 'none' (or 'lax'/'strict'), and no multi-char lowercase expansions either. So model.py's ASCII-only lower_cp is EXACTLY the real str.lower() for these comparisons; the classic Kelvin-sign/dotted-I attack on an ASCII-only fold does not exist here.\n8. OMITTED-path form (what the graded tests hit most): 180 cases confirm mapping.md \u00a72's asymmetry claim is right \u2014 omitted path defaults to '/', a preimage of the SITE ROOT and NOT of the empty list (unlike omitted samesite/domain, which default to None). The spec's rendering of the omitted arg as path='/' agrees with the real routine; 0 violations.\n\nNON-VACUITY CONTROL (guards against rubber-stamping a spec that is trivially satisfiable): monkeypatched the PRE-patch body back in and re-ran. The spec REJECTS it \u2014 1,416 violations on exactly the clauses the patch changes: 'secure' (missing the 'none' disjunct), 'has_policy' and 'policy-value' (missing the samesite forwarding), and NOT on the reach/expired clauses. That matches refinement.md's A6 claim about where the differential twins fail, and confirms the spec is too strong nowhere and too weak nothing-here.\n\nVERIFIER + ORACLE: scripts/nagini_verify.sh on the bundle model.py => 'Verification successful' (30.42s, exit 0), so the checked artifact is the one I audited. Gold patch + test_patch in the graded image => responses.test_cookie 'Ran 13 tests / OK', F2P satisfied, so the reference I compared against is the resolving one.\n\nJUDGEMENT. The two decisions the change introduces are modeled DEEPLY (expiry_secure spelled out, forwarding pinned by the has_policy/value clauses) with no @ContractOnly on delete_cookie, so the spec cannot hide the changed behavior behind an axiom. The only consumed axiom, store_cookie, stands in for the UNCHANGED set_cookie and I independently re-measured its Ensures against the real setter invoked exactly as the expiry site invokes it: 69,120 cases (incl. pre-existing-record blocks for the Old-form clauses) => 0 violations. Both Requires are domain restrictions that provably coincide with the real routine's raise-vs-return boundary rather than excluding any input the change is about. No diverging input exists on the graded interpreter; the single candidate I found was a host-interpreter artifact and is documented above so it is not re-litigated.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "NO RELAXATION IN THIS BUNDLE, established independently, so there is no unavoidability argument to re-derive and no disposition to inherit; judged as an ordinary faithful spec. meta.json has NO `relaxed_leakage` key (top-level keys: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); `find . .. -maxdepth 2 -iname 'RELAX*'` over the bundle and the instance dir returns nothing; gates.G-LEAK.status == \"pass\" (not \"relaxed\"). The only 'relaxed_leakage'/'RELAXED_LEAKAGE' strings anywhere in the instance are INSIDE prior G-PANEL-3 ledger notes in meta.json/verdict.md that themselves assert the absence -- i.e. the phrase is quoted, not claimed.\n\nNO FILE ADDRESSES THE PANEL. leakage.reviewer_directed() returns CLEAN ([]) on all 12 bundle files (model.py, model_prepatch{,_2,_3}.py, mapping.md, refinement.md, meta.json, properties.py, axiom_check.py, conformance_check.py, pbt_result.json, verdict.md). A targeted grep for verdict-prescribing phrasing ('you must/should record', 'the correct/honest verdict', 'do not report/flag', 'attacker 3', 'next reviewer') over every .py/.md/.json in the bundle returns nothing outside first-person prior-panel prose. The 'G-PANEL' strings live in meta.json/verdict.md as gate ledger entries only; nothing prescribes a verdict or tells me how to record. So no finding of that kind.\n\nARTIFACT SCOPE. Confirmed from src/swebench_unified/eval/dataset.py + eval/adapter.py that the consumer-visible artifact in modes 1/2 is EvalTask.spec_view == markers.spec_view(model.py) only; mapping.md / refinement.md / patch.diff / meta.json are auditor-side and are never shipped, so refinement.md's verbatim gold hunk and mapping.md's 'django/http/response.py:213' rows are out of scope for this gate (they would be leaks if shipped; they are not).\n\nFRESHNESS -- I DID NOT INHERIT THE PRIOR PASS. Live model.py sha256 = 9da3179acda20a97... The recorded G-PANEL-3 and G-PANEL-2 passes were stamped against f8de1fe7dcce..., and G-EQ/G-PANEL-1 against f8de1fe7dcce too, so the previous NO-LEAKAGE was NOT a measurement of the bytes now shipping. meta.json['region_hashes'] is likewise STALE: axioms, impl, pre-conditions, post-conditions and spec_view all DRIFT against markers.region_hashes(live) (live spec_view 40f3d9c7a0bb..., meta a2fa2d7edec9...); only 'pure' MATCHES. G-LEAK/G-AX/G-CONF/G-HYGIENE/G-INTEGRITY/G-GOLD/G-VERIFY were re-run on live 9da3179a. Everything below is my own measurement on the live bytes.\n\nWHAT I RAN (live model.py 9da3179a, projected to spec_view.txt, 505 lines):\n(1) leakage.screen(live model.py, nagini backend, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. The screen has teeth on THIS instance: six controls injected into the same call, each caught -- patched path ('# see django/http/response.py' -> L2), pre-patch gold line (\"secure = key.startswith(('__Secure-', '__Host-'))\" -> L1), the gold's ADDED rationale comment ('# Browsers can ignore the Set-Cookie header if the cookie doesn't use' -> L1), a gold ADDED line (\"expires='Thu, 01 Jan 1970 00:00:00 GMT', samesite=samesite,\" -> L1), narration ('fixes'/'buggy'/'previously' -> L3), diff marker ('@@' -> L1).\n(2) Elision is real: ELISION_IMPL present; neither impl line ('secure = has_security_prefix(key) or is_none_ci(policy)', 'store_cookie(cookie, path, domain, secure, policy)') appears in the view.\n(3) Manual sweep of the projected view: none of the three patched paths (django/http/response.py, django/contrib/sessions/middleware.py, django/contrib/messages/storage/cookie.py) NOR any bare basename (response.py / middleware.py / cookie.py) appears; no diff marker ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') appears; no patched-side symbol appears (SESSION_COOKIE_SAMESITE / _DOMAIN / _SECURE, settings., HttpResponseBase, set_signed_cookie, _update_cookie, process_response, patch_vary_headers, samesite=, max_age all absent); whitespace-normalized comparison of EVERY added/removed gold line (threshold len>=4, below the screen's 8) against the normalized view yields ZERO collisions. No 'session'/'messages'/'middleware' wording, so the two call-site change locations are not hinted either.\n(4) DISCRIMINATOR DERIVATION FROM problem_statement ALONE (hints_text excluded; hints are the single sentence 'we should add the samesite argument to delete_cookie() and preserve it', and the view is clean even of that vocabulary since everything it names is independently in the PS).\n\nEach discriminator the view states is present in the PS, verified by literal substring match: forwarding the policy verbatim = PS title \"HttpResponse.delete_cookie() should preserve cookie's samesite\"; secure-when-policy-is-'none' = PS prose \"Chrome and Firefox will soon begin ignoring Set-Cookie headers with Samesite=None that aren't marked 'Secure'\"; the two reserved prefixes = PS prose \"only setting 'Secure' if the cookie's key begins with 'Secure' or 'Host'\" AND the literal key.startswith(('__Secure-', '__Host-')) inside the PS's own pasted code block; case-insensitive 'none' = the PS's quoted Firefox warning spells it lowercase (attribute set to \"none\"); the already-elapsed lifetime + reach carried by Cookie.expired / has_path / has_domain = the PS pastes the real header 'expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/' verbatim; the unchanged setter store_cookie builds on = the PS's code block calls self.set_cookie(; even the samesite kwarg wiring ('samesite=settings.SESSION_COOKIE_SAMESITE,') and the pre-patch signature (\"def delete_cookie(self, key, path='/', domain=None)\") are literally in the PS's own testing snippet. The identifier `delete_cookie` echoes a patched repo symbol and is excused only because it is in the PS -- I confirmed that excuse does real work by re-running screen() with problem_statement withheld, which then FAILS: \"L2/L5: spec-view identifier 'delete_cookie' embeds patched repo symbol 'delete_cookie' (not in problem statement)\".\n(5) THE ONE NON-PS TOKEN, RUN DOWN. is_relaxed_ci / is_restrictive_ci / is_known_policy name the 'lax' and 'strict' tokens; 'lax' is in the PS (the pasted live header 'SameSite=Lax') but 'strict' is NOT. This is not a leak: in a base_commit worktree (repos/django_django.git @ 156a2138db, /tmp) set_cookie at django/http/response.py:199-202 already validates samesite.lower() not in ('lax','none','strict') PRE-patch, and the gold diff contains none of \"'lax', 'none', 'strict'\", 'def set_cookie', '_reserved' or '_LegalChars' -- so the token triple is UNCHANGED-callee behaviour. It is consumed in the view only as Requires(Implies(len(policy) > 0, is_known_policy(policy))), a domain restriction saying where an emitted cookie is observable at all, never as a ground for either decision. Same for is_storable_name / is_name_char / the nine reserved names (stdlib http.cookies Morsel._reserved + _LegalChars, with django/http/cookie.py's setdefault('samesite')): untouched by the patch, so they describe territory the edit does not enter and cannot localize it.\n(6) Positive control that the artifact I screened is the shipping one: scripts/nagini_verify.sh on live model.py -> 'Verification successful' in 30.4s, exit 0; adversary same-spec on an unmodified copy -> exit 0 ('SAME').\n\nCONCLUSION: every discriminator the spec view names is derivable from the public problem_statement, and nothing in it points at the edit beyond that -- no path, no symbol, no gold line, no diff marker, no bug->fix narration. NO-LEAKAGE.\n\nRECORD-HYGIENE FINDING (reported; does not change my verdict, which rests on my own measurement of live 9da3179a): meta.json['region_hashes'] and the G-PANEL-1/-2/-3 + G-EQ stamps all reference f8de1fe7dcce, an OLDER model.py. The stamps should be refreshed so the freshness record matches the bytes shipping. Note also that this is the SECOND consecutive drift of this kind on this cell (the prior G-PANEL-3 note reports the same finding against 1c4bdc5be1e5 while itself being stamped on f8de1fe7dcce), which suggests the spec is being edited between panel runs faster than the stamps are refreshed.\n\nSTYLISTIC NOTE (not a leak, no line submitted): the docstring line 'The two decisions the change introduces -- forwarding the policy value and deriving the secure flag from the \"none\" policy' frames content as a change rather than purely as desired behaviour, and lines 24/26/458 similarly say 'the pre-existing default expiry behaviour is preserved'. None trips a narration token and the substance of each is exactly the PS's two asks plus the PS's pasted header, so a consumer learns nothing the issue text does not already state; but rephrasing them as pure behavioural statements would remove the edit-shaped framing.\n\nOTHER GATES: all 16 recorded gates read pass in the live meta.json (G-AX, G-CONF, G-DIFF, G-EQ, G-GOLD, G-HYGIENE, G-INTEGRITY, G-LEAK, G-MUT, G-PANEL, G-PANEL-1/-2/-3, G-PBT, G-RESOLVE, G-VERIFY). With no relaxation here, my verdict leans on none of them -- it rests on the screen, the controls, the manual sweep and the PS derivation above, all run on the live bytes.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK: faithfulness-break \u2014 is the spec too strong / does the modeled function disagree with the real callee on some input? Reference = base_commit worktree with patch.diff APPLIED (gold patch reconstructed from inst_13195.json, 2611 bytes, applies clean at 156a2138db). Result: NO divergence found; spec is faithful.\n\nSETUP. Fresh worktree * at 156a2138db + gold patch. CRITICAL environment finding: I first ran the differential on the HOST python (3.12.3) and got 117,966 apparent violations \u2014 a 'RAISED-IN-DOMAIN' hit where delete_cookie('c', path='/a\\tb') raises CookieError from _has_control_character in Lib/http/cookies.py:305, an input the model admits (path/domain carry NO Requires). That would have been a genuine spec-too-strong finding. It is an ARTIFACT: _has_control_character does not exist in the graded interpreter. The graded image swebench/sweb.eval.x86_64.django_1776_django-13195 runs Python 3.6.13 (conda testbed, /testbed), where hasattr(http.cookies,'_has_control_character') is False and every control-char path/domain ('\\t', '/a\\tb', '/a\\nb', '/a\\x00b', '/a\\x7fb', domain 'a\\tb') RECORDS VERBATIM and returns. I discarded the host result and re-ran everything IN the graded container. Reporting the host hit would have been a false UNFAITHFUL off the wrong interpreter.\n\nMETHOD. Transcribed model.py's spec verbatim into Python (lower_cp / is_none_ci / is_relaxed_ci / is_restrictive_ci / is_known_policy / starts_with / has_security_prefix / is_name_char / all_name_chars / equals_ci / is_reserved_name / is_storable_name / expiry_secure) and projected the real Morsel at response.cookies[key] onto the model Cookie (expired = expires=='Thu, 01 Jan 1970 00:00:00 GMT' AND max-age==0 AND value=='' ; secure ; has_path/path ; has_domain/domain ; has_policy/policy), then checked EVERY Ensures of model.py's delete_cookie against the real patched routine.\n\nIN-CONTAINER RESULTS (all zero):\n1. DOMAIN agreement, names: is_storable_name(key) == real returns-vs-raises over the boundary name list, the full 0x00-0x10f codepoint sweep in 4 shapes, non-ASCII incl. U+212A KELVIN / U+0130 / U+0131, the 9 reserved names x 5 casings, empty name, + 30,000 seeded fuzz names => 0 mismatches. So Requires(is_storable_name) carves out EXACTLY the refusal region \u2014 it is not over-restrictive (no admitted name raises) and not under-restrictive.\n2. DOMAIN agreement, policy: Implies(len>0, is_known_policy) == returns-vs-raises over all case permutations of none/lax/strict, boundary junk ('bogus','none ',' none','nonee','non','n\u00e9ne','NONEK','no\u0131e','\u0130one') + 6,000 fuzz => 0 mismatches.\n3. Reach args are genuinely UNRESTRICTED in the graded env, matching the spec's deliberate absence of a path/domain Requires: separators, spaces, quotes, commas, semicolons, non-ASCII AND control chars all record verbatim on 3.6.13.\n4. POSTCONDITION SWEEP: 388,800 in-domain cases (565,920 correctly excluded), names x policies x paths x domains x 18 pre-existing-record shapes => 0 violations of any clause.\n5. WIDE FUZZ: 200,000 in-domain random tuples (incl. \\x00/\\t/non-ASCII reach values and random pre-states) => 0 violations.\n6. Old(...) CUMULATIVE clauses \u2014 the sharpest risk, since they are vacuous on a fresh morsel \u2014 exercised against pre-states built through the SAME real setter (path='/old', path='', path=None, domain='.old.com', domain='', secure=True/False, samesite=Lax/Strict/None, combined, +httponly/max_age/value). secure==(Old(secure) or expiry_secure), has_policy==(Old(has_policy) or len>0), policy-untouched-when-empty, and both installs-nothing-of-its-own reach clauses all hold => 0 violations.\n7. UNICODE CASE FOLD: exhaustive scan of all 0x110000 codepoints under the container's unicodedata \u2014 ZERO non-ASCII codepoints whose str.lower() lands in any substring of 'none' (or 'lax'/'strict'), and no multi-char lowercase expansions either. So model.py's ASCII-only lower_cp is EXACTLY the real str.lower() for these comparisons; the classic Kelvin-sign/dotted-I attack on an ASCII-only fold does not exist here.\n8. OMITTED-path form (what the graded tests hit most): 180 cases confirm mapping.md \u00a72's asymmetry claim is right \u2014 omitted path defaults to '/', a preimage of the SITE ROOT and NOT of the empty list (unlike omitted samesite/domain, which default to None). The spec's rendering of the omitted arg as path='/' agrees with the real routine; 0 violations.\n\nNON-VACUITY CONTROL (guards against rubber-stamping a spec that is trivially satisfiable): monkeypatched the PRE-patch body back in and re-ran. The spec REJECTS it \u2014 1,416 violations on exactly the clauses the patch changes: 'secure' (missing the 'none' disjunct), 'has_policy' and 'policy-value' (missing the samesite forwarding), and NOT on the reach/expired clauses. That matches refinement.md's A6 claim about where the differential twins fail, and confirms the spec is too strong nowhere and too weak nothing-here.\n\nVERIFIER + ORACLE: scripts/nagini_verify.sh on the bundle model.py => 'Verification successful' (30.42s, exit 0), so the checked artifact is the one I audited. Gold patch + test_patch in the graded image => responses.test_cookie 'Ran 13 tests / OK', F2P satisfied, so the reference I compared against is the resolving one.\n\nJUDGEMENT. The two decisions the change introduces are modeled DEEPLY (expiry_secure spelled out, forwarding pinned by the has_policy/value clauses) with no @ContractOnly on delete_cookie, so the spec cannot hide the changed behavior behind an axiom. The only consumed axiom, store_cookie, stands in for the UNCHANGED set_cookie and I independently re-measured its Ensures against the real setter invoked exactly as the expiry site invokes it: 69,120 cases (incl. pre-existing-record blocks for the Old-form clauses) => 0 violations. Both Requires are domain restrictions that provably coincide with the real routine's raise-vs-return boundary rather than excluding any input the change is about. No diverging input exists on the graded interpreter; the single candidate I found was a host-interpreter artifact and is documented above so it is not re-litigated.; G-PANEL-3 (leakage): pass \u2014 NO RELAXATION IN THIS BUNDLE, established independently, so there is no unavoidability argument to re-derive and no disposition to inherit; judged as an ordinary faithful spec. meta.json has NO `relaxed_leakage` key (top-level keys: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); `find . .. -maxdepth 2 -iname 'RELAX*'` over the bundle and the instance dir returns nothing; gates.G-LEAK.status == \"pass\" (not \"relaxed\"). The only 'relaxed_leakage'/'RELAXED_LEAKAGE' strings anywhere in the instance are INSIDE prior G-PANEL-3 ledger notes in meta.json/verdict.md that themselves assert the absence -- i.e. the phrase is quoted, not claimed.\n\nNO FILE ADDRESSES THE PANEL. leakage.reviewer_directed() returns CLEAN ([]) on all 12 bundle files (model.py, model_prepatch{,_2,_3}.py, mapping.md, refinement.md, meta.json, properties.py, axiom_check.py, conformance_check.py, pbt_result.json, verdict.md). A targeted grep for verdict-prescribing phrasing ('you must/should record', 'the correct/honest verdict', 'do not report/flag', 'attacker 3', 'next reviewer') over every .py/.md/.json in the bundle returns nothing outside first-person prior-panel prose. The 'G-PANEL' strings live in meta.json/verdict.md as gate ledger entries only; nothing prescribes a verdict or tells me how to record. So no finding of that kind.\n\nARTIFACT SCOPE. Confirmed from src/swebench_unified/eval/dataset.py + eval/adapter.py that the consumer-visible artifact in modes 1/2 is EvalTask.spec_view == markers.spec_view(model.py) only; mapping.md / refinement.md / patch.diff / meta.json are auditor-side and are never shipped, so refinement.md's verbatim gold hunk and mapping.md's 'django/http/response.py:213' rows are out of scope for this gate (they would be leaks if shipped; they are not).\n\nFRESHNESS -- I DID NOT INHERIT THE PRIOR PASS. Live model.py sha256 = 9da3179acda20a97... The recorded G-PANEL-3 and G-PANEL-2 passes were stamped against f8de1fe7dcce..., and G-EQ/G-PANEL-1 against f8de1fe7dcce too, so the previous NO-LEAKAGE was NOT a measurement of the bytes now shipping. meta.json['region_hashes'] is likewise STALE: axioms, impl, pre-conditions, post-conditions and spec_view all DRIFT against markers.region_hashes(live) (live spec_view 40f3d9c7a0bb..., meta a2fa2d7edec9...); only 'pure' MATCHES. G-LEAK/G-AX/G-CONF/G-HYGIENE/G-INTEGRITY/G-GOLD/G-VERIFY were re-run on live 9da3179a. Everything below is my own measurement on the live bytes.\n\nWHAT I RAN (live model.py 9da3179a, projected to spec_view.txt, 505 lines):\n(1) leakage.screen(live model.py, nagini backend, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. The screen has teeth on THIS instance: six controls injected into the same call, each caught -- patched path ('# see django/http/response.py' -> L2), pre-patch gold line (\"secure = key.startswith(('__Secure-', '__Host-'))\" -> L1), the gold's ADDED rationale comment ('# Browsers can ignore the Set-Cookie header if the cookie doesn't use' -> L1), a gold ADDED line (\"expires='Thu, 01 Jan 1970 00:00:00 GMT', samesite=samesite,\" -> L1), narration ('fixes'/'buggy'/'previously' -> L3), diff marker ('@@' -> L1).\n(2) Elision is real: ELISION_IMPL present; neither impl line ('secure = has_security_prefix(key) or is_none_ci(policy)', 'store_cookie(cookie, path, domain, secure, policy)') appears in the view.\n(3) Manual sweep of the projected view: none of the three patched paths (django/http/response.py, django/contrib/sessions/middleware.py, django/contrib/messages/storage/cookie.py) NOR any bare basename (response.py / middleware.py / cookie.py) appears; no diff marker ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') appears; no patched-side symbol appears (SESSION_COOKIE_SAMESITE / _DOMAIN / _SECURE, settings., HttpResponseBase, set_signed_cookie, _update_cookie, process_response, patch_vary_headers, samesite=, max_age all absent); whitespace-normalized comparison of EVERY added/removed gold line (threshold len>=4, below the screen's 8) against the normalized view yields ZERO collisions. No 'session'/'messages'/'middleware' wording, so the two call-site change locations are not hinted either.\n(4) DISCRIMINATOR DERIVATION FROM problem_statement ALONE (hints_text excluded; hints are the single sentence 'we should add the samesite argument to delete_cookie() and preserve it', and the view is clean even of that vocabulary since everything it names is independently in the PS).\n\nEach discriminator the view states is present in the PS, verified by literal substring match: forwarding the policy verbatim = PS title \"HttpResponse.delete_cookie() should preserve cookie's samesite\"; secure-when-policy-is-'none' = PS prose \"Chrome and Firefox will soon begin ignoring Set-Cookie headers with Samesite=None that aren't marked 'Secure'\"; the two reserved prefixes = PS prose \"only setting 'Secure' if the cookie's key begins with 'Secure' or 'Host'\" AND the literal key.startswith(('__Secure-', '__Host-')) inside the PS's own pasted code block; case-insensitive 'none' = the PS's quoted Firefox warning spells it lowercase (attribute set to \"none\"); the already-elapsed lifetime + reach carried by Cookie.expired / has_path / has_domain = the PS pastes the real header 'expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/' verbatim; the unchanged setter store_cookie builds on = the PS's code block calls self.set_cookie(; even the samesite kwarg wiring ('samesite=settings.SESSION_COOKIE_SAMESITE,') and the pre-patch signature (\"def delete_cookie(self, key, path='/', domain=None)\") are literally in the PS's own testing snippet. The identifier `delete_cookie` echoes a patched repo symbol and is excused only because it is in the PS -- I confirmed that excuse does real work by re-running screen() with problem_statement withheld, which then FAILS: \"L2/L5: spec-view identifier 'delete_cookie' embeds patched repo symbol 'delete_cookie' (not in problem statement)\".\n(5) THE ONE NON-PS TOKEN, RUN DOWN. is_relaxed_ci / is_restrictive_ci / is_known_policy name the 'lax' and 'strict' tokens; 'lax' is in the PS (the pasted live header 'SameSite=Lax') but 'strict' is NOT. This is not a leak: in a base_commit worktree (repos/django_django.git @ 156a2138db, /tmp) set_cookie at django/http/response.py:199-202 already validates samesite.lower() not in ('lax','none','strict') PRE-patch, and the gold diff contains none of \"'lax', 'none', 'strict'\", 'def set_cookie', '_reserved' or '_LegalChars' -- so the token triple is UNCHANGED-callee behaviour. It is consumed in the view only as Requires(Implies(len(policy) > 0, is_known_policy(policy))), a domain restriction saying where an emitted cookie is observable at all, never as a ground for either decision. Same for is_storable_name / is_name_char / the nine reserved names (stdlib http.cookies Morsel._reserved + _LegalChars, with django/http/cookie.py's setdefault('samesite')): untouched by the patch, so they describe territory the edit does not enter and cannot localize it.\n(6) Positive control that the artifact I screened is the shipping one: scripts/nagini_verify.sh on live model.py -> 'Verification successful' in 30.4s, exit 0; adversary same-spec on an unmodified copy -> exit 0 ('SAME').\n\nCONCLUSION: every discriminator the spec view names is derivable from the public problem_statement, and nothing in it points at the edit beyond that -- no path, no symbol, no gold line, no diff marker, no bug->fix narration. NO-LEAKAGE.\n\nRECORD-HYGIENE FINDING (reported; does not change my verdict, which rests on my own measurement of live 9da3179a): meta.json['region_hashes'] and the G-PANEL-1/-2/-3 + G-EQ stamps all reference f8de1fe7dcce, an OLDER model.py. The stamps should be refreshed so the freshness record matches the bytes shipping. Note also that this is the SECOND consecutive drift of this kind on this cell (the prior G-PANEL-3 note reports the same finding against 1c4bdc5be1e5 while itself being stamped on f8de1fe7dcce), which suggests the spec is being edited between panel runs faster than the stamps are refreshed.\n\nSTYLISTIC NOTE (not a leak, no line submitted): the docstring line 'The two decisions the change introduces -- forwarding the policy value and deriving the secure flag from the \"none\" policy' frames content as a change rather than purely as desired behaviour, and lines 24/26/458 similarly say 'the pre-existing default expiry behaviour is preserved'. None trips a narration token and the substance of each is exactly the PS's two asks plus the PS's pasted header, so a consumer learns nothing the issue text does not already state; but rephrasing them as pure behavioural statements would remove the edit-shaped framing.\n\nOTHER GATES: all 16 recorded gates read pass in the live meta.json (G-AX, G-CONF, G-DIFF, G-EQ, G-GOLD, G-HYGIENE, G-INTEGRITY, G-LEAK, G-MUT, G-PANEL, G-PANEL-1/-2/-3, G-PBT, G-RESOLVE, G-VERIFY). With no relaxation here, my verdict leans on none of them -- it rests on the screen, the controls, the manual sweep and the PS derivation above, all run on the live bytes.",
+      "gate": "G-PANEL",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T15:56:37+00:00",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T15:56:35+00:00",
+      "code_version": "1471e0937-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 20 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_11.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_9.py`, `atk_10.py`, `atk_12.py`, `atk_19.py`, `atk_20.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1",
+        "properties.py": "7c6cac763078bc1eaa4b6441599ad374155eddfb53e2b10b716425ab95370d01"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T08:06:02+00:00",
+      "code_version": "c2ca05dbd-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK: faithfulness-break \u2014 is the spec too strong / does the modeled function disagree with the real callee on some input? Reference = base_commit worktree with patch.diff APPLIED (gold patch reconstructed from inst_13195.json, 2611 bytes, applies clean at 156a2138db). Result: NO divergence found; spec is faithful.\n\nSETUP. Fresh worktree * at 156a2138db + gold patch. CRITICAL environment finding: I first ran the differential on the HOST python (3.12.3) and got 117,966 apparent violations \u2014 a 'RAISED-IN-DOMAIN' hit where delete_cookie('c', path='/a\\tb') raises CookieError from _has_control_character in Lib/http/cookies.py:305, an input the model admits (path/domain carry NO Requires). That would have been a genuine spec-too-strong finding. It is an ARTIFACT: _has_control_character does not exist in the graded interpreter. The graded image swebench/sweb.eval.x86_64.django_1776_django-13195 runs Python 3.6.13 (conda testbed, /testbed), where hasattr(http.cookies,'_has_control_character') is False and every control-char path/domain ('\\t', '/a\\tb', '/a\\nb', '/a\\x00b', '/a\\x7fb', domain 'a\\tb') RECORDS VERBATIM and returns. I discarded the host result and re-ran everything IN the graded container. Reporting the host hit would have been a false UNFAITHFUL off the wrong interpreter.\n\nMETHOD. Transcribed model.py's spec verbatim into Python (lower_cp / is_none_ci / is_relaxed_ci / is_restrictive_ci / is_known_policy / starts_with / has_security_prefix / is_name_char / all_name_chars / equals_ci / is_reserved_name / is_storable_name / expiry_secure) and projected the real Morsel at response.cookies[key] onto the model Cookie (expired = expires=='Thu, 01 Jan 1970 00:00:00 GMT' AND max-age==0 AND value=='' ; secure ; has_path/path ; has_domain/domain ; has_policy/policy), then checked EVERY Ensures of model.py's delete_cookie against the real patched routine.\n\nIN-CONTAINER RESULTS (all zero):\n1. DOMAIN agreement, names: is_storable_name(key) == real returns-vs-raises over the boundary name list, the full 0x00-0x10f codepoint sweep in 4 shapes, non-ASCII incl. U+212A KELVIN / U+0130 / U+0131, the 9 reserved names x 5 casings, empty name, + 30,000 seeded fuzz names => 0 mismatches. So Requires(is_storable_name) carves out EXACTLY the refusal region \u2014 it is not over-restrictive (no admitted name raises) and not under-restrictive.\n2. DOMAIN agreement, policy: Implies(len>0, is_known_policy) == returns-vs-raises over all case permutations of none/lax/strict, boundary junk ('bogus','none ',' none','nonee','non','n\u00e9ne','NONEK','no\u0131e','\u0130one') + 6,000 fuzz => 0 mismatches.\n3. Reach args are genuinely UNRESTRICTED in the graded env, matching the spec's deliberate absence of a path/domain Requires: separators, spaces, quotes, commas, semicolons, non-ASCII AND control chars all record verbatim on 3.6.13.\n4. POSTCONDITION SWEEP: 388,800 in-domain cases (565,920 correctly excluded), names x policies x paths x domains x 18 pre-existing-record shapes => 0 violations of any clause.\n5. WIDE FUZZ: 200,000 in-domain random tuples (incl. \\x00/\\t/non-ASCII reach values and random pre-states) => 0 violations.\n6. Old(...) CUMULATIVE clauses \u2014 the sharpest risk, since they are vacuous on a fresh morsel \u2014 exercised against pre-states built through the SAME real setter (path='/old', path='', path=None, domain='.old.com', domain='', secure=True/False, samesite=Lax/Strict/None, combined, +httponly/max_age/value). secure==(Old(secure) or expiry_secure), has_policy==(Old(has_policy) or len>0), policy-untouched-when-empty, and both installs-nothing-of-its-own reach clauses all hold => 0 violations.\n7. UNICODE CASE FOLD: exhaustive scan of all 0x110000 codepoints under the container's unicodedata \u2014 ZERO non-ASCII codepoints whose str.lower() lands in any substring of 'none' (or 'lax'/'strict'), and no multi-char lowercase expansions either. So model.py's ASCII-only lower_cp is EXACTLY the real str.lower() for these comparisons; the classic Kelvin-sign/dotted-I attack on an ASCII-only fold does not exist here.\n8. OMITTED-path form (what the graded tests hit most): 180 cases confirm mapping.md \u00a72's asymmetry claim is right \u2014 omitted path defaults to '/', a preimage of the SITE ROOT and NOT of the empty list (unlike omitted samesite/domain, which default to None). The spec's rendering of the omitted arg as path='/' agrees with the real routine; 0 violations.\n\nNON-VACUITY CONTROL (guards against rubber-stamping a spec that is trivially satisfiable): monkeypatched the PRE-patch body back in and re-ran. The spec REJECTS it \u2014 1,416 violations on exactly the clauses the patch changes: 'secure' (missing the 'none' disjunct), 'has_policy' and 'policy-value' (missing the samesite forwarding), and NOT on the reach/expired clauses. That matches refinement.md's A6 claim about where the differential twins fail, and confirms the spec is too strong nowhere and too weak nothing-here.\n\nVERIFIER + ORACLE: scripts/nagini_verify.sh on the bundle model.py => 'Verification successful' (30.42s, exit 0), so the checked artifact is the one I audited. Gold patch + test_patch in the graded image => responses.test_cookie 'Ran 13 tests / OK', F2P satisfied, so the reference I compared against is the resolving one.\n\nJUDGEMENT. The two decisions the change introduces are modeled DEEPLY (expiry_secure spelled out, forwarding pinned by the has_policy/value clauses) with no @ContractOnly on delete_cookie, so the spec cannot hide the changed behavior behind an axiom. The only consumed axiom, store_cookie, stands in for the UNCHANGED set_cookie and I independently re-measured its Ensures against the real setter invoked exactly as the expiry site invokes it: 69,120 cases (incl. pre-existing-record blocks for the Old-form clauses) => 0 violations. Both Requires are domain restrictions that provably coincide with the real routine's raise-vs-return boundary rather than excluding any input the change is about. No diverging input exists on the graded interpreter; the single candidate I found was a host-interpreter artifact and is documented above so it is not re-litigated.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T07:57:46+00:00",
+      "code_version": "e270ccb33-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "NO RELAXATION IN THIS BUNDLE, established independently, so there is no unavoidability argument to re-derive and no disposition to inherit; judged as an ordinary faithful spec. meta.json has NO `relaxed_leakage` key (top-level keys: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); `find . .. -maxdepth 2 -iname 'RELAX*'` over the bundle and the instance dir returns nothing; gates.G-LEAK.status == \"pass\" (not \"relaxed\"). The only 'relaxed_leakage'/'RELAXED_LEAKAGE' strings anywhere in the instance are INSIDE prior G-PANEL-3 ledger notes in meta.json/verdict.md that themselves assert the absence -- i.e. the phrase is quoted, not claimed.\n\nNO FILE ADDRESSES THE PANEL. leakage.reviewer_directed() returns CLEAN ([]) on all 12 bundle files (model.py, model_prepatch{,_2,_3}.py, mapping.md, refinement.md, meta.json, properties.py, axiom_check.py, conformance_check.py, pbt_result.json, verdict.md). A targeted grep for verdict-prescribing phrasing ('you must/should record', 'the correct/honest verdict', 'do not report/flag', 'attacker 3', 'next reviewer') over every .py/.md/.json in the bundle returns nothing outside first-person prior-panel prose. The 'G-PANEL' strings live in meta.json/verdict.md as gate ledger entries only; nothing prescribes a verdict or tells me how to record. So no finding of that kind.\n\nARTIFACT SCOPE. Confirmed from src/swebench_unified/eval/dataset.py + eval/adapter.py that the consumer-visible artifact in modes 1/2 is EvalTask.spec_view == markers.spec_view(model.py) only; mapping.md / refinement.md / patch.diff / meta.json are auditor-side and are never shipped, so refinement.md's verbatim gold hunk and mapping.md's 'django/http/response.py:213' rows are out of scope for this gate (they would be leaks if shipped; they are not).\n\nFRESHNESS -- I DID NOT INHERIT THE PRIOR PASS. Live model.py sha256 = 9da3179acda20a97... The recorded G-PANEL-3 and G-PANEL-2 passes were stamped against f8de1fe7dcce..., and G-EQ/G-PANEL-1 against f8de1fe7dcce too, so the previous NO-LEAKAGE was NOT a measurement of the bytes now shipping. meta.json['region_hashes'] is likewise STALE: axioms, impl, pre-conditions, post-conditions and spec_view all DRIFT against markers.region_hashes(live) (live spec_view 40f3d9c7a0bb..., meta a2fa2d7edec9...); only 'pure' MATCHES. G-LEAK/G-AX/G-CONF/G-HYGIENE/G-INTEGRITY/G-GOLD/G-VERIFY were re-run on live 9da3179a. Everything below is my own measurement on the live bytes.\n\nWHAT I RAN (live model.py 9da3179a, projected to spec_view.txt, 505 lines):\n\n(1) leakage.screen(live model.py, nagini backend, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. The screen has teeth on THIS instance: six controls injected into the same call, each caught -- patched path ('# see django/http/response.py' -> L2), pre-patch gold line (\"secure = key.startswith(('__Secure-', '__Host-'))\" -> L1), the gold's ADDED rationale comment ('# Browsers can ignore the Set-Cookie header if the cookie doesn't use' -> L1), a gold ADDED line (\"expires='Thu, 01 Jan 1970 00:00:00 GMT', samesite=samesite,\" -> L1), narration ('fixes'/'buggy'/'previously' -> L3), diff marker ('@@' -> L1).\n\n(2) Elision is real: ELISION_IMPL present; neither impl line ('secure = has_security_prefix(key) or is_none_ci(policy)', 'store_cookie(cookie, path, domain, secure, policy)') appears in the view.\n\n(3) Manual sweep of the projected view: none of the three patched paths (django/http/response.py, django/contrib/sessions/middleware.py, django/contrib/messages/storage/cookie.py) NOR any bare basename (response.py / middleware.py / cookie.py) appears; no diff marker ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') appears; no patched-side symbol appears (SESSION_COOKIE_SAMESITE / _DOMAIN / _SECURE, settings., HttpResponseBase, set_signed_cookie, _update_cookie, process_response, patch_vary_headers, samesite=, max_age all absent); whitespace-normalized comparison of EVERY added/removed gold line (threshold len>=4, below the screen's 8) against the normalized view yields ZERO collisions. No 'session'/'messages'/'middleware' wording, so the two call-site change locations are not hinted either.\n\n(4) DISCRIMINATOR DERIVATION FROM problem_statement ALONE (hints_text excluded; hints are the single sentence 'we should add the samesite argument to delete_cookie() and preserve it', and the view is clean even of that vocabulary since everything it names is independently in the PS).\n\nEach discriminator the view states is present in the PS, verified by literal substring match: forwarding the policy verbatim = PS title \"HttpResponse.delete_cookie() should preserve cookie's samesite\"; secure-when-policy-is-'none' = PS prose \"Chrome and Firefox will soon begin ignoring Set-Cookie headers with Samesite=None that aren't marked 'Secure'\"; the two reserved prefixes = PS prose \"only setting 'Secure' if the cookie's key begins with 'Secure' or 'Host'\" AND the literal key.startswith(('__Secure-', '__Host-')) inside the PS's own pasted code block; case-insensitive 'none' = the PS's quoted Firefox warning spells it lowercase (attribute set to \"none\"); the already-elapsed lifetime + reach carried by Cookie.expired / has_path / has_domain = the PS pastes the real header 'expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/' verbatim; the unchanged setter store_cookie builds on = the PS's code block calls self.set_cookie(; even the samesite kwarg wiring ('samesite=settings.SESSION_COOKIE_SAMESITE,') and the pre-patch signature (\"def delete_cookie(self, key, path='/', domain=None)\") are literally in the PS's own testing snippet.\n\nThe identifier `delete_cookie` echoes a patched repo symbol and is excused only because it is in the PS -- I confirmed that excuse does real work by re-running screen() with problem_statement withheld, which then FAILS: \"L2/L5: spec-view identifier 'delete_cookie' embeds patched repo symbol 'delete_cookie' (not in problem statement)\".\n\n(5) THE ONE NON-PS TOKEN, RUN DOWN. is_relaxed_ci / is_restrictive_ci / is_known_policy name the 'lax' and 'strict' tokens; 'lax' is in the PS (the pasted live header 'SameSite=Lax') but 'strict' is NOT. This is not a leak: in a base_commit worktree (repos/django_django.git @ 156a2138db, /tmp) set_cookie at django/http/response.py:199-202 already validates samesite.lower() not in ('lax','none','strict') PRE-patch, and the gold diff contains none of \"'lax', 'none', 'strict'\", 'def set_cookie', '_reserved' or '_LegalChars' -- so the token triple is UNCHANGED-callee behaviour. It is consumed in the view only as Requires(Implies(len(policy) > 0, is_known_policy(policy))), a domain restriction saying where an emitted cookie is observable at all, never as a ground for either decision. Same for is_storable_name / is_name_char / the nine reserved names (stdlib http.cookies Morsel._reserved + _LegalChars, with django/http/cookie.py's setdefault('samesite')): untouched by the patch, so they describe territory the edit does not enter and cannot localize it.\n\n(6) Positive control that the artifact I screened is the shipping one: scripts/nagini_verify.sh on live model.py -> 'Verification successful' in 30.4s, exit 0; adversary same-spec on an unmodified copy -> exit 0 ('SAME').\n\nCONCLUSION: every discriminator the spec view names is derivable from the public problem_statement, and nothing in it points at the edit beyond that -- no path, no symbol, no gold line, no diff marker, no bug->fix narration. NO-LEAKAGE.\n\nRECORD-HYGIENE FINDING (reported; does not change my verdict, which rests on my own measurement of live 9da3179a): meta.json['region_hashes'] and the G-PANEL-1/-2/-3 + G-EQ stamps all reference f8de1fe7dcce, an OLDER model.py. The stamps should be refreshed so the freshness record matches the bytes shipping. Note also that this is the SECOND consecutive drift of this kind on this cell (the prior G-PANEL-3 note reports the same finding against 1c4bdc5be1e5 while itself being stamped on f8de1fe7dcce), which suggests the spec is being edited between panel runs faster than the stamps are refreshed.\n\nSTYLISTIC NOTE (not a leak, no line submitted): the docstring line 'The two decisions the change introduces -- forwarding the policy value and deriving the secure flag from the \"none\" policy' frames content as a change rather than purely as desired behaviour, and lines 24/26/458 similarly say 'the pre-existing default expiry behaviour is preserved'. None trips a narration token and the substance of each is exactly the PS's two asks plus the PS's pasted header, so a consumer learns nothing the issue text does not already state; but rephrasing them as pure behavioural statements would remove the edit-shaped framing.\n\nOTHER GATES: all 16 recorded gates read pass in the live meta.json (G-AX, G-CONF, G-DIFF, G-EQ, G-GOLD, G-HYGIENE, G-INTEGRITY, G-LEAK, G-MUT, G-PANEL, G-PANEL-1/-2/-3, G-PBT, G-RESOLVE, G-VERIFY). With no relaxation here, my verdict leans on none of them -- it rests on the screen, the controls, the manual sweep and the PS derivation above, all run on the live bytes.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T19:46:06+00:00",
+      "code_version": "d2358eb63-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 25.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-direct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-accumulate",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-two-store",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reimplemented-recorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 79.8
+          },
+          {
+            "expect": "verify",
+            "id": "precond-name-domain",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 35.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fresh-f2p-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 40.2
+          },
+          {
+            "expect": "reject",
+            "id": "diverge-selfcall",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 64.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-policy",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-none-disjunct",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-and-instead-of-or",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-forwarding",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 177.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-extra-secure-store",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 69.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-extra-policy-store",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 72.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-live-cookie",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-forged-expiry-default",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 38.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-path-forwarding",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 54.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-domain-forwarding",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 52.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-hardcode-root-reach",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 195.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 6,
+          "uniqueness": 13
+        },
+        "manifest_sha256": "7c6cac763078bc1eaa4b6441599ad374155eddfb53e2b10b716425ab95370d01",
+        "n_cases": 20,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 20 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1",
+        "properties.py": "7c6cac763078bc1eaa4b6441599ad374155eddfb53e2b10b716425ab95370d01"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T04:00:30+00:00",
+      "code_version": "65676836b-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "d7150ff8d5ea30b0350e6031450cee97be8dd7e1f5d4f91b8fa73e204996ba44",
+        "patch.diff": "72c9740f89e88304565d49a9aa1c37d38633215b9fd69aaca3a9f277821b02cf"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T05:39:57+00:00",
+      "code_version": "bbccd3869-dirty",
+      "data": {
+        "wall_time_s": 28.6
+      },
+      "detail": "verified in 28.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9da3179acda20a9747db449493565bb1206f922e29b489bbe1502fee797489f1"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13195",
+  "modeled_functions": [
+    {
+      "carrier_type": "str key/samesite/path/domain -> List[int] of Unicode code points; falsey samesite (None or '') -> empty list, and likewise a falsey path/domain (None or '', neither of which the setter records); specification over PSeq[int]; emitted Morsel -> Cookie(expired: bool, secure: bool, has_policy: bool, policy: List[int], has_path: bool, path: List[int], has_domain: bool, domain: List[int]) -- the whole footprint the emitted cookie carries, not only the attributes the change touches; Requires domain: is_storable_name(key) and (policy empty or is_known_policy(policy)) -- exactly the inputs on which the real routine emits an expiry cookie instead of refusing the request (mapping.md S2)",
+      "model_symbol": "delete_cookie",
+      "repo_location": "django/http/response.py:213",
+      "repo_symbol": "django.http.response.HttpResponseBase.delete_cookie",
+      "role": "modeled changed function (cookie-expiry routine); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition cookie.secure == expiry_secure(key, policy) (the secure clause is reported first)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the literal pre-patch (both bugs): no samesite forwarding AND secure derived from name prefix only",
+      "reverted_to": "secure = has_security_prefix(key); store_cookie(cookie, path, domain, secure, []) (samesite dropped)"
+    },
+    {
+      "fails_on": "postcondition cookie.secure == expiry_secure(key, policy)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "isolates the secure-from-none decision: forwarding fixed, secure derived from name prefix only",
+      "reverted_to": "secure = has_security_prefix(key); store_cookie(cookie, path, domain, secure, policy)"
+    },
+    {
+      "fails_on": "postcondition cookie.has_policy == (len(policy) > 0)",
+      "file": "model_prepatch_3.py",
+      "fixed_behavior": "isolates the forwarding decision: secure derived correctly, samesite dropped",
+      "reverted_to": "secure = has_security_prefix(key) or is_none_ci(policy); store_cookie(cookie, path, domain, secure, []) (samesite dropped)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "86db21f9fd3f956e64859f0117abdce28a48ed3d6736f7e115568a5806f784d2",
+    "impl": "f66ef3c86bbae157b18e7d01d34b7669a24d087b82a349250420e041d3b6c1e6",
+    "post-conditions": "f6e855a35d38f33cea27d2c73cc451a06a9e151c454497f3302f4c1e78f80995",
+    "pre-conditions": "1d4a1ec4e8de77deec69aa0cbf1e87b825d5b751ee313cb008226ee7fd856cdd",
+    "pure": "a39b948f75bdb435f4479c6a295f5d5eb64ba53c786a178ff4584eef56b47cb0",
+    "spec_view": "a2fa2d7edec97332d5855b151d356fe64e7132fefe766ab7ca84fea28d8963bc"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; startswith via starts_with (Forall over prefix indices with in-bounds guard + triggers); case-insensitive 'none' via per-code-point ASCII fold lower_cp; a falsey samesite (None or '') collapsed to the empty list (observationally identical: neither forwarded nor 'none'), and a falsey path/domain likewise (the setter records neither None nor the empty string, and an omitted path is the site root, which is a preimage of '/' and not of the empty list -- mapping.md S2)",
+  "version": "3.2"
+}

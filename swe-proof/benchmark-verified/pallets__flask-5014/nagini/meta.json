@@ -1,0 +1,460 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX), two split obligations: (A) the init_base axiom \u2014 fuzz the AXIOM's own argument (arbitrary import_name, blueprint name held at a fixed accepted value) against the real base init: it RETURNS on resolvable import_name (Ensures, not base_init_failed) and RAISES on unresolvable dotted import_name e.g. '.', 'no.such.package' (Exsures(BaseInitError), base_init_failed); both are permitted outcomes, the checker asserts the raise path is reachable AND that the outcome is deterministic per import_name and name-independent (so base_init_failed is a function of import_name). (B) the empty/dot validation decision over `name` with a resolvable import_name, asserted against whichever tree is mounted (the empty-name rejection is detected: post-patch rejects '', base_commit accepts '') \u2014 boundary + 20000 fuzz names.",
+      "encoded_property": "opaque, name-independent base initialiser that fails-or-succeeds AS A UNIT before name validation, with the outcome pinned to the deterministic predicate base_init_failed(import_name): Requires Acc(list_pred(import_name), 1/2); completes normally EXACTLY when not base_init_failed (Ensures Acc(list_pred(import_name), 1/2) and not base_init_failed(ToSeq(import_name))) OR fails and propagates EXACTLY when base_init_failed (Exsures(BaseInitError, Acc(list_pred(import_name), 1/2) and base_init_failed(ToSeq(import_name)))). This is the weakest sound contract over the VALUE side (the real outcome on a given import_name is deterministic and is precisely what base_init_failed names) and does NOT over-claim unconditional normal termination (the original Ensures-only axiom did, which was strictly stronger than the real callee that raises on unresolvable import_name). It says nothing about `name`, so it cannot mask or pre-empt the name guards. The predicate-pinning makes the channels DISJOINT: a name reject runs only after init_base returns (not base_init_failed), so it cannot be routed through Exsures(BaseInitError,...) \u2014 closing the prior value-free-Exsures hole. validate_name re-raises the base-init failure via Exsures(BaseInitError, ... base_init_failed(import_name)), faithful to the real constructor aborting before name validation.",
+      "kind": "A-consumed",
+      "models": "flask.scaffold.Scaffold.__init__ (invoked via super().__init__ at blueprints.py:185)",
+      "name": "init_base",
+      "provenance": "src/flask/scaffold.py:76; unchanged by the gold diff (which touches only blueprints.py). Stores import_name/folders/root_path and initialises empty registries; never inspects, validates, or raises on the blueprint `name` (name is not even a parameter of Scaffold.__init__). It is NOT unconditionally terminating: when root_path is None (the default at the blueprints.py call site) it runs root_path = get_root_path(self.import_name) (scaffold.py:170-171 region), which calls pkgutil.get_loader(import_name) and RAISES (e.g. ImportError) on unresolvable/relative dotted import_name such as '.', '..', 'no.such.package' (and RuntimeError on a namespace package with no file path). So on some Requires-satisfying import_name the real callee fails as a unit \u2014 before any name check.",
+      "purity": "@ContractOnly (not @Pure; not used inside an Ensures, only called in the impl)"
+    }
+  ],
+  "base_commit": "7ee9ceb71e868944a46e1ff00b506772a53a4f1d",
+  "changed_files": [
+    "src/flask/blueprints.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "G-AX / axiom_check.py + PBT axiom lane ax-init-base-sound: the real base-init outcome is asserted DETERMINISTIC per import_name and NAME-INDEPENDENT (same import_name decides the same way regardless of the blueprint name), so base_init_failed is a well-defined function of import_name; ax-init-base-name-indep confirms name-silence on a resolvable import_name.",
+      "encoded_property": "deterministic predicate of import_name ALONE (the real base init never reads the blueprint name, so its raise/return outcome depends only on whether the import name resolves). Used to pin the two exception channels of init_base/validate_name disjointly: normal return carries not base_init_failed(import_name); BaseInitError carries base_init_failed(import_name). This forces a name reject onto the NameValidationError channel (it runs only after init_base returns, where not base_init_failed) and forbids routing it through BaseInitError \u2014 closing the SPEC-TOO-WEAK control-flow-effect hole where the value-free Exsures(BaseInitError,...) admitted a wrong impl (rival-wrong-exc-on-reject).",
+      "kind": "A-reference",
+      "models": "the truth-value of 'the unchanged base init raises as a unit on this import_name' (super().__init__ -> Scaffold.__init__ -> get_root_path -> pkgutil.get_loader raises ImportError/RuntimeError)",
+      "name": "base_init_failed",
+      "purity": "@Pure @ContractOnly (appears only in contracts, never called in the impl)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T18:16:14+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: (A) init_base axiom sound \u2014 real base initialiser both RETURNS (resolvable import_name) and RAISES (unresolvable dotted import_name e.g. '.', 'no.such.package'), both permitted by the weakened axiom (Ensures / Exsures(BaseInitError)); (B) empty/dot validation decision matches the model over boundary + 20000 fuzz names (empty-name decision checked against the mounted tree).",
+      "gate": "G-AX",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "9a7b0412bec53639e3264478866d4c42d884834546681a93f211fa7e4fb7b1cc",
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T18:16:13+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 101676,
+          "disagreements": 0,
+          "seed": 501404,
+          "shadow": "direct (contract-stripped impl region; init_base -> real base initialiser)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101676, \"disagreements\": 0, \"seed\": 501404, \"shadow\": \"direct (contract-stripped impl region; init_base -> real base initialiser)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "b39c1467be0fc2b8c3da13a142cf9102627244d072bcd6e6e8972de7440f64e4",
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:43:37+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2",
+        "model_prepatch.py": "0c82356a02a70f347e39fd0e0d047c95699cdb528d4cdedb78d11821c56431aa"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-14T19:15:34+00:00",
+      "code_version": "c3c602cd3-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_7.py`, `atk_8.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_5.py`, `atk_6.py`, `atk_9.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2",
+        "properties.py": "deb86934806b528614f3cde0e99e1180c1c2a62183101067288cf20e3dc107a4"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:44:23+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2",
+        "model_prepatch.py": "0c82356a02a70f347e39fd0e0d047c95699cdb528d4cdedb78d11821c56431aa"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T18:26:50+00:00",
+      "code_version": "52fe1973b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "109d2f1e2e387ea51864219aec72266b070993008f94546529afea878ef42378",
+          "impl": "01bf1271765cdd011f561d40df08b38bdee31254286aa51284825d4f25a6643f",
+          "post-conditions": "60726be6485ec13370c9e8fcc14cba950259eef390a1a07236262004350a8f86",
+          "pre-conditions": "af3f8702a27a3c29426348e733eb7830f02c699ce7d9d803632ec2d16d89dd15",
+          "pure": "6fc9cdae3023838da082bf0e23522f4c819b0b7e8e5a640da7856e9fb66f3756",
+          "spec_view": "c0e927e1f7443b8de19492b3de9c0dec1b7b91237fc8697a72d1ab6b4eb4aa6e"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T18:26:49+00:00",
+      "code_version": "52fe1973b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "98780774d5c9c6953b0b4d0c576cf0960d19a1c10f52724e00ed66a338fc7d91",
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T18:26:50+00:00",
+      "code_version": "52fe1973b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T18:25:46+00:00",
+      "code_version": "52fe1973b-dirty",
+      "data": {
+        "judged": 3,
+        "killed": 3,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 3,
+        "unjudged": []
+      },
+      "detail": "killed 3/3 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-14T19:15:34+00:00",
+      "code_version": "c3c602cd3-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "G-PANEL-2 faithfulness-break attack on pallets__flask-5014 (nagini). Reference =  copied to  with patch.diff APPLIED (verified the `if not name: raise ValueError` guard is present at blueprints.py:193). Ran everything in /tmp; bundle untouched. Verdict: I could not find any input on which the modeled function disagrees with the real post-patch callee.\n\nCHECKS THAT PASSED (measurements, not opinions):\n\n1. Spec integrity. `adversary same-spec nagini pallets__flask-5014` on a verbatim copy of model.py -> exit 0 (\"SAME\"). Nagini verifier on the bundle model.py -> exit 0. Bundle axiom_check.py against the patched tree -> exit 0 (G-AX OK).\n\n2. Name decision, 20015 inputs, ZERO divergences. Differential fuzz of the model predicate (normal return iff len>0 and 46 not in codepoints; reject iff len==0 or dot) against the real patched Blueprint.__init__ with resolvable import_name='flask'. Boundary + adversarial alphabet incl. '', '.', '..', 'a.b', '.a', 'a.', '  ', '\\x00', 'x'*1000, 'e-acute', U+FF0E fullwidth full stop, U+2024 one-dot leader, U+1F600, lone surrogate \\ud800. Every real outcome was permitted by the spec. Notably the refinement `not name` <-> len(name)==0 is exact: '\\x00' and '  ' are truthy str and the real repo ACCEPTS both, matching the model (a naive \"falsy/blank\" reading would have been a real over-claim; it is not what the model says). Fullwidth/one-dot-leader lookalikes are not U+002E and the real repo accepts them, matching contains_dot.\n\n3. Base-init name-silence CONFIRMED. For each import_name in {'no.such.pkg5014','flask','sys'} the base-step outcome was identical across 7 distinct blueprint names -> the raise/return decision never reads `name` (it is not a parameter of Scaffold.__init__). So stating both witnesses over import_name alone is sound.\n\n4. Exception-class keying by STEP is measurable. Over 6018 import_name shapes with an accepted name the outcome histogram was ImportError 4066 / RuntimeError 34 / AttributeError 2 / RETURN 1916 and **ValueError count = 0**. So a ValueError from the prologue is unambiguously a name-guard reject, which is exactly what mapping.md 2 claims; BaseInitError = \"base step failed as a unit\" is a faithful fold of ImportError/RuntimeError/AttributeError.\n\n5. The witness-INDEPENDENCE claim is TRUE, and the spec is not secretly stronger. This is where the earlier recorded UNFAITHFUL verdict bit, and the current model.py is the REPAIRED revision. Reproduced both flip directions on the real callee: (a) root_path route - import_name='no.such.pkg5014' raises ImportError with root_path=None but RETURNS with root_path='/tmp' (S4 skipped); (b) ambient sys.modules route - a real namespace package 'zzns5014' RETURNS before `import zzns5014` and raises RuntimeError after (__file__ is None, leg B6). So a single deterministic predicate p(import_name) WOULD have been unfaithful, and the model correctly uses two non-exclusive attainability witnesses. I confirmed the spec does not covertly make them exclusive with a Nagini vacuity control: assuming base_init_can_complete AND base_init_can_fail for one import_name and asserting False -> \"Assert might fail\" (verification failed), i.e. the both-hold state is FEASIBLE under the frozen spec, matching reality. Had that Assert(False) verified, the spec would have been too strong; it does not.\n\n6. Channel pin is faithful to real control flow. name in {'', 'a.b', 'ok'} x import_name in {'no.such.pkg5014', '.', 'sys'} all abort in the base step (ImportError/ImportError/RuntimeError) regardless of the name - i.e. the base failure really does pre-empt the name guards, and a name reject really can only occur after super().__init__ returned. The provenance-based pin (reject carries the SUCCESS witness) asserts nothing false about the callee.\n\nNON-DEFECTS I EXAMINED AND DELIBERATELY DID NOT REPORT:\n\n- MustTerminate over-claim, judged NOT a repo-reachable divergence. init_base carries Requires(MustTerminate(2)), yet the real chain get_root_path -> pkgutil.get_loader -> find_spec IMPORTS the parent package and thus runs arbitrary module-level code. I built a package whose __init__.py loops forever and Blueprint('', 'hangpkg5014.sub') genuinely DIVERGED (timeout 124; faulthandler traceback pins the hang at helpers.py:578 pkgutil.get_loader, inside scaffold.py:97 <- blueprints.py:185). I am NOT reporting this as UNFAITHFUL because the divergence is not a function of the modeled input: it requires injecting foreign non-terminating code onto sys.path. For every import_name string over the repo's own actual module set (6018 shapes swept, all terminated promptly) the base init terminates, so MustTerminate is sound on the reachable domain and the F2P/P2P oracle (import_name=__name__) is unaffected. Flagging it would condemn a correct spec on an environment-injection artifact.\n\n- meta.json is STALE, but this is bookkeeping, not a spec defect. meta.json's 'axioms', 'string_modeling', 'deep_model_references' and the recorded G-PANEL-2 entry all still describe the SUPERSEDED design: a single deterministic predicate base_init_failed(import_name) that pinned the channels DISJOINTLY (\"a function of import_name alone\", \"outcome is deterministic per import_name\"). That claim is exactly the one my probes in item 5 refute, and it is what the recorded UNFAITHFUL verdict (model.py hash eb4545c1...) correctly condemned. The CURRENT model.py is hash 223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2, and grep shows zero occurrences of base_init_failed in model.py / mapping.md / refinement.md - all three authoritative artifacts consistently use the two independent witnesses base_init_can_complete / base_init_can_fail (11/12/10 occurrences). G-AX, G-VERIFY, G-DIFF, G-MUT and G-LEAK were all re-run green at 18:16-18:26 against this current hash. Consequently meta.json's region_hashes for axioms / pre-conditions / post-conditions / spec_view MISMATCH the recomputed hashes of the shipped model.py (impl and pure regions still match) - they are leftovers from the pre-repair revision, as is the G-PANEL-2/G-EQ/G-PANEL-1/G-PANEL-3 metadata. This is a metadata-refresh issue for the orchestrator, not a divergence between the modeled function and the real repo, so it does not change my verdict. Recommend refreshing meta.json region_hashes and the axiom/deep-model prose to the witness-pair design.\n\nCONCLUSION: the spec is neither too strong nor drifted. The one axis on which it is genuinely stronger than the real callee (termination through __import__) is unreachable from repo inputs, and the determinism over-claim that previously made this bundle UNFAITHFUL has been properly repaired and is now verifier-confirmed non-exclusive.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "ARTIFACT JUDGED: consumer spec view generated live the way eval does it (markers.spec_view(model.py, nagini backend) == what eval/adapter.py:304 exposes in modes 1/2), model.py sha256 223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2 (the same sha G-LEAK/G-AX/G-CONF are stamped against). Impl region confirmed elided ('... # implementation elided'); projection idempotent under re-projection.\n\nPUBLIC BASELINE (problem_statement ONLY, hints_text is empty for this row so there is no hints-only vocabulary to echo): 'Require a non-empty name for Blueprints / Things do not work correctly if a Blueprint is given an empty name (e.g. #4944). It would be helpful if a ValueError was raised when trying to do that.' GOLD EDIT (3 added lines in src/flask/blueprints.py): blank + 'if not name:' + 'raise ValueError(\"'name' may not be empty.\")', inserted after super().__init__(...) and before the pre-existing dot check.\n\nDECISIVE POINT: the gold edit's entire behavioral content \u2014 empty Blueprint name must raise ValueError \u2014 is stated verbatim in the public problem_statement. The spec view therefore has essentially nothing left to leak; restating the demanded behavior is exactly what a spec is for.\n\nMECHANICAL CHECKS (all clean):\n- leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch): passed=True, hard_failures=[], warnings=[] \u2014 reproduced independently, not read off meta.json.\n- No gold added line present verbatim or whitespace-normalized: 'if not name:' -> False; 'raise ValueError(\"'name' may not be empty.\")' -> False. The gold error MESSAGE string appears nowhere ('may not be empty' -> False).\n- No diff markers (@@, diff --git, +++ , --- , index).\n- No patched file path / module path: 'blueprints.py' -> False, 'flask.blueprints' -> False. ('flask' occurs only inside the instance id 'pallets__flask-5014' in line 1, which the consumer already holds as instance_id/repo.)\n- No patched-repo-symbol echo: _patch_changed_symbols(gold) is empty (the only def on a changed line/section header is __init__, non-distinctive). 'Blueprint(' -> False, 'root_path' -> False, 'super().__init__' -> False, 'ValueError' appears only as the named stand-in target, and 'Blueprint'/'blueprint' is public problem_statement vocabulary.\n- No hidden-test leak: 'test_empty_name_not_allowed' / 'test_blueprints' -> 0 occurrences.\n- Narration sweep beyond the mechanical _NARRATION list (bug/fix/patched/previously/incorrectly/wrong/broken/regression + my own extras: 'no longer', 'used to', 'currently', 'erroneously', 'missing', 'omitted', 'forgot', 'add a check', 'insert', 'get_root_path', 'pkgutil', 'sys.modules', 'raise ValueError'): only hits are 'guard' ('the name guards run strictly after init_base returns') and 'before the' ('validates that name before the object is usable'). Both describe contract structure / desired behavior, not a bug->fix mechanism or diagnosis. No 'the bug was X', no 'now raises', no pre/post-patch framing anywhere.\n\nTWO NON-OBVIOUS ANGLES I CHECKED RATHER THAN ASSUMED:\n1) The spec view also states the DOT rejection rule (code point U+002E, contains_dot). That is NOT gold-edit information: I checked out the real repo at base_commit 7ee9ceb71e868944a46e1ff00b506772a53a4f1d (worktree) and src/flask/blueprints.py:194 ALREADY contains `raise ValueError(\"'name' may not contain a dot '.' character.\")` pre-patch. The dot rule is pre-existing public repo behavior inside the very range the consumer is handed as localization (Blueprint.__init__, src/flask/blueprints.py:172-206), so carrying it is faithfulness to the unchanged surrounding contract, not edit disclosure. The docstring is explicit that the EMPTY-name rejection is the behavior pinned here \u2014 i.e. it points at the public problem_statement, not at a hidden discriminator.\n2) The Exsures(NameValidationError, ... and base_init_can_complete(...)) channel does pin that name rejection happens only AFTER the base init completes, which matches where gold inserts its guard. I judged this non-leaking: at base_commit the ordering (super().__init__(...) first, name check after) is already visible public code in the localized range, so the constraint is derivable from the unpatched repo the solver holds and adds nothing about the EDIT. Crucially it does NOT pin the empty-vs-dot ordering that gold chose: I built an attack that swaps the two guards (dot checked before empty) and `adversary same-spec nagini pallets__flask-5014` returned 'SAME \u2014 attack shares the bundle's exact specification' (exit 0), proving the frozen spec is order-agnostic between the two rejections and so does not hand over gold's precise insertion point.\n\nVERDICT: the spec view reads as an abstract behavioral contract over List[int] code points with witness-based exit channels; every behavioral fact in it is either in the public problem_statement or in pre-existing base_commit code. No line exceeds the public baseline.\n\nOUT-OF-SCOPE OBSERVATION (not my gate, not the basis of this verdict, flagging for the integrity/hygiene lane): meta.json region_hashes is STALE w.r.t. the shipped model.py \u2014 recomputing markers.region_hashes on the current model.py matches for 'impl' and 'pure' but DIFFERS for 'axioms', 'pre-conditions', 'post-conditions' and 'spec_view' (recorded spec_view 60f0e431..., recomputed c0e927e1...); the recorded hashes match neither model.py nor model_prepatch.py, so the contract regions were edited after region_hashes was written. This does not weaken my finding: the consumer's spec view is projected live from model.py (adapter.spec_view), and G-LEAK/G-AX/G-CONF are all stamped against the current model.py sha, which is the artifact I screened.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 G-PANEL-2 faithfulness-break attack on pallets__flask-5014 (nagini). Reference =  copied to  with patch.diff APPLIED (verified the `if not name: raise ValueError` guard is present at blueprints.py:193). Ran everything in /tmp; bundle untouched. Verdict: I could not find any input on which the modeled function disagrees with the real post-patch callee.\n\nCHECKS THAT PASSED (measurements, not opinions):\n\n1. Spec integrity. `adversary same-spec nagini pallets__flask-5014` on a verbatim copy of model.py -> exit 0 (\"SAME\"). Nagini verifier on the bundle model.py -> exit 0. Bundle axiom_check.py against the patched tree -> exit 0 (G-AX OK).\n\n2. Name decision, 20015 inputs, ZERO divergences. Differential fuzz of the model predicate (normal return iff len>0 and 46 not in codepoints; reject iff len==0 or dot) against the real patched Blueprint.__init__ with resolvable import_name='flask'. Boundary + adversarial alphabet incl. '', '.', '..', 'a.b', '.a', 'a.', '  ', '\\x00', 'x'*1000, 'e-acute', U+FF0E fullwidth full stop, U+2024 one-dot leader, U+1F600, lone surrogate \\ud800. Every real outcome was permitted by the spec. Notably the refinement `not name` <-> len(name)==0 is exact: '\\x00' and '  ' are truthy str and the real repo ACCEPTS both, matching the model (a naive \"falsy/blank\" reading would have been a real over-claim; it is not what the model says). Fullwidth/one-dot-leader lookalikes are not U+002E and the real repo accepts them, matching contains_dot.\n\n3. Base-init name-silence CONFIRMED. For each import_name in {'no.such.pkg5014','flask','sys'} the base-step outcome was identical across 7 distinct blueprint names -> the raise/return decision never reads `name` (it is not a parameter of Scaffold.__init__). So stating both witnesses over import_name alone is sound.\n\n4. Exception-class keying by STEP is measurable. Over 6018 import_name shapes with an accepted name the outcome histogram was ImportError 4066 / RuntimeError 34 / AttributeError 2 / RETURN 1916 and **ValueError count = 0**. So a ValueError from the prologue is unambiguously a name-guard reject, which is exactly what mapping.md 2 claims; BaseInitError = \"base step failed as a unit\" is a faithful fold of ImportError/RuntimeError/AttributeError.\n\n5. The witness-INDEPENDENCE claim is TRUE, and the spec is not secretly stronger. This is where the earlier recorded UNFAITHFUL verdict bit, and the current model.py is the REPAIRED revision. Reproduced both flip directions on the real callee: (a) root_path route - import_name='no.such.pkg5014' raises ImportError with root_path=None but RETURNS with root_path='/tmp' (S4 skipped); (b) ambient sys.modules route - a real namespace package 'zzns5014' RETURNS before `import zzns5014` and raises RuntimeError after (__file__ is None, leg B6). So a single deterministic predicate p(import_name) WOULD have been unfaithful, and the model correctly uses two non-exclusive attainability witnesses. I confirmed the spec does not covertly make them exclusive with a Nagini vacuity control: assuming base_init_can_complete AND base_init_can_fail for one import_name and asserting False -> \"Assert might fail\" (verification failed), i.e. the both-hold state is FEASIBLE under the frozen spec, matching reality. Had that Assert(False) verified, the spec would have been too strong; it does not.\n\n6. Channel pin is faithful to real control flow. name in {'', 'a.b', 'ok'} x import_name in {'no.such.pkg5014', '.', 'sys'} all abort in the base step (ImportError/ImportError/RuntimeError) regardless of the name - i.e. the base failure really does pre-empt the name guards, and a name reject really can only occur after super().__init__ returned. The provenance-based pin (reject carries the SUCCESS witness) asserts nothing false about the callee.\n\nNON-DEFECTS I EXAMINED AND DELIBERATELY DID NOT REPORT:\n\n- MustTerminate over-claim, judged NOT a repo-reachable divergence. init_base carries Requires(MustTerminate(2)), yet the real chain get_root_path -> pkgutil.get_loader -> find_spec IMPORTS the parent package and thus runs arbitrary module-level code. I built a package whose __init__.py loops forever and Blueprint('', 'hangpkg5014.sub') genuinely DIVERGED (timeout 124; faulthandler traceback pins the hang at helpers.py:578 pkgutil.get_loader, inside scaffold.py:97 <- blueprints.py:185). I am NOT reporting this as UNFAITHFUL because the divergence is not a function of the modeled input: it requires injecting foreign non-terminating code onto sys.path. For every import_name string over the repo's own actual module set (6018 shapes swept, all terminated promptly) the base init terminates, so MustTerminate is sound on the reachable domain and the F2P/P2P oracle (import_name=__name__) is unaffected. Flagging it would condemn a correct spec on an environment-injection artifact.\n\n- meta.json is STALE, but this is bookkeeping, not a spec defect. meta.json's 'axioms', 'string_modeling', 'deep_model_references' and the recorded G-PANEL-2 entry all still describe the SUPERSEDED design: a single deterministic predicate base_init_failed(import_name) that pinned the channels DISJOINTLY (\"a function of import_name alone\", \"outcome is deterministic per import_name\"). That claim is exactly the one my probes in item 5 refute, and it is what the recorded UNFAITHFUL verdict (model.py hash eb4545c1...) correctly condemned. The CURRENT model.py is hash 223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2, and grep shows zero occurrences of base_init_failed in model.py / mapping.md / refinement.md - all three authoritative artifacts consistently use the two independent witnesses base_init_can_complete / base_init_can_fail (11/12/10 occurrences). G-AX, G-VERIFY, G-DIFF, G-MUT and G-LEAK were all re-run green at 18:16-18:26 against this current hash. Consequently meta.json's region_hashes for axioms / pre-conditions / post-conditions / spec_view MISMATCH the recomputed hashes of the shipped model.py (impl and pure regions still match) - they are leftovers from the pre-repair revision, as is the G-PANEL-2/G-EQ/G-PANEL-1/G-PANEL-3 metadata. This is a metadata-refresh issue for the orchestrator, not a divergence between the modeled function and the real repo, so it does not change my verdict. Recommend refreshing meta.json region_hashes and the axiom/deep-model prose to the witness-pair design.\n\nCONCLUSION: the spec is neither too strong nor drifted. The one axis on which it is genuinely stronger than the real callee (termination through __import__) is unreachable from repo inputs, and the determinism over-claim that previously made this bundle UNFAITHFUL has been properly repaired and is now verifier-confirmed non-exclusive.; G-PANEL-3 (leakage): pass \u2014 ARTIFACT JUDGED: consumer spec view generated live the way eval does it (markers.spec_view(model.py, nagini backend) == what eval/adapter.py:304 exposes in modes 1/2), model.py sha256 223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2 (the same sha G-LEAK/G-AX/G-CONF are stamped against). Impl region confirmed elided ('... # implementation elided'); projection idempotent under re-projection.\n\nPUBLIC BASELINE (problem_statement ONLY, hints_text is empty for this row so there is no hints-only vocabulary to echo): 'Require a non-empty name for Blueprints / Things do not work correctly if a Blueprint is given an empty name (e.g. #4944). It would be helpful if a ValueError was raised when trying to do that.' GOLD EDIT (3 added lines in src/flask/blueprints.py): blank + 'if not name:' + 'raise ValueError(\"'name' may not be empty.\")', inserted after super().__init__(...) and before the pre-existing dot check.\n\nDECISIVE POINT: the gold edit's entire behavioral content \u2014 empty Blueprint name must raise ValueError \u2014 is stated verbatim in the public problem_statement. The spec view therefore has essentially nothing left to leak; restating the demanded behavior is exactly what a spec is for.\n\nMECHANICAL CHECKS (all clean):\n- leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch): passed=True, hard_failures=[], warnings=[] \u2014 reproduced independently, not read off meta.json.\n- No gold added line present verbatim or whitespace-normalized: 'if not name:' -> False; 'raise ValueError(\"'name' may not be empty.\")' -> False. The gold error MESSAGE string appears nowhere ('may not be empty' -> False).\n- No diff markers (@@, diff --git, +++ , --- , index).\n- No patched file path / module path: 'blueprints.py' -> False, 'flask.blueprints' -> False. ('flask' occurs only inside the instance id 'pallets__flask-5014' in line 1, which the consumer already holds as instance_id/repo.)\n- No patched-repo-symbol echo: _patch_changed_symbols(gold) is empty (the only def on a changed line/section header is __init__, non-distinctive). 'Blueprint(' -> False, 'root_path' -> False, 'super().__init__' -> False, 'ValueError' appears only as the named stand-in target, and 'Blueprint'/'blueprint' is public problem_statement vocabulary.\n- No hidden-test leak: 'test_empty_name_not_allowed' / 'test_blueprints' -> 0 occurrences.\n- Narration sweep beyond the mechanical _NARRATION list (bug/fix/patched/previously/incorrectly/wrong/broken/regression + my own extras: 'no longer', 'used to', 'currently', 'erroneously', 'missing', 'omitted', 'forgot', 'add a check', 'insert', 'get_root_path', 'pkgutil', 'sys.modules', 'raise ValueError'): only hits are 'guard' ('the name guards run strictly after init_base returns') and 'before the' ('validates that name before the object is usable'). Both describe contract structure / desired behavior, not a bug->fix mechanism or diagnosis. No 'the bug was X', no 'now raises', no pre/post-patch framing anywhere.\n\nTWO NON-OBVIOUS ANGLES I CHECKED RATHER THAN ASSUMED:\n1) The spec view also states the DOT rejection rule (code point U+002E, contains_dot). That is NOT gold-edit information: I checked out the real repo at base_commit 7ee9ceb71e868944a46e1ff00b506772a53a4f1d (worktree) and src/flask/blueprints.py:194 ALREADY contains `raise ValueError(\"'name' may not contain a dot '.' character.\")` pre-patch. The dot rule is pre-existing public repo behavior inside the very range the consumer is handed as localization (Blueprint.__init__, src/flask/blueprints.py:172-206), so carrying it is faithfulness to the unchanged surrounding contract, not edit disclosure. The docstring is explicit that the EMPTY-name rejection is the behavior pinned here \u2014 i.e. it points at the public problem_statement, not at a hidden discriminator.\n2) The Exsures(NameValidationError, ... and base_init_can_complete(...)) channel does pin that name rejection happens only AFTER the base init completes, which matches where gold inserts its guard. I judged this non-leaking: at base_commit the ordering (super().__init__(...) first, name check after) is already visible public code in the localized range, so the constraint is derivable from the unpatched repo the solver holds and adds nothing about the EDIT. Crucially it does NOT pin the empty-vs-dot ordering that gold chose: I built an attack that swaps the two guards (dot checked before empty) and `adversary same-spec nagini pallets__flask-5014` returned 'SAME \u2014 attack shares the bundle's exact specification' (exit 0), proving the frozen spec is order-agnostic between the two rejections and so does not hand over gold's precise insertion point.\n\nVERDICT: the spec view reads as an abstract behavioral contract over List[int] code points with witness-based exit channels; every behavioral fact in it is either in the public problem_statement or in pre-existing base_commit code. No line exceeds the public baseline.\n\nOUT-OF-SCOPE OBSERVATION (not my gate, not the basis of this verdict, flagging for the integrity/hygiene lane): meta.json region_hashes is STALE w.r.t. the shipped model.py \u2014 recomputing markers.region_hashes on the current model.py matches for 'impl' and 'pure' but DIFFERS for 'axioms', 'pre-conditions', 'post-conditions' and 'spec_view' (recorded spec_view 60f0e431..., recomputed c0e927e1...); the recorded hashes match neither model.py nor model_prepatch.py, so the contract regions were edited after region_hashes was written. This does not weaken my finding: the consumer's spec view is projected live from model.py (adapter.spec_view), and G-LEAK/G-AX/G-CONF are all stamped against the current model.py sha, which is the artifact I screened.",
+      "gate": "G-PANEL",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2",
+        "properties.py": "deb86934806b528614f3cde0e99e1180c1c2a62183101067288cf20e3dc107a4"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-14T19:15:33+00:00",
+      "code_version": "c3c602cd3-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_7.py`, `atk_8.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_5.py`, `atk_6.py`, `atk_9.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2",
+        "properties.py": "deb86934806b528614f3cde0e99e1180c1c2a62183101067288cf20e3dc107a4"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-14T18:52:39+00:00",
+      "code_version": "7794a4607-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "G-PANEL-2 faithfulness-break attack on pallets__flask-5014 (nagini). Reference =  copied to  with patch.diff APPLIED (verified the `if not name: raise ValueError` guard is present at blueprints.py:193). Ran everything in /tmp; bundle untouched. Verdict: I could not find any input on which the modeled function disagrees with the real post-patch callee.\n\nCHECKS THAT PASSED (measurements, not opinions):\n\n1. Spec integrity. `adversary same-spec nagini pallets__flask-5014` on a verbatim copy of model.py -> exit 0 (\"SAME\"). Nagini verifier on the bundle model.py -> exit 0. Bundle axiom_check.py against the patched tree -> exit 0 (G-AX OK).\n\n2. Name decision, 20015 inputs, ZERO divergences. Differential fuzz of the model predicate (normal return iff len>0 and 46 not in codepoints; reject iff len==0 or dot) against the real patched Blueprint.__init__ with resolvable import_name='flask'. Boundary + adversarial alphabet incl. '', '.', '..', 'a.b', '.a', 'a.', '  ', '\\x00', 'x'*1000, 'e-acute', U+FF0E fullwidth full stop, U+2024 one-dot leader, U+1F600, lone surrogate \\ud800. Every real outcome was permitted by the spec. Notably the refinement `not name` <-> len(name)==0 is exact: '\\x00' and '  ' are truthy str and the real repo ACCEPTS both, matching the model (a naive \"falsy/blank\" reading would have been a real over-claim; it is not what the model says). Fullwidth/one-dot-leader lookalikes are not U+002E and the real repo accepts them, matching contains_dot.\n\n3. Base-init name-silence CONFIRMED. For each import_name in {'no.such.pkg5014','flask','sys'} the base-step outcome was identical across 7 distinct blueprint names -> the raise/return decision never reads `name` (it is not a parameter of Scaffold.__init__). So stating both witnesses over import_name alone is sound.\n\n4. Exception-class keying by STEP is measurable. Over 6018 import_name shapes with an accepted name the outcome histogram was ImportError 4066 / RuntimeError 34 / AttributeError 2 / RETURN 1916 and **ValueError count = 0**. So a ValueError from the prologue is unambiguously a name-guard reject, which is exactly what mapping.md 2 claims; BaseInitError = \"base step failed as a unit\" is a faithful fold of ImportError/RuntimeError/AttributeError.\n\n5. The witness-INDEPENDENCE claim is TRUE, and the spec is not secretly stronger. This is where the earlier recorded UNFAITHFUL verdict bit, and the current model.py is the REPAIRED revision. Reproduced both flip directions on the real callee: (a) root_path route - import_name='no.such.pkg5014' raises ImportError with root_path=None but RETURNS with root_path='/tmp' (S4 skipped); (b) ambient sys.modules route - a real namespace package 'zzns5014' RETURNS before `import zzns5014` and raises RuntimeError after (__file__ is None, leg B6). So a single deterministic predicate p(import_name) WOULD have been unfaithful, and the model correctly uses two non-exclusive attainability witnesses. I confirmed the spec does not covertly make them exclusive with a Nagini vacuity control: assuming base_init_can_complete AND base_init_can_fail for one import_name and asserting False -> \"Assert might fail\" (verification failed), i.e. the both-hold state is FEASIBLE under the frozen spec, matching reality. Had that Assert(False) verified, the spec would have been too strong; it does not.\n\n6. Channel pin is faithful to real control flow. name in {'', 'a.b', 'ok'} x import_name in {'no.such.pkg5014', '.', 'sys'} all abort in the base step (ImportError/ImportError/RuntimeError) regardless of the name - i.e. the base failure really does pre-empt the name guards, and a name reject really can only occur after super().__init__ returned. The provenance-based pin (reject carries the SUCCESS witness) asserts nothing false about the callee.\n\nNON-DEFECTS I EXAMINED AND DELIBERATELY DID NOT REPORT:\n\n- MustTerminate over-claim, judged NOT a repo-reachable divergence. init_base carries Requires(MustTerminate(2)), yet the real chain get_root_path -> pkgutil.get_loader -> find_spec IMPORTS the parent package and thus runs arbitrary module-level code. I built a package whose __init__.py loops forever and Blueprint('', 'hangpkg5014.sub') genuinely DIVERGED (timeout 124; faulthandler traceback pins the hang at helpers.py:578 pkgutil.get_loader, inside scaffold.py:97 <- blueprints.py:185). I am NOT reporting this as UNFAITHFUL because the divergence is not a function of the modeled input: it requires injecting foreign non-terminating code onto sys.path. For every import_name string over the repo's own actual module set (6018 shapes swept, all terminated promptly) the base init terminates, so MustTerminate is sound on the reachable domain and the F2P/P2P oracle (import_name=__name__) is unaffected. Flagging it would condemn a correct spec on an environment-injection artifact.\n\n- meta.json is STALE, but this is bookkeeping, not a spec defect. meta.json's 'axioms', 'string_modeling', 'deep_model_references' and the recorded G-PANEL-2 entry all still describe the SUPERSEDED design: a single deterministic predicate base_init_failed(import_name) that pinned the channels DISJOINTLY (\"a function of import_name alone\", \"outcome is deterministic per import_name\"). That claim is exactly the one my probes in item 5 refute, and it is what the recorded UNFAITHFUL verdict (model.py hash eb4545c1...) correctly condemned. The CURRENT model.py is hash 223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2, and grep shows zero occurrences of base_init_failed in model.py / mapping.md / refinement.md - all three authoritative artifacts consistently use the two independent witnesses base_init_can_complete / base_init_can_fail (11/12/10 occurrences). G-AX, G-VERIFY, G-DIFF, G-MUT and G-LEAK were all re-run green at 18:16-18:26 against this current hash. Consequently meta.json's region_hashes for axioms / pre-conditions / post-conditions / spec_view MISMATCH the recomputed hashes of the shipped model.py (impl and pure regions still match) - they are leftovers from the pre-repair revision, as is the G-PANEL-2/G-EQ/G-PANEL-1/G-PANEL-3 metadata. This is a metadata-refresh issue for the orchestrator, not a divergence between the modeled function and the real repo, so it does not change my verdict. Recommend refreshing meta.json region_hashes and the axiom/deep-model prose to the witness-pair design.\n\nCONCLUSION: the spec is neither too strong nor drifted. The one axis on which it is genuinely stronger than the real callee (termination through __import__) is unreachable from repo inputs, and the determinism over-claim that previously made this bundle UNFAITHFUL has been properly repaired and is now verifier-confirmed non-exclusive.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-14T18:39:08+00:00",
+      "code_version": "52fe1973b-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ARTIFACT JUDGED: consumer spec view generated live the way eval does it (markers.spec_view(model.py, nagini backend) == what eval/adapter.py:304 exposes in modes 1/2), model.py sha256 223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2 (the same sha G-LEAK/G-AX/G-CONF are stamped against). Impl region confirmed elided ('... # implementation elided'); projection idempotent under re-projection.\n\nPUBLIC BASELINE (problem_statement ONLY, hints_text is empty for this row so there is no hints-only vocabulary to echo): 'Require a non-empty name for Blueprints / Things do not work correctly if a Blueprint is given an empty name (e.g. #4944). It would be helpful if a ValueError was raised when trying to do that.' GOLD EDIT (3 added lines in src/flask/blueprints.py): blank + 'if not name:' + 'raise ValueError(\"'name' may not be empty.\")', inserted after super().__init__(...) and before the pre-existing dot check.\n\nDECISIVE POINT: the gold edit's entire behavioral content \u2014 empty Blueprint name must raise ValueError \u2014 is stated verbatim in the public problem_statement. The spec view therefore has essentially nothing left to leak; restating the demanded behavior is exactly what a spec is for.\n\nMECHANICAL CHECKS (all clean):\n- leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch): passed=True, hard_failures=[], warnings=[] \u2014 reproduced independently, not read off meta.json.\n- No gold added line present verbatim or whitespace-normalized: 'if not name:' -> False; 'raise ValueError(\"'name' may not be empty.\")' -> False. The gold error MESSAGE string appears nowhere ('may not be empty' -> False).\n- No diff markers (@@, diff --git, +++ , --- , index).\n- No patched file path / module path: 'blueprints.py' -> False, 'flask.blueprints' -> False. ('flask' occurs only inside the instance id 'pallets__flask-5014' in line 1, which the consumer already holds as instance_id/repo.)\n- No patched-repo-symbol echo: _patch_changed_symbols(gold) is empty (the only def on a changed line/section header is __init__, non-distinctive). 'Blueprint(' -> False, 'root_path' -> False, 'super().__init__' -> False, 'ValueError' appears only as the named stand-in target, and 'Blueprint'/'blueprint' is public problem_statement vocabulary.\n- No hidden-test leak: 'test_empty_name_not_allowed' / 'test_blueprints' -> 0 occurrences.\n- Narration sweep beyond the mechanical _NARRATION list (bug/fix/patched/previously/incorrectly/wrong/broken/regression + my own extras: 'no longer', 'used to', 'currently', 'erroneously', 'missing', 'omitted', 'forgot', 'add a check', 'insert', 'get_root_path', 'pkgutil', 'sys.modules', 'raise ValueError'): only hits are 'guard' ('the name guards run strictly after init_base returns') and 'before the' ('validates that name before the object is usable'). Both describe contract structure / desired behavior, not a bug->fix mechanism or diagnosis. No 'the bug was X', no 'now raises', no pre/post-patch framing anywhere.\n\nTWO NON-OBVIOUS ANGLES I CHECKED RATHER THAN ASSUMED:\n1) The spec view also states the DOT rejection rule (code point U+002E, contains_dot). That is NOT gold-edit information: I checked out the real repo at base_commit 7ee9ceb71e868944a46e1ff00b506772a53a4f1d (worktree) and src/flask/blueprints.py:194 ALREADY contains `raise ValueError(\"'name' may not contain a dot '.' character.\")` pre-patch. The dot rule is pre-existing public repo behavior inside the very range the consumer is handed as localization (Blueprint.__init__, src/flask/blueprints.py:172-206), so carrying it is faithfulness to the unchanged surrounding contract, not edit disclosure. The docstring is explicit that the EMPTY-name rejection is the behavior pinned here \u2014 i.e. it points at the public problem_statement, not at a hidden discriminator.\n2) The Exsures(NameValidationError, ... and base_init_can_complete(...)) channel does pin that name rejection happens only AFTER the base init completes, which matches where gold inserts its guard. I judged this non-leaking: at base_commit the ordering (super().__init__(...) first, name check after) is already visible public code in the localized range, so the constraint is derivable from the unpatched repo the solver holds and adds nothing about the EDIT. Crucially it does NOT pin the empty-vs-dot ordering that gold chose: I built an attack that swaps the two guards (dot checked before empty) and `adversary same-spec nagini pallets__flask-5014` returned 'SAME \u2014 attack shares the bundle's exact specification' (exit 0), proving the frozen spec is order-agnostic between the two rejections and so does not hand over gold's precise insertion point.\n\nVERDICT: the spec view reads as an abstract behavioral contract over List[int] code points with witness-based exit channels; every behavioral fact in it is either in the public problem_statement or in pre-existing base_commit code. No line exceeds the public baseline.\n\nOUT-OF-SCOPE OBSERVATION (not my gate, not the basis of this verdict, flagging for the integrity/hygiene lane): meta.json region_hashes is STALE w.r.t. the shipped model.py \u2014 recomputing markers.region_hashes on the current model.py matches for 'impl' and 'pure' but DIFFERS for 'axioms', 'pre-conditions', 'post-conditions' and 'spec_view' (recorded spec_view 60f0e431..., recomputed c0e927e1...); the recorded hashes match neither model.py nor model_prepatch.py, so the contract regions were edited after region_hashes was written. This does not weaken my finding: the consumer's spec view is projected live from model.py (adapter.spec_view), and G-LEAK/G-AX/G-CONF are all stamped against the current model.py sha, which is the artifact I screened.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:53:37+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-merged-guard",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder-guard",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-name",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-import-name",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "rival-drop-empty-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-drop-dot-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-partial-domain-leading-dot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          },
+          {
+            "expect": "reject",
+            "id": "rival-wrong-exc-on-reject",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.4
+          },
+          {
+            "expect": "reject",
+            "id": "rival-over-reject",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.4
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "deb86934806b528614f3cde0e99e1180c1c2a62183101067288cf20e3dc107a4",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2",
+        "properties.py": "deb86934806b528614f3cde0e99e1180c1c2a62183101067288cf20e3dc107a4"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T18:16:08+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "98780774d5c9c6953b0b4d0c576cf0960d19a1c10f52724e00ed66a338fc7d91",
+        "patch.diff": "087d51d66413bfa35111ac0eca31f1db1636572702cfd967c428049b453f451d"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T18:24:27+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "wall_time_s": 14.5
+      },
+      "detail": "verified in 14.5s",
+      "gate": "G-VERIFY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223efccd2edc979c1096f7898864d11136afa69d60814cda727871546ce584e2"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pallets__flask-5014",
+  "modeled_functions": [
+    {
+      "carrier_type": "name/import_name: str -> List[int] of Unicode code points; specification over PSeq[int]; ValueError -> user-defined NameValidationError via Exsures",
+      "model_symbol": "validate_name",
+      "repo_location": "src/flask/blueprints.py:172 (validation prologue, body lines 185-194)",
+      "repo_symbol": "flask.blueprints.Blueprint.__init__",
+      "role": "modeled changed function: the constructor's name-validation prologue; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (byte-identical to instance.json patch; applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Ensures(len(name) > 0) (an empty, dot-free name falls through to a normal return instead of raising)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "Blueprint.__init__ empty-name rejection",
+      "reverted_to": "constructor before the added guard: only the pre-existing dot check, no `if not name` empty check"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "0aa27edddb6195bba70171a74bd4c7de26d4d09eb9c0da8a04126d1286dd5b1a",
+    "impl": "01bf1271765cdd011f561d40df08b38bdee31254286aa51284825d4f25a6643f",
+    "post-conditions": "c6c169068f91583698e9b3ae2c8338e007ba13cd9c9dcb6c74953ec6c0b11969",
+    "pre-conditions": "498962cda2b1ed90bd6434e61a294c96225d6e65005b630fa6ac2fca029e6b17",
+    "pure": "6fc9cdae3023838da082bf0e23522f4c819b0b7e8e5a640da7856e9fb66f3756",
+    "spec_view": "60f0e43134361888ebbb03abd86537fc2c5cb98ac0c6e520211e10dc59b81193"
+  },
+  "repo": "pallets/flask",
+  "schema_version": 1,
+  "string_modeling": "name and import_name modeled as List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; the dot-membership test is the front-recursive @Pure fold contains_dot (single unfold per element); `not name` (str falsiness) refined to len(name) == 0; the ValueError both guards raise is modeled by one user-defined NameValidationError (builtin-exception Exsures crashes the translator); the base-init failure (ImportError/RuntimeError the real super().__init__/get_root_path can raise on an unresolvable import_name) is modeled by a second user-defined exception BaseInitError, propagated by validate_name via Exsures(BaseInitError, ... base_init_failed(import_name)). The two exception channels are pinned DISJOINTLY by the deterministic @Pure @ContractOnly predicate base_init_failed(import_name) (a function of import_name alone): init_base returns normally EXACTLY when not base_init_failed and raises BaseInitError EXACTLY when base_init_failed; validate_name's NameValidationError reject carries not base_init_failed (it runs only after init_base returns) and its BaseInitError carries base_init_failed. This forbids routing a name reject through the base-init channel \u2014 faithful to the constructor aborting before name validation, and required by the pytest.raises(ValueError) F2P/P2P.",
+  "version": "2.3"
+}

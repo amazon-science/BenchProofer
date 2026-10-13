@@ -1,0 +1,412 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the driver that supplies `excluded` = the shared base alias and triggers the fresh-namespace bump; modeled as the `excluded` parameter + the fresh-namespace precondition (refinement.md A2/A3)",
+      "repo_location": "django/db/models/sql/query.py:575-583 (added initial_alias + rhs.bump_prefix(self, exclude={initial_alias})), :592-594 (removed bare get_initial_alias)",
+      "repo_symbol": "Query.combine"
+    },
+    {
+      "handling": "comment-only in the gold patch (documents the pre-existing `assert set(change_map).isdisjoint(change_map.values())`); no behavioural change. The disjointness it asserts is the model postcondition A7.",
+      "repo_location": "django/db/models/sql/query.py:843-849",
+      "repo_symbol": "Query.change_aliases"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "cb383753c0e0eb52306e1024d32a782549c27e61",
+  "changed_files": [
+    "django/db/models/sql/query.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): reproduces the gold dict-comprehension verbatim, asserts all three clauses at the index level (no value-membership proxy) + the pre-patch discriminator over 6 boundary + 20000 fuzz inputs, exit 0 (RC=0 re-confirmed in the pinned eval container)",
+      "encoded_property": "(1) a current alias is a relabel source (a change_map KEY) IFF it is not the excluded base alias [excluded preservation]; (2) the change_map's KEY set and VALUE set are disjoint [the Query.change_aliases isdisjoint assertion], given the fresh namespace differs from the current aliases' namespace; (3) the value assigned to ordinal position pos is the per-ordinal fresh value (new_ns*BASE+pos), so distinct positions get distinct values [injectivity -- the gold enumerate-keyed comprehension never collapses two aliases onto one value]",
+      "kind": "A-reference",
+      "models": "the relabel-map construction inside Query.bump_prefix (after the fix): {alias: '%s%d' % (self.alias_prefix, pos) for pos, alias in enumerate(self.alias_map) if alias not in exclude}",
+      "name": "build_relabel_map",
+      "provenance": "django/db/models/sql/query.py:926-929 post-patch; the exclude guard and fresh prefix are the gold delta (combine + bump_prefix hunks)",
+      "role": "deep model (impl region) of the changed relabel construction; NOT a consumed axiom -- there is no @ContractOnly the proof uses"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:05:53+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model build_relabel_map validated == real relabel-map construction (source-flag biconditional + key/value disjointness + per-ordinal value/injectivity) on 20006 boundary + fuzz inputs; pre-patch discriminator confirmed (base alias relabelled without exclude).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ae3fa62f82f6d1391301b4aea268ecb6ae547e8f1ad2485712ffdf889631d796",
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:06:03+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 110012,
+          "disagreements": 0,
+          "seed": 151280,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 110012, \"disagreements\": 0, \"seed\": 151280, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "616234536eb67453a2b45526308750833fcd4023312b9546e8895f0fffe45c62",
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:14:13+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc",
+        "model_prepatch.py": "9683a04fa1e5064ffd74673a3fb70be070c995aa9cd7c00952060a952eb82ee5"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T10:56:20+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:16:16+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc",
+        "model_prepatch.py": "9683a04fa1e5064ffd74673a3fb70be070c995aa9cd7c00952060a952eb82ee5"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:05:44+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "988ccd6a357322612f6ce13f416302f7d27d67f3f16ebb9511e8a66ce6ae326e",
+          "impl": "bb66569a14bd589b36e9900db08a796a26944872a9ff64dada733a4202e6497a",
+          "invariants": "dc639df0cf92144ac63f236f80802e273d37677b4ea311dc43857c9ee03a100b",
+          "post-conditions": "e69efa08d90db911f85f4fdc29217ab46f29ecf9ad6e76ecdbe299e12b0aad78",
+          "pre-conditions": "a0acb756b718f2357479a4b913712f5318dfa03528003208a902c010b2352317",
+          "pure": "dea26e97fe77bf25b9d4b823511844024c1350697a74037b7bc7d8235d76e593",
+          "spec_view": "801c8a5a8119ffb06fb9aa2514be16bca02d84fab93677f8c5877fa818e8fd5d"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:05:44+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "782445de73b91c6f615f6650116c8202301223cbfc5949daebc8d500d305cdd8",
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:05:45+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:26:51+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 12,
+        "killed": 11,
+        "survivors": [
+          "line 197: '0' -> '-1'"
+        ],
+        "threshold": 0.8,
+        "total": 12,
+        "unjudged": []
+      },
+      "detail": "killed 11/12 (92%); survivors: [\"line 197: '0' -> '-1'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T10:56:22+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-vs-real-callee drift) audit for django__django-15128 nagini bundle. The modeled function build_relabel_map deeply models the alias relabel-map construction in Query.bump_prefix (django/db/models/sql/query.py, post-patch): the dict-comprehension {alias: '%s%d'%(prefix,pos) for pos,alias in enumerate(alias_map) if alias not in exclude}. There is no consumed axiom; the whole construction is spelled out in the impl region and validated == real code out-of-band.\n\nChecks run (all in /tmp against the patched worktree $SCRATCH at base_commit cb383753):\n1. Shipped conformance_check.py (contract-stripped impl vs real patched bump_prefix via a CapturingQuery that records the change_map and delegates to the real change_aliases so the real isdisjoint assertion still runs): 110,012 inputs (12 boundary + 110,000 fuzz, seed 151280) -> 0 disagreements on per-position source flags, per-position target encodings, and the whole induced map.\n2. Independent differential I wrote: 3,008 inputs including the excluded alias placed at EVERY position of a 6-alias list (verifying enumerate does not compact positions), excluded absent, excluded None, and lists up to 40 aliases -> 0 divergences.\n3. Nagini verification of model.py: 'Verification successful' (33s), so the spec is real, not vacuous.\n\nThe spec is not too strong: the per-ordinal pin targets[j]==fresh_alias(new_ns,j) mirrors the real comprehension's '%s%d'%(prefix,pos) keyed on the enumerate ordinal (injective by construction); the source-flag biconditional (is_source[k]==1) == (aliases[k]!=excluded) mirrors 'if alias not in exclude' (single-element set); key/value disjointness mirrors the change_aliases isdisjoint assertion, guaranteed by the precondition aliases[k] < floor_of(new_ns) which mirrors the real fresh-prefix-differs guarantee. Type refinement (str alias <-> int encoding, ordered alias_map <-> List[int]) is sound and its image is respected by the precondition domain. No input found where the modeled function disagrees with the real callee within the declared preconditions.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes with zero hard failures (reproduced independently; meta G-LEAK status=pass, no relaxed_leakage flag / no RELAXED_LEAKAGE.md). Semantic review of the consumer spec view (docstring + BASE/floor_of/fresh_alias pure defs + disjoint_by_floor lemma + build_relabel_map signature/contracts; impl region elided) confirms no leak of the gold edit beyond the public problem_statement:\n\n- No diff markers, no patched file path (django/db/models/sql/query.py absent), no patched module path.\n- Gold-patch changed symbols are bump_prefix, change_aliases, combine, prefix_gen. bump_prefix and prefix_gen are ABSENT from the spec view; change_aliases and combine are already public in the problem_statement. No spec-view identifier or comment embeds/names any patched repo symbol.\n- No gold-patch line reproduced: 'if alias not in exclude', \"'%s%d' % (self.alias_prefix, pos)\", 'set(change_map).isdisjoint(change_map.values())', 'exclude=None', 'exclude={initial_alias}' are all absent (verified lexically). Hints-only mechanism terms (bump_prefix, alias_prefix, initial_alias, get_initial, isdisjoint, change_map) do not appear.\n- No bug/fix/regression narration in any comment or docstring.\n\nThe key/value-disjointness contract the spec encodes is ALREADY public: the problem_statement explicitly states the AssertionError arises because 'change_map's keys intersect with change_map's values' and asks to 'prevent intersection between change_map's keys and values'. The spec expresses this behaviourally over an abstract integer-namespace model. The only mechanism-shaped element ('one designated alias to leave unmapped' / excluded param) is stated as an abstract behavioural property (a partial function leaving one alias unmapped), never as the gold's edit (an exclude parameter added to bump_prefix keyed on get_initial_alias in combine) \u2014 those specifics live only in hints_text and are correctly not echoed. The token 'exclude'/'excluded' is a generic parameter name/English word, not a patched def/class symbol. Spec describes what must hold, not the edit.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-vs-real-callee drift) audit for django__django-15128 nagini bundle. The modeled function build_relabel_map deeply models the alias relabel-map construction in Query.bump_prefix (django/db/models/sql/query.py, post-patch): the dict-comprehension {alias: '%s%d'%(prefix,pos) for pos,alias in enumerate(alias_map) if alias not in exclude}. There is no consumed axiom; the whole construction is spelled out in the impl region and validated == real code out-of-band.\n\nChecks run (all in /tmp against the patched worktree $SCRATCH at base_commit cb383753):\n1. Shipped conformance_check.py (contract-stripped impl vs real patched bump_prefix via a CapturingQuery that records the change_map and delegates to the real change_aliases so the real isdisjoint assertion still runs): 110,012 inputs (12 boundary + 110,000 fuzz, seed 151280) -> 0 disagreements on per-position source flags, per-position target encodings, and the whole induced map.\n2. Independent differential I wrote: 3,008 inputs including the excluded alias placed at EVERY position of a 6-alias list (verifying enumerate does not compact positions), excluded absent, excluded None, and lists up to 40 aliases -> 0 divergences.\n3. Nagini verification of model.py: 'Verification successful' (33s), so the spec is real, not vacuous.\n\nThe spec is not too strong: the per-ordinal pin targets[j]==fresh_alias(new_ns,j) mirrors the real comprehension's '%s%d'%(prefix,pos) keyed on the enumerate ordinal (injective by construction); the source-flag biconditional (is_source[k]==1) == (aliases[k]!=excluded) mirrors 'if alias not in exclude' (single-element set); key/value disjointness mirrors the change_aliases isdisjoint assertion, guaranteed by the precondition aliases[k] < floor_of(new_ns) which mirrors the real fresh-prefix-differs guarantee. Type refinement (str alias <-> int encoding, ordered alias_map <-> List[int]) is sound and its image is respected by the precondition domain. No input found where the modeled function disagrees with the real callee within the declared preconditions.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes with zero hard failures (reproduced independently; meta G-LEAK status=pass, no relaxed_leakage flag / no RELAXED_LEAKAGE.md). Semantic review of the consumer spec view (docstring + BASE/floor_of/fresh_alias pure defs + disjoint_by_floor lemma + build_relabel_map signature/contracts; impl region elided) confirms no leak of the gold edit beyond the public problem_statement:\n\n- No diff markers, no patched file path (django/db/models/sql/query.py absent), no patched module path.\n- Gold-patch changed symbols are bump_prefix, change_aliases, combine, prefix_gen. bump_prefix and prefix_gen are ABSENT from the spec view; change_aliases and combine are already public in the problem_statement. No spec-view identifier or comment embeds/names any patched repo symbol.\n- No gold-patch line reproduced: 'if alias not in exclude', \"'%s%d' % (self.alias_prefix, pos)\", 'set(change_map).isdisjoint(change_map.values())', 'exclude=None', 'exclude={initial_alias}' are all absent (verified lexically). Hints-only mechanism terms (bump_prefix, alias_prefix, initial_alias, get_initial, isdisjoint, change_map) do not appear.\n- No bug/fix/regression narration in any comment or docstring.\n\nThe key/value-disjointness contract the spec encodes is ALREADY public: the problem_statement explicitly states the AssertionError arises because 'change_map's keys intersect with change_map's values' and asks to 'prevent intersection between change_map's keys and values'. The spec expresses this behaviourally over an abstract integer-namespace model. The only mechanism-shaped element ('one designated alias to leave unmapped' / excluded param) is stated as an abstract behavioural property (a partial function leaving one alias unmapped), never as the gold's edit (an exclude parameter added to bump_prefix keyed on get_initial_alias in combine) \u2014 those specifics live only in hints_text and are correctly not echoed. The token 'exclude'/'excluded' is a generic parameter name/English word, not a patched def/class symbol. Spec describes what must hold, not the edit.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-vs-real-callee drift) audit for django__django-15128 nagini bundle. The modeled function build_relabel_map deeply models the alias relabel-map construction in Query.bump_prefix (django/db/models/sql/query.py, post-patch): the dict-comprehension {alias: '%s%d'%(prefix,pos) for pos,alias in enumerate(alias_map) if alias not in exclude}. There is no consumed axiom; the whole construction is spelled out in the impl region and validated == real code out-of-band.\n\nChecks run (all in /tmp against the patched worktree $SCRATCH at base_commit cb383753):\n1. Shipped conformance_check.py (contract-stripped impl vs real patched bump_prefix via a CapturingQuery that records the change_map and delegates to the real change_aliases so the real isdisjoint assertion still runs): 110,012 inputs (12 boundary + 110,000 fuzz, seed 151280) -> 0 disagreements on per-position source flags, per-position target encodings, and the whole induced map.\n2. Independent differential I wrote: 3,008 inputs including the excluded alias placed at EVERY position of a 6-alias list (verifying enumerate does not compact positions), excluded absent, excluded None, and lists up to 40 aliases -> 0 divergences.\n3. Nagini verification of model.py: 'Verification successful' (33s), so the spec is real, not vacuous.\n\nThe spec is not too strong: the per-ordinal pin targets[j]==fresh_alias(new_ns,j) mirrors the real comprehension's '%s%d'%(prefix,pos) keyed on the enumerate ordinal (injective by construction); the source-flag biconditional (is_source[k]==1) == (aliases[k]!=excluded) mirrors 'if alias not in exclude' (single-element set); key/value disjointness mirrors the change_aliases isdisjoint assertion, guaranteed by the precondition aliases[k] < floor_of(new_ns) which mirrors the real fresh-prefix-differs guarantee. Type refinement (str alias <-> int encoding, ordered alias_map <-> List[int]) is sound and its image is respected by the precondition domain. No input found where the modeled function disagrees with the real callee within the declared preconditions.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes with zero hard failures (reproduced independently; meta G-LEAK status=pass, no relaxed_leakage flag / no RELAXED_LEAKAGE.md). Semantic review of the consumer spec view (docstring + BASE/floor_of/fresh_alias pure defs + disjoint_by_floor lemma + build_relabel_map signature/contracts; impl region elided) confirms no leak of the gold edit beyond the public problem_statement:\n\n- No diff markers, no patched file path (django/db/models/sql/query.py absent), no patched module path.\n- Gold-patch changed symbols are bump_prefix, change_aliases, combine, prefix_gen. bump_prefix and prefix_gen are ABSENT from the spec view; change_aliases and combine are already public in the problem_statement. No spec-view identifier or comment embeds/names any patched repo symbol.\n- No gold-patch line reproduced: 'if alias not in exclude', \"'%s%d' % (self.alias_prefix, pos)\", 'set(change_map).isdisjoint(change_map.values())', 'exclude=None', 'exclude={initial_alias}' are all absent (verified lexically). Hints-only mechanism terms (bump_prefix, alias_prefix, initial_alias, get_initial, isdisjoint, change_map) do not appear.\n- No bug/fix/regression narration in any comment or docstring.\n\nThe key/value-disjointness contract the spec encodes is ALREADY public: the problem_statement explicitly states the AssertionError arises because 'change_map's keys intersect with change_map's values' and asks to 'prevent intersection between change_map's keys and values'. The spec expresses this behaviourally over an abstract integer-namespace model. The only mechanism-shaped element ('one designated alias to leave unmapped' / excluded param) is stated as an abstract behavioural property (a partial function leaving one alias unmapped), never as the gold's edit (an exclude parameter added to bump_prefix keyed on get_initial_alias in combine) \u2014 those specifics live only in hints_text and are correctly not echoed. The token 'exclude'/'excluded' is a generic parameter name/English word, not a patched def/class symbol. Spec describes what must hold, not the edit.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:14:35+00:00",
+      "code_version": "9456274ba-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 39.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-read-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 42.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-overwrite-input",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-prepatch-no-exclude",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-firstpos-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 66.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-noninjective-collapse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.5
+          },
+          {
+            "expect": "reject",
+            "id": "support-inverted-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "6af37cc756f8202394d7ea26b564345bb9f2792b5be84f6031162f5304446795",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc",
+        "properties.py": "6af37cc756f8202394d7ea26b564345bb9f2792b5be84f6031162f5304446795"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T16:17:13+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:27:23+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 32.0
+      },
+      "detail": "verified in 32.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1e1b56a2448b801e94954e0a98e7d578ff20484fc65399d74eb598c4b7cb59bc"
+      },
+      "status": "pass"
+    }
+  },
+  "helper_lemmas": [
+    {
+      "name": "disjoint_by_floor",
+      "pure": false,
+      "role": "proof lemma: every below-element < f and every above-element >= f implies the two sets are disjoint; discharges the change_aliases isdisjoint obligation"
+    }
+  ],
+  "instance_id": "django__django-15128",
+  "modeled_functions": [
+    {
+      "carrier_type": "alias str -> non-negative int (namespace,index) encoding; ordered alias_map -> List[int]; change_map dict -> aligned (targets:List[int], is_source:List[int])",
+      "model_symbol": "build_relabel_map",
+      "repo_location": "django/db/models/sql/query.py:926-929 (change_map comprehension), :882 (bump_prefix), :557 (combine), :849 (change_aliases isdisjoint assert)",
+      "repo_symbol": "django.db.models.sql.query.Query.bump_prefix (relabel-map construction) driven by Query.combine; safety invariant asserted in Query.change_aliases",
+      "role": "modeled changed behaviour: build the alias relabel map keeping the shared base alias fixed and the key/value sets disjoint; single contracted+implemented function (markers module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (git apply --check OK at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "loop invariant (model_prepatch.py:180-181) (is_source[k]==1) == (aliases[k] != excluded) -- the excluded base alias is wrongly marked a source",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "keep the shared base alias out of the relabel map (the gold `if alias not in exclude` guard)",
+      "reverted_to": "pre-patch bump_prefix with no exclude: every current alias is a relabel source (is_source.append(1) unconditionally)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "988ccd6a357322612f6ce13f416302f7d27d67f3f16ebb9511e8a66ce6ae326e",
+    "impl": "b324638ab6571454a6b1255ea5a47be26484a0716bae651c3dfe84952562f660",
+    "invariants": "8e44d93a971c5f8dd4bfd6a4d21f496cbedf4c5d11a3029f98cd73ed41bef278",
+    "post-conditions": "e69efa08d90db911f85f4fdc29217ab46f29ecf9ad6e76ecdbe299e12b0aad78",
+    "pre-conditions": "063c2bd9bae44f246e78ac06de5d7bad696f4185ff39f7d2500c162a393c733d",
+    "pure": "dea26e97fe77bf25b9d4b823511844024c1350697a74037b7bc7d8235d76e593",
+    "spec_view": "45fc1fbe9f95da4a2e1be593da97739cd74b45769c0067480ca8d83bb3ca389d"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "alias names modelled as non-negative ints encoding (namespace, index) as namespace*BASE+index (BASE=1000); a namespace n owns region [n*BASE,(n+1)*BASE); a fresh prefix differing from the current one \u27fa new_ns whose floor is strictly above every current alias; no str indexing",
+  "version": "4.1"
+}

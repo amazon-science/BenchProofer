@@ -1,0 +1,592 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "beb7ddbcee03270e833b2f74927ccfc8027aa693",
+  "changed_files": [
+    "django/db/models/aggregates.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real Aggregate.resolve_expression over Sum/Avg/Min/Max with a default + Count without, expression-valued defaults (Value(0), F('num'), Lower(Value('AB')), F('num')*2) and plain defaults (0, -7, 2.5, False, '', 'zz'), filtered aggregates (filter=Q(rating__lt=3.0)) with and without a default, both summarize values, 42 observations. Asserts ONLY unchanged-callee facts present in the BASE-COMMIT image; it deliberately does NOT assert the returned wrapper's own is_summary, since that propagation is the change itself. Confirmed exit 0 on a base-commit worktree.",
+      "encoded_property": "the resolved aggregate c is a DISTINCT copy carrying c.is_summary == summarize; a default yields a DISTINCT Coalesce wrapper (not the bare aggregate); a freshly constructed Coalesce carries the class default is_summary == False (negative control); an expression-valued default is supplied in DISTINCT resolved form, structurally equal to a fresh resolution of the written value and usable as it stands, with the written object left as usable as it arrived; a plain default is supplied as THAT VERY OBJECT, and a written str is a field reference that is NOT usable as it stands; the wrapped aggregation stops holding a fallback of its own (c.default = None) while the aggregation as written keeps it, and the wrapper holds none of its own. Every part of the resolved aggregation -- each source expression AND the condition restricting it -- is in resolved form (has an as_sql), both for the aggregation reachable through the Coalesce and for the bare one returned with no default; NEGATIVE CONTROL for that same fact: the operand resolution ALONE (Func.resolve_expression, which is what super().resolve_expression runs at aggregates.py:52) resolves every operand and stamps the requested is_summary while leaving the condition a raw Q with NO as_sql, because it walks c.source_expressions directly (expressions.py:694-699) and the condition is resolved one line later (aggregates.py:53) -- so an aggregation that merely carries the right final-flag is NOT necessarily the aggregation resolution produced.",
+      "kind": "A-reference",
+      "models": "Aggregate.resolve_expression (aggregates.py:50-68) + super().resolve_expression (Func/BaseExpression.resolve_expression) is_summary handling + the expression-valued-default resolution and Coalesce operand representation",
+      "name": "is_summary propagation and fallback-value data flow",
+      "provenance": "django/db/models/expressions.py:155 (BaseExpression.is_summary = False default), :246 (c = self.copy()), :247 and :696 (c.is_summary = summarize in BaseExpression/Func resolve_expression), :184-189 (Func._parse_expressions: an expression is taken as is, a str becomes F(str), any other value becomes Value(v)), :582-620 (class F has resolve_expression but NO as_sql), :595-597 (F resolves via query.resolve_ref), :272-282 (_output_field_or_none re-raises unless the field resolved to None); django/db/models/aggregates.py:40-44 (Aggregate.get_source_expressions APPENDS self.filter, which is why the negative control iterates the Func-level list as the repo itself does at :57), :52-53 (the operand resolution followed by c.filter = c.filter and c.filter.resolve_expression(...)), :57-62, :63-64, :65-66, :67, :68; django/db/models/sql/query.py:476 (only is_summary expressions are promoted to the outer aggregate query)",
+      "role": "the modelled resolution effects reproduced concretely (c = Expression(requested_final, False); c.parts_usable = True; c.holds_own_fallback = fallback is not None; resolved = FallbackValue(True) with resolved.resolution_of = fallback; wrapper = Expression(False, True); wrapper.parts_usable = supplied.usable; wrapper.is_final_aggregation = c.is_final_aggregation; c.holds_own_fallback = False; wrapper.wrapped = c; wrapper.fallback = supplied) rather than consumed as an axiom -- no @ContractOnly callee exists in this bundle"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T03:23:25+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: real Aggregate.resolve_expression stamps the requested final-flag onto the resolved aggregation (bare, and wrapped inside the fallback Coalesce) over 42 observations (both summarize values, 5 aggregate kinds with defaults + 3 without); a fallback yields a distinct Coalesce wrapper; a fresh wrapper defaults to is_summary False (the stranding the fix repairs); an expression-valued fallback is supplied in DISTINCT resolved form, usable as it stands, with the written value left as it was; a plain fallback is supplied as that very object, and a written str is a field reference that is NOT usable as it stands; the wrapped aggregation stops holding a fallback of its own while the written aggregation keeps it; every part of the resolved aggregation -- operand AND condition -- is in resolved form, while the operand resolution ALONE leaves the condition unresolved (the negative control for an aggregation that carries the right final-flag without having been resolved). Asserts only unchanged-callee facts present in the base-commit image.",
+      "gate": "G-AX",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "3da064a9333c3a9b673c9a6bd15955ae5cb814ba357a5da476cb86fc80ceead4",
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T06:39:08+00:00",
+      "code_version": "4f6aa0030-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 135376,
+          "disagreements": 0,
+          "enumerated": 35376,
+          "fuzzed": 100000,
+          "oracle": "called: Aggregate.resolve_expression (django/db/models/aggregates.py:50, gold-patched)",
+          "seed": 15375,
+          "shadow": "direct (contract-stripped impl region of model.py)",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 135376, \"enumerated\": 35376, \"fuzzed\": 100000, \"disagreements\": 0, \"seed\": 15375, \"oracle\": \"called: Aggregate.resolve_expression (django/db/models/aggregates.py:50, gold-patched)\", \"shadow\": \"direct (contract-stripped impl region of model.py)\", \"status\": \"pass\"}",
+      "gate": "G-CONF",
+      "harness_digest": "cc9658273d25",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d506b42c1c50e365a23106d17162560e50b545b93c75c2f748a04c661f9466a5",
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:16:48+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2",
+        "model_prepatch.py": "3557d9457fe451a65f0054046bda4f28f845387b2e6e006061cc7f33dd998409"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T09:55:45+00:00",
+      "code_version": "d5f93aef3-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_19.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 9 | `atk_2.py`, `atk_3.py`, `atk_8.py`, `atk_9.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T10:05:24+00:00",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2",
+        "properties.py": "4781a51ba9544b8911d189e830ab98e7f2dc174a6c7250ad36d544b028b159b5"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:17:54+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2",
+        "model_prepatch.py": "3557d9457fe451a65f0054046bda4f28f845387b2e6e006061cc7f33dd998409"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T03:22:24+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "157adbe5d5d8e3ddffe65cae9c3715ed6a8973da1fecd35db8e7db57f401b331",
+          "impl": "ae626703516c7e1ea536f80e25a72e1cf34e8dde70825af706ad5fe9041b53f6",
+          "post-conditions": "5afcc2b789f4a8537eded04c744fc0b44e591ddfdbc5e0430ccf597fcab6aede",
+          "pre-conditions": "3494df38a5b5593a23acb8041fa7ffec26b0e30069970033fc0fad1964288529",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "548c7c76f177b0383ed920310dfa1969487393d541b6fe49c4ebaa928559c125"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T03:22:24+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "00f697269c57f75cee27515516df9b894387bf4e42cad4a916a2550ff7f65e92",
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T03:22:25+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T03:20:49+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T03:33:28+00:00",
+      "code_version": "45a16cfe9-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE DISCIPLINE. Worktree at base beb7ddbcee with patch.diff APPLIED is the reference for the modeled function (the fix's `coalesce.is_summary = c.is_summary` tail); base commit is the reference only for untouched callees. I did NOT report the patch delta itself as divergence.\n\nSPEC REGION. `adversary same-spec` on a byte-copy of the bundle model.py returns exit 0 (\"SAME\"). Live region_hashes differ from meta.json only in impl/pre/post/spec_view, and model_prepatch.py shares the identical live spec_view (548c7c76) with model.py -- i.e. both twins carry the same current spec text; the meta drift is a stale digest, not a spec mismatch between the artifacts I compared. Axioms and pure regions hash-match meta exactly, and both are EMPTY (no @ContractOnly callee consumed), so there is no axiom over-assumption surface at all.\n\nBASELINES REPRODUCED. G-CONF: 135376 inputs, 0 disagreements. G-AX: OK over 42 observations, asserting only unchanged-callee facts present in the base image.\n\nMY OWN INDEPENDENT ATTACKS (all bridge columns computed a priori by calling the DELEGATED callee on the WRITTEN object, never off the oracle's answer):\n(1) Widened realization space v2 -- 21 operand families, 23 default families, 20 filter families, 5 aggregate kinds = 78,960 cases beyond the bundle's space. Added Star, RawSQL, ExpressionWrapper, Case/When, Length, Coalesce-as-operand, Ref-over-agg, Subquery, Exists, OrderBy, ExpressionList, OuterRef at 1/2 nesting with and without explicit output_field; defaults incl. tuple, bytes, Value(None), NothingNode, WhereNode, raw Q, Sum, MultiColSource; filters incl. a TRUTHY resolved WhereNode, Value(True/False), Star, RawSQL, Ref, Sum, OrderBy, Q(Q()). Result: 0 disagreements.\n(2) Written-vs-resolved split hunt on `aggregating_operand`. mapping.md maps it to contains_aggregate over the RESOLVED sources (aggregates.py:57-59 loops the resolved c). I found a genuine split family the bundle never realizes: Case(When(num__gt=1, then=Sum('num'))) has written contains_aggregate False but resolved True. Measured against the real callee: summarize=False -> REFUSED (\"Cannot compute Sum('<Case...')\"), summarize=True -> produced. That is exactly what the RESOLVED reading predicts and the written reading contradicts -- so mapping.md's choice is the faithful one and this is a strengthening of the spec's credibility, not a break.\n(3) Probe v3 rebuilt with `aggregating_operand` computed from the resolved sources plus the entire Case/Sum, Lower/Sum, Abs/Sum, Coalesce/Sum, ExprWrapper/Sum, ExprList/Sum, OrderBy/Sum, Subquery-with-annotated-agg family: 47,360 cases, 0 disagreements, 0 crashes.\n(4) Multi-operand probe (the bundle's space is 1-operand ONLY): a real Aggregate subclass over TWO operands x 6 operand kinds^2 x 4 filters x 3 defaults x both summarize = 864 rows, incl. one operand usable and the other not. The three-part parts_usable equality (operand_resolution_usable AND condition_resolution_usable AND NOT vacuous_condition) held on every produced bare aggregation: 0 mismatches. The conjunction generalizes correctly over multiple operands, which the spec's prose asserts but the bundle never tested.\n(5) AST sweep of the whole django tree for any resolve_expression that returns None explicitly or can fall off its end (which would make _parts_usable's None-skip diverge from the model's boolean): 0 hits, so that hole is not reachable.\n\nFALSE ALARM I RETRACTED, recorded for honesty: probe v3 first reported 420 \"disagreement signatures\", all of shape written_intact=None on the refused path. Root cause was MY oracle stub -- I had widened the rejection catch to (FieldError, AttributeError) but returned a hardcoded None for written_intact instead of recomputing it as the real oracle does. After computing usable-before the call and comparing after, all 420 vanished (0/47360). None of these were spec defects.\n\nBOUNDARY CASES I CHECKED AND FOUND CORRECTLY MODELED: the vacuous_condition CONJUNCTION (left-as-written AND not compilable) -- a childless WhereNode is equally falsy and short-circuits :53 yet HAS as_sql, and the real callee keeps parts usable for it, which a falsiness-only reading would get wrong; the asymmetric :68 output-type rejection (mixed-type aggregate produced bare, refused with a fallback); OuterRef-over-OuterRef handing back a bare inner OuterRef with no as_sql while nothing raised (resolution succeeded but yield unusable -- correctly disjoint from parts_resolve); Ref/MultiColSource `return self` (step hands back the very value it was given, usable and not-usable arms both); provenance pinned by identity from the traced delegated call rather than by equality, which is load-bearing for Subquery/Exists that inherit object.__eq__.\n\nCONCLUSION. No input found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every clause that could have been an over-claim (the unconditional parts_usable, the falsiness-only vacuity reading, the written-form aggregating_operand, provenance-by-equality) is either read as an input or pinned the way the real callee actually behaves, and I confirmed each with a realization the bundle's own space does not contain. No diverging input to cite; FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "FACET: leakage / gold-reconstruction of the consumer spec view for django__django-15375 (nagini). Judged against the PUBLIC problem_statement only; hints_text never consulted.\n\nNO RELAXATION IN THIS BUNDLE. Checked programmatically, not by assertion: meta.json top-level keys are [additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] -- no `relaxed_leakage` key ([k for k in meta if 'relax' in k.lower()] -> []); no RELAXED_LEAKAGE.md anywhere under the instance dir (find over ., ../lean, ../velvet, ../ears). So this is an ORDINARY leakage judgement with no unavoidability argument to re-derive, and nothing was inherited from a relaxation document.\n\nBYTES I JUDGED. model.py sha256 acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2, which equals the sources hash recorded by both G-LEAK and G-VERIFY, so I judged the same bytes the gates did. I generated the view MYSELF via markers.spec_view(model.py, NaginiBackend.language) -> spec_view.py (599 source lines project to 522; the impl region collapses to the `impl-start / ... / impl-end` elision placeholder). All findings below are on that projection, not on the raw file.\n\nGOLD EDIT. patch.diff touches one hunk in django/db/models/aggregates.py: `return Coalesce(...)` becomes `coalesce = Coalesce(...); coalesce.is_summary = c.is_summary; return coalesce`. The discriminator is the propagation of is_summary (the final-flag) onto the Coalesce wrapper. Changed symbol set = {resolve_expression}, and I confirmed 'resolve_expression' is NOT in the problem_statement (substring test on the lowered statement -> False), so it is a symbol the screen must protect rather than one already public.\n\nWHAT THE PROBLEM_STATEMENT ALREADY GIVES. Sum(\"id\", default=0) after annotate() emits 'SELECT FROM (SELECT ... COALESCE(SUM(...), ?) AS \"id__sum\" ...) subquery' -- i.e. the aggregate vanished from the outer select list -- while the long form Coalesce(Sum(\"id\"), 0) works. So `default`, Coalesce-wrapping, the aggregate-vs-annotate interaction, and the fact that the wrapper is the thing that misbehaves are ALL public. The spec view stays strictly inside that envelope, in fully de-repo'd vocabulary (aggregation / fallback value / final-flag / usable as it stands), and never names the mechanism (is_summary) that turns the public symptom into the edit.\n\nMEASUREMENT 1 -- mechanical screen. leakage.screen(model.py, NaginiBackend.language, instance['patch'], instance['problem_statement'], instance['test_patch']) -> hard_failures == []. That covers L1 (diff markers; verbatim gold-patch lines, of which the four candidates are 'return Coalesce(c, default, output_field=c._output_field_or_none)', 'coalesce = Coalesce(...)', 'coalesce.is_summary = c.is_summary', 'return coalesce'), L2 (patched file path 'django/db/models/aggregates.py' and dotted module 'django.db.models.aggregates'), L2/L5 (spec-view identifier embedding 'resolve_expression'), L2/L3 (that symbol named in a view comment/docstring), and L3 narration regex.\n\nMEASUREMENT 2 -- my own independent vocabulary sweep, since a clean screen is necessary not sufficient. Grepped the PROJECTION for is_summary, Coalesce/COALESCE, summarize, output_field/_output_field, FieldError, Func, BaseExpression, OuterRef, resolve_expression, contains_aggregate, as_sql, expressions.py, aggregates.py, django.db, Sum(, id__sum, core_book, SELECT, subquery, OperationalError, sqlite, postgres, 4.0.1, annotate, Book. Exactly 5 hits, ALL benign morphological matches on the generic word 'aggregate' inside 'aggregation/aggregates over' (lines 8, 12, 36, 249, 504) -- the domain noun, not a repo symbol. ZERO hits for every repo/edit identifier, notably is_summary and Coalesce. The only 'django' token in the entire 522-line view is the instance id in the line-1 docstring title ('Twin-artifact model for django__django-15375.'), which localizes nothing beyond the task the solver was already handed.\n\nMEASUREMENT 3 -- edit-narration sweep beyond the regex set. Grepped the projection for prepatch/pre-patch/the change/the fix/the edit/propagat/used to/previously/no longer propagat/omitted/missing/forgot/regression/before this/was not set/was not marked/unmarked/born marked/inherit the class default/G-AX -> ZERO hits. Critically, the text in model.py that DOES narrate the edit is confined to the elided impl region and I confirmed it does not survive projection: model.py:578-580 ('a freshly constructed fallback wrapper is UNMARKED -- the real one inherits the class default until assigned ... a model whose wrapper is born marked is unfaithful') greps in the raw file and greps EMPTY in spec_view.py; likewise the prepatch twin's 'PRE-PATCH: the fallback-supplying expression is returned still unmarked -- the final-flag ... is NOT propagated' is impl-region only. Elision is doing its job.\n\nMEASUREMENT 4 -- load-bearing test on the one clause a reconstructor could use. The only view line that constrains the discriminator is post-conditions line 371: `Ensures(Result().is_final_aggregation == requested_final)`. I ran the standard test rather than reasoning about it. (a) Pinned verifier on the prepatch twin: `bash scripts/nagini_verify.sh prepatch.py` -> exit 1, and the SOLE error is 'Postcondition of resolve_aggregation might not hold. Assertion (Result().is_final_aggregation == requested_final) might not hold.' at line 371. (b) Stripped exactly that one Ensures (verified single occurrence) and re-ran: prepatch_no371.py -> 'Verification successful', exit 0 in 16.8s. So the clause is genuinely load-bearing -- removing it lets the PRE-patch impl pass -- and a spec that omitted it would be unfaithful (it could not distinguish gold from prepatch at all). It is stated as desired behaviour ('the returned expression's final-flag equals the requested final-flag'), which is precisely the corrected outcome, in abstract vocabulary; it does NOT say which attribute to assign, where, or that the wrapper previously failed to carry it. A solver reading it learns the required end state -- which is what a spec IS -- not the edit's location or identifier.\n\nMEASUREMENT 5 -- reviewer-directed / steering check. leakage.reviewer_directed() -> [] on refinement.md, mapping.md AND verdict.md. Full grep across the bundle's .md and .py for 'leakage panel', 'attacker (3)', 'the honest verdict', 'you should submit', 'record this as', 'NO-LEAKAGE' as an instruction, 'relaxed_leakage' -> no hits outside verdict.md's own historical gate records. The single 'auditor' mention (refinement.md:219) describes a rival variant's re-resolution behaviour, not my recording. NO FILE IN THIS BUNDLE ADDRESSES ME or tells me how to record. Nothing to report as steering.\n\nMEASUREMENT 6 -- other consumer-visible surface. In spec modes the consumer also receives meta.json's `modeled_functions` (eval/dataset.py, MODES_WITH_SPEC). That entry DOES name is_summary, Coalesce, aggregates.py:50-68 and exact line numbers -- but that is the deliberate localization channel the mode ships (the same mode also ships changed_files/localization), not the spec view, and it is outside this facet's scope. Flagging for the record, not as a leak: my verdict is on the spec-view projection, which is what this gate screens. I also confirmed adapter.spec_view's hard guard (refuses to expose a view where ELISION_IMPL is absent) is what gates exposure, and that same-spec tooling agrees the region split is intact (`adversary same-spec` on an unmodified copy -> exit 0, 'SAME'); markers.same_spec(model.py, model_prepatch.py) -> True, i.e. the twins differ in impl only, so the spec region I judged is the frozen one.\n\nOUT-OF-FACET CONTEXT, deliberately NOT folded into this verdict. (a) G-PANEL-2 (faithfulness) is a recorded FAIL on this cell concerning the condition/parts_usable equality leg. That is a different facet's finding; re-labelling an unfaithfulness finding as leakage would invent a leak, so it does not move this verdict. (b) meta.json's TOP-LEVEL region_hashes block is STALE and I re-measured this rather than repeat a prior note: markers.region_hashes(model.py) gives pre-conditions 3494df38..., post-conditions 5afcc2b7..., impl ae626703..., spec_view 548c7c76..., which match G-HYGIENE's recorded data block exactly, while the top-level block still carries an older generation (c07dc494/301d6b3d/330c7136/4147ee67). Note also that the prior G-PANEL-3 note in verdict.md records a DIFFERENT set of recomputed hashes (1c2cd646/a57eb926/27282dbf/b3583eaa) and a different model sha (705af70b...), i.e. it judged an earlier revision of model.py than the current acecaa8a... bytes -- which is exactly why I re-derived everything above from scratch instead of inheriting it. Ledger-hygiene issue for the gate owner; not a leak.\n\nCONCLUSION: the spec view reproduces no gold-patch line, no patched path or module, no patched symbol, and no repo identifier; all edit narration is confined to the elided impl region; and the single discriminating clause is measured load-bearing (prepatch verifies without it, fails on it) and phrased as required behaviour within the envelope the public problem_statement already establishes. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE DISCIPLINE. Worktree at base beb7ddbcee with patch.diff APPLIED is the reference for the modeled function (the fix's `coalesce.is_summary = c.is_summary` tail); base commit is the reference only for untouched callees. I did NOT report the patch delta itself as divergence.\n\nSPEC REGION. `adversary same-spec` on a byte-copy of the bundle model.py returns exit 0 (\"SAME\"). Live region_hashes differ from meta.json only in impl/pre/post/spec_view, and model_prepatch.py shares the identical live spec_view (548c7c76) with model.py -- i.e. both twins carry the same current spec text; the meta drift is a stale digest, not a spec mismatch between the artifacts I compared. Axioms and pure regions hash-match meta exactly, and both are EMPTY (no @ContractOnly callee consumed), so there is no axiom over-assumption surface at all.\n\nBASELINES REPRODUCED. G-CONF: 135376 inputs, 0 disagreements. G-AX: OK over 42 observations, asserting only unchanged-callee facts present in the base image.\n\nMY OWN INDEPENDENT ATTACKS (all bridge columns computed a priori by calling the DELEGATED callee on the WRITTEN object, never off the oracle's answer):\n(1) Widened realization space v2 -- 21 operand families, 23 default families, 20 filter families, 5 aggregate kinds = 78,960 cases beyond the bundle's space. Added Star, RawSQL, ExpressionWrapper, Case/When, Length, Coalesce-as-operand, Ref-over-agg, Subquery, Exists, OrderBy, ExpressionList, OuterRef at 1/2 nesting with and without explicit output_field; defaults incl. tuple, bytes, Value(None), NothingNode, WhereNode, raw Q, Sum, MultiColSource; filters incl. a TRUTHY resolved WhereNode, Value(True/False), Star, RawSQL, Ref, Sum, OrderBy, Q(Q()). Result: 0 disagreements.\n(2) Written-vs-resolved split hunt on `aggregating_operand`. mapping.md maps it to contains_aggregate over the RESOLVED sources (aggregates.py:57-59 loops the resolved c). I found a genuine split family the bundle never realizes: Case(When(num__gt=1, then=Sum('num'))) has written contains_aggregate False but resolved True. Measured against the real callee: summarize=False -> REFUSED (\"Cannot compute Sum('<Case...')\"), summarize=True -> produced. That is exactly what the RESOLVED reading predicts and the written reading contradicts -- so mapping.md's choice is the faithful one and this is a strengthening of the spec's credibility, not a break.\n(3) Probe v3 rebuilt with `aggregating_operand` computed from the resolved sources plus the entire Case/Sum, Lower/Sum, Abs/Sum, Coalesce/Sum, ExprWrapper/Sum, ExprList/Sum, OrderBy/Sum, Subquery-with-annotated-agg family: 47,360 cases, 0 disagreements, 0 crashes.\n(4) Multi-operand probe (the bundle's space is 1-operand ONLY): a real Aggregate subclass over TWO operands x 6 operand kinds^2 x 4 filters x 3 defaults x both summarize = 864 rows, incl. one operand usable and the other not. The three-part parts_usable equality (operand_resolution_usable AND condition_resolution_usable AND NOT vacuous_condition) held on every produced bare aggregation: 0 mismatches. The conjunction generalizes correctly over multiple operands, which the spec's prose asserts but the bundle never tested.\n(5) AST sweep of the whole django tree for any resolve_expression that returns None explicitly or can fall off its end (which would make _parts_usable's None-skip diverge from the model's boolean): 0 hits, so that hole is not reachable.\n\nFALSE ALARM I RETRACTED, recorded for honesty: probe v3 first reported 420 \"disagreement signatures\", all of shape written_intact=None on the refused path. Root cause was MY oracle stub -- I had widened the rejection catch to (FieldError, AttributeError) but returned a hardcoded None for written_intact instead of recomputing it as the real oracle does. After computing usable-before the call and comparing after, all 420 vanished (0/47360). None of these were spec defects.\n\nBOUNDARY CASES I CHECKED AND FOUND CORRECTLY MODELED: the vacuous_condition CONJUNCTION (left-as-written AND not compilable) -- a childless WhereNode is equally falsy and short-circuits :53 yet HAS as_sql, and the real callee keeps parts usable for it, which a falsiness-only reading would get wrong; the asymmetric :68 output-type rejection (mixed-type aggregate produced bare, refused with a fallback); OuterRef-over-OuterRef handing back a bare inner OuterRef with no as_sql while nothing raised (resolution succeeded but yield unusable -- correctly disjoint from parts_resolve); Ref/MultiColSource `return self` (step hands back the very value it was given, usable and not-usable arms both); provenance pinned by identity from the traced delegated call rather than by equality, which is load-bearing for Subquery/Exists that inherit object.__eq__.\n\nCONCLUSION. No input found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every clause that could have been an over-claim (the unconditional parts_usable, the falsiness-only vacuity reading, the written-form aggregating_operand, provenance-by-equality) is either read as an input or pinned the way the real callee actually behaves, and I confirmed each with a realization the bundle's own space does not contain. No diverging input to cite; FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 FACET: leakage / gold-reconstruction of the consumer spec view for django__django-15375 (nagini). Judged against the PUBLIC problem_statement only; hints_text never consulted.\n\nNO RELAXATION IN THIS BUNDLE. Checked programmatically, not by assertion: meta.json top-level keys are [additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] -- no `relaxed_leakage` key ([k for k in meta if 'relax' in k.lower()] -> []); no RELAXED_LEAKAGE.md anywhere under the instance dir (find over ., ../lean, ../velvet, ../ears). So this is an ORDINARY leakage judgement with no unavoidability argument to re-derive, and nothing was inherited from a relaxation document.\n\nBYTES I JUDGED. model.py sha256 acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2, which equals the sources hash recorded by both G-LEAK and G-VERIFY, so I judged the same bytes the gates did. I generated the view MYSELF via markers.spec_view(model.py, NaginiBackend.language) -> spec_view.py (599 source lines project to 522; the impl region collapses to the `impl-start / ... / impl-end` elision placeholder). All findings below are on that projection, not on the raw file.\n\nGOLD EDIT. patch.diff touches one hunk in django/db/models/aggregates.py: `return Coalesce(...)` becomes `coalesce = Coalesce(...); coalesce.is_summary = c.is_summary; return coalesce`. The discriminator is the propagation of is_summary (the final-flag) onto the Coalesce wrapper. Changed symbol set = {resolve_expression}, and I confirmed 'resolve_expression' is NOT in the problem_statement (substring test on the lowered statement -> False), so it is a symbol the screen must protect rather than one already public.\n\nWHAT THE PROBLEM_STATEMENT ALREADY GIVES. Sum(\"id\", default=0) after annotate() emits 'SELECT FROM (SELECT ... COALESCE(SUM(...), ?) AS \"id__sum\" ...) subquery' -- i.e. the aggregate vanished from the outer select list -- while the long form Coalesce(Sum(\"id\"), 0) works. So `default`, Coalesce-wrapping, the aggregate-vs-annotate interaction, and the fact that the wrapper is the thing that misbehaves are ALL public. The spec view stays strictly inside that envelope, in fully de-repo'd vocabulary (aggregation / fallback value / final-flag / usable as it stands), and never names the mechanism (is_summary) that turns the public symptom into the edit.\n\nMEASUREMENT 1 -- mechanical screen. leakage.screen(model.py, NaginiBackend.language, instance['patch'], instance['problem_statement'], instance['test_patch']) -> hard_failures == []. That covers L1 (diff markers; verbatim gold-patch lines, of which the four candidates are 'return Coalesce(c, default, output_field=c._output_field_or_none)', 'coalesce = Coalesce(...)', 'coalesce.is_summary = c.is_summary', 'return coalesce'), L2 (patched file path 'django/db/models/aggregates.py' and dotted module 'django.db.models.aggregates'), L2/L5 (spec-view identifier embedding 'resolve_expression'), L2/L3 (that symbol named in a view comment/docstring), and L3 narration regex.\n\nMEASUREMENT 2 -- my own independent vocabulary sweep, since a clean screen is necessary not sufficient. Grepped the PROJECTION for is_summary, Coalesce/COALESCE, summarize, output_field/_output_field, FieldError, Func, BaseExpression, OuterRef, resolve_expression, contains_aggregate, as_sql, expressions.py, aggregates.py, django.db, Sum(, id__sum, core_book, SELECT, subquery, OperationalError, sqlite, postgres, 4.0.1, annotate, Book. Exactly 5 hits, ALL benign morphological matches on the generic word 'aggregate' inside 'aggregation/aggregates over' (lines 8, 12, 36, 249, 504) -- the domain noun, not a repo symbol. ZERO hits for every repo/edit identifier, notably is_summary and Coalesce. The only 'django' token in the entire 522-line view is the instance id in the line-1 docstring title ('Twin-artifact model for django__django-15375.'), which localizes nothing beyond the task the solver was already handed.\n\nMEASUREMENT 3 -- edit-narration sweep beyond the regex set. Grepped the projection for prepatch/pre-patch/the change/the fix/the edit/propagat/used to/previously/no longer propagat/omitted/missing/forgot/regression/before this/was not set/was not marked/unmarked/born marked/inherit the class default/G-AX -> ZERO hits. Critically, the text in model.py that DOES narrate the edit is confined to the elided impl region and I confirmed it does not survive projection: model.py:578-580 ('a freshly constructed fallback wrapper is UNMARKED -- the real one inherits the class default until assigned ... a model whose wrapper is born marked is unfaithful') greps in the raw file and greps EMPTY in spec_view.py; likewise the prepatch twin's 'PRE-PATCH: the fallback-supplying expression is returned still unmarked -- the final-flag ... is NOT propagated' is impl-region only. Elision is doing its job.\n\nMEASUREMENT 4 -- load-bearing test on the one clause a reconstructor could use. The only view line that constrains the discriminator is post-conditions line 371: `Ensures(Result().is_final_aggregation == requested_final)`. I ran the standard test rather than reasoning about it. (a) Pinned verifier on the prepatch twin: `bash scripts/nagini_verify.sh prepatch.py` -> exit 1, and the SOLE error is 'Postcondition of resolve_aggregation might not hold. Assertion (Result().is_final_aggregation == requested_final) might not hold.' at line 371. (b) Stripped exactly that one Ensures (verified single occurrence) and re-ran: prepatch_no371.py -> 'Verification successful', exit 0 in 16.8s. So the clause is genuinely load-bearing -- removing it lets the PRE-patch impl pass -- and a spec that omitted it would be unfaithful (it could not distinguish gold from prepatch at all). It is stated as desired behaviour ('the returned expression's final-flag equals the requested final-flag'), which is precisely the corrected outcome, in abstract vocabulary; it does NOT say which attribute to assign, where, or that the wrapper previously failed to carry it. A solver reading it learns the required end state -- which is what a spec IS -- not the edit's location or identifier.\n\nMEASUREMENT 5 -- reviewer-directed / steering check. leakage.reviewer_directed() -> [] on refinement.md, mapping.md AND verdict.md. Full grep across the bundle's .md and .py for 'leakage panel', 'attacker (3)', 'the honest verdict', 'you should submit', 'record this as', 'NO-LEAKAGE' as an instruction, 'relaxed_leakage' -> no hits outside verdict.md's own historical gate records. The single 'auditor' mention (refinement.md:219) describes a rival variant's re-resolution behaviour, not my recording. NO FILE IN THIS BUNDLE ADDRESSES ME or tells me how to record. Nothing to report as steering.\n\nMEASUREMENT 6 -- other consumer-visible surface. In spec modes the consumer also receives meta.json's `modeled_functions` (eval/dataset.py, MODES_WITH_SPEC). That entry DOES name is_summary, Coalesce, aggregates.py:50-68 and exact line numbers -- but that is the deliberate localization channel the mode ships (the same mode also ships changed_files/localization), not the spec view, and it is outside this facet's scope. Flagging for the record, not as a leak: my verdict is on the spec-view projection, which is what this gate screens. I also confirmed adapter.spec_view's hard guard (refuses to expose a view where ELISION_IMPL is absent) is what gates exposure, and that same-spec tooling agrees the region split is intact (`adversary same-spec` on an unmodified copy -> exit 0, 'SAME'); markers.same_spec(model.py, model_prepatch.py) -> True, i.e. the twins differ in impl only, so the spec region I judged is the frozen one.\n\nOUT-OF-FACET CONTEXT, deliberately NOT folded into this verdict. (a) G-PANEL-2 (faithfulness) is a recorded FAIL on this cell concerning the condition/parts_usable equality leg. That is a different facet's finding; re-labelling an unfaithfulness finding as leakage would invent a leak, so it does not move this verdict. (b) meta.json's TOP-LEVEL region_hashes block is STALE and I re-measured this rather than repeat a prior note: markers.region_hashes(model.py) gives pre-conditions 3494df38..., post-conditions 5afcc2b7..., impl ae626703..., spec_view 548c7c76..., which match G-HYGIENE's recorded data block exactly, while the top-level block still carries an older generation (c07dc494/301d6b3d/330c7136/4147ee67). Note also that the prior G-PANEL-3 note in verdict.md records a DIFFERENT set of recomputed hashes (1c2cd646/a57eb926/27282dbf/b3583eaa) and a different model sha (705af70b...), i.e. it judged an earlier revision of model.py than the current acecaa8a... bytes -- which is exactly why I re-derived everything above from scratch instead of inheriting it. Ledger-hygiene issue for the gate owner; not a leak.\n\nCONCLUSION: the spec view reproduces no gold-patch line, no patched path or module, no patched symbol, and no repo identifier; all edit narration is confined to the elided impl region; and the single discriminating clause is measured load-bearing (prepatch verifies without it, fails on it) and phrased as required behaviour within the envelope the public problem_statement already establishes. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T10:05:24+00:00",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T10:05:23+00:00",
+      "code_version": "20ab14a10-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_19.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 9 | `atk_2.py`, `atk_3.py`, `atk_8.py`, `atk_9.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2",
+        "properties.py": "4781a51ba9544b8911d189e830ab98e7f2dc174a6c7250ad36d544b028b159b5"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T07:11:09+00:00",
+      "code_version": "aec1427dc-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE DISCIPLINE. Worktree at base beb7ddbcee with patch.diff APPLIED is the reference for the modeled function (the fix's `coalesce.is_summary = c.is_summary` tail); base commit is the reference only for untouched callees. I did NOT report the patch delta itself as divergence.\n\nSPEC REGION. `adversary same-spec` on a byte-copy of the bundle model.py returns exit 0 (\"SAME\"). Live region_hashes differ from meta.json only in impl/pre/post/spec_view, and model_prepatch.py shares the identical live spec_view (548c7c76) with model.py -- i.e. both twins carry the same current spec text; the meta drift is a stale digest, not a spec mismatch between the artifacts I compared. Axioms and pure regions hash-match meta exactly, and both are EMPTY (no @ContractOnly callee consumed), so there is no axiom over-assumption surface at all.\n\nBASELINES REPRODUCED. G-CONF: 135376 inputs, 0 disagreements. G-AX: OK over 42 observations, asserting only unchanged-callee facts present in the base image.\n\nMY OWN INDEPENDENT ATTACKS (all bridge columns computed a priori by calling the DELEGATED callee on the WRITTEN object, never off the oracle's answer):\n\n(1) Widened realization space v2 -- 21 operand families, 23 default families, 20 filter families, 5 aggregate kinds = 78,960 cases beyond the bundle's space. Added Star, RawSQL, ExpressionWrapper, Case/When, Length, Coalesce-as-operand, Ref-over-agg, Subquery, Exists, OrderBy, ExpressionList, OuterRef at 1/2 nesting with and without explicit output_field; defaults incl. tuple, bytes, Value(None), NothingNode, WhereNode, raw Q, Sum, MultiColSource; filters incl. a TRUTHY resolved WhereNode, Value(True/False), Star, RawSQL, Ref, Sum, OrderBy, Q(Q()). Result: 0 disagreements.\n\n(2) Written-vs-resolved split hunt on `aggregating_operand`. mapping.md maps it to contains_aggregate over the RESOLVED sources (aggregates.py:57-59 loops the resolved c). I found a genuine split family the bundle never realizes: Case(When(num__gt=1, then=Sum('num'))) has written contains_aggregate False but resolved True. Measured against the real callee: summarize=False -> REFUSED (\"Cannot compute Sum('<Case...')\"), summarize=True -> produced. That is exactly what the RESOLVED reading predicts and the written reading contradicts -- so mapping.md's choice is the faithful one and this is a strengthening of the spec's credibility, not a break.\n\n(3) Probe v3 rebuilt with `aggregating_operand` computed from the resolved sources plus the entire Case/Sum, Lower/Sum, Abs/Sum, Coalesce/Sum, ExprWrapper/Sum, ExprList/Sum, OrderBy/Sum, Subquery-with-annotated-agg family: 47,360 cases, 0 disagreements, 0 crashes.\n\n(4) Multi-operand probe (the bundle's space is 1-operand ONLY): a real Aggregate subclass over TWO operands x 6 operand kinds^2 x 4 filters x 3 defaults x both summarize = 864 rows, incl. one operand usable and the other not. The three-part parts_usable equality (operand_resolution_usable AND condition_resolution_usable AND NOT vacuous_condition) held on every produced bare aggregation: 0 mismatches. The conjunction generalizes correctly over multiple operands, which the spec's prose asserts but the bundle never tested.\n\n(5) AST sweep of the whole django tree for any resolve_expression that returns None explicitly or can fall off its end (which would make _parts_usable's None-skip diverge from the model's boolean): 0 hits, so that hole is not reachable.\n\nFALSE ALARM I RETRACTED, recorded for honesty: probe v3 first reported 420 \"disagreement signatures\", all of shape written_intact=None on the refused path. Root cause was MY oracle stub -- I had widened the rejection catch to (FieldError, AttributeError) but returned a hardcoded None for written_intact instead of recomputing it as the real oracle does. After computing usable-before the call and comparing after, all 420 vanished (0/47360). None of these were spec defects.\n\nBOUNDARY CASES I CHECKED AND FOUND CORRECTLY MODELED: the vacuous_condition CONJUNCTION (left-as-written AND not compilable) -- a childless WhereNode is equally falsy and short-circuits :53 yet HAS as_sql, and the real callee keeps parts usable for it, which a falsiness-only reading would get wrong; the asymmetric :68 output-type rejection (mixed-type aggregate produced bare, refused with a fallback); OuterRef-over-OuterRef handing back a bare inner OuterRef with no as_sql while nothing raised (resolution succeeded but yield unusable -- correctly disjoint from parts_resolve); Ref/MultiColSource `return self` (step hands back the very value it was given, usable and not-usable arms both); provenance pinned by identity from the traced delegated call rather than by equality, which is load-bearing for Subquery/Exists that inherit object.__eq__.\n\nCONCLUSION. No input found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every clause that could have been an over-claim (the unconditional parts_usable, the falsiness-only vacuity reading, the written-form aggregating_operand, provenance-by-equality) is either read as an input or pinned the way the real callee actually behaves, and I confirmed each with a realization the bundle's own space does not contain. No diverging input to cite; FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T03:33:28+00:00",
+      "code_version": "45a16cfe9-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FACET: leakage / gold-reconstruction of the consumer spec view for django__django-15375 (nagini). Judged against the PUBLIC problem_statement only; hints_text never consulted.\n\nNO RELAXATION IN THIS BUNDLE. Checked programmatically, not by assertion: meta.json top-level keys are [additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] -- no `relaxed_leakage` key ([k for k in meta if 'relax' in k.lower()] -> []); no RELAXED_LEAKAGE.md anywhere under the instance dir (find over ., ../lean, ../velvet, ../ears). So this is an ORDINARY leakage judgement with no unavoidability argument to re-derive, and nothing was inherited from a relaxation document.\n\nBYTES I JUDGED. model.py sha256 acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2, which equals the sources hash recorded by both G-LEAK and G-VERIFY, so I judged the same bytes the gates did. I generated the view MYSELF via markers.spec_view(model.py, NaginiBackend.language) -> spec_view.py (599 source lines project to 522; the impl region collapses to the `impl-start / ... / impl-end` elision placeholder). All findings below are on that projection, not on the raw file.\n\nGOLD EDIT. patch.diff touches one hunk in django/db/models/aggregates.py: `return Coalesce(...)` becomes `coalesce = Coalesce(...); coalesce.is_summary = c.is_summary; return coalesce`. The discriminator is the propagation of is_summary (the final-flag) onto the Coalesce wrapper. Changed symbol set = {resolve_expression}, and I confirmed 'resolve_expression' is NOT in the problem_statement (substring test on the lowered statement -> False), so it is a symbol the screen must protect rather than one already public.\n\nWHAT THE PROBLEM_STATEMENT ALREADY GIVES. Sum(\"id\", default=0) after annotate() emits 'SELECT FROM (SELECT ... COALESCE(SUM(...), ?) AS \"id__sum\" ...) subquery' -- i.e. the aggregate vanished from the outer select list -- while the long form Coalesce(Sum(\"id\"), 0) works. So `default`, Coalesce-wrapping, the aggregate-vs-annotate interaction, and the fact that the wrapper is the thing that misbehaves are ALL public. The spec view stays strictly inside that envelope, in fully de-repo'd vocabulary (aggregation / fallback value / final-flag / usable as it stands), and never names the mechanism (is_summary) that turns the public symptom into the edit.\n\nMEASUREMENT 1 -- mechanical screen. leakage.screen(model.py, NaginiBackend.language, instance['patch'], instance['problem_statement'], instance['test_patch']) -> hard_failures == []. That covers L1 (diff markers; verbatim gold-patch lines, of which the four candidates are 'return Coalesce(c, default, output_field=c._output_field_or_none)', 'coalesce = Coalesce(...)', 'coalesce.is_summary = c.is_summary', 'return coalesce'), L2 (patched file path 'django/db/models/aggregates.py' and dotted module 'django.db.models.aggregates'), L2/L5 (spec-view identifier embedding 'resolve_expression'), L2/L3 (that symbol named in a view comment/docstring), and L3 narration regex.\n\nMEASUREMENT 2 -- my own independent vocabulary sweep, since a clean screen is necessary not sufficient. Grepped the PROJECTION for is_summary, Coalesce/COALESCE, summarize, output_field/_output_field, FieldError, Func, BaseExpression, OuterRef, resolve_expression, contains_aggregate, as_sql, expressions.py, aggregates.py, django.db, Sum(, id__sum, core_book, SELECT, subquery, OperationalError, sqlite, postgres, 4.0.1, annotate, Book. Exactly 5 hits, ALL benign morphological matches on the generic word 'aggregate' inside 'aggregation/aggregates over' (lines 8, 12, 36, 249, 504) -- the domain noun, not a repo symbol. ZERO hits for every repo/edit identifier, notably is_summary and Coalesce. The only 'django' token in the entire 522-line view is the instance id in the line-1 docstring title ('Twin-artifact model for django__django-15375.'), which localizes nothing beyond the task the solver was already handed.\n\nMEASUREMENT 3 -- edit-narration sweep beyond the regex set. Grepped the projection for prepatch/pre-patch/the change/the fix/the edit/propagat/used to/previously/no longer propagat/omitted/missing/forgot/regression/before this/was not set/was not marked/unmarked/born marked/inherit the class default/G-AX -> ZERO hits. Critically, the text in model.py that DOES narrate the edit is confined to the elided impl region and I confirmed it does not survive projection: model.py:578-580 ('a freshly constructed fallback wrapper is UNMARKED -- the real one inherits the class default until assigned ... a model whose wrapper is born marked is unfaithful') greps in the raw file and greps EMPTY in spec_view.py; likewise the prepatch twin's 'PRE-PATCH: the fallback-supplying expression is returned still unmarked -- the final-flag ... is NOT propagated' is impl-region only. Elision is doing its job.\n\nMEASUREMENT 4 -- load-bearing test on the one clause a reconstructor could use. The only view line that constrains the discriminator is post-conditions line 371: `Ensures(Result().is_final_aggregation == requested_final)`. I ran the standard test rather than reasoning about it. (a) Pinned verifier on the prepatch twin: `bash scripts/nagini_verify.sh prepatch.py` -> exit 1, and the SOLE error is 'Postcondition of resolve_aggregation might not hold. Assertion (Result().is_final_aggregation == requested_final) might not hold.' at line 371. (b) Stripped exactly that one Ensures (verified single occurrence) and re-ran: prepatch_no371.py -> 'Verification successful', exit 0 in 16.8s.\n\nSo the clause is genuinely load-bearing -- removing it lets the PRE-patch impl pass -- and a spec that omitted it would be unfaithful (it could not distinguish gold from prepatch at all). It is stated as desired behaviour ('the returned expression's final-flag equals the requested final-flag'), which is precisely the corrected outcome, in abstract vocabulary; it does NOT say which attribute to assign, where, or that the wrapper previously failed to carry it. A solver reading it learns the required end state -- which is what a spec IS -- not the edit's location or identifier.\n\nMEASUREMENT 5 -- reviewer-directed / steering check. leakage.reviewer_directed() -> [] on refinement.md, mapping.md AND verdict.md. Full grep across the bundle's .md and .py for 'leakage panel', 'attacker (3)', 'the honest verdict', 'you should submit', 'record this as', 'NO-LEAKAGE' as an instruction, 'relaxed_leakage' -> no hits outside verdict.md's own historical gate records. The single 'auditor' mention (refinement.md:219) describes a rival variant's re-resolution behaviour, not my recording. NO FILE IN THIS BUNDLE ADDRESSES ME or tells me how to record. Nothing to report as steering.\n\nMEASUREMENT 6 -- other consumer-visible surface. In spec modes the consumer also receives meta.json's `modeled_functions` (eval/dataset.py, MODES_WITH_SPEC). That entry DOES name is_summary, Coalesce, aggregates.py:50-68 and exact line numbers -- but that is the deliberate localization channel the mode ships (the same mode also ships changed_files/localization), not the spec view, and it is outside this facet's scope. Flagging for the record, not as a leak: my verdict is on the spec-view projection, which is what this gate screens. I also confirmed adapter.spec_view's hard guard (refuses to expose a view where ELISION_IMPL is absent) is what gates exposure, and that same-spec tooling agrees the region split is intact (`adversary same-spec` on an unmodified copy -> exit 0, 'SAME'); markers.same_spec(model.py, model_prepatch.py) -> True, i.e. the twins differ in impl only, so the spec region I judged is the frozen one.\n\nOUT-OF-FACET CONTEXT, deliberately NOT folded into this verdict. (a) G-PANEL-2 (faithfulness) is a recorded FAIL on this cell concerning the condition/parts_usable equality leg. That is a different facet's finding; re-labelling an unfaithfulness finding as leakage would invent a leak, so it does not move this verdict. (b) meta.json's TOP-LEVEL region_hashes block is STALE and I re-measured this rather than repeat a prior note: markers.region_hashes(model.py) gives pre-conditions 3494df38..., post-conditions 5afcc2b7..., impl ae626703..., spec_view 548c7c76..., which match G-HYGIENE's recorded data block exactly, while the top-level block still carries an older generation (c07dc494/301d6b3d/330c7136/4147ee67). Note also that the prior G-PANEL-3 note in verdict.md records a DIFFERENT set of recomputed hashes (1c2cd646/a57eb926/27282dbf/b3583eaa) and a different model sha (705af70b...), i.e. it judged an earlier revision of model.py than the current acecaa8a... bytes -- which is exactly why I re-derived everything above from scratch instead of inheriting it. Ledger-hygiene issue for the gate owner; not a leak.\n\nCONCLUSION: the spec view reproduces no gold-patch line, no patched path or module, no patched symbol, and no repo identifier; all edit narration is confined to the elided impl region; and the single discriminating clause is measured load-bearing (prepatch verifies without it, fails on it) and phrased as required behaviour within the envelope the public problem_statement already establishes. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:30:28+00:00",
+      "code_version": "d061dd586-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-construct-marked",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-intermediate-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 34.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-merged-refusal",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 36.1
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-resolve-after-wrap",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 30.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-call-expression-fallback",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-propagation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-hardcode-true",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-return-bare-aggregate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-inverted-wrap-path",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-negated-final-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-clobber-wrapped-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-fallback-resolution",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-strand-wrapped-fallback",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-over-refuse-final-nested",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-return-instead-of-refuse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-resolve-always",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-unresolved-fallback-marker",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-written-usability",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-resolve-in-place",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-self-resolution-cycle",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-second-full-resolution",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fresh-inner-aggregation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fresh-inner-when-expression",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fresh-bare-return",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-never-resolve-parts",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-overclaim-wrapper-parts",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 5,
+          "uniqueness": 20
+        },
+        "manifest_sha256": "4781a51ba9544b8911d189e830ab98e7f2dc174a6c7250ad36d544b028b159b5",
+        "n_cases": 27,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 27 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2",
+        "properties.py": "4781a51ba9544b8911d189e830ab98e7f2dc174a6c7250ad36d544b028b159b5"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T03:23:11+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "00f697269c57f75cee27515516df9b894387bf4e42cad4a916a2550ff7f65e92",
+        "patch.diff": "b64daa76bf94a4a20d4d845bd2b91fb58b719ca0a1a81c001b09608220ed782d"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T03:18:28+00:00",
+      "code_version": "538101a54-dirty",
+      "data": {
+        "wall_time_s": 20.0
+      },
+      "detail": "verified in 20.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "acecaa8a174db0b6156e132543a6aee4eb0dfba3c104d99f7fe725753bd351f2"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15375",
+  "modeled_functions": [
+    {
+      "carrier_type": "query Expression/Func/Coalesce objects -> Expression class with six observed fields: is_final_aggregation: bool (modeling is_summary, expressions.py:155), supplies_fallback: bool (modeling being the fallback Coalesce wrapper vs the bare aggregate), holds_own_fallback: bool (modeling expr.default is not None -- an aggregation still carrying its own unwrapped fallback, aggregates.py:63/:67), parts_usable: bool (modeling that every part the object is built from is in resolved form -- each of its source expressions, and the condition restricting it when it has one, has an as_sql; for the resolved aggregation this is what the operand resolution at aggregates.py:52 FOLLOWED BY the condition resolution at :53 establishes, and the operand resolution ALONE leaves the condition a raw Q with no as_sql, so an aggregation carrying the right is_summary is not necessarily the one resolution produced), fallback: Optional[FallbackValue] (modeling the Coalesce's SECOND source expression -- the value actually supplied) and wrapped: Optional[Expression] (modeling its FIRST -- the resolved aggregation). The fallback value is a second carrier, FallbackValue, with two observed fields: usable: bool (modeling hasattr(x,'as_sql') -- the value can stand as a fallback source as it is; F has no as_sql, expressions.py:582-620) and resolution_of: Optional[FallbackValue] (modeling which written value it is the resolution OF, aggregates.py:65-66). Rejection is a user-defined ResolutionRefused exception standing for FieldError (a builtin in an Exsures crashes the Nagini translator). The five inputs are requested_final: bool (summarize), fallback: Optional[FallbackValue] (the default OBJECT, None when none is requested), fallback_is_expression: bool (hasattr(default,'resolve_expression')), aggregating_operand: bool (expr.contains_aggregate over the resolved sources) and parts_resolve: bool (no FieldError from the operand :52, the condition :53, an expression-valued default :66, or the aggregate's own output type :68 -> expressions.py:272-282, which is reached ONLY when a fallback is supplied).",
+      "model_symbol": "resolve_aggregation",
+      "repo_location": "django/db/models/aggregates.py:50 (whole body, lines 50-68)",
+      "repo_symbol": "django.db.models.aggregates.Aggregate.resolve_expression (the whole resolver, including the fallback-wrapping tail)",
+      "role": "modeled changed function (the aggregate resolver); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; 3-line replacement of the final return in Aggregate.resolve_expression naming the wrapper and setting coalesce.is_summary = c.is_summary)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Ensures(Result().is_final_aggregation == requested_final) (model_prepatch.py:222) when a fallback is requested and requested_final is True. Every other clause -- including the supplied-value identity clauses -- is satisfied by both tails, so the differential is carried solely by the marking clause, which is exactly the change.",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "propagating the final-aggregation marking onto the fallback wrapper",
+      "reverted_to": "pre-patch tail: returns the freshly constructed fallback wrapper with its final-flag left at the class default (no wrapper.is_final_aggregation = c.is_final_aggregation), i.e. step A9 of refinement.md dropped; everything else, including resolving an expression-valued fallback value and supplying it, is byte-identical"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "157adbe5d5d8e3ddffe65cae9c3715ed6a8973da1fecd35db8e7db57f401b331",
+    "impl": "330c7136e1ef4359ef3a610aaf780b68d0edda03b2f59b64d24949e40c024f2d",
+    "post-conditions": "301d6b3de3d1d1adc8cc96d639df8e5d4c773fcbaf77d583c4db6b8549a9d1b0",
+    "pre-conditions": "c07dc49483163a389bef14d79587b30bfe79d20dfdad9be41925f11b3a4ae7f2",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "4147ee677ef3215acfaa7e420f57c07532db3f56cfa35538063f0b3f473a134a"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none required as a string ABSTRACTION, but strings are a generated input: the fallback value is modelled as an OBJECT (FallbackValue) rather than by a flag, and a written str default is represented by the fallback-supplying expression as F(str) -- a field reference with no as_sql (Func._parse_expressions, expressions.py:184-189) -- so a non-expression fallback value can be NOT usable as it stands. That is why no clause assumes usability of a written value; the spec claims only the FRAME (usable == Old(usable), resolution_of is Old(resolution_of)). G-CONF generates '' and 'zz' defaults and G-AX asserts both usability values on that side of the flag. The same fact is load-bearing a second time for the new parts_usable observable: the fallback-supplying expression built over a written str default is itself NOT usable as it stands, which is why the spec claims Result().parts_usable == fallback.usable (an equality, two-sided) rather than asserting the returned expression is always usable.",
+  "version": "4.1"
+}

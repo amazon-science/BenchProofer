@@ -1,0 +1,507 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "same reinterpret-before-text-operation delta on the whole-header path (bytes branch: CONTINUE/END/end_card/sep/empty taken in the byte encoding, empty.join); kind-A decode swap modeled by the same reinterpret deep model + the same text_form / enter_text_form / pad_to_width / pad_runtime axioms; soundness via G-AX. Not in FAIL_TO_PASS (its bytes test needs a data file).",
+      "repo_location": "astropy/io/fits/header.py:330",
+      "repo_symbol": "astropy.io.fits.header.Header.fromstring"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real _pad over 245 lengths around the width boundary",
+      "encoded_property": "content prefix preserved (Result().take(len)==image); length a whole multiple of WIDTH; at most WIDTH elements added (<= len+WIDTH, NOT <WIDTH: empty input pads to a full record adding exactly WIDTH); appended elements are spaces (32). Weakest sufficient contract.",
+      "models": "astropy.io.fits.card._pad (unchanged padding helper), pure form",
+      "name": "pad_to_width",
+      "provenance": "astropy/io/fits/card.py:1269; Card.length == CARD_LENGTH == 80",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) leg L2: the real _pad over all 321 lengths in 0..320, WHOLE MULTIPLES INCLUDED (not skipped) -- a non-text argument either fails on the concatenation (317 lengths) or comes back untouched and still non-text (80, 160, 240, 320), and a text argument comes back text at every length; conformance_check.py cross-checks the same at the callee boundary",
+      "encoded_property": "runtime form of pad_to_width, defined on TEXTUAL CONTENT: Requires(text_form(text)) restricts its domain to values in text form (a domain restriction, NOT a failure claim -- there is no Exsures anywhere in the bundle, so no MODEL-raises / REAL-returns divergence is claimed at any length); Ensures(ToSeq(Result()) == pad_to_width(ToSeq(text))) and Ensures(text_form(Result())), the latter because the real helper returns a str when handed a str",
+      "models": "astropy.io.fits.card._pad (unchanged padding helper), runtime form + the text-form domain restriction",
+      "name": "pad_runtime",
+      "provenance": "astropy/io/fits/card.py:1269 (input + ' ' * n is a str concatenation); the patched caller passes a str at card.py:564",
+      "purity": "@ContractOnly (non-pure runtime callee; no Exsures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) leg L2 (its only consumer) and L1 (its only producer): text_form is never computed, only produced by enter_text_form and demanded by pad_runtime",
+      "encoded_property": "text_form(v): the runtime type tag the List[int] carrier erases -- the concrete value is a str rather than a bytes. Uninterpreted: no body, so no computation can conjure it; a single source (enter_text_form) and a single consumer (pad_runtime). An input supplied in text form carries it by virtue of that form (Requires(Implies(not from_bytes, text_form(raw))))",
+      "models": "the str-vs-bytes distinction of the image/data argument, which is the entire subject of this change and which the carrier cannot express as a value",
+      "name": "text_form",
+      "provenance": "astropy/io/fits/card.py:557-562 (patched): the guard isinstance(image, bytes) tells the two forms apart and the decode is what moves a value between them",
+      "purity": "@Pure @ContractOnly (ghost property, no body; used inside Requires/Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) leg L1: the real bytes.decode('latin1') yields textual content with identical code points and a DISTINCT object (the model forces Result() is not v by permission arithmetic), over samples including all 256 byte values; conformance_check.py calls the real guarded step at the callee boundary",
+      "encoded_property": "enter_text_form(v): takes a value over into text form leaving its content exactly as it is -- Ensures(ToSeq(Result()) == ToSeq(v)) (latin-1 is the value-preserving identity over 0..255) and Ensures(text_form(Result())) (bytes.decode returns a str; a value already in text form is returned unchanged). The ONLY source of text_form, so the postcondition text_form(Result()) of build_record_image can be discharged from nothing else. No Python operation turns a bytes object into a str-typed object except a decode, so refining this step to nothing is not a faithful refinement",
+      "models": "bytes.decode('latin1') (CPython stdlib) as reached through the guarded step the gold hunk adds -- the TYPE half of that step; its VALUE half is the deep model reinterpret (A-reference, not a consumed axiom)",
+      "name": "enter_text_form",
+      "provenance": "astropy/io/fits/card.py:557-562 (patched: the isinstance guard at 557, image = image.decode('latin1') at 562); data.decode('latin1') at the Header.fromstring site",
+      "purity": "@ContractOnly (non-pure runtime callee; no Exsures)"
+    }
+  ],
+  "base_commit": "a85a0747c54bac75e9c3b2fe436b105ea029d6cf",
+  "changed_files": [
+    "astropy/io/fits/card.py",
+    "astropy/io/fits/header.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts reinterpret == real bytes.decode('latin1') exhaustively over 0..255, all 65536 byte pairs, and 20000 fuzz byte strings",
+      "encoded_property": "reinterpret(x): value-preserving identity over a byte sequence (byte b -> code point b); the str path coincides (already-text input unchanged). NOT a consumed axiom -- there is no decode @ContractOnly axiom",
+      "kind": "A-reference",
+      "models": "bytes.decode('latin1') (CPython stdlib)",
+      "name": "reinterpret",
+      "provenance": "the added line image.decode('latin1') in Card.fromstring (and data.decode('latin1') in Header.fromstring); codecs latin_1 is the unique value-preserving byte->code-point identity over 0..255; docs.python.org/3/library/codecs.html#standard-encodings",
+      "role": "deep model (pure region) of the changed decode operation"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T22:39:32+00:00",
+      "code_version": "1e88f47d3-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: reinterpret deep model == latin-1 decode (identity over 0..255, all 65536 byte pairs, 20000 fuzz); pad_to_width axiom sound vs the REAL astropy _pad over 245 lengths; text_form / enter_text_form / pad_runtime Requires(text_form) sound vs the REAL _pad over 321 lengths, whole multiples INCLUDED (not skipped).",
+      "gate": "G-AX",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "dcd6bc05b0c88b69bb6a776c4d433b7c53be19a6b3bae9126eb24060ec55141c",
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T22:39:31+00:00",
+      "code_version": "1e88f47d3-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100586,
+          "contract_only_callees": [
+            "bytes.decode('latin1') via the guarded step at astropy/io/fits/card.py:557-562 (called)",
+            "astropy.io.fits.card._pad (called)"
+          ],
+          "disagreements": 0,
+          "oracle": "astropy.io.fits.card.Card.fromstring (called, patched)",
+          "seed": 8707,
+          "shadow": "direct (contract-stripped impl region: copy loop + enter_text_form + pad_runtime)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100586, \"disagreements\": 0, \"seed\": 8707, \"shadow\": \"direct (contract-stripped impl region: copy loop + enter_text_form + pad_runtime)\", \"oracle\": \"astropy.io.fits.card.Card.fromstring (called, patched)\", \"contract_only_callees\": [\"bytes.decode('latin1') via the guarded step at astropy/io/fits/card.py:557-562 (called)\", \"astropy.io.fits.card._pad (called)\"]}",
+      "gate": "G-CONF",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "515439f5a7d97ce50c5dfa42c81adf126ab25ce71204b43842a53576d2662771",
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:27:30+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8",
+        "model_prepatch.py": "44407c7fb7a8f7f959579c75b141b67fae0414373d62e4b7b645b59d0a9c998a"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T00:22:03+00:00",
+      "code_version": "5ba9f53eb-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_15b.py`, `atk_16.py`, `atk_prepatch.py`, `atk_17.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_11.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8",
+        "properties.py": "dbc7495dd031ee494d81701a7058df154b2203121bd69d0afa585ee02ca10865"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:28:35+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8",
+        "model_prepatch.py": "44407c7fb7a8f7f959579c75b141b67fae0414373d62e4b7b645b59d0a9c998a"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T22:43:35+00:00",
+      "code_version": "c9953c9df-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "e225a3d6e1caf0dd800898cc28d8d90d58414d438f12537e95ba4077485aad5a",
+          "impl": "9332707dc309579aae3470595c967d9b4da397ca32aa339123f6dcbdb033fa33",
+          "invariants": "a3fd708c87841d9e3d41fa821e55729f6b0ba1e3acbe3dbead38579b8c76647e",
+          "post-conditions": "218cb05862882efa7c763efda77b77456047931c71644abf39dac100c6068b1c",
+          "pre-conditions": "8f25db9245e97c7d61b7b5211d0f6d6e69118b1ebc0827dbd76744f53931e071",
+          "pure": "1ca43d0bf0a3c044fccd2e74cda63409588f7d8d2ab7008c43fad93ac426dd1d",
+          "spec_view": "6a6ed3e41064e4145d59d54f078ffeaae35ef0dccdbd4e18d46cccc8ce7b446f"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T22:43:35+00:00",
+      "code_version": "c9953c9df-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "5d0c62d2b89d1022cfa9d1bc49410a4cf903ba9fb5e1e34a7aae96e5a5563f5c",
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T22:43:35+00:00",
+      "code_version": "c9953c9df-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T04:30:34+00:00",
+      "code_version": "6076372c4-dirty",
+      "data": {
+        "judged": 11,
+        "killed": 11,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 11,
+        "unjudged": []
+      },
+      "detail": "killed 11/11 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T00:22:04+00:00",
+      "code_version": "5ba9f53eb-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE DISCIPLINE. Per the brief, the modeled function's reference is the base worktree with patch.diff APPLIED. I built  at base_commit a85a0747c5 and applied the gold patch (extracted verbatim from data/swe_bench_verified/test.jsonl, `git apply --check` OK); all modeled-function differentials ran against the PATCHED Card.fromstring inside the instance container (/testbed, built extensions). Base commit was used ONLY as the reference for the axioms (the unchanged _pad, bytes.decode), which is exactly what the axioms model. I did NOT report the patch delta itself as a divergence.\n\nWHAT I TRIED TO BREAK, AND THE MEASURED RESULT\n\n1. Every exported postcondition of build_record_image, at repo level, against the real patched callee via mapping.md's type bridge (bytes(raw) when from_bytes, ''.join(chr(c)) otherwise; card._image back as [ord(ch)]). Clauses checked individually: no-Exsures/accept-both-forms (returns normally), text_form(Result()) (result isinstance str), len>=len(raw), Result().take(len(raw))==ToSeq(raw) (the reinterpret identity), len%WIDTH==0, padding elements all 32, len<=len(raw)+WIDTH. 60,938 inputs (586-style boundary set both forms + 60k seeded fuzz) \u2192 **0 violations**. Exotic sweep: 40k more incl. 10^4/10^5/10^6-element inputs, 80*12345(\u00b11), every byte value at 79/80/81, NUL/0x0a/0x0d/0x09/0x1c/0x1f/0x85/0xa0/0xff runs, FITS-structured images \u2192 **0 violations**.\n\n2. THE WIDTH ABSTRACTION \u2014 the most plausible over-claim, since the model asserts len%WIDTH==0 and len<=len(raw)+WIDTH with WIDTH=4 while the repo width is 80. Taken LITERALLY at 4, `len(R)<=len(raw)+4` is FALSE on the real helper at 376 of 401 lengths (e.g. raw=[] \u2192 real _pad returns 80 chars, 80 > 0+4). This is the one input family where a naive reading diverges. I judged it NOT a faithfulness defect, and the reason is checked rather than asserted: WIDTH is declared spec-only as the modeled record width with the real value 80 documented at its definition site, in mapping.md \u00a72, and in the model docstring; the faithful instantiation is WIDTH:=80, at which the same sweep over lengths 0..400 gives **0 violations** for both mod and the +WIDTH bound. Crucially the abstraction is not self-certified \u2014 the shipped axiom_check.py validates the pad_to_width contract against the REAL _pad at CARD_LENGTH=80 (not 4), and WIDTH is absent from the impl region so G-CONF's shadow calls the real 80-column helper and the executable diff runs at width 80. A generic reader instantiating the constant as the repo's own width sees no disagreement.\n\n3. AXIOM SOUNDNESS at base commit (my own reimplementation, not the shipped one): reinterpret == bytes.decode('latin1') exhaustively over all 256 bytes and all 65,536 pairs \u2192 equal. pad_to_width Ensures vs real _pad at all 401 lengths 0..400 \u2192 sound. The domain restriction Requires(text_form(text)): a NON-text argument NEVER comes back as text at any length 0..400 \u2014 it either raises TypeError or (at 80/160/240/320) returns untouched and still bytes \u2192 the precondition is sound and, matching a bundle with zero Exsures, no failure is claimed where the helper does not fail. enter_text_form: identical code points, is str, distinct object \u2192 holds.\n\n4. THE OVER-CLAIM DIRECTION SPECIFICALLY. Two places where the spec could have been too strong and deliberately is not: (i) it declines any claim that a bytes header and the value-equal str header divide into the same records. I confirmed the decline is WARRANTED, not lazy: on b'END'+bytes([0x85])*77 and b'END'+bytes([0xa0])*77 with sep='\\n' the two forms genuinely disagree (bytes \u2192 one card, str \u2192 zero cards, because str.rstrip() strips 0x85/0xa0 and bytes.rstrip() does not). Had the spec claimed cross-form division equality it would be UNFAITHFUL on exactly those inputs; it does not. (ii) It carries no Exsures, so it never claims a raise the helper lacks.\n\n5. ALIASING/FRESHNESS. Ensures(Acc(list_pred(Result()))) hands back full permission, implying a fresh result. The real _pad DOES return its own argument object at positive whole multiples (verified: _pad('A'*80) is 'A'*80 \u2192 True; result-is-input True at 80/160/240/320). I probed whether this is a genuine divergence and concluded it is not observable: Python str is immutable (item assignment raises TypeError), so no mutation through the returned permission can distinguish the aliased result from a fresh copy, and the carrier's List[int] is materialized by the bridge on every read. No input distinguishes the two.\n\n6. SITE B (Header.fromstring, not F2P). Confirmed 0 occurrences of decode('latin1') in the patched header.py, matching mapping.md's claim that the whole-header path stays in the input's encoding and each record reaches textual content per-card at site A. Ran the bytes-header path over 13 boundary + 4,000 fuzz headers \u00d7 sep in {'', '\\n'}: every recovered record image is a str with all code points <=255, no raises \u2192 **0 violations** of what the spec does claim about site B.\n\n7. SHIPPED GATES, re-executed by me rather than trusted: axiom_check.py exit 0 at base_commit; conformance_check.py exit 0 against the real PATCHED oracle, 100,586 inputs / 0 disagreements, seed 8707; `bash scripts/nagini_verify.sh model.py` \u2192 'Verification successful' (14.3s); `adversary same-spec` on model_prepatch.py \u2192 exit 0 (spec byte-identical). F2P ground truth with the test patch applied: test_card_from_bytes PASSES on gold, FAILS on base with 'TypeError: can't concat str to bytes' at card.py:1285 \u2014 the precise failure the model's Requires(text_form(text)) encodes as a domain restriction.\n\nCONCLUSION: the spec is not too strong and does not drift. Its two pinned facts (the padded value-preserving content, identical across both input forms; and that the value reaching the padding step is genuinely textual content) both hold of the real patched callee on every input I could construct, and where a stronger claim would have been unfaithful (cross-form record division) the spec explicitly declines it. No diverging input exists to cite. Bundle not modified; all work in /tmp (mktemp -d worktree, path recorded in atk2ff8707_dir.txt).",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE: leakage / gold-reconstruction on the spec view of astropy__astropy-8707/nagini. No RELAXED_LEAKAGE.md in the bundle and meta.json has no `relaxed_leakage` key (gates.G-LEAK.status = \"pass\"), so this is a STANDARD (non-relaxed) leakage review; no relaxation argument to re-derive.\n\nWHAT I MEASURED (all in a private mktemp dir; bundle unmodified):\n\n1. Spec view extracted with markers.spec_view(model.py, NaginiBackend) -> sha256 6a6ed3e41064e4145d59d54f078ffeaae35ef0dccdbd4e18d46cccc8ce7b446f. It is model.py minus the impl region (impl replaced by `...  # implementation elided`), INCLUDING module docstring + all comments, which is what the consumer sees.\n\n2. Mechanical screen (the authority): leakage.screen(model_src, NaginiBackend, gold_patch, problem_statement, test_patch) => passed=True, hard_failures=[], warnings=[]. Re-run twice with private paths (see METHODOLOGY caveat below).\n\n3. Gold-line reproduction: every added gold line (whitespace-normalized, len>6) checked against the normalized spec view => ZERO reproduced. Diff markers (@@, diff --git, +++ , --- , \\nindex) => none. Narration regex (bug/fix/patched/previously/incorrectly/wrong/...) => EMPTY set.\n\n4. Gold-mechanism vocabulary absent from the spec view: latin/latin-1, decode, encode, isinstance, fromstring, Card, Header, _pad, card.py, header.py, mojibake, ASCII/ascii, FITS, CONTINUE, END_CARD, empty.join, sep -- all ABSENT. The one `_image` regex hit is a substring of the spec's own identifier `build_record_image` (grep of [A-Za-z_.]*_image[A-Za-z_.]* returns only build_record_image) -- lexer false positive, not the gold's `card._image`.\n\n5. Identifier collision: _py_spec_view_identifiers(spec view) INTERSECT (_patch_changed_symbols U _patch_new_symbols) = EMPTY. Gold changed symbol is {fromstring}; spec names build_record_image / enter_text_form / pad_runtime / pad_to_width / text_form / reinterpret / all_bytes -- none echoes a patched repo symbol.\n\n6. The only literal shared with gold context is `80` (\"real value 80\"). Verified PUBLIC at base_commit independent of the patch: worktree at a85a0747c5 has astropy/io/fits/card.py:551-552 \"(80 columns)\" and :1270 \"multiple of 80\" in pre-existing docstrings. Not edit-localizing.\n\n7. LOAD-BEARING (de-narration) TEST -- the decisive check that the prose is not the spec. I stripped ALL docstrings and ALL non-marker comments from both models (preserving the semantically-required `# type: List[int]`) and ran the pinned verifier:\n   - scripts/nagini_verify.sh model_denarrated.py => \"Verification successful\" (exit 0, 14.72s)\n   - scripts/nagini_verify.sh prepatch_denarrated.py => \"Verification failed\": prepatch_denarrated.py:100 \"The precondition of method pad_runtime might not hold. Assertion text_form(text) might not hold.\" (exit 1, 14.02s)\n   CONCLUSION: with every word of narration removed, the spec still verifies on gold AND still rejects the pre-patch impl. The discriminator lives entirely in the FORMAL clauses -- the opacity of `text_form` (no body, sole source `enter_text_form`) plus `pad_runtime`'s `Requires(text_form(text))` and `Ensures(text_form(Result()))` -- i.e. in the spec proper, not in removable prose. Prose narration is therefore NOT load-bearing and removing it would not weaken the spec; nothing in the docstring is doing leak-work the clauses don't already do.\n\n8. PS-derivability of the discriminator (hints_text is EMPTY, len 0, so every term must be PS- or public-repo-derivable, and there is no hints-only vocabulary to launder). The public problem_statement says Header.fromstring \"does not accept Python 3 bytes\", that by \"byte string\" it means the str type \"which on Python 2 could be raw binary data\", that it \"assumes that the data can be ASCII-encoded\", proposes \"to change Header.fromstring to accept unicode or bytes string types\", and adds \"Card.fromstring likely needs a similar treatment.\" The spec view's two claims map onto exactly that and no further: (1) BOTH input forms accepted, each yielding a record image = PS's \"accept unicode or bytes string types\"; (2) a raw byte sequence reaches textual content by a value-preserving code-point correspondence = PS's \"retain raw binary data\" as text. The str/bytes type distinction the spec abstracts as \"text form vs raw byte sequence\" IS the public framing of the issue. The spec never names the encoding (latin-1), never names the guard, never names a file/function/line, and never states a bug->fix mechanism -- it states desired behaviour abstractly.\n\n9. Restraint evidence (anti-leak, not leak): spec-view docstring point (2) explicitly DECLINES to claim that a byte header and the value-equal text header divide into records alike -- refusing a claim gold internals would license. A leaking spec over-specifies toward gold; this one under-claims where the gold's behaviour is form-dependent.\n\n10. same_spec(model.py, model_prepatch.py, NaginiBackend) => True, and their spec views are byte-identical -- so the artifact I judged is the frozen spec both twins share.\n\n11. reviewer_directed() run over ALL 10 readable bundle files (model.py, model_prepatch.py, refinement.md, mapping.md, meta.json, verdict.md, axiom_check.py, conformance_check.py, properties.py, pbt_result.json) => NONE. No file in this bundle addresses the panel, instructs how to record, or asserts which verdict is honest. Nothing to report as a finding on that axis. (refinement.md/mapping.md DO name latin1/decode/Card.fromstring freely, but they are construction-side provenance documents, not the consumer spec view; only model.py minus impl+proof is shown to consumers per spec_guide.md \u00a70.6.)\n\nOUT-OF-SCOPE OBSERVATION (not a leakage finding, flagged for the record): meta.json region_hashes disagree with my live recomputation via markers.region_hashes for EVERY region incl. impl and spec_view. I checked whether this is a bundle defect by sampling the corpus: 1/25 benchmark-verified nagini bundles have a matching recorded spec_view hash, so this is a corpus-wide convention/serialization difference between my recomputation and whatever recorded the field (no gate in src/ compares recorded vs live -- hygiene.py only WRITES region_hashes into its record), not a staleness specific to this bundle. It does not bear on leakage; I judged the live model.py bytes directly, and same_spec confirmed the twins share that spec.\n\nMETHODOLOGY CAVEAT worth recording: my first extraction wrote specview.txt to a generically named output, and that output was overwritten before I read it -- a grep for 'header'/'sep' returned Django cookie-expiry spec text, which would have been reported as a spurious cross-instance leak. An astropy-content sentinel is what caught it, and I re-ran every spec-view check against a per-instance output name. All findings above are from that re-run.\n\nVERDICT: NO-LEAKAGE. The spec view reproduces no gold line, carries no diff marker, names no patched file/symbol/line, uses no identifier echoing a patched repo symbol, contains no bug->fix narration, and -- proven by the de-narration verify pair (gold PASSES, prepatch FAILS with prose fully stripped) -- localizes the edit no more than the public problem_statement already does. Core gates this leans on and which I confirmed hold: G-VERIFY/G-DIFF re-derived by hand above (14.72s pass / 14.02s targeted fail), G-LEAK re-run clean, same_spec True.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE DISCIPLINE. Per the brief, the modeled function's reference is the base worktree with patch.diff APPLIED. I built  at base_commit a85a0747c5 and applied the gold patch (extracted verbatim from data/swe_bench_verified/test.jsonl, `git apply --check` OK); all modeled-function differentials ran against the PATCHED Card.fromstring inside the instance container (/testbed, built extensions). Base commit was used ONLY as the reference for the axioms (the unchanged _pad, bytes.decode), which is exactly what the axioms model. I did NOT report the patch delta itself as a divergence.\n\nWHAT I TRIED TO BREAK, AND THE MEASURED RESULT\n\n1. Every exported postcondition of build_record_image, at repo level, against the real patched callee via mapping.md's type bridge (bytes(raw) when from_bytes, ''.join(chr(c)) otherwise; card._image back as [ord(ch)]). Clauses checked individually: no-Exsures/accept-both-forms (returns normally), text_form(Result()) (result isinstance str), len>=len(raw), Result().take(len(raw))==ToSeq(raw) (the reinterpret identity), len%WIDTH==0, padding elements all 32, len<=len(raw)+WIDTH. 60,938 inputs (586-style boundary set both forms + 60k seeded fuzz) \u2192 **0 violations**. Exotic sweep: 40k more incl. 10^4/10^5/10^6-element inputs, 80*12345(\u00b11), every byte value at 79/80/81, NUL/0x0a/0x0d/0x09/0x1c/0x1f/0x85/0xa0/0xff runs, FITS-structured images \u2192 **0 violations**.\n\n2. THE WIDTH ABSTRACTION \u2014 the most plausible over-claim, since the model asserts len%WIDTH==0 and len<=len(raw)+WIDTH with WIDTH=4 while the repo width is 80. Taken LITERALLY at 4, `len(R)<=len(raw)+4` is FALSE on the real helper at 376 of 401 lengths (e.g. raw=[] \u2192 real _pad returns 80 chars, 80 > 0+4). This is the one input family where a naive reading diverges. I judged it NOT a faithfulness defect, and the reason is checked rather than asserted: WIDTH is declared spec-only as the modeled record width with the real value 80 documented at its definition site, in mapping.md \u00a72, and in the model docstring; the faithful instantiation is WIDTH:=80, at which the same sweep over lengths 0..400 gives **0 violations** for both mod and the +WIDTH bound. Crucially the abstraction is not self-certified \u2014 the shipped axiom_check.py validates the pad_to_width contract against the REAL _pad at CARD_LENGTH=80 (not 4), and WIDTH is absent from the impl region so G-CONF's shadow calls the real 80-column helper and the executable diff runs at width 80. A generic reader instantiating the constant as the repo's own width sees no disagreement.\n\n3. AXIOM SOUNDNESS at base commit (my own reimplementation, not the shipped one): reinterpret == bytes.decode('latin1') exhaustively over all 256 bytes and all 65,536 pairs \u2192 equal. pad_to_width Ensures vs real _pad at all 401 lengths 0..400 \u2192 sound. The domain restriction Requires(text_form(text)): a NON-text argument NEVER comes back as text at any length 0..400 \u2014 it either raises TypeError or (at 80/160/240/320) returns untouched and still bytes \u2192 the precondition is sound and, matching a bundle with zero Exsures, no failure is claimed where the helper does not fail. enter_text_form: identical code points, is str, distinct object \u2192 holds.\n\n4. THE OVER-CLAIM DIRECTION SPECIFICALLY. Two places where the spec could have been too strong and deliberately is not: (i) it declines any claim that a bytes header and the value-equal str header divide into the same records. I confirmed the decline is WARRANTED, not lazy: on b'END'+bytes([0x85])*77 and b'END'+bytes([0xa0])*77 with sep='\\n' the two forms genuinely disagree (bytes \u2192 one card, str \u2192 zero cards, because str.rstrip() strips 0x85/0xa0 and bytes.rstrip() does not). Had the spec claimed cross-form division equality it would be UNFAITHFUL on exactly those inputs; it does not. (ii) It carries no Exsures, so it never claims a raise the helper lacks.\n\n5. ALIASING/FRESHNESS. Ensures(Acc(list_pred(Result()))) hands back full permission, implying a fresh result. The real _pad DOES return its own argument object at positive whole multiples (verified: _pad('A'*80) is 'A'*80 \u2192 True; result-is-input True at 80/160/240/320). I probed whether this is a genuine divergence and concluded it is not observable: Python str is immutable (item assignment raises TypeError), so no mutation through the returned permission can distinguish the aliased result from a fresh copy, and the carrier's List[int] is materialized by the bridge on every read. No input distinguishes the two.\n\n6. SITE B (Header.fromstring, not F2P). Confirmed 0 occurrences of decode('latin1') in the patched header.py, matching mapping.md's claim that the whole-header path stays in the input's encoding and each record reaches textual content per-card at site A. Ran the bytes-header path over 13 boundary + 4,000 fuzz headers \u00d7 sep in {'', '\\n'}: every recovered record image is a str with all code points <=255, no raises \u2192 **0 violations** of what the spec does claim about site B.\n\n7. SHIPPED GATES, re-executed by me rather than trusted: axiom_check.py exit 0 at base_commit; conformance_check.py exit 0 against the real PATCHED oracle, 100,586 inputs / 0 disagreements, seed 8707; `bash scripts/nagini_verify.sh model.py` \u2192 'Verification successful' (14.3s); `adversary same-spec` on model_prepatch.py \u2192 exit 0 (spec byte-identical). F2P ground truth with the test patch applied: test_card_from_bytes PASSES on gold, FAILS on base with 'TypeError: can't concat str to bytes' at card.py:1285 \u2014 the precise failure the model's Requires(text_form(text)) encodes as a domain restriction.\n\nCONCLUSION: the spec is not too strong and does not drift. Its two pinned facts (the padded value-preserving content, identical across both input forms; and that the value reaching the padding step is genuinely textual content) both hold of the real patched callee on every input I could construct, and where a stronger claim would have been unfaithful (cross-form record division) the spec explicitly declines it. No diverging input exists to cite. Bundle not modified; all work in /tmp (mktemp -d worktree, path recorded in atk2ff8707_dir.txt).; G-PANEL-3 (leakage): pass \u2014 SCOPE: leakage / gold-reconstruction on the spec view of astropy__astropy-8707/nagini. No RELAXED_LEAKAGE.md in the bundle and meta.json has no `relaxed_leakage` key (gates.G-LEAK.status = \"pass\"), so this is a STANDARD (non-relaxed) leakage review; no relaxation argument to re-derive.\n\nWHAT I MEASURED (all in a private mktemp dir; bundle unmodified):\n\n1. Spec view extracted with markers.spec_view(model.py, NaginiBackend) -> sha256 6a6ed3e41064e4145d59d54f078ffeaae35ef0dccdbd4e18d46cccc8ce7b446f. It is model.py minus the impl region (impl replaced by `...  # implementation elided`), INCLUDING module docstring + all comments, which is what the consumer sees.\n\n2. Mechanical screen (the authority): leakage.screen(model_src, NaginiBackend, gold_patch, problem_statement, test_patch) => passed=True, hard_failures=[], warnings=[]. Re-run twice with private paths (see METHODOLOGY caveat below).\n\n3. Gold-line reproduction: every added gold line (whitespace-normalized, len>6) checked against the normalized spec view => ZERO reproduced. Diff markers (@@, diff --git, +++ , --- , \\nindex) => none. Narration regex (bug/fix/patched/previously/incorrectly/wrong/...) => EMPTY set.\n\n4. Gold-mechanism vocabulary absent from the spec view: latin/latin-1, decode, encode, isinstance, fromstring, Card, Header, _pad, card.py, header.py, mojibake, ASCII/ascii, FITS, CONTINUE, END_CARD, empty.join, sep -- all ABSENT. The one `_image` regex hit is a substring of the spec's own identifier `build_record_image` (grep of [A-Za-z_.]*_image[A-Za-z_.]* returns only build_record_image) -- lexer false positive, not the gold's `card._image`.\n\n5. Identifier collision: _py_spec_view_identifiers(spec view) INTERSECT (_patch_changed_symbols U _patch_new_symbols) = EMPTY. Gold changed symbol is {fromstring}; spec names build_record_image / enter_text_form / pad_runtime / pad_to_width / text_form / reinterpret / all_bytes -- none echoes a patched repo symbol.\n\n6. The only literal shared with gold context is `80` (\"real value 80\"). Verified PUBLIC at base_commit independent of the patch: worktree at a85a0747c5 has astropy/io/fits/card.py:551-552 \"(80 columns)\" and :1270 \"multiple of 80\" in pre-existing docstrings. Not edit-localizing.\n\n7. LOAD-BEARING (de-narration) TEST -- the decisive check that the prose is not the spec. I stripped ALL docstrings and ALL non-marker comments from both models (preserving the semantically-required `# type: List[int]`) and ran the pinned verifier:\n   - scripts/nagini_verify.sh model_denarrated.py => \"Verification successful\" (exit 0, 14.72s)\n   - scripts/nagini_verify.sh prepatch_denarrated.py => \"Verification failed\": prepatch_denarrated.py:100 \"The precondition of method pad_runtime might not hold. Assertion text_form(text) might not hold.\" (exit 1, 14.02s)\n   CONCLUSION: with every word of narration removed, the spec still verifies on gold AND still rejects the pre-patch impl. The discriminator lives entirely in the FORMAL clauses -- the opacity of `text_form` (no body, sole source `enter_text_form`) plus `pad_runtime`'s `Requires(text_form(text))` and `Ensures(text_form(Result()))` -- i.e. in the spec proper, not in removable prose. Prose narration is therefore NOT load-bearing and removing it would not weaken the spec; nothing in the docstring is doing leak-work the clauses don't already do.\n\n8. PS-derivability of the discriminator (hints_text is EMPTY, len 0, so every term must be PS- or public-repo-derivable, and there is no hints-only vocabulary to launder). The public problem_statement says Header.fromstring \"does not accept Python 3 bytes\", that by \"byte string\" it means the str type \"which on Python 2 could be raw binary data\", that it \"assumes that the data can be ASCII-encoded\", proposes \"to change Header.fromstring to accept unicode or bytes string types\", and adds \"Card.fromstring likely needs a similar treatment.\" The spec view's two claims map onto exactly that and no further: (1) BOTH input forms accepted, each yielding a record image = PS's \"accept unicode or bytes string types\"; (2) a raw byte sequence reaches textual content by a value-preserving code-point correspondence = PS's \"retain raw binary data\" as text. The str/bytes type distinction the spec abstracts as \"text form vs raw byte sequence\" IS the public framing of the issue. The spec never names the encoding (latin-1), never names the guard, never names a file/function/line, and never states a bug->fix mechanism -- it states desired behaviour abstractly.\n\n9. Restraint evidence (anti-leak, not leak): spec-view docstring point (2) explicitly DECLINES to claim that a byte header and the value-equal text header divide into records alike -- refusing a claim gold internals would license. A leaking spec over-specifies toward gold; this one under-claims where the gold's behaviour is form-dependent.\n\n10. same_spec(model.py, model_prepatch.py, NaginiBackend) => True, and their spec views are byte-identical -- so the artifact I judged is the frozen spec both twins share.\n\n11. reviewer_directed() run over ALL 10 readable bundle files (model.py, model_prepatch.py, refinement.md, mapping.md, meta.json, verdict.md, axiom_check.py, conformance_check.py, properties.py, pbt_result.json) => NONE. No file in this bundle addresses the panel, instructs how to record, or asserts which verdict is honest. Nothing to report as a finding on that axis. (refinement.md/mapping.md DO name latin1/decode/Card.fromstring freely, but they are construction-side provenance documents, not the consumer spec view; only model.py minus impl+proof is shown to consumers per spec_guide.md \u00a70.6.)\n\nOUT-OF-SCOPE OBSERVATION (not a leakage finding, flagged for the record): meta.json region_hashes disagree with my live recomputation via markers.region_hashes for EVERY region incl. impl and spec_view. I checked whether this is a bundle defect by sampling the corpus: 1/25 benchmark-verified nagini bundles have a matching recorded spec_view hash, so this is a corpus-wide convention/serialization difference between my recomputation and whatever recorded the field (no gate in src/ compares recorded vs live -- hygiene.py only WRITES region_hashes into its record), not a staleness specific to this bundle. It does not bear on leakage; I judged the live model.py bytes directly, and same_spec confirmed the twins share that spec.\n\nMETHODOLOGY CAVEAT worth recording: my first extraction wrote specview.txt to a generically named output, and that output was overwritten before I read it -- a grep for 'header'/'sep' returned Django cookie-expiry spec text, which would have been reported as a spurious cross-instance leak. An astropy-content sentinel is what caught it, and I re-ran every spec-view check against a per-instance output name. All findings above are from that re-run.\n\nVERDICT: NO-LEAKAGE. The spec view reproduces no gold line, carries no diff marker, names no patched file/symbol/line, uses no identifier echoing a patched repo symbol, contains no bug->fix narration, and -- proven by the de-narration verify pair (gold PASSES, prepatch FAILS with prose fully stripped) -- localizes the edit no more than the public problem_statement already does. Core gates this leans on and which I confirmed hold: G-VERIFY/G-DIFF re-derived by hand above (14.72s pass / 14.02s targeted fail), G-LEAK re-run clean, same_spec True.",
+      "gate": "G-PANEL",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8",
+        "properties.py": "dbc7495dd031ee494d81701a7058df154b2203121bd69d0afa585ee02ca10865"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T23:38:39+00:00",
+      "code_version": "9db8fab9f-dirty",
+      "harness_digest": "b38a5cf24b43",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_15b.py`, `atk_16.py`, `atk_prepatch.py`, `atk_17.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_11.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8",
+        "properties.py": "dbc7495dd031ee494d81701a7058df154b2203121bd69d0afa585ee02ca10865"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T00:22:03+00:00",
+      "code_version": "5ba9f53eb-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE DISCIPLINE. Per the brief, the modeled function's reference is the base worktree with patch.diff APPLIED. I built  at base_commit a85a0747c5 and applied the gold patch (extracted verbatim from data/swe_bench_verified/test.jsonl, `git apply --check` OK); all modeled-function differentials ran against the PATCHED Card.fromstring inside the instance container (/testbed, built extensions). Base commit was used ONLY as the reference for the axioms (the unchanged _pad, bytes.decode), which is exactly what the axioms model. I did NOT report the patch delta itself as a divergence.\n\nWHAT I TRIED TO BREAK, AND THE MEASURED RESULT\n\n1. Every exported postcondition of build_record_image, at repo level, against the real patched callee via mapping.md's type bridge (bytes(raw) when from_bytes, ''.join(chr(c)) otherwise; card._image back as [ord(ch)]). Clauses checked individually: no-Exsures/accept-both-forms (returns normally), text_form(Result()) (result isinstance str), len>=len(raw), Result().take(len(raw))==ToSeq(raw) (the reinterpret identity), len%WIDTH==0, padding elements all 32, len<=len(raw)+WIDTH. 60,938 inputs (586-style boundary set both forms + 60k seeded fuzz) \u2192 **0 violations**. Exotic sweep: 40k more incl. 10^4/10^5/10^6-element inputs, 80*12345(\u00b11), every byte value at 79/80/81, NUL/0x0a/0x0d/0x09/0x1c/0x1f/0x85/0xa0/0xff runs, FITS-structured images \u2192 **0 violations**.\n\n2. THE WIDTH ABSTRACTION \u2014 the most plausible over-claim, since the model asserts len%WIDTH==0 and len<=len(raw)+WIDTH with WIDTH=4 while the repo width is 80. Taken LITERALLY at 4, `len(R)<=len(raw)+4` is FALSE on the real helper at 376 of 401 lengths (e.g. raw=[] \u2192 real _pad returns 80 chars, 80 > 0+4). This is the one input family where a naive reading diverges. I judged it NOT a faithfulness defect, and the reason is checked rather than asserted: WIDTH is declared spec-only as the modeled record width with the real value 80 documented at its definition site, in mapping.md \u00a72, and in the model docstring; the faithful instantiation is WIDTH:=80, at which the same sweep over lengths 0..400 gives **0 violations** for both mod and the +WIDTH bound. Crucially the abstraction is not self-certified \u2014 the shipped axiom_check.py validates the pad_to_width contract against the REAL _pad at CARD_LENGTH=80 (not 4), and WIDTH is absent from the impl region so G-CONF's shadow calls the real 80-column helper and the executable diff runs at width 80. A generic reader instantiating the constant as the repo's own width sees no disagreement.\n\n3. AXIOM SOUNDNESS at base commit (my own reimplementation, not the shipped one): reinterpret == bytes.decode('latin1') exhaustively over all 256 bytes and all 65,536 pairs \u2192 equal. pad_to_width Ensures vs real _pad at all 401 lengths 0..400 \u2192 sound. The domain restriction Requires(text_form(text)): a NON-text argument NEVER comes back as text at any length 0..400 \u2014 it either raises TypeError or (at 80/160/240/320) returns untouched and still bytes \u2192 the precondition is sound and, matching a bundle with zero Exsures, no failure is claimed where the helper does not fail. enter_text_form: identical code points, is str, distinct object \u2192 holds.\n\n4. THE OVER-CLAIM DIRECTION SPECIFICALLY. Two places where the spec could have been too strong and deliberately is not: (i) it declines any claim that a bytes header and the value-equal str header divide into the same records. I confirmed the decline is WARRANTED, not lazy: on b'END'+bytes([0x85])*77 and b'END'+bytes([0xa0])*77 with sep='\\n' the two forms genuinely disagree (bytes \u2192 one card, str \u2192 zero cards, because str.rstrip() strips 0x85/0xa0 and bytes.rstrip() does not). Had the spec claimed cross-form division equality it would be UNFAITHFUL on exactly those inputs; it does not. (ii) It carries no Exsures, so it never claims a raise the helper lacks.\n\n5. ALIASING/FRESHNESS. Ensures(Acc(list_pred(Result()))) hands back full permission, implying a fresh result. The real _pad DOES return its own argument object at positive whole multiples (verified: _pad('A'*80) is 'A'*80 \u2192 True; result-is-input True at 80/160/240/320). I probed whether this is a genuine divergence and concluded it is not observable: Python str is immutable (item assignment raises TypeError), so no mutation through the returned permission can distinguish the aliased result from a fresh copy, and the carrier's List[int] is materialized by the bridge on every read. No input distinguishes the two.\n\n6. SITE B (Header.fromstring, not F2P). Confirmed 0 occurrences of decode('latin1') in the patched header.py, matching mapping.md's claim that the whole-header path stays in the input's encoding and each record reaches textual content per-card at site A. Ran the bytes-header path over 13 boundary + 4,000 fuzz headers \u00d7 sep in {'', '\\n'}: every recovered record image is a str with all code points <=255, no raises \u2192 **0 violations** of what the spec does claim about site B.\n\n7. SHIPPED GATES, re-executed by me rather than trusted: axiom_check.py exit 0 at base_commit; conformance_check.py exit 0 against the real PATCHED oracle, 100,586 inputs / 0 disagreements, seed 8707; `bash scripts/nagini_verify.sh model.py` \u2192 'Verification successful' (14.3s); `adversary same-spec` on model_prepatch.py \u2192 exit 0 (spec byte-identical). F2P ground truth with the test patch applied: test_card_from_bytes PASSES on gold, FAILS on base with 'TypeError: can't concat str to bytes' at card.py:1285 \u2014 the precise failure the model's Requires(text_form(text)) encodes as a domain restriction.\n\nCONCLUSION: the spec is not too strong and does not drift. Its two pinned facts (the padded value-preserving content, identical across both input forms; and that the value reaching the padding step is genuinely textual content) both hold of the real patched callee on every input I could construct, and where a stronger claim would have been unfaithful (cross-form record division) the spec explicitly declines it. No diverging input exists to cite. Bundle not modified; all work in /tmp (mktemp -d worktree, path recorded in atk2ff8707_dir.txt).\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T00:15:42+00:00",
+      "code_version": "eee5bd283-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE: leakage / gold-reconstruction on the spec view of astropy__astropy-8707/nagini. No RELAXED_LEAKAGE.md in the bundle and meta.json has no `relaxed_leakage` key (gates.G-LEAK.status = \"pass\"), so this is a STANDARD (non-relaxed) leakage review; no relaxation argument to re-derive.\n\nWHAT I MEASURED (all in a private mktemp dir; bundle unmodified):\n\n1. Spec view extracted with markers.spec_view(model.py, NaginiBackend) -> sha256 6a6ed3e41064e4145d59d54f078ffeaae35ef0dccdbd4e18d46cccc8ce7b446f. It is model.py minus the impl region (impl replaced by `...  # implementation elided`), INCLUDING module docstring + all comments, which is what the consumer sees.\n\n2. Mechanical screen (the authority): leakage.screen(model_src, NaginiBackend, gold_patch, problem_statement, test_patch) => passed=True, hard_failures=[], warnings=[]. Re-run twice with private paths (see METHODOLOGY caveat below).\n\n3. Gold-line reproduction: every added gold line (whitespace-normalized, len>6) checked against the normalized spec view => ZERO reproduced. Diff markers (@@, diff --git, +++ , --- , \\nindex) => none. Narration regex (bug/fix/patched/previously/incorrectly/wrong/...) => EMPTY set.\n\n4. Gold-mechanism vocabulary absent from the spec view: latin/latin-1, decode, encode, isinstance, fromstring, Card, Header, _pad, card.py, header.py, mojibake, ASCII/ascii, FITS, CONTINUE, END_CARD, empty.join, sep -- all ABSENT. The one `_image` regex hit is a substring of the spec's own identifier `build_record_image` (grep of [A-Za-z_.]*_image[A-Za-z_.]* returns only build_record_image) -- lexer false positive, not the gold's `card._image`.\n\n5. Identifier collision: _py_spec_view_identifiers(spec view) INTERSECT (_patch_changed_symbols U _patch_new_symbols) = EMPTY. Gold changed symbol is {fromstring}; spec names build_record_image / enter_text_form / pad_runtime / pad_to_width / text_form / reinterpret / all_bytes -- none echoes a patched repo symbol.\n\n6. The only literal shared with gold context is `80` (\"real value 80\"). Verified PUBLIC at base_commit independent of the patch: worktree at a85a0747c5 has astropy/io/fits/card.py:551-552 \"(80 columns)\" and :1270 \"multiple of 80\" in pre-existing docstrings. Not edit-localizing.\n\n7. LOAD-BEARING (de-narration) TEST -- the decisive check that the prose is not the spec. I stripped ALL docstrings and ALL non-marker comments from both models (preserving the semantically-required `# type: List[int]`) and ran the pinned verifier:\n   - scripts/nagini_verify.sh model_denarrated.py => \"Verification successful\" (exit 0, 14.72s)\n   - scripts/nagini_verify.sh prepatch_denarrated.py => \"Verification failed\": prepatch_denarrated.py:100 \"The precondition of method pad_runtime might not hold. Assertion text_form(text) might not hold.\" (exit 1, 14.02s)\n   CONCLUSION: with every word of narration removed, the spec still verifies on gold AND still rejects the pre-patch impl. The discriminator lives entirely in the FORMAL clauses -- the opacity of `text_form` (no body, sole source `enter_text_form`) plus `pad_runtime`'s `Requires(text_form(text))` and `Ensures(text_form(Result()))` -- i.e. in the spec proper, not in removable prose. Prose narration is therefore NOT load-bearing and removing it would not weaken the spec; nothing in the docstring is doing leak-work the clauses don't already do.\n\n8. PS-derivability of the discriminator (hints_text is EMPTY, len 0, so every term must be PS- or public-repo-derivable, and there is no hints-only vocabulary to launder). The public problem_statement says Header.fromstring \"does not accept Python 3 bytes\", that by \"byte string\" it means the str type \"which on Python 2 could be raw binary data\", that it \"assumes that the data can be ASCII-encoded\", proposes \"to change Header.fromstring to accept unicode or bytes string types\", and adds \"Card.fromstring likely needs a similar treatment.\" The spec view's two claims map onto exactly that and no further: (1) BOTH input forms accepted, each yielding a record image = PS's \"accept unicode or bytes string types\"; (2) a raw byte sequence reaches textual content by a value-preserving code-point correspondence = PS's \"retain raw binary data\" as text. The str/bytes type distinction the spec abstracts as \"text form vs raw byte sequence\" IS the public framing of the issue. The spec never names the encoding (latin-1), never names the guard, never names a file/function/line, and never states a bug->fix mechanism -- it states desired behaviour abstractly.\n\n9. Restraint evidence (anti-leak, not leak): spec-view docstring point (2) explicitly DECLINES to claim that a byte header and the value-equal text header divide into records alike -- refusing a claim gold internals would license. A leaking spec over-specifies toward gold; this one under-claims where the gold's behaviour is form-dependent.\n\n10. same_spec(model.py, model_prepatch.py, NaginiBackend) => True, and their spec views are byte-identical -- so the artifact I judged is the frozen spec both twins share.\n\n11. reviewer_directed() run over ALL 10 readable bundle files (model.py, model_prepatch.py, refinement.md, mapping.md, meta.json, verdict.md, axiom_check.py, conformance_check.py, properties.py, pbt_result.json) => NONE. No file in this bundle addresses the panel, instructs how to record, or asserts which verdict is honest. Nothing to report as a finding on that axis. (refinement.md/mapping.md DO name latin1/decode/Card.fromstring freely, but they are construction-side provenance documents, not the consumer spec view; only model.py minus impl+proof is shown to consumers per spec_guide.md \u00a70.6.)\n\nOUT-OF-SCOPE OBSERVATION (not a leakage finding, flagged for the record): meta.json region_hashes disagree with my live recomputation via markers.region_hashes for EVERY region incl. impl and spec_view. I checked whether this is a bundle defect by sampling the corpus: 1/25 benchmark-verified nagini bundles have a matching recorded spec_view hash, so this is a corpus-wide convention/serialization difference between my recomputation and whatever recorded the field (no gate in src/ compares recorded vs live -- hygiene.py only WRITES region_hashes into its record), not a staleness specific to this bundle. It does not bear on leakage; I judged the live model.py bytes directly, and same_spec confirmed the twins share that spec.\n\nMETHODOLOGY CAVEAT worth recording: my first extraction wrote specview.txt to a generically named output, and that output was overwritten before I read it -- a grep for 'header'/'sep' returned Django cookie-expiry spec text, which would have been reported as a spurious cross-instance leak. An astropy-content sentinel is what caught it, and I re-ran every spec-view check against a per-instance output name. All findings above are from that re-run.\n\nVERDICT: NO-LEAKAGE. The spec view reproduces no gold line, carries no diff marker, names no patched file/symbol/line, uses no identifier echoing a patched repo symbol, contains no bug->fix narration, and -- proven by the de-narration verify pair (gold PASSES, prepatch FAILS with prose fully stripped) -- localizes the edit no more than the public problem_statement already does. Core gates this leans on and which I confirmed hold: G-VERIFY/G-DIFF re-derived by hand above (14.72s pass / 14.02s targeted fail), G-LEAK re-run clean, same_spec True.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:39:50+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reshaped-loop",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.6
+          },
+          {
+            "expect": "verify",
+            "id": "accept-text-input-padded-directly",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.4
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-indomain",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-raw",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.5
+          },
+          {
+            "expect": "reject",
+            "id": "text-form-no-correspondence-at-all",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.6
+          },
+          {
+            "expect": "reject",
+            "id": "text-form-inverted-input-form",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.7
+          },
+          {
+            "expect": "reject",
+            "id": "laundered-text-form-fabricated-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-first-byte",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.5
+          },
+          {
+            "expect": "reject",
+            "id": "value-mask-ascii-7bit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.7
+          },
+          {
+            "expect": "reject",
+            "id": "boundary-skip-padding-when-aligned",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.1
+          },
+          {
+            "expect": "reject",
+            "id": "divergence-never-returns",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "dbc7495dd031ee494d81701a7058df154b2203121bd69d0afa585ee02ca10865",
+        "n_cases": 11,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 11 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8",
+        "properties.py": "dbc7495dd031ee494d81701a7058df154b2203121bd69d0afa585ee02ca10865"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T22:39:23+00:00",
+      "code_version": "1e88f47d3-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "5d0c62d2b89d1022cfa9d1bc49410a4cf903ba9fb5e1e34a7aae96e5a5563f5c",
+        "patch.diff": "f993c1ada6f19bcdfa8989e0c1c61151cd881a81d549f2789663270537c093f2"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T22:41:28+00:00",
+      "code_version": "1e88f47d3-dirty",
+      "data": {
+        "wall_time_s": 13.6
+      },
+      "detail": "verified in 13.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a81848594dc3024509a6b611b64378bdaf578a91a40e73bae48fc5202352fcb8"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "astropy__astropy-8707",
+  "modeled_functions": [
+    {
+      "carrier_type": "str/bytes -> List[int] (bytes => byte values 0..255, str => code points); from_bytes flag <-> isinstance(image, bytes); specification over PSeq[int]",
+      "model_symbol": "build_record_image",
+      "repo_location": "astropy/io/fits/card.py:548 (body 556-559 at base_commit, card._image = _pad(image) at 557; patched: the guarded step at 557-562 and the padding call at 564)",
+      "repo_symbol": "astropy.io.fits.card.Card.fromstring",
+      "role": "modeled changed function (build a single record image from a str-or-bytes input, then pad it); the FAIL_TO_PASS-tested site (test_card_from_bytes)"
+    }
+  ],
+  "modeled_width": "WIDTH=4 stands in for the real Card.length==80; the patch behaviour is width-agnostic (reinterpret-before-pad and pad-to-multiple hold for any positive width); axiom_check.py validates the _pad contract against the real width 80",
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "the precondition Requires(text_form(text)) of pad_runtime on the byte path (from_bytes==True), where nothing has taken the value over into text form -- models the real TypeError 'can't concat str to bytes' raised by _pad(bytes) at every length where the helper must concatenate. Its text-form path still verifies, because such an input carries text_form by virtue of its form: the twin fails exactly on the changed behaviour and nothing wider",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "Card.fromstring accepting a bytes input (reinterpret-before-pad)",
+      "reverted_to": "pre-patch: only an input supplied already in text form is treated as textual content; a byte sequence is handed to the padding step without enter_text_form (if not from_bytes: pad_runtime(raw) else pad_runtime(image))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "507b65726b551b63d5e7514416c79563f4ef65a7c39ea2cffabb5b434801742c",
+    "impl": "3b7b3d44014867961b3915837e4fb9a47aa25de58a061088c407c72268842896",
+    "invariants": "165a05bd87003064e8a645015450d31227464a3c297419ca91af9d23c1604db9",
+    "post-conditions": "3fd70680058662e0d933ac4ae1770b1226aa2b04d1ac71ef0c4c3e9a1007e368",
+    "pre-conditions": "4be1736e5f7b5da6b48a11e0b16ac6e173d959720bb2a555beee78df6665709c",
+    "pure": "abf781e40df808bc4624f4867f47e56b060f91b84c5756aa8d13a095cf2c7ef7",
+    "spec_view": "c4b455cb3edf2dac82255e01344761810bf402b9f460cfb666a66fa435d96d53"
+  },
+  "repo": "astropy/astropy",
+  "schema_version": 1,
+  "string_modeling": "str/bytes as List[int] (bytes => byte values 0..255, str => code points); specification carried by PSeq[int] via ToSeq. The carrier erases the str-vs-bytes distinction that is the whole subject of this change, so the changed step is modelled in two halves: its VALUE half as a value-preserving front-recursive fold (reinterpret) with a matching backward loop, and its TYPE half by the uninterpreted ghost property text_form, whose only source is enter_text_form and whose only consumer is pad_runtime's precondition. The behaviour under repair (a raw byte sequence reaching a padding step defined on textual content) is therefore modelled as a domain restriction on pad_runtime plus the postcondition text_form(Result()), not as a failure claim: the bundle carries no Exsures",
+  "version": "3.1"
+}

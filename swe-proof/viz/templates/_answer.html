@@ -1,0 +1,38 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{# ask-an-agent multi-turn transcript fragment (replaces #answer each turn) #}
+<div class="convo">
+  {% for turn in transcript %}
+    {% if turn.role == 'user' %}
+      <div class="cmt convo-q"><div class="meta"><span class="who">you</span></div>
+        <div class="md">{{ turn.text | md | safe }}</div></div>
+    {% else %}
+      <div class="cmt convo-a" style="background:#fafbfd">
+        <div class="meta"><span class="who">agent</span><span class="faint">· read-only · {{ bk }}</span></div>
+        <div class="md">{{ turn.text | md | safe }}</div>
+        {% if turn.tool_calls %}
+        <details class="collapse" style="margin-top:8px">
+          <summary style="font-size:.78rem">{{ turn.tool_calls|length }} tool call(s)</summary>
+          <div class="inner">
+            {% for tc in turn.tool_calls %}
+              <div class="mono faint" style="font-size:.74rem;margin-bottom:3px">→ {{ tc.name }}({{ tc.input }})</div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  {# follow-up form: posts the convo_id so the agent continues this thread #}
+  <form hx-post="/{{ bm }}/{{ bk }}/i/{{ iid }}/ask" hx-target="#answer" hx-swap="innerHTML"
+        hx-indicator="#ask-spin" hx-on::after-request="if(event.detail.successful) this.reset()"
+        class="cmt-form" style="margin-top:8px">
+    <input type="hidden" name="convo_id" value="{{ convo_id }}">
+    <textarea name="question" placeholder="follow-up question… (the agent remembers this conversation)" required></textarea>
+    <div class="row">
+      <button class="btn primary sm" type="submit">ask follow-up</button>
+      <span id="ask-spin" class="spin faint">thinking…</span>
+    </div>
+  </form>
+</div>

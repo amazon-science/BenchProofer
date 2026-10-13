@@ -1,0 +1,436 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "annotation-only hunk; the call site is what CONSUMES the fix (it reassigns var.dims). Modeled by as_coordinate's postcondition that the result owns independent dims storage. No separate prepatch (annotation-only).",
+      "repo_location": "xarray/core/dataset.py:3774 (added `var: Variable` annotation), 3775-3776 (call site `var = v.to_index_variable(); var.dims = dims`)",
+      "repo_symbol": "xarray.core.dataset.Dataset.swap_dims"
+    },
+    {
+      "handling": "type-annotation-only; no runtime effect; no model node. Recorded in mapping.md.",
+      "repo_location": "xarray/core/variable.py:14,539,547,555,2882,2888,2906,2922",
+      "repo_symbol": "return-type / property annotations + NoReturn import (variable.py to_base_variable/to_index_variable/to_index/level_names/name)"
+    },
+    {
+      "handling": "identical-value micro-read change (the dims property returns self._dims, variable.py:572-575); no behaviour delta; modeled as reading self.dims in as_plain.",
+      "repo_location": "xarray/core/variable.py:542,550",
+      "repo_symbol": "self.dims -> self._dims (Variable.to_base_variable / to_index_variable)"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "c4e40d991c28be51de9ac560ce895ac7f9b14924",
+  "changed_files": [
+    "xarray/core/variable.py",
+    "xarray/core/dataset.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real xarray callees on the F2P scenario (#6931) + 5 boundary index variables + 2000 fuzz cases; asserts distinct object, initial dims equality, and mutation independence",
+      "encoded_property": "re-presentation yields a DISTINCT object (Result() is not self), initially carrying the receiver's dimension names (ToSeq equality), with FULL independent write permission to its own dims (Result().dims is not self.dims), the receiver kept read-only (Acc 1/2) and unchanged. The aliasing pre-patch `return self` is rejected by the permission arithmetic (3/2 > 1).",
+      "kind": "A-reference",
+      "models": "IndexVariable.to_index_variable (post-patch return self.copy()) / IndexVariable.copy -> Variable._replace -> type(self)(copy.copy(self._dims), ...)",
+      "name": "independent_clone / as_coordinate (permission discipline)",
+      "provenance": "xarray/core/variable.py:2882-2884 (to_index_variable), 2831-2865 (copy), 977-992 (_replace: copy.copy(self._dims), fresh allocation); issue https://github.com/pydata/xarray/issues/6931",
+      "role": "deep model of the changed alias->copy operation via Nagini's permission discipline; NOT a consumed axiom (no @ContractOnly in the model)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:17:56+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model (independent allocation; result.dims initially == receiver.dims; reassigning result.dims leaves receiver.dims unchanged) matches real xarray.IndexVariable.to_index_variable / Variable.to_base_variable / to_index_variable on the F2P scenario, 5 boundary variables, and 2000 fuzz cases. No consumed axioms.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "adc0136bfb4cec9b6767acf141b2256af69662e53749c283ece3176eb53904d2",
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:18:08+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 102104,
+          "disagreements": 0,
+          "seed": 6938,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 102104, \"disagreements\": 0, \"seed\": 6938, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "687caea30d8109b8b25b75ffe1ceed3ddb0d6a26525722e3aa0113f2c92b4965",
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:55:56+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc",
+        "model_prepatch.py": "9cd372c609ae2331fe1ba95d8a35d3ffebcbe85a82ec96e8897ac2d7ac621cb7"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-08T19:44:52+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_8.py`, `atk_9.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_4.py`, `atk_6.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:57:17+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc",
+        "model_prepatch.py": "9cd372c609ae2331fe1ba95d8a35d3ffebcbe85a82ec96e8897ac2d7ac621cb7"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:16:05+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "frame_warnings": [
+          "param 'dims' of __init__() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)"
+        ],
+        "region_hashes": {
+          "axioms": "81a39ead32037deecb565be3c5a7ad7ff30e6a6e1a07d860faa12a2d9044bffd",
+          "impl": "81c38e8c140d5affba7c2bd9d7ff7bcb60483837c0a7217728aff7fd9623f0ec",
+          "invariants": "716bf065a4adaa14ed61c917350e311ada098606ee5222c82640254d80042bb2",
+          "post-conditions": "8b5f7636d5411badd371770de4788746d803d05d031fb6dffa7f55ededbb68f5",
+          "pre-conditions": "6778fa7f234a313306acc753248e0995b52a1bd1dd9a8c47c8e2359ae1414982",
+          "pure": "346fb4415d53174aef1f1cad1f453587fb2b5761d513f5bf5c284bda92880f66",
+          "spec_view": "256c43144345b6fd15a8e8a3cdd64ac0074fb6d466f0209fc0598cd667ee3dc2"
+        }
+      },
+      "detail": "imports/markers/regions clean  [advisory] param 'dims' of __init__() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:16:05+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "72f9f05cecc44ceb914cc613766b8be723e2f729f0e0c97cd3be1c8e7564b260",
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:16:05+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:36:28+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "judged": 14,
+        "killed": 14,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 14,
+        "unjudged": []
+      },
+      "detail": "killed 14/14 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-08T19:44:54+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness confirmed against the REAL post-patch callee (gold patch applied cleanly at base_commit c4e40d99; repo built at $SCRATCH). Spec region byte-identical with the bundle (same-spec exit 0); bundle model verifies (14.8s). Ran IndexVariable.to_index_variable / Variable.to_base_variable / to_index_variable on the F2P scenario (issue #6931), 5 boundary 1-D index variables, ~3000 randomized fuzz cases, and extra edge cases: ZERO divergences on the four spec-pinned observables \u2014 (1) Result() is not self (distinct object), (2) Result().dims == self.dims initially (ToSeq equality), (3) reassigning Result().dims leaves self.dims unchanged (independence), (4) MustTerminate/total correctness (callees are straight-line bounded copies that always return). The only clause that superficially looks stronger than reality is Result().dims is not self.dims (distinct STORAGE): I empirically confirmed the real repo SHARES the tuple (b._dims IS a._dims == True, since copy.copy of a tuple returns the same object). This is NOT an observable disagreement: the model carries dims as a mutable List[int] with the setter mapped to field REBINDING (mapping.md \u00a72), while the real repo achieves the identical mutation-independence via tuple immutability + setter rebinding. The tested observable (reassign result.dims -> receiver.dims unchanged) holds in BOTH on every input; .dims is an immutable tuple so only rebinding is possible, making the storage-identity difference invisible to any caller. No input was found on which the modeled function's observable behavior disagrees with the real callee. No spec drift or over-strength.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = model.py docstring + spec regions (Requires/Ensures/Invariant/type decls) with impl bodies elided. Symbols are all generic model names (CoordVar, dims:List[int], independent_clone/as_coordinate/as_plain); none echo the gold-edit repo symbols. Verified against the patch's distinctive changed-symbol set {equals, get_level_variable, level_names, name, swap_dims, to_base_variable, to_index, to_index_variable, values}: only 'swap_dims' appears in the spec view (docstring line ~34), and swap_dims is the literal subject of the public problem_statement (title '.swap_dims() can modify original object'), so it leaks nothing beyond public text. The gold-edit-localizing symbols to_index_variable / to_base_variable / copy / IndexVariable / _replace / variable.py do NOT appear anywhere in the spec view. The encoded property (re-presenting a coordinate variable must yield an INDEPENDENT object, and reassigning the result's dims must not touch the receiver's dims) is directly derivable from the public problem_statement, which already states swap_dims mutates the original via the .dims of a data var swapped to a dimension coordinate, and that the reporter expected NO mutation. The verbatim gold edit (return self -> return self.copy()) and exact fix site live only in refinement.md / mapping.md / meta.json (auditor artifacts, not solver-visible). Mechanical G-LEAK screen re-run: passed=True, zero hard failures. Not a relaxed bundle (no relaxed_leakage flag / RELAXED_LEAKAGE.md), so no deferral applies. No spec-view line discloses the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 Faithfulness confirmed against the REAL post-patch callee (gold patch applied cleanly at base_commit c4e40d99; repo built at $SCRATCH). Spec region byte-identical with the bundle (same-spec exit 0); bundle model verifies (14.8s). Ran IndexVariable.to_index_variable / Variable.to_base_variable / to_index_variable on the F2P scenario (issue #6931), 5 boundary 1-D index variables, ~3000 randomized fuzz cases, and extra edge cases: ZERO divergences on the four spec-pinned observables \u2014 (1) Result() is not self (distinct object), (2) Result().dims == self.dims initially (ToSeq equality), (3) reassigning Result().dims leaves self.dims unchanged (independence), (4) MustTerminate/total correctness (callees are straight-line bounded copies that always return). The only clause that superficially looks stronger than reality is Result().dims is not self.dims (distinct STORAGE): I empirically confirmed the real repo SHARES the tuple (b._dims IS a._dims == True, since copy.copy of a tuple returns the same object). This is NOT an observable disagreement: the model carries dims as a mutable List[int] with the setter mapped to field REBINDING (mapping.md \u00a72), while the real repo achieves the identical mutation-independence via tuple immutability + setter rebinding. The tested observable (reassign result.dims -> receiver.dims unchanged) holds in BOTH on every input; .dims is an immutable tuple so only rebinding is possible, making the storage-identity difference invisible to any caller. No input was found on which the modeled function's observable behavior disagrees with the real callee. No spec drift or over-strength.; G-PANEL-3 (leakage): pass \u2014 Spec view = model.py docstring + spec regions (Requires/Ensures/Invariant/type decls) with impl bodies elided. Symbols are all generic model names (CoordVar, dims:List[int], independent_clone/as_coordinate/as_plain); none echo the gold-edit repo symbols. Verified against the patch's distinctive changed-symbol set {equals, get_level_variable, level_names, name, swap_dims, to_base_variable, to_index, to_index_variable, values}: only 'swap_dims' appears in the spec view (docstring line ~34), and swap_dims is the literal subject of the public problem_statement (title '.swap_dims() can modify original object'), so it leaks nothing beyond public text. The gold-edit-localizing symbols to_index_variable / to_base_variable / copy / IndexVariable / _replace / variable.py do NOT appear anywhere in the spec view. The encoded property (re-presenting a coordinate variable must yield an INDEPENDENT object, and reassigning the result's dims must not touch the receiver's dims) is directly derivable from the public problem_statement, which already states swap_dims mutates the original via the .dims of a data var swapped to a dimension coordinate, and that the reporter expected NO mutation. The verbatim gold edit (return self -> return self.copy()) and exact fix site live only in refinement.md / mapping.md / meta.json (auditor artifacts, not solver-visible). Mechanical G-LEAK screen re-run: passed=True, zero hard failures. Not a relaxed bundle (no relaxed_leakage flag / RELAXED_LEAKAGE.md), so no deferral applies. No spec-view line discloses the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_8.py`, `atk_9.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_4.py`, `atk_6.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness confirmed against the REAL post-patch callee (gold patch applied cleanly at base_commit c4e40d99; repo built at $SCRATCH). Spec region byte-identical with the bundle (same-spec exit 0); bundle model verifies (14.8s). Ran IndexVariable.to_index_variable / Variable.to_base_variable / to_index_variable on the F2P scenario (issue #6931), 5 boundary 1-D index variables, ~3000 randomized fuzz cases, and extra edge cases: ZERO divergences on the four spec-pinned observables \u2014\n\n(1) Result() is not self (distinct object),\n\n(2) Result().dims == self.dims initially (ToSeq equality),\n\n(3) reassigning Result().dims leaves self.dims unchanged (independence),\n\n(4) MustTerminate/total correctness (callees are straight-line bounded copies that always return). The only clause that superficially looks stronger than reality is Result().dims is not self.dims (distinct STORAGE): I empirically confirmed the real repo SHARES the tuple (b._dims IS a._dims == True, since copy.copy of a tuple returns the same object). This is NOT an observable disagreement: the model carries dims as a mutable List[int] with the setter mapped to field REBINDING (mapping.md \u00a72), while the real repo achieves the identical mutation-independence via tuple immutability + setter rebinding. The tested observable (reassign result.dims -> receiver.dims unchanged) holds in BOTH on every input; .dims is an immutable tuple so only rebinding is possible, making the storage-identity difference invisible to any caller. No input was found on which the modeled function's observable behavior disagrees with the real callee. No spec drift or over-strength.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `mapping.md`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec view = model.py docstring + spec regions (Requires/Ensures/Invariant/type decls) with impl bodies elided. Symbols are all generic model names (CoordVar, dims:List[int], independent_clone/as_coordinate/as_plain); none echo the gold-edit repo symbols. Verified against the patch's distinctive changed-symbol set {equals, get_level_variable, level_names, name, swap_dims, to_base_variable, to_index, to_index_variable, values}: only 'swap_dims' appears in the spec view (docstring line ~34), and swap_dims is the literal subject of the public problem_statement (title '.swap_dims() can modify original object'), so it leaks nothing beyond public text.\n\nThe gold-edit-localizing symbols to_index_variable / to_base_variable / copy / IndexVariable / _replace / variable.py do NOT appear anywhere in the spec view. The encoded property (re-presenting a coordinate variable must yield an INDEPENDENT object, and reassigning the result's dims must not touch the receiver's dims) is directly derivable from the public problem_statement, which already states swap_dims mutates the original via the .dims of a data var swapped to a dimension coordinate, and that the reporter expected NO mutation. The verbatim gold edit (return self -> return self.copy()) and exact fix site live only in refinement.md / mapping.md / meta.json (auditor artifacts, not solver-visible). Mechanical G-LEAK screen re-run: passed=True, zero hard failures. Not a relaxed bundle (no relaxed_leakage flag / RELAXED_LEAKAGE.md), so no deferral applies. No spec-view line discloses the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:37:35+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-clone-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 66.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fresh-coordvar",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 61.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-alias-return-self",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 59.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-shared-storage-ctor",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 63.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-receiver-field",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 60.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-receiver-list",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 62.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-first-element",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 64.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fabricate-names",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 56.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "ef305039f258b2a38b4316d78e7b136827216a34659a9abb1e94fa5f9f7f33da",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc",
+        "properties.py": "ef305039f258b2a38b4316d78e7b136827216a34659a9abb1e94fa5f9f7f33da"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T12:48:18+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:55:15+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "wall_time_s": 34.3
+      },
+      "detail": "verified in 34.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3f590e9070297f6eb9542d8207cc66337040e3373a60183431bdb3e4f715b6bc"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-6938",
+  "modeled_functions": [
+    {
+      "carrier_type": "IndexVariable -> CoordVar; dims tuple[Hashable] -> List[int] of name codes; specification over PSeq[int]",
+      "model_symbol": "as_coordinate",
+      "repo_location": "xarray/core/variable.py:2882",
+      "repo_symbol": "xarray.core.variable.IndexVariable.to_index_variable",
+      "role": "modeled changed function: pre-patch `return self` (alias); post-patch `return self.copy()` (independent copy). The independently-fixed behaviour the F2P test observes."
+    },
+    {
+      "carrier_type": "fresh CoordVar with element-wise copied dims",
+      "model_symbol": "independent_clone",
+      "repo_location": "xarray/core/variable.py:2831 (copy), 977-992 (_replace)",
+      "repo_symbol": "xarray.core.variable.IndexVariable.copy -> Variable._replace",
+      "role": "the copy the fix invokes: builds a fresh object with copy.copy(self._dims). The deep model of the independent-allocation behaviour."
+    },
+    {
+      "carrier_type": "fresh CoordVar carrying the receiver's dim names",
+      "model_symbol": "as_plain",
+      "repo_location": "xarray/core/variable.py:539",
+      "repo_symbol": "xarray.core.variable.Variable.to_base_variable",
+      "role": "sibling re-presentation (already fresh pre- and post-patch); pins value semantics; not an independently-fixed behaviour. The patch only changes self.dims->self._dims (identical read value)."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition of as_coordinate: insufficient permission to access Result().dims (return self => Result() is self => Acc(self.dims,1/2) + Acc(Result().dims,1) = 3/2 > 1; also Result() is not self is false)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "IndexVariable.to_index_variable returning the receiver (alias) instead of an independent copy",
+      "reverted_to": "return self (the pre-patch body)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "81a39ead32037deecb565be3c5a7ad7ff30e6a6e1a07d860faa12a2d9044bffd",
+    "impl": "e38af08730345b98a786d011e351bc87eb850a1953a0ffd9e81491b72d25e350",
+    "invariants": "6ffc05b4f0a75c052d7377138dd6db1c5aaaf4b8d45192dc2ee89da9959c9ee9",
+    "post-conditions": "8b5f7636d5411badd371770de4788746d803d05d031fb6dffa7f55ededbb68f5",
+    "pre-conditions": "45a04b01e7cee1b43874485219eacc30f0629fa7e7c2cbc9e22488891ae08096",
+    "pure": "346fb4415d53174aef1f1cad1f453587fb2b5761d513f5bf5c284bda92880f66",
+    "spec_view": "9d2fa45a8ea993907a13c2af6255bd1e51be6032036dad2a3a1989de936328b5"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "string_modeling": "dimension names carried as List[int] of name codes; specification over PSeq[int] via ToSeq; the F2P observes only the tuple of dimension names so any injective name<->int coding is faithful",
+  "version": "2022.06"
+}

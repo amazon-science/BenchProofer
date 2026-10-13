@@ -1,0 +1,491 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the import enabling the builtin_str(method) coercion; modeled by the to_native axiom (A-consumed), not a separate function",
+      "repo_location": "requests/sessions.py:15 (import line)",
+      "repo_symbol": "import of builtin_str into requests.sessions"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): checked on its producing side against real builtin_str \u2014 type(builtin_str(v)) is str (native flavour) for native/bytes/unicode args; having no Ensures, the predicate itself carries no computational content that could over-claim",
+      "encoded_property": "OPAQUE \u2014 no Ensures at all, so the predicate is uninterpreted and its ONLY source is the to_native axiom that produces it. That is the point: the flavour of a text value leaves no trace in its code points, so an interpretable (or constant-valued) flavour obligation is dischargeable by a caller that never invokes the constructor",
+      "kind": "A-consumed",
+      "models": "the property 'this text value is of the native text flavour' (py2: type(v) is str rather than unicode) \u2014 a ghost predicate over the flavour, with no separate callee of its own",
+      "name": "native_form",
+      "provenance": "requests/compat.py:95 (py2: builtin_str = str, bound BEFORE str = unicode) / :111 (py3: builtin_str = str); the flavour distinction the method = builtin_str(method) coercion exists to establish, consumed downstream where the request line and message body are concatenated (httplib, py2)",
+      "purity": "@Pure @ContractOnly (ghost; appears only inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real builtin_str on native/bytes/unicode args; type(builtin_str(v)) is str (native flavour) every time",
+      "encoded_property": "the produced value IS of the native text flavour, independent of the argument flavour, stated as Ensures(native_form(Result())) over the OPAQUE native_form predicate; the weakest sufficient contract \u2014 WHICH flavour value is produced is left uninterpreted, and no content or termination claims are made. Deliberately NOT Ensures(Result() == True): that form pinned the result to a constant, which a caller discharges with a literal without ever invoking the callee (spec_guide directive 8, ungrounded oracle)",
+      "kind": "A-consumed",
+      "models": "requests.compat.builtin_str",
+      "name": "to_native",
+      "provenance": "requests/compat.py:95 (py2: builtin_str = str BEFORE str = unicode) / :111 (py3: builtin_str = str); called post-patch as method = builtin_str(method)",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "1ba83c47ce7b177efe90d5f51f7760680f72eda0",
+  "changed_files": [
+    "requests/sessions.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts upper_seq == real str.upper on 25 boundary + 20000 ASCII fuzz + 128 exhaustive single-char inputs (ASCII method domain)",
+      "encoded_property": "upper_seq(s): per-code-point ASCII upper map 'a'..'z'(97..122) -> 'A'..'Z'(65..90), else identity; length-preserving",
+      "kind": "A-reference",
+      "models": "str.upper (CPython builtin, invoked as method.upper())",
+      "name": "upper_seq",
+      "provenance": "method.upper() at requests/sessions.py:314; docs.python.org/3/library/stdtypes.html#str.upper",
+      "role": "deep model (pure region) of the UNCHANGED case-normalisation operation; NOT a consumed axiom \u2014 there is no upper @ContractOnly axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:03:11+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: upper_seq deep model (== str.upper) sound on 25 boundary + 20000 fuzz + 128 sweep inputs; to_native axiom (builtin_str -> native flavour) sound on 12 arguments",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "860b6ade7312dca24069a3eb36df1cfefcdeb77397857ed1328e803f3211b447",
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:03:36+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 103026,
+          "declared_domain_boundary": "non-ASCII code points: the frozen upper_seq deep model claims faithfulness only on ASCII (mapping.md 3.2 / G-AX); real str.upper diverges there (U+00DF -> 'SS'), and such code points are not RFC-7230 method tokens",
+          "disagreements": 0,
+          "domain": "ASCII code points 0-127 x {native, non-native} flavour; exhaustive to length 2, fuzz to length 24",
+          "nonnative_flavour": "unicode",
+          "observables": [
+            "content",
+            "length",
+            "flavour"
+          ],
+          "oracle": "requests.sessions.Session.request (patched, called)",
+          "runtime": "python2.7",
+          "seed": 17242026,
+          "shadow": "model.py impl region verbatim; @ContractOnly to_native -> real requests.compat.builtin_str",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"domain\": \"ASCII code points 0-127 x {native, non-native} flavour; exhaustive to length 2, fuzz to length 24\", \"seed\": 17242026, \"nonnative_flavour\": \"unicode\", \"shadow\": \"model.py impl region verbatim; @ContractOnly to_native -> real requests.compat.builtin_str\", \"checked\": 103026, \"declared_domain_boundary\": \"non-ASCII code points: the frozen upper_seq deep model claims faithfulness only on ASCII (mapping.md 3.2 / G-AX); real str.upper diverges there (U+00DF -> 'SS'), and such code points are not RFC-7230 method tokens\", \"oracle\": \"requests.sessions.Session.request (patched, called)\", \"observables\": [\"content\", \"length\", \"flavour\"], \"runtime\": \"python2.7\", \"disagreements\": 0}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "20329c3c8dc307f0b5213dd6137494a4eaf6cd08e3066adebbca5466acb0a1c8",
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:43:59+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761",
+        "model_prepatch.py": "5a96cd5dd7740c5e2a65afc36e297e6a4b4646bd0aef20004df2737195c48756"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T10:19:52+00:00",
+      "code_version": "a858f46d1-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 19 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_19.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T10:44:03+00:00",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761",
+        "properties.py": "c65af1560b8f7b84210921a9208ee7583604cf57ca25ac3473161105efc18430"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:44:48+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761",
+        "model_prepatch.py": "5a96cd5dd7740c5e2a65afc36e297e6a4b4646bd0aef20004df2737195c48756"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:02:34+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "46bdbb03ce5480340009048046f62de5f3283d396c1a1f46933208390d3a8812",
+          "impl": "524dd8e3be984094a81577fb07fbf7d46cfdc0eb99578289c2d57d0008a4e87a",
+          "invariants": "f53cfaaffc1a5cf42e5805beaec7d37d7871ee7843280f8485544d2f8c7d6870",
+          "post-conditions": "c0a5f48f54333eed982f440d02a79ef3f06eab793a039e31829ae0551325d06f",
+          "pre-conditions": "d0a5c177b3ee9ff6416731c8525b37a1b159d73b7b1e7d68a6818e9098175525",
+          "pure": "e74b836acb736c098f5fcfdfd2b1caa3c0ce3ab70f4108fd407ba58b7eb03bd9",
+          "spec_view": "7b4b3dad538f92313a3a5c0838490ba294edf93df99c3827963020ffc2b17ea2"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:02:35+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "780199b048b7d2a6478338232eea16a5d8eec1003aeabea89f6bdebc9d4fb3ab",
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:02:35+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T09:31:34+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "judged": 11,
+        "killed": 11,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 11,
+        "unjudged": []
+      },
+      "detail": "killed 11/11 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T10:26:40+00:00",
+      "code_version": "2c14a3dbf-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SETUP (all work in /tmp; bundle untouched). Fresh worktree from repos/psf_requests.git at base_commit 1ba83c47ce7b177efe90d5f51f7760680f72eda0, gold patch applied cleanly (4 insertions in requests/sessions.py) ->. Reference = PATCHED tree per the brief. No py2 on the host and no 1724 image present, so I pulled python:2.7-slim -- the interpreter the behaviour is actually about (the str/unicode split only exists on py2).\n\n1. SPEC IDENTITY + VERIFIABILITY. `adversary same-spec` on the verbatim model -> exit 0 (\"SAME -- attack shares the bundle's exact specification\"). `scripts/nagini_verify.sh` -> \"Verification successful\", 19.89s. So the artifact I audited is the frozen spec and it does verify.\n\n2. REPRODUCED G-CONF INDEPENDENTLY. Ran the bundle's conformance_check.py on py2.7 against MY OWN fresh patched worktree (not their /testbed): 103026 inputs, 51508 native / 51518 non-native, 0 disagreements, runtime python2.7 -- matches the recorded meta.json report exactly.\n\n3. DID NOT TRUST THEIR SHADOW -- wrote two harnesses from scratch, deriving the model side from the POSTCONDITIONS (content = per-code-point ASCII upper map; length preserved; flavour = native_form via real builtin_str) rather than copying their impl region, and driving the REAL patched Session.request with Request.method as the observable (send stubbed, prepare_request wrapped):\n   (a) 38450 inputs -- length 0/1 exhaustive both flavours, length-3 EXHAUSTIVE over a 17-char token alphabet (a plan their check does not run), 30000 fuzz at a DIFFERENT seed (987654321) with lengths to 64 -> 0 disagreements.\n   (b) 33038 inputs -- full ASCII exhaustive to length 2 both flavours + long-method stress at lengths 100/512/2000 -> 0 disagreements.\n   I also asserted native_form directly (result must be builtin_str), not just equality of the flavour bits, so a vacuous flavour comparison would have shown.\n\n4. ATTACKED THE DECLARED NON-ASCII BOUNDARY -- the obvious place a spec drifts -- and it came back STRONGER than documented, not weaker:\n   - On the NATIVE byte-str flavour, real .upper() vs the model's ASCII map over ALL of 0..255: 0 divergences (locale C). The deep model is faithful WIDER than mapping.md 3.2 claims.\n   - On the NON-NATIVE unicode flavour there are 32 real divergences over 0..255 (0xB5->U+039C, 0xE0-0xFE->uppercase), BUT builtin_str raises UnicodeEncodeError on every cp >= 128 and survives exactly 0..127. The coercion runs BEFORE .upper(), so those divergences are not observable at the modeled step at all. Reachable non-native domain == ASCII 0..127.\n   - Tested domain confirms it: the F2P test_patch supplies method=u'POST' (pure ASCII), and RFC-7230 method tokens are ASCII by construction.\n\n5. ALIASING/FRAMING CHECK. The spec holds `chars` at Acc(list_pred(chars),1/2) read-only and returns a fresh TextToken at full permission. On py2 builtin_str(m) is m for a native arg, and for the interned empty string even .upper() returns the same object -- but the model never writes through the input (backward walk building a fresh `out`), so the identity does not let the impl mutate the caller's list. pbt_result.json's frame-mutate-input-inplace / frame-append-input both reject, consistent.\n\nONE DOCUMENTATION IMPRECISION (not a faithfulness defect, no verdict impact): mapping.md 3.2 and conformance_check.py justify the boundary with witnesses \"str.upper: 'ss'->'SS', 0xDF->'SS'\". On the py2 runtime this bundle declares and runs on, u'\\xdf'.upper() == u'\\xdf' -- 'SS' is the PY3 behaviour. The other cited witnesses (0xE9->0xC9, 0xB5->U+039C, 0x131->'I') do reproduce on py2 unicode. So the boundary's headline witness is quoted from the wrong interpreter, while the boundary itself is real, correctly scoped, and in fact unreachable. Worth a prose fix; it does not make the modeled function disagree with the real callee on any reachable input.\n\nCONCLUSION: the spec models the FIXED behaviour (flavour clause Result().native == to_native(ToSeq(chars)) with to_native uninterpreted, forcing the real builtin_str call), agrees with the real patched Session.request on every input inside the caller-reachable domain across ~175k independently generated inputs on the correct py2.7 interpreter, and its one gap (totality over unreachable non-ASCII non-native input) is a pre-declared, correctly-bounded scope statement rather than drift. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LEAKAGE / GOLD-RECONSTRUCTION review of psf__requests-1724 nagini. NO RELAXATION PRESENT, and I checked rather than assumed: meta.json has no top-level `relaxed_leakage` key ([k for k in meta if 'relax' in k.lower()] -> []), and no RELAXED_LEAKAGE.md exists anywhere under the instance dir (`find -iname '*RELAX*'` -> empty). The only 'relax' substring in meta.json is inside prior G-PANEL-* ledger notes; the only one in the bundle sources is properties.py:410 ('Invariant relaxed to match the executable shape'), a measure justification, not a disposition. So this was judged as a STANDARD, non-relaxed leakage review, on my own measurements.\n\nNO FILE ADDRESSES THE REVIEWER. Ran swebench_unified.leakage.reviewer_directed() over every file in the bundle (model.py, model_prepatch.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, properties.py, meta.json, verdict.md, pbt_result.json): [] for all ten. Independently grepped -i for reviewer|auditor|attacker|panel|'you should submit'|'honest verdict'|NO-LEAKAGE across the sources: no hits. Nothing in the bundle tried to tell me what to record.\n\nWHAT I RENDERED AND JUDGED. Rendered the consumer view myself: markers.spec_view(model.py, get_backend('nagini')) -> 129 lines (module docstring, TextToken carrier, axioms region native_form/to_native, pure region upper_cp/upper_seq, normalize_method signature + pre/post-conditions, impl region replaced by the elision placeholder at line 128). Recomputed markers.region_hashes and every region matches the current G-HYGIENE record byte-for-byte, spec_view=7b4b3dad538f92313a3a5c0838490ba294edf93df99c3827963020ffc2b17ea2 -- so the view I judged IS the shipped view. LEDGER DISCREPANCY WORTH NOTING (not a leak): the prior G-PANEL-3 note in meta.json cites spec_view=0c2b83d9c88ef526c0a52c508a09e5d51de693de3af3f9c2beaff27c8b2e9d77 and '99 lines', neither of which matches the current artifact; that stale note is why I re-derived everything from the bytes rather than reading it back.\n\nMECHANICAL SCREEN. leakage.screen(model.py, nagini, patch.diff, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Confirmed by hand that the reconstruction tokens are absent from the view: 'builtin_str' False, 'builtin' False, 'compat' False, 'sessions' False, 'session' False, 'req.method' False, 'method.upper' False, 'upper()' False, 'str(' False, 'httplib' False, 'decode' False, 'utf-8' False, 'py2' False, 'py3' False, 'byte-str' False, 'coerc' False, 'insert' False, 'add a call' False, 'test_' False, 'tests/' False, 'patch' False, 'diff' False, 'fix' False, 'bug' False, '2.7' False. The three hits ('requests' / '1724' in the instance-id line of the docstring title, 'unicode' only in 'sequence of Unicode code points' as the content-carrier type, 'header' in 'the flavour the downstream header assembly requires') are all instance-identity or type-abstraction prose, and 'header assembly' is the exact failure locus the public statement already dumps a traceback through (httplib _send_output, msg += message_body).\n\nDISCRIMINATOR IS PUBLICLY DERIVABLE -- the decisive point. The spec's load-bearing clause is the flavour pair at lines 124-125 (Result().native == to_native(ToSeq(chars)); native_form(Result().native)). Everything it says is stated outright in the public problem_statement: the title is literally 'Unicode method names cause UnicodeDecodeError', the reporter writes \"u'POST' is infecting the header with unicode when it should be a string\", names the site (sessions.py:313), quotes 'req.method = method.upper()', and contrasts method='POST' working against method=u'POST' failing. 'The carried method must be a native text token regardless of the caller's flavour, and the content is the upper-case of the supplied name' is a restatement of that public text, not of the gold edit. hints_text is 2 bytes (empty), so nothing could have come from there. The view never names builtin_str, requests.compat, or the added import -- it says 'the native-flavour text constructor' and leaves which flavour that is deliberately uninterpreted, so a consumer must re-derive the callee from the repo. Reconstruction requires knowing which repo function constructs a native string and where to insert the call; neither is in the view.\n\nLOAD-BEARING / STRIP TEST (the usual test, run for real). (a) Gold: nagini_verify.sh on model.py -> 'Verification successful', 19.75s, exit 0. (b) PRE-patch impl (model_prepatch.py, which differs from gold only at line 128 `native_flavour = native` vs `to_native(ToSeq(chars))` plus the dropped loop invariant) -> FAILS, exit 1, with exactly one error: 'prepatch.py:124: Postcondition of normalize_method might not hold. Assertion (Result().native == to_native(ToSeq(chars))) might not hold.' So line 124 is the sole discriminator. (c) STRIP TEST: I removed the two flavour Ensures from the pre-patch model (prepatch_noflavour.py) and re-verified -> 'Verification successful', exit 0. The pre-patch impl passes the spec once the flavour clause is gone, which proves that clause is load-bearing rather than decorative narration: a faithful spec of this issue cannot omit it, and it is precisely the facet the public statement states.\n\nCORE GATES RE-CONFIRMED, not inherited: G-GOLD/G-DIFF re-derived myself by running the verifier on both models (gold passes, prepatch fails at 124); same-spec harness sanity-checked (`adversary same-spec` on a copy of model.py -> 'SAME', exit 0), so the spec region I judged is the region the harness compares; G-LEAK reads 'spec view clean' with failures=[] on model.py sha d3dbe1a1... which is the sha of the file I read. G-AX (upper_seq == real str.upper on 25 boundary + 20000 fuzz + 128 exhaustive ASCII; to_native/native_form via real builtin_str) and G-CONF (103026 inputs, 0 disagreements, flavour observable checked against the REAL carried flavour, not the constant True, on py2.7.18) both pass and both bear on whether the flavour clause is sound -- and the strip test above is my own independent confirmation that it is the one clause that matters.\n\nOne modeling choice I probed for a leak and cleared: the opaque native_form axiom with no body. It could have been written Ensures(Result() == True), which would name the produced flavour with a literal; the bundle deliberately leaves it uninterpreted (mapping.md 3.1 'Why not Ensures(Result() == True)'). That choice makes the view leak LESS, not more -- it forces the consumer to invoke the real constructor instead of reading off the answer. Not a leak.\n\nVERDICT: NO-LEAKAGE. The spec view covers exactly one facet -- 'method carried into the request is the upper-cased supplied name, as a native text token whatever flavour the caller passed' -- which is a restatement of the public problem_statement (title, the 'infecting the header with unicode when it should be a string' sentence, and the quoted method.upper() line), and it names no patched path, symbol, import, or diff line. Bundle untouched;",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SETUP (all work in /tmp; bundle untouched). Fresh worktree from repos/psf_requests.git at base_commit 1ba83c47ce7b177efe90d5f51f7760680f72eda0, gold patch applied cleanly (4 insertions in requests/sessions.py) ->. Reference = PATCHED tree per the brief. No py2 on the host and no 1724 image present, so I pulled python:2.7-slim -- the interpreter the behaviour is actually about (the str/unicode split only exists on py2).\n\n1. SPEC IDENTITY + VERIFIABILITY. `adversary same-spec` on the verbatim model -> exit 0 (\"SAME -- attack shares the bundle's exact specification\"). `scripts/nagini_verify.sh` -> \"Verification successful\", 19.89s. So the artifact I audited is the frozen spec and it does verify.\n\n2. REPRODUCED G-CONF INDEPENDENTLY. Ran the bundle's conformance_check.py on py2.7 against MY OWN fresh patched worktree (not their /testbed): 103026 inputs, 51508 native / 51518 non-native, 0 disagreements, runtime python2.7 -- matches the recorded meta.json report exactly.\n\n3. DID NOT TRUST THEIR SHADOW -- wrote two harnesses from scratch, deriving the model side from the POSTCONDITIONS (content = per-code-point ASCII upper map; length preserved; flavour = native_form via real builtin_str) rather than copying their impl region, and driving the REAL patched Session.request with Request.method as the observable (send stubbed, prepare_request wrapped):\n   (a) 38450 inputs -- length 0/1 exhaustive both flavours, length-3 EXHAUSTIVE over a 17-char token alphabet (a plan their check does not run), 30000 fuzz at a DIFFERENT seed (987654321) with lengths to 64 -> 0 disagreements.\n   (b) 33038 inputs -- full ASCII exhaustive to length 2 both flavours + long-method stress at lengths 100/512/2000 -> 0 disagreements.\n   I also asserted native_form directly (result must be builtin_str), not just equality of the flavour bits, so a vacuous flavour comparison would have shown.\n\n4. ATTACKED THE DECLARED NON-ASCII BOUNDARY -- the obvious place a spec drifts -- and it came back STRONGER than documented, not weaker:\n   - On the NATIVE byte-str flavour, real .upper() vs the model's ASCII map over ALL of 0..255: 0 divergences (locale C). The deep model is faithful WIDER than mapping.md 3.2 claims.\n   - On the NON-NATIVE unicode flavour there are 32 real divergences over 0..255 (0xB5->U+039C, 0xE0-0xFE->uppercase), BUT builtin_str raises UnicodeEncodeError on every cp >= 128 and survives exactly 0..127. The coercion runs BEFORE .upper(), so those divergences are not observable at the modeled step at all. Reachable non-native domain == ASCII 0..127.\n   - Tested domain confirms it: the F2P test_patch supplies method=u'POST' (pure ASCII), and RFC-7230 method tokens are ASCII by construction.\n\n5. ALIASING/FRAMING CHECK. The spec holds `chars` at Acc(list_pred(chars),1/2) read-only and returns a fresh TextToken at full permission. On py2 builtin_str(m) is m for a native arg, and for the interned empty string even .upper() returns the same object -- but the model never writes through the input (backward walk building a fresh `out`), so the identity does not let the impl mutate the caller's list. pbt_result.json's frame-mutate-input-inplace / frame-append-input both reject, consistent.\n\nONE DOCUMENTATION IMPRECISION (not a faithfulness defect, no verdict impact): mapping.md 3.2 and conformance_check.py justify the boundary with witnesses \"str.upper: 'ss'->'SS', 0xDF->'SS'\". On the py2 runtime this bundle declares and runs on, u'\\xdf'.upper() == u'\\xdf' -- 'SS' is the PY3 behaviour. The other cited witnesses (0xE9->0xC9, 0xB5->U+039C, 0x131->'I') do reproduce on py2 unicode. So the boundary's headline witness is quoted from the wrong interpreter, while the boundary itself is real, correctly scoped, and in fact unreachable. Worth a prose fix; it does not make the modeled function disagree with the real callee on any reachable input.\n\nCONCLUSION: the spec models the FIXED behaviour (flavour clause Result().native == to_native(ToSeq(chars)) with to_native uninterpreted, forcing the real builtin_str call), agrees with the real patched Session.request on every input inside the caller-reachable domain across ~175k independently generated inputs on the correct py2.7 interpreter, and its one gap (totality over unreachable non-ASCII non-native input) is a pre-declared, correctly-bounded scope statement rather than drift. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 LEAKAGE / GOLD-RECONSTRUCTION review of psf__requests-1724 nagini. NO RELAXATION PRESENT, and I checked rather than assumed: meta.json has no top-level `relaxed_leakage` key ([k for k in meta if 'relax' in k.lower()] -> []), and no RELAXED_LEAKAGE.md exists anywhere under the instance dir (`find -iname '*RELAX*'` -> empty). The only 'relax' substring in meta.json is inside prior G-PANEL-* ledger notes; the only one in the bundle sources is properties.py:410 ('Invariant relaxed to match the executable shape'), a measure justification, not a disposition. So this was judged as a STANDARD, non-relaxed leakage review, on my own measurements.\n\nNO FILE ADDRESSES THE REVIEWER. Ran swebench_unified.leakage.reviewer_directed() over every file in the bundle (model.py, model_prepatch.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, properties.py, meta.json, verdict.md, pbt_result.json): [] for all ten. Independently grepped -i for reviewer|auditor|attacker|panel|'you should submit'|'honest verdict'|NO-LEAKAGE across the sources: no hits. Nothing in the bundle tried to tell me what to record.\n\nWHAT I RENDERED AND JUDGED. Rendered the consumer view myself: markers.spec_view(model.py, get_backend('nagini')) -> 129 lines (module docstring, TextToken carrier, axioms region native_form/to_native, pure region upper_cp/upper_seq, normalize_method signature + pre/post-conditions, impl region replaced by the elision placeholder at line 128). Recomputed markers.region_hashes and every region matches the current G-HYGIENE record byte-for-byte, spec_view=7b4b3dad538f92313a3a5c0838490ba294edf93df99c3827963020ffc2b17ea2 -- so the view I judged IS the shipped view. LEDGER DISCREPANCY WORTH NOTING (not a leak): the prior G-PANEL-3 note in meta.json cites spec_view=0c2b83d9c88ef526c0a52c508a09e5d51de693de3af3f9c2beaff27c8b2e9d77 and '99 lines', neither of which matches the current artifact; that stale note is why I re-derived everything from the bytes rather than reading it back.\n\nMECHANICAL SCREEN. leakage.screen(model.py, nagini, patch.diff, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Confirmed by hand that the reconstruction tokens are absent from the view: 'builtin_str' False, 'builtin' False, 'compat' False, 'sessions' False, 'session' False, 'req.method' False, 'method.upper' False, 'upper()' False, 'str(' False, 'httplib' False, 'decode' False, 'utf-8' False, 'py2' False, 'py3' False, 'byte-str' False, 'coerc' False, 'insert' False, 'add a call' False, 'test_' False, 'tests/' False, 'patch' False, 'diff' False, 'fix' False, 'bug' False, '2.7' False. The three hits ('requests' / '1724' in the instance-id line of the docstring title, 'unicode' only in 'sequence of Unicode code points' as the content-carrier type, 'header' in 'the flavour the downstream header assembly requires') are all instance-identity or type-abstraction prose, and 'header assembly' is the exact failure locus the public statement already dumps a traceback through (httplib _send_output, msg += message_body).\n\nDISCRIMINATOR IS PUBLICLY DERIVABLE -- the decisive point. The spec's load-bearing clause is the flavour pair at lines 124-125 (Result().native == to_native(ToSeq(chars)); native_form(Result().native)). Everything it says is stated outright in the public problem_statement: the title is literally 'Unicode method names cause UnicodeDecodeError', the reporter writes \"u'POST' is infecting the header with unicode when it should be a string\", names the site (sessions.py:313), quotes 'req.method = method.upper()', and contrasts method='POST' working against method=u'POST' failing. 'The carried method must be a native text token regardless of the caller's flavour, and the content is the upper-case of the supplied name' is a restatement of that public text, not of the gold edit. hints_text is 2 bytes (empty), so nothing could have come from there. The view never names builtin_str, requests.compat, or the added import -- it says 'the native-flavour text constructor' and leaves which flavour that is deliberately uninterpreted, so a consumer must re-derive the callee from the repo. Reconstruction requires knowing which repo function constructs a native string and where to insert the call; neither is in the view.\n\nLOAD-BEARING / STRIP TEST (the usual test, run for real). (a) Gold: nagini_verify.sh on model.py -> 'Verification successful', 19.75s, exit 0. (b) PRE-patch impl (model_prepatch.py, which differs from gold only at line 128 `native_flavour = native` vs `to_native(ToSeq(chars))` plus the dropped loop invariant) -> FAILS, exit 1, with exactly one error: 'prepatch.py:124: Postcondition of normalize_method might not hold. Assertion (Result().native == to_native(ToSeq(chars))) might not hold.' So line 124 is the sole discriminator. (c) STRIP TEST: I removed the two flavour Ensures from the pre-patch model (prepatch_noflavour.py) and re-verified -> 'Verification successful', exit 0. The pre-patch impl passes the spec once the flavour clause is gone, which proves that clause is load-bearing rather than decorative narration: a faithful spec of this issue cannot omit it, and it is precisely the facet the public statement states.\n\nCORE GATES RE-CONFIRMED, not inherited: G-GOLD/G-DIFF re-derived myself by running the verifier on both models (gold passes, prepatch fails at 124); same-spec harness sanity-checked (`adversary same-spec` on a copy of model.py -> 'SAME', exit 0), so the spec region I judged is the region the harness compares; G-LEAK reads 'spec view clean' with failures=[] on model.py sha d3dbe1a1... which is the sha of the file I read. G-AX (upper_seq == real str.upper on 25 boundary + 20000 fuzz + 128 exhaustive ASCII; to_native/native_form via real builtin_str) and G-CONF (103026 inputs, 0 disagreements, flavour observable checked against the REAL carried flavour, not the constant True, on py2.7.18) both pass and both bear on whether the flavour clause is sound -- and the strip test above is my own independent confirmation that it is the one clause that matters.\n\nOne modeling choice I probed for a leak and cleared: the opaque native_form axiom with no body. It could have been written Ensures(Result() == True), which would name the produced flavour with a literal; the bundle deliberately leaves it uninterpreted (mapping.md 3.1 'Why not Ensures(Result() == True)'). That choice makes the view leak LESS, not more -- it forces the consumer to invoke the real constructor instead of reading off the answer. Not a leak.\n\nVERDICT: NO-LEAKAGE. The spec view covers exactly one facet -- 'method carried into the request is the upper-cased supplied name, as a native text token whatever flavour the caller passed' -- which is a restatement of the public problem_statement (title, the 'infecting the header with unicode when it should be a string' sentence, and the quoted method.upper() line), and it names no patched path, symbol, import, or diff line. Bundle untouched;",
+      "gate": "G-PANEL",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T10:44:03+00:00",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761",
+        "properties.py": "c65af1560b8f7b84210921a9208ee7583604cf57ca25ac3473161105efc18430"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T10:26:40+00:00",
+      "code_version": "2c14a3dbf-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 19 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_19.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761",
+        "properties.py": "c65af1560b8f7b84210921a9208ee7583604cf57ca25ac3473161105efc18430"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T10:44:02+00:00",
+      "code_version": "6d744779b-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SETUP (all work in /tmp; bundle untouched). Fresh worktree from repos/psf_requests.git at base_commit 1ba83c47ce7b177efe90d5f51f7760680f72eda0, gold patch applied cleanly (4 insertions in requests/sessions.py) ->. Reference = PATCHED tree per the brief. No py2 on the host and no 1724 image present, so I pulled python:2.7-slim -- the interpreter the behaviour is actually about (the str/unicode split only exists on py2).\n\n1. SPEC IDENTITY + VERIFIABILITY. `adversary same-spec` on the verbatim model -> exit 0 (\"SAME -- attack shares the bundle's exact specification\"). `scripts/nagini_verify.sh` -> \"Verification successful\", 19.89s. So the artifact I audited is the frozen spec and it does verify.\n\n2. REPRODUCED G-CONF INDEPENDENTLY. Ran the bundle's conformance_check.py on py2.7 against MY OWN fresh patched worktree (not their /testbed): 103026 inputs, 51508 native / 51518 non-native, 0 disagreements, runtime python2.7 -- matches the recorded meta.json report exactly.\n\n3. DID NOT TRUST THEIR SHADOW -- wrote two harnesses from scratch, deriving the model side from the POSTCONDITIONS (content = per-code-point ASCII upper map; length preserved; flavour = native_form via real builtin_str) rather than copying their impl region, and driving the REAL patched Session.request with Request.method as the observable (send stubbed, prepare_request wrapped):\n   (a) 38450 inputs -- length 0/1 exhaustive both flavours, length-3 EXHAUSTIVE over a 17-char token alphabet (a plan their check does not run), 30000 fuzz at a DIFFERENT seed (987654321) with lengths to 64 -> 0 disagreements.\n   (b) 33038 inputs -- full ASCII exhaustive to length 2 both flavours + long-method stress at lengths 100/512/2000 -> 0 disagreements.\n   I also asserted native_form directly (result must be builtin_str), not just equality of the flavour bits, so a vacuous flavour comparison would have shown.\n\n4. ATTACKED THE DECLARED NON-ASCII BOUNDARY -- the obvious place a spec drifts -- and it came back STRONGER than documented, not weaker:\n   - On the NATIVE byte-str flavour, real .upper() vs the model's ASCII map over ALL of 0..255: 0 divergences (locale C). The deep model is faithful WIDER than mapping.md 3.2 claims.\n   - On the NON-NATIVE unicode flavour there are 32 real divergences over 0..255 (0xB5->U+039C, 0xE0-0xFE->uppercase), BUT builtin_str raises UnicodeEncodeError on every cp >= 128 and survives exactly 0..127. The coercion runs BEFORE .upper(), so those divergences are not observable at the modeled step at all. Reachable non-native domain == ASCII 0..127.\n   - Tested domain confirms it: the F2P test_patch supplies method=u'POST' (pure ASCII), and RFC-7230 method tokens are ASCII by construction.\n\n5. ALIASING/FRAMING CHECK. The spec holds `chars` at Acc(list_pred(chars),1/2) read-only and returns a fresh TextToken at full permission. On py2 builtin_str(m) is m for a native arg, and for the interned empty string even .upper() returns the same object -- but the model never writes through the input (backward walk building a fresh `out`), so the identity does not let the impl mutate the caller's list. pbt_result.json's frame-mutate-input-inplace / frame-append-input both reject, consistent.\n\nONE DOCUMENTATION IMPRECISION (not a faithfulness defect, no verdict impact): mapping.md 3.2 and conformance_check.py justify the boundary with witnesses \"str.upper: 'ss'->'SS', 0xDF->'SS'\". On the py2 runtime this bundle declares and runs on, u'\\xdf'.upper() == u'\\xdf' -- 'SS' is the PY3 behaviour. The other cited witnesses (0xE9->0xC9, 0xB5->U+039C, 0x131->'I') do reproduce on py2 unicode. So the boundary's headline witness is quoted from the wrong interpreter, while the boundary itself is real, correctly scoped, and in fact unreachable. Worth a prose fix; it does not make the modeled function disagree with the real callee on any reachable input.\n\nCONCLUSION: the spec models the FIXED behaviour (flavour clause Result().native == to_native(ToSeq(chars)) with to_native uninterpreted, forcing the real builtin_str call), agrees with the real patched Session.request on every input inside the caller-reachable domain across ~175k independently generated inputs on the correct py2.7 interpreter, and its one gap (totality over unreachable non-ASCII non-native input) is a pre-declared, correctly-bounded scope statement rather than drift. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T10:36:33+00:00",
+      "code_version": "2c14a3dbf-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LEAKAGE / GOLD-RECONSTRUCTION review of psf__requests-1724 nagini. NO RELAXATION PRESENT, and I checked rather than assumed: meta.json has no top-level `relaxed_leakage` key ([k for k in meta if 'relax' in k.lower()] -> []), and no RELAXED_LEAKAGE.md exists anywhere under the instance dir (`find -iname '*RELAX*'` -> empty). The only 'relax' substring in meta.json is inside prior G-PANEL-* ledger notes; the only one in the bundle sources is properties.py:410 ('Invariant relaxed to match the executable shape'), a measure justification, not a disposition. So this was judged as a STANDARD, non-relaxed leakage review, on my own measurements.\n\nNO FILE ADDRESSES THE REVIEWER. Ran swebench_unified.leakage.reviewer_directed() over every file in the bundle (model.py, model_prepatch.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, properties.py, meta.json, verdict.md, pbt_result.json): [] for all ten. Independently grepped -i for reviewer|auditor|attacker|panel|'you should submit'|'honest verdict'|NO-LEAKAGE across the sources: no hits. Nothing in the bundle tried to tell me what to record.\n\nWHAT I RENDERED AND JUDGED. Rendered the consumer view myself: markers.spec_view(model.py, get_backend('nagini')) -> 129 lines (module docstring, TextToken carrier, axioms region native_form/to_native, pure region upper_cp/upper_seq, normalize_method signature + pre/post-conditions, impl region replaced by the elision placeholder at line 128). Recomputed markers.region_hashes and every region matches the current G-HYGIENE record byte-for-byte, spec_view=7b4b3dad538f92313a3a5c0838490ba294edf93df99c3827963020ffc2b17ea2 -- so the view I judged IS the shipped view. LEDGER DISCREPANCY WORTH NOTING (not a leak): the prior G-PANEL-3 note in meta.json cites spec_view=0c2b83d9c88ef526c0a52c508a09e5d51de693de3af3f9c2beaff27c8b2e9d77 and '99 lines', neither of which matches the current artifact; that stale note is why I re-derived everything from the bytes rather than reading it back.\n\nMECHANICAL SCREEN. leakage.screen(model.py, nagini, patch.diff, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Confirmed by hand that the reconstruction tokens are absent from the view: 'builtin_str' False, 'builtin' False, 'compat' False, 'sessions' False, 'session' False, 'req.method' False, 'method.upper' False, 'upper()' False, 'str(' False, 'httplib' False, 'decode' False, 'utf-8' False, 'py2' False, 'py3' False, 'byte-str' False, 'coerc' False, 'insert' False, 'add a call' False, 'test_' False, 'tests/' False, 'patch' False, 'diff' False, 'fix' False, 'bug' False, '2.7' False. The three hits ('requests' / '1724' in the instance-id line of the docstring title, 'unicode' only in 'sequence of Unicode code points' as the content-carrier type, 'header' in 'the flavour the downstream header assembly requires') are all instance-identity or type-abstraction prose, and 'header assembly' is the exact failure locus the public statement already dumps a traceback through (httplib _send_output, msg += message_body).\n\nDISCRIMINATOR IS PUBLICLY DERIVABLE -- the decisive point. The spec's load-bearing clause is the flavour pair at lines 124-125 (Result().native == to_native(ToSeq(chars)); native_form(Result().native)). Everything it says is stated outright in the public problem_statement: the title is literally 'Unicode method names cause UnicodeDecodeError', the reporter writes \"u'POST' is infecting the header with unicode when it should be a string\", names the site (sessions.py:313), quotes 'req.method = method.upper()', and contrasts method='POST' working against method=u'POST' failing.\n\n'The carried method must be a native text token regardless of the caller's flavour, and the content is the upper-case of the supplied name' is a restatement of that public text, not of the gold edit. hints_text is 2 bytes (empty), so nothing could have come from there. The view never names builtin_str, requests.compat, or the added import -- it says 'the native-flavour text constructor' and leaves which flavour that is deliberately uninterpreted, so a consumer must re-derive the callee from the repo. Reconstruction requires knowing which repo function constructs a native string and where to insert the call; neither is in the view.\n\nLOAD-BEARING / STRIP TEST (the usual test, run for real). (a) Gold: nagini_verify.sh on model.py -> 'Verification successful', 19.75s, exit 0. (b) PRE-patch impl (model_prepatch.py, which differs from gold only at line 128 `native_flavour = native` vs `to_native(ToSeq(chars))` plus the dropped loop invariant) -> FAILS, exit 1, with exactly one error: 'prepatch.py:124: Postcondition of normalize_method might not hold. Assertion (Result().native == to_native(ToSeq(chars))) might not hold.' So line 124 is the sole discriminator. (c) STRIP TEST: I removed the two flavour Ensures from the pre-patch model (prepatch_noflavour.py) and re-verified -> 'Verification successful', exit 0. The pre-patch impl passes the spec once the flavour clause is gone, which proves that clause is load-bearing rather than decorative narration: a faithful spec of this issue cannot omit it, and it is precisely the facet the public statement states.\n\nCORE GATES RE-CONFIRMED, not inherited: G-GOLD/G-DIFF re-derived myself by running the verifier on both models (gold passes, prepatch fails at 124); same-spec harness sanity-checked (`adversary same-spec` on a copy of model.py -> 'SAME', exit 0), so the spec region I judged is the region the harness compares; G-LEAK reads 'spec view clean' with failures=[] on model.py sha d3dbe1a1... which is the sha of the file I read. G-AX (upper_seq == real str.upper on 25 boundary + 20000 fuzz + 128 exhaustive ASCII; to_native/native_form via real builtin_str) and G-CONF (103026 inputs, 0 disagreements, flavour observable checked against the REAL carried flavour, not the constant True, on py2.7.18) both pass and both bear on whether the flavour clause is sound -- and the strip test above is my own independent confirmation that it is the one clause that matters.\n\nOne modeling choice I probed for a leak and cleared: the opaque native_form axiom with no body. It could have been written Ensures(Result() == True), which would name the produced flavour with a literal; the bundle deliberately leaves it uninterpreted (mapping.md 3.1 'Why not Ensures(Result() == True)'). That choice makes the view leak LESS, not more -- it forces the consumer to invoke the real constructor instead of reading off the answer. Not a leak.\n\nVERDICT: NO-LEAKAGE. The spec view covers exactly one facet -- 'method carried into the request is the upper-cased supplied name, as a native text token whatever flavour the caller passed' -- which is a restatement of the public problem_statement (title, the 'infecting the header with unicode when it should be a string' sentence, and the quoted method.upper() line), and it names no patched path, symbol, import, or diff line. Bundle untouched;\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:30:39+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "ungrounded-flavour-literal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-flavour-after-fold",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-inline-elem",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 25.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-input-inplace",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-append-input",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-identity-no-upper",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-skip-first-upper",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.8
+          },
+          {
+            "expect": "reject",
+            "id": "flavour-echo-supplied",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.7
+          },
+          {
+            "expect": "reject",
+            "id": "diverge-after-fold",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "c65af1560b8f7b84210921a9208ee7583604cf57ca25ac3473161105efc18430",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761",
+        "properties.py": "c65af1560b8f7b84210921a9208ee7583604cf57ca25ac3473161105efc18430"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T07:11:47+00:00",
+      "code_version": "774d0dafa-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "780199b048b7d2a6478338232eea16a5d8eec1003aeabea89f6bdebc9d4fb3ab",
+        "patch.diff": "f02e7cb27f931afc59887bcd31705b7d8ad9a226b187b398262f202f605365df"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T09:26:20+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "wall_time_s": 19.0
+      },
+      "detail": "verified in 19.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d3dbe1a125d20df5bbecd95c0e45ab40d5ec0eb3196910c5c12463d4c9051761"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "psf__requests-1724",
+  "modeled_functions": [
+    {
+      "carrier_type": "text value -> TextToken(chars: List[int] of code points, native: bool); content specification over PSeq[int]",
+      "model_symbol": "normalize_method",
+      "repo_location": "requests/sessions.py:278 (body 312-314)",
+      "repo_symbol": "requests.sessions.Session.request (method-handling step)",
+      "role": "modeled changed behaviour: the method carried into the constructed Request; single contracted+implemented function (per-function markers are the singletons here)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result().native == to_native(ToSeq(chars)) (the carried flavour is the supplied one, not the one the native-flavour constructor yields for the content)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "method flavour coercion before case-normalisation",
+      "reverted_to": "applying case-normalisation directly to the supplied method (native_flavour = native), so the carried flavour equals the supplied flavour"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "46bdbb03ce5480340009048046f62de5f3283d396c1a1f46933208390d3a8812",
+    "impl": "524dd8e3be984094a81577fb07fbf7d46cfdc0eb99578289c2d57d0008a4e87a",
+    "invariants": "f53cfaaffc1a5cf42e5805beaec7d37d7871ee7843280f8485544d2f8c7d6870",
+    "post-conditions": "c0a5f48f54333eed982f440d02a79ef3f06eab793a039e31829ae0551325d06f",
+    "pre-conditions": "d0a5c177b3ee9ff6416731c8525b37a1b159d73b7b1e7d68a6818e9098175525",
+    "pure": "e74b836acb736c098f5fcfdfd2b1caa3c0ce3ab70f4108fd407ba58b7eb03bd9",
+    "spec_view": "7b4b3dad538f92313a3a5c0838490ba294edf93df99c3827963020ffc2b17ea2"
+  },
+  "repo": "psf/requests",
+  "schema_version": 1,
+  "string_modeling": "text value -> TextToken(chars: List[int] of Unicode code points, native: bool); content carried by PSeq[int] via ToSeq; case-normalisation proven by a backward per-code-point fold (front-recursive upper_seq gives a single unfold per step); the native-vs-non-native flavour, which code points cannot express, carried as an explicit boolean field; because that boolean is otherwise unconstrained, the carried flavour is pinned to the constructor's own output (to_native(ToSeq(chars))) and the opaque native_form is demanded of it, so an implementation cannot claim a flavour it did not obtain from the constructor",
+  "version": "2.0"
+}

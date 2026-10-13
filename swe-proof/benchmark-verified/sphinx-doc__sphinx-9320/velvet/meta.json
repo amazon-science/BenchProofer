@@ -1,0 +1,1537 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "pure callee swap at one call site; not separately modeled (refinement.md \u00a7B); its observable effect is captured by the optionalPathValidator empty-entry contract that drives sys.exit",
+      "repo_symbol": "sphinx.cmd.quickstart.ask_user do_prompt(...) validator: is_path -> is_path_or_empty"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX), asserted standalone against os.path at base_commit",
+      "encoded_property": "pathExpanded [] = []  --  expanduser('') == ''",
+      "models": "os.path.expanduser(x) at sphinx/cmd/quickstart.py:92 (inside the UNCHANGED callee is_path), at the empty entry",
+      "name": "pathExpanded_empty"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX), asserted standalone against os.path at base_commit. Together with pathExpanded_empty this gives the DERIVED theorem strictAccepts_empty (the strict validator does not accept the empty entry), which G-AX also confirms end-to-end on the real callee: is_path('') does not come back.",
+      "encoded_property": "pathIsDir [] = false  --  isdir('') is False",
+      "models": "os.path.isdir(x) at sphinx/cmd/quickstart.py:93 (inside the UNCHANGED callee is_path), at the empty entry",
+      "name": "pathIsDir_empty"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): on every input where isdir(expanduser(x)) is True, the real is_path returns and returns expanduser(x) verbatim; 24 boundary + 20000 fuzz inputs (seed 9320) at base_commit",
+      "encoded_property": "strictAccepts entry = true -> strictPathValidator entry = pure (pathExpanded entry)  --  a submission of an accepted entry COMES BACK, handing back expanduser(entry) verbatim",
+      "models": "sphinx.cmd.quickstart.is_path (UNCHANGED callee) on an entry it accepts",
+      "name": "strictPathValidator_accepted"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): on every input where isdir(expanduser(x)) is False, the real is_path does not return (raises ValidationError); 24 boundary + 20000 fuzz inputs (seed 9320) at base_commit. Joint satisfiability of all four facts is Lean-checked (refinement.md D, exit 0), so nothing is proved from a contradiction.",
+      "encoded_property": "strictAccepts entry = false -> NOT (triple True (strictPathValidator entry) (fun _ => True))  --  a submission of a non-accepted entry has no guarantee of coming back at all, the modeled form of the ValidationError leaving the submitter. Meaningful because NoFailure DivM lives in PartialCorrectness while this bundle opens TotalCorrectness. This is what makes SUBMITTING an act an impl must EARN (and deciding acceptance, via the total strictAccepts, free).",
+      "models": "sphinx.cmd.quickstart.is_path (UNCHANGED callee) on an entry it does NOT accept, as observed from INSIDE the modeled function (nothing there catches the raise -- mapping.md 2.1)",
+      "name": "strictPathValidator_turns_away"
+    }
+  ],
+  "base_commit": "e05cef574b8f23ab1b57f57e7da6dee509a4e230",
+  "changed_files": [
+    "sphinx/cmd/quickstart.py"
+  ],
+  "conf_skip": false,
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX) at base_commit: one boundary fact each (expanduser('') == '', isdir('') is False), asserted standalone. Both are modeled TOTAL and effect-free, so their composition strictAccepts is a FREE decision an impl may evaluate anywhere, for any entry, in any order.",
+      "kind": "A-reference",
+      "models": "os.path.expanduser / os.path.isdir as called inside the unchanged callee is_path (quickstart.py:92-93)",
+      "name": "pathExpanded, pathIsDir"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX, runs at base_commit on the UNCHANGED callee is_path): an ACCEPTED entry comes back as expanduser(entry) verbatim (strictPathValidator_accepted) and a NON-ACCEPTED entry does not come back at all (strictPathValidator_turns_away, the modeled form of the raise leaving the submitter), over 24 boundary + 20000 fuzz inputs. The two facts make a submission an act the impl must EARN; nothing is consumed as an ensures an impl could substitute for. The lenient-vs-strict delegation fidelity for non-empty entries is G-CONF's R/I obligation at the patched commit, not G-AX's; G-CONF additionally instruments is_path and checks the SUBMISSION ORDER (both sides submit the empty entry zero times, an accepted entry exactly once).",
+      "kind": "A-reference",
+      "models": "sphinx.cmd.quickstart.is_path (unchanged callee), modeled as an opaque PROGRAM (VelvetM), not a value",
+      "name": "strictPathValidator"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:56:04+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: all five assumed facts hold of the real unchanged code at base_commit \u2014 expanduser('') == '' and isdir('') is False (so the empty entry is not accepted, confirmed end-to-end: `is_path('')` does not come back) and expanduser('') ANSWERS (so the empty entry is inside the obligation's domain), an entry the expansion answers for and the validator accepts comes back as expanduser(entry) verbatim, an entry it answers for that is not accepted comes back as no value at all (the refusal the consumer catches), and an entry the expansion does NOT answer for does not come back either \u2014 over 39 boundary + 22000 fuzz inputs, reaching every region: {'out-of-domain': 800, 'in-domain-accepted': 4475, 'in-domain-refused': 16764}. The two reads a verifying program may perform ANYWHERE are total wherever it performs them: isdir never took control away, and neither did the GUARDED expansion (mapping.md \u00a71.1) \u2014 checked at the entry itself and at two derived families, '~'+NUL+entry (whose RAW expansion escapes every time) and '~'+entry, {'entry': 22039, 'derived-escape': 22039, 'derived-tilde': 22039} reads. And acceptance implies domain membership, the real counterpart of the derived theorem `accepted_in_domain`: on every one of the 5300 reads whose guarded expansion named a directory the expansion also ANSWERED, and the submission that acceptance earns came back with expanduser(entry) verbatim \u2014 {'entry': 4475, 'derived-escape': 0, 'derived-tilde': 825} by family \u2014 so a program may act on a decision it took at an entry it derived, and only there.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "axiom_check.py": "e2f5e4fcc2e4fd888b44c862f93cae736154da5db8f097661696db035407d82d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:56:12+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "G-CONF OK: R/I shadow of optionalPathValidator agrees with patch.diff behaviour on 100029 inputs (seed=9320), 0 disagreements IN the obligation's domain, reaching every region: {'out-of-domain': 3716, 'in-domain-accepted': 20062, 'in-domain-refused': 58612}. The domain is exactly right: IN it the oracle always came back (a value or the ValidationError the call site catches) and never escaped, so it is not too small; OUT of it the oracle never came back at all, so it is not too large \u2014 and there the shadow always DID come back, because every read it performs is the guarded one (mapping.md \u00a71.1). Submission order also agrees where the change is: the empty entry is submitted to the strict validator ZERO times by both sides, and an accepted entry exactly once by both. A guarded read at the DERIVED entry '~'+NUL+entry \u2014 the shape that broke the previous revision, where the expansion had a total function type \u2014 answered every one of 100029 times and left outcome and submission count untouched on every input; and an EARNED submission of the derived entry '~'+entry, which `accepted_in_domain` licenses inside the branch that shows it accepted, fired 17639 times, came back every time and changed no outcome. Disclosed asymmetry (refinement.md \u00a7C), same outcome either way: on 58612 non-accepted non-empty in-domain inputs (and 3716 out-of-domain ones) the oracle submits once and lets the raise propagate while the shadow decides first and does not submit.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "conformance_check.py": "c891441bc29f2fb261bb4dca6e39affca81322aa4cd56205fdd8af4bdd40fe6c"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:05:46+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "Solution_prepatch.lean": "0e4f5f75eb9d9dfe7bd3cf27c56cd38bb3f7ed7d92e428c38cc692795b368ea3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T11:10:53+00:00",
+      "code_version": "32ee4cb69-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 17 admissible attacks re-run of 17 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 17 admissible attacks re-run of 17 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 17 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_00_prepatch.lean`, `atk_07_hoisted.lean`, `atk_08_empty_refused.lean`, `atk_09_partial_short.lean`, `atk_10_accept_all.lean`, `atk_11_domain_as_verdict.lean`, `atk_12_derived_probe_as_verdict.lean`, `atk_13_empty_via_expansion.lean`, `atk_15_return_derived_expansion.lean`, `atk_04a_raw_match.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_01_derived_probe.lean`, `atk_02_strictAccepts_derived.lean`, `atk_03_const_probe.lean`, `atk_04b_raw_via_empty_fact.lean`, `atk_05_derived_submit_nul.lean`, `atk_06_oracle_echo.lean`, `atk_14_derived_submit_tilde.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T11:12:18+00:00",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "properties.py": "ed0dc647725ce693e38a73ada1c0595f95f2b2e1d60212da6654e805b3f9fdc7"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:05:57+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "Solution_prepatch.lean": "0e4f5f75eb9d9dfe7bd3cf27c56cd38bb3f7ed7d92e428c38cc692795b368ea3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:55:50+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "df297746e3d446c32c5a851eeb476382855fb10f56a34084f691d9e47146d5ce",
+          "impl": "066dbbae9594a457ee88b71764b76467bf7121e4607967bebd7c4a45b7d97165",
+          "pre-conditions": "b5dec293ac3b17231c85f7f81074c74c5cd72e6a4da238dfb374c3bc1daf060c",
+          "spec_view": "0ed59503e377d2176f208d4b8354bc931b1a9ccf521cb404a39d12585e319ad4"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:55:51+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "instance.json": "7ada66adf06eb158ef0c1c3586712b41854005fed06e43b39b55b0fe52b38f33"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:55:51+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T11:13:28+00:00",
+      "code_version": "32ee4cb69-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T10:06:44+00:00",
+      "code_version": "096c93deb-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 17 admissible attacks re-run of 17 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFUL \u2014 no diverging input found. Independent (not re-run of shipped gates) differential testing of the modeled function against the REAL patched callee, plus independent re-derivation of all five axioms against the base commit.\n\nSETUP. Reference for `optionalPathValidator` =  (base e05cef574 + patch.diff applied; confirmed `is_path_or_empty` present in patched, absent in base). Reference for the axioms =  (base commit). Note the env python (3.10.20) trips `sys.version_info > (3,10)` in sphinx/util/typing.py (`from types import Union`), so I extracted `is_path` / `is_path_or_empty` / `ValidationError` from the real source TEXT via ast (atk2b_9320_extract.py) rather than importing the package \u2014 the callee bodies are the real bytes.\n\n1. SPEC-REGION IDENTITY. markers.same_spec(Solution.lean, Solution_prepatch.lean, backend.language) = True. Two controls: weakening `require expansionAnswers entry = true` \u2192 `require True` gives False (the checker does cover the require); a whitespace-only edit inside an ensures gives True (normalization is whitespace-level only, as expected). Spec region is genuinely frozen across the prepatch.\n\n2. MODELED FUNCTION vs REAL PATCHED FUNCTION \u2014 ~180k inputs, 4 independent harnesses, seeds of my own choosing (31337 / 777 / 20260816), not the bundle's 9320. Modeled oracle: `''\u2192ok ''`; else `ok guarded_expansion(x)` if `isdir(guarded)` else `error`.\n  - atk2b_9320_diff.py: 60050 inputs (boundary + 60k fuzz over an alphabet carrying NUL, high AND low surrogates, `~`, real usernames). buckets oo/acc/ref = 697/14065/45288. 0 in-domain disagreements, 0 in-domain escapes (domain not too large), 0 out-of-domain returns (domain not too small).\n  - atk2b_9320_users.py: 80281 inputs seeded from 40 REAL /etc/passwd usernames (`~<user>`, `~<user>/..`, `~<user>\\x00`, case-flipped). buckets 6541/16514/57226. 0 violations.\n  - atk2b_9320_env.py: real on-disk dirs with adversarial names (a directory literally NAMED `~`, `~root`, embedded newline, low surrogate, spaces), a live symlink, a DANGLING symlink, a regular file, `dir/`, `dir//`, `dir/.`, `dir/..`, `file/` \u2014 crossed with 6 HOME settings incl. HOME=<a dir named `~`>, HOME='', HOME unset. 168 checks, 0 violations.\n  - atk2b_9320_edge.py: 100k-char entries, 60-deep nesting, ENAMETOOLONG paths, `~`*100, chr(0x10FFFF) runs, Unicode case-folding traps (\u0130/\u1e9b/\u00df), crossed with pathological HOME ('/', '//', '///', 'rel/ative', ''). 275 checks, 0 violations.\n\n3. THE TWO ENSURES CLAUSES, SEPARATELY. Empty clause: real `is_path_or_empty('')` returns `''` \u2192 `Except.ok []` under mapping.md \u00a72, and it is reached WITHOUT calling `is_path` (the patch's `if x == '': return x` short-circuits) \u2014 so the routing-around content is real, not just the value. Non-empty clause: real returns `path.expanduser(x)` VERBATIM where accepted (matches `pathExpanded entry`, not `x`) and raises ValidationError otherwise; 0 counterexamples across all four harnesses.\n\n4. AXIOMS RE-DERIVED AT BASE COMMIT (atk2b_9320_ax.py, 40054 inputs, seed 777, buckets 649/1850/37555). fact1 expanduser('')=='' \u2713; fact2 isdir('') is False \u2713; fact5 answers('') \u2713; derived strictAccepts_empty=false \u2713 and end-to-end `is_path('')` does not come back \u2713 (the load-bearing premise for the reported bug). axiom3 (in-domain \u2227 accepted \u2192 returns guarded expansion verbatim): 0 violations. axiom4 (UNGUARDED: \u00acaccepted \u2192 does not come back): 0 violations \u2014 I specifically checked the unguarded region (out-of-domain entries), where it holds because the getpwnam escape propagates through `is_path` too. Theorem accepted_in_domain (accepts \u2192 answers): 0 violations. \u00a71.1 totality: `isdir` and the guarded expansion took control away from nobody at 3 arguments each (the entry, and the derived `'~'+NUL+entry` / `'~'+high-surrogate+entry` that the require says nothing about) \u2014 ~120k reads, 0 escapes. So no read a verifying impl may perform refines to Python that escapes.\n\n5. THE `require` IS NOT AN OVER-BROAD EXCUSE. I attacked it from both sides. Too large? No \u2014 every out-of-domain input escaped for real (ValueError 'embedded null byte' / UnicodeEncodeError from pwd.getpwnam, uncaught out of `is_path_or_empty`), so the spec is not excusing a specifiable input. Too small? No \u2014 every in-domain input came back with a value or ValidationError. And it is NOT vacuous on Lean-representable inputs: `'~' :: Char.ofNat 0 :: rest` IS a legal Lean `List Char` and IS out of domain in Python, so the restriction does real work rather than only fencing off inputs Lean cannot express. Conversely the empty entry \u2014 the one input the change is about \u2014 is INSIDE the domain by a checked fact, so the discriminating clause is non-vacuous.\n\n6. VERIFIER. scripts/lean_verify.sh on the frozen Solution.lean: exit 0. On Solution_prepatch.lean: exit 1, failing exactly `case \u00abensures_2: entry = [] \u2192 out = Except.ok []\u00bb` with goal `entry = [] \u2192 Except.error () = Except.ok []` \u2014 the discriminating clause is what the prepatch violates, with the require in context.\n\nNOT-A-DEFECT ITEMS I CONSIDERED AND REJECTED. (a) The domain restriction excluding `~`+NUL entries: this is a legitimate spec-too-strong REPAIR, not a drift \u2014 the real patched function has a third outcome there (neither ok nor ValidationError) that mapping.md \u00a72.2 / refinement.md \u00a7C disclose and measure; comparing against the base version there would be the base-commit trap the brief warns about (the patch changes nothing on those entries anyway). (b) The impl-shape restriction (gold's own `return is_path(x)` control flow cannot verify under termination \"total\"): a restriction on which shapes may establish the clauses, disclosed in refinement.md \u00a7C, and it adds no obligation the real post-patch behavior violates \u2014 the frozen impl refines patched behavior exactly, which is what my 180k-input fuzz measured. (c) Lean `Char` excluding surrogates: a carrier-coverage gap that makes the spec narrower, never stronger.\n\nCONCLUSION. On every input where the spec claims an outcome, the modeled function agrees with the real patched `is_path_or_empty`; all five axioms hold of the real base-commit callee including in the unguarded region; the domain is measured tight in both directions. No diverging input exists that I could find, so no defect is claimed.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE: judged the CONSUMER spec view derived exactly as the harness does -- markers.spec_view(Solution.lean, VelvetBackend().language); impl region and prove_correct body collapse to 'implementation elided / proof elided' (256 view lines, dumped to specview_9320.txt). All measurements below are mine, run on the CURRENT bytes.\n\nNO RELAXATION IN PLAY: there is no RELAXED_LEAKAGE.md anywhere under the instance dir (checked instance root + velvet/ + lean/ + nagini/ + ears/), and meta.json has no relaxed_leakage key (keys are additional_change_sites, axioms, base_commit, changed_files, conf_skip, deep_model_references, gates, instance_id, modeled_functions, pbt_audit, repo, schema_version, spec_provenance, string_modeling, version). So this is an ordinary full-strictness leakage judgement, not an inherited disposition.\n\nSPEC REGION IDENTICAL (I ran it): markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend().language) -> True. The only diff between the two files is inside impl-start/impl-end (prepatch routes every entry through strictAccepts; post adds the `if entry = [] then return Except.ok []` branch). No spec-region drift between the gold and prepatch impls, so the spec view I judged is the one the consumer sees for either.\n\nNON-VACUITY (I ran it): scripts/lean_verify.sh Solution.lean 300 -> exit 0. scripts/lean_verify.sh Solution_prepatch.lean 300 -> exit 1, 'unsolved goals' at 262:36, case <<ensures_2: entry = [] -> out = Except.ok []>>, both branches (|- entry = [] -> Except.ok x = Except.ok [] and |- entry = [] -> Except.error () = Except.ok []). So the empty-entry discriminating clause is load-bearing against the PRE-patch impl -- the clause I am judging is real, not inert prose.\n\nMECHANICAL SCREEN (I ran it): leakage.screen(Solution.lean, velvet tables, gold patch, problem_statement, test_patch) -> hard_failures=[], warnings=[]. Independently re-derived the screen inputs: changed files ['sphinx/cmd/quickstart.py'], changed symbols ['ask_user', 'is_path', 'is_path_or_empty'], changed lines ['def is_path_or_empty(x: str) -> str:', \"if x == '':\", 'return x', 'return is_path(x)', \"'', is_path)\", \"'', is_path_or_empty)\"]. Grepped the view for each of these plus 'quickstart', 'do_prompt', 'sys.exit', 'conf.py', 'sphinx', 'allow_empty', 'ValidationError', 'monkeypatch', 'test_': ZERO hits. No file path, no module path, no patched symbol, no diff marker, no narration verb (fix/bug/patch/previously/...) anywhere in the view.\n\nHINTS NOT ECHOED: hints_text says the tool 'should exit with status 1 immediately'. The spec view says nothing about an exit, an exit status, or immediacy -- it speaks only of an outcome value (Except.ok [] vs Except.error ()). Judged against problem_statement only, as required.\n\nDISCRIMINATOR IS PUBLIC. The facet the spec view discloses is: an empty entry is an accepted sentinel returned verbatim and never submitted to the strict validator; every non-empty entry gets the strict validator's verdict (lines 216-234, and the two `ensures` at 246-249). Every element of that is derivable from problem_statement alone: it states the prompt is 'Please enter a new root path name (or just Enter to exit)', that pressing Enter (the empty entry -- the only input the whole report is about) is rejected with 'Please enter a valid path name' (i.e. a path-name validity check currently governs and refuses it), and that the expected behavior is for the empty entry to be accepted and acted upon. 'Empty must be accepted rather than refused by the path-name check, non-empty unchanged' IS the public bug report; the spec view restates that behavior and stops there. Strip the narration and the spec still fails on the prepatch impl (measured above), so the clause is load-bearing rather than decorative -- and it is load-bearing on a fact the task already hands the solver.\n\nWHAT THE VIEW WITHHOLDS: it does not say the edit adds a NEW top-level function; does not say the change site is a `do_prompt` call's validator argument; does not name the file, module, or any of the three patched symbols; does not disclose the delegation shape (`if x == '': return x; return is_path(x)`). The modeled callee is called `strictPathValidator`/`strictAccepts`/`pathExpanded` -- none embeds `is_path`, `is_path_or_empty`, or `ask_user`. Axiomatizing the unchanged callee is structurally forced (a submission with a turns-away fact cannot be specified without it) and is what mapping.md/axiom_check.py are for; it localizes nothing.\n\nBENIGN, RECORDED FOR THE RECORD: view line 105 names the stdlib symbol `os.path.isdir` ('`os.path.isdir` of the guarded expansion can only be true where the expansion answered'). It is not a patched symbol, not on any changed line, and the gold patch does not touch it; it describes the unchanged callee's directory test, which the public error message 'Please enter a valid path name' already implies. Not edit-localizing, so not a leak -- but it is the one repo-grounded identifier in the view and I looked at it deliberately rather than letting the screen's patched-symbol-only rule pass it silently.\n\nFINDING -- INHERITANCE HAZARD IN verdict.md (not reviewer-directed instruction, but reported as asked): the non-ledger files are clean -- grep -rniE 'attacker|reviewer|G-PANEL|honest verdict|you should submit|NO-LEAKAGE|do not submit|record (this|it) as' over mapping.md, refinement.md, properties.py, axiom_check.py, conformance_check.py returns ZERO hits, so nothing in the spec-adjacent material tries to tell me how to record. verdict.md (the gate ledger) DOES carry two prior G-PANEL-3 records ending 'CONCLUSION: no line of the spec view carries edit-localizing information beyond the public problem_statement. Verdict NO-LEAKAGE', including a pre-written 'NO FILE ADDRESSES THE REVIEWER' paragraph and the exact grep line to justify it. That is a retained prior verdict in the ledger rather than an instruction planted for me, and I did not inherit it: I re-derived same_spec, both verify runs, the screen, and the symbol/line extraction from scratch. Flagging it because a reader could mistake that pre-formatted paragraph for a measurement.\n\nSTALE STAMPS (freshness, not leakage): current Solution.lean sha256 is 85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62 (mtime 09:50), which matches NO gate stamp -- G-AX/G-CONF/G-LEAK/G-MUT/G-EQ/G-PANEL-3 recorded b37d358b... and G-DIFF/G-GOLD/G-VERIFY recorded 2159b4d2... (09:41). So every stamped gate on this bundle, including the prior G-LEAK pass and the prior G-PANEL-3 NO-LEAKAGE, predates the current bytes. My verdict rests only on what I re-ran on 85817573..., where verify passes, prepatch fails, same_spec holds, and the screen is clean. Worth a re-stamp regardless of this gate.\n\nOUT OF SCOPE, NOTED: G-EQ and G-PANEL-1 are fail on this bundle (spec-too-weak -- atk_A1_derived_probe.lean verifies but its patch does not resolve, a derived-argument read of the non-total expansion primitive). That is a strength defect, orthogonal to leakage: a spec that is too weak discloses less, not more, and no relaxation argument here depends on those gates passing.\n\nVERDICT: NO-LEAKAGE. The spec view discloses exactly the empty-entry-accepted-vs-refused facet the public problem_statement already reports, and nothing about where or how the repo edit is made.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 17 admissible attacks re-run of 17 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFUL \u2014 no diverging input found. Independent (not re-run of shipped gates) differential testing of the modeled function against the REAL patched callee, plus independent re-derivation of all five axioms against the base commit.\n\nSETUP. Reference for `optionalPathValidator` =  (base e05cef574 + patch.diff applied; confirmed `is_path_or_empty` present in patched, absent in base). Reference for the axioms =  (base commit). Note the env python (3.10.20) trips `sys.version_info > (3,10)` in sphinx/util/typing.py (`from types import Union`), so I extracted `is_path` / `is_path_or_empty` / `ValidationError` from the real source TEXT via ast (atk2b_9320_extract.py) rather than importing the package \u2014 the callee bodies are the real bytes.\n\n1. SPEC-REGION IDENTITY. markers.same_spec(Solution.lean, Solution_prepatch.lean, backend.language) = True. Two controls: weakening `require expansionAnswers entry = true` \u2192 `require True` gives False (the checker does cover the require); a whitespace-only edit inside an ensures gives True (normalization is whitespace-level only, as expected). Spec region is genuinely frozen across the prepatch.\n\n2. MODELED FUNCTION vs REAL PATCHED FUNCTION \u2014 ~180k inputs, 4 independent harnesses, seeds of my own choosing (31337 / 777 / 20260816), not the bundle's 9320. Modeled oracle: `''\u2192ok ''`; else `ok guarded_expansion(x)` if `isdir(guarded)` else `error`.\n  - atk2b_9320_diff.py: 60050 inputs (boundary + 60k fuzz over an alphabet carrying NUL, high AND low surrogates, `~`, real usernames). buckets oo/acc/ref = 697/14065/45288. 0 in-domain disagreements, 0 in-domain escapes (domain not too large), 0 out-of-domain returns (domain not too small).\n  - atk2b_9320_users.py: 80281 inputs seeded from 40 REAL /etc/passwd usernames (`~<user>`, `~<user>/..`, `~<user>\\x00`, case-flipped). buckets 6541/16514/57226. 0 violations.\n  - atk2b_9320_env.py: real on-disk dirs with adversarial names (a directory literally NAMED `~`, `~root`, embedded newline, low surrogate, spaces), a live symlink, a DANGLING symlink, a regular file, `dir/`, `dir//`, `dir/.`, `dir/..`, `file/` \u2014 crossed with 6 HOME settings incl. HOME=<a dir named `~`>, HOME='', HOME unset. 168 checks, 0 violations.\n  - atk2b_9320_edge.py: 100k-char entries, 60-deep nesting, ENAMETOOLONG paths, `~`*100, chr(0x10FFFF) runs, Unicode case-folding traps (\u0130/\u1e9b/\u00df), crossed with pathological HOME ('/', '//', '///', 'rel/ative', ''). 275 checks, 0 violations.\n\n3. THE TWO ENSURES CLAUSES, SEPARATELY. Empty clause: real `is_path_or_empty('')` returns `''` \u2192 `Except.ok []` under mapping.md \u00a72, and it is reached WITHOUT calling `is_path` (the patch's `if x == '': return x` short-circuits) \u2014 so the routing-around content is real, not just the value. Non-empty clause: real returns `path.expanduser(x)` VERBATIM where accepted (matches `pathExpanded entry`, not `x`) and raises ValidationError otherwise; 0 counterexamples across all four harnesses.\n\n4. AXIOMS RE-DERIVED AT BASE COMMIT (atk2b_9320_ax.py, 40054 inputs, seed 777, buckets 649/1850/37555). fact1 expanduser('')=='' \u2713; fact2 isdir('') is False \u2713; fact5 answers('') \u2713; derived strictAccepts_empty=false \u2713 and end-to-end `is_path('')` does not come back \u2713 (the load-bearing premise for the reported bug). axiom3 (in-domain \u2227 accepted \u2192 returns guarded expansion verbatim): 0 violations. axiom4 (UNGUARDED: \u00acaccepted \u2192 does not come back): 0 violations \u2014 I specifically checked the unguarded region (out-of-domain entries), where it holds because the getpwnam escape propagates through `is_path` too. Theorem accepted_in_domain (accepts \u2192 answers): 0 violations. \u00a71.1 totality: `isdir` and the guarded expansion took control away from nobody at 3 arguments each (the entry, and the derived `'~'+NUL+entry` / `'~'+high-surrogate+entry` that the require says nothing about) \u2014 ~120k reads, 0 escapes. So no read a verifying impl may perform refines to Python that escapes.\n\n5. THE `require` IS NOT AN OVER-BROAD EXCUSE. I attacked it from both sides. Too large? No \u2014 every out-of-domain input escaped for real (ValueError 'embedded null byte' / UnicodeEncodeError from pwd.getpwnam, uncaught out of `is_path_or_empty`), so the spec is not excusing a specifiable input. Too small? No \u2014 every in-domain input came back with a value or ValidationError. And it is NOT vacuous on Lean-representable inputs: `'~' :: Char.ofNat 0 :: rest` IS a legal Lean `List Char` and IS out of domain in Python, so the restriction does real work rather than only fencing off inputs Lean cannot express. Conversely the empty entry \u2014 the one input the change is about \u2014 is INSIDE the domain by a checked fact, so the discriminating clause is non-vacuous.\n\n6. VERIFIER. scripts/lean_verify.sh on the frozen Solution.lean: exit 0. On Solution_prepatch.lean: exit 1, failing exactly `case \u00abensures_2: entry = [] \u2192 out = Except.ok []\u00bb` with goal `entry = [] \u2192 Except.error () = Except.ok []` \u2014 the discriminating clause is what the prepatch violates, with the require in context.\n\nNOT-A-DEFECT ITEMS I CONSIDERED AND REJECTED. (a) The domain restriction excluding `~`+NUL entries: this is a legitimate spec-too-strong REPAIR, not a drift \u2014 the real patched function has a third outcome there (neither ok nor ValidationError) that mapping.md \u00a72.2 / refinement.md \u00a7C disclose and measure; comparing against the base version there would be the base-commit trap the brief warns about (the patch changes nothing on those entries anyway). (b) The impl-shape restriction (gold's own `return is_path(x)` control flow cannot verify under termination \"total\"): a restriction on which shapes may establish the clauses, disclosed in refinement.md \u00a7C, and it adds no obligation the real post-patch behavior violates \u2014 the frozen impl refines patched behavior exactly, which is what my 180k-input fuzz measured. (c) Lean `Char` excluding surrogates: a carrier-coverage gap that makes the spec narrower, never stronger.\n\nCONCLUSION. On every input where the spec claims an outcome, the modeled function agrees with the real patched `is_path_or_empty`; all five axioms hold of the real base-commit callee including in the unguarded region; the domain is measured tight in both directions. No diverging input exists that I could find, so no defect is claimed.; G-PANEL-3 (leakage): pass \u2014 SCOPE: judged the CONSUMER spec view derived exactly as the harness does -- markers.spec_view(Solution.lean, VelvetBackend().language); impl region and prove_correct body collapse to 'implementation elided / proof elided' (256 view lines, dumped to specview_9320.txt). All measurements below are mine, run on the CURRENT bytes.\n\nNO RELAXATION IN PLAY: there is no RELAXED_LEAKAGE.md anywhere under the instance dir (checked instance root + velvet/ + lean/ + nagini/ + ears/), and meta.json has no relaxed_leakage key (keys are additional_change_sites, axioms, base_commit, changed_files, conf_skip, deep_model_references, gates, instance_id, modeled_functions, pbt_audit, repo, schema_version, spec_provenance, string_modeling, version). So this is an ordinary full-strictness leakage judgement, not an inherited disposition.\n\nSPEC REGION IDENTICAL (I ran it): markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend().language) -> True. The only diff between the two files is inside impl-start/impl-end (prepatch routes every entry through strictAccepts; post adds the `if entry = [] then return Except.ok []` branch). No spec-region drift between the gold and prepatch impls, so the spec view I judged is the one the consumer sees for either.\n\nNON-VACUITY (I ran it): scripts/lean_verify.sh Solution.lean 300 -> exit 0. scripts/lean_verify.sh Solution_prepatch.lean 300 -> exit 1, 'unsolved goals' at 262:36, case <<ensures_2: entry = [] -> out = Except.ok []>>, both branches (|- entry = [] -> Except.ok x = Except.ok [] and |- entry = [] -> Except.error () = Except.ok []). So the empty-entry discriminating clause is load-bearing against the PRE-patch impl -- the clause I am judging is real, not inert prose.\n\nMECHANICAL SCREEN (I ran it): leakage.screen(Solution.lean, velvet tables, gold patch, problem_statement, test_patch) -> hard_failures=[], warnings=[]. Independently re-derived the screen inputs: changed files ['sphinx/cmd/quickstart.py'], changed symbols ['ask_user', 'is_path', 'is_path_or_empty'], changed lines ['def is_path_or_empty(x: str) -> str:', \"if x == '':\", 'return x', 'return is_path(x)', \"'', is_path)\", \"'', is_path_or_empty)\"]. Grepped the view for each of these plus 'quickstart', 'do_prompt', 'sys.exit', 'conf.py', 'sphinx', 'allow_empty', 'ValidationError', 'monkeypatch', 'test_': ZERO hits. No file path, no module path, no patched symbol, no diff marker, no narration verb (fix/bug/patch/previously/...) anywhere in the view.\n\nHINTS NOT ECHOED: hints_text says the tool 'should exit with status 1 immediately'. The spec view says nothing about an exit, an exit status, or immediacy -- it speaks only of an outcome value (Except.ok [] vs Except.error ()). Judged against problem_statement only, as required.\n\nDISCRIMINATOR IS PUBLIC. The facet the spec view discloses is: an empty entry is an accepted sentinel returned verbatim and never submitted to the strict validator; every non-empty entry gets the strict validator's verdict (lines 216-234, and the two `ensures` at 246-249). Every element of that is derivable from problem_statement alone: it states the prompt is 'Please enter a new root path name (or just Enter to exit)', that pressing Enter (the empty entry -- the only input the whole report is about) is rejected with 'Please enter a valid path name' (i.e. a path-name validity check currently governs and refuses it), and that the expected behavior is for the empty entry to be accepted and acted upon. 'Empty must be accepted rather than refused by the path-name check, non-empty unchanged' IS the public bug report; the spec view restates that behavior and stops there. Strip the narration and the spec still fails on the prepatch impl (measured above), so the clause is load-bearing rather than decorative -- and it is load-bearing on a fact the task already hands the solver.\n\nWHAT THE VIEW WITHHOLDS: it does not say the edit adds a NEW top-level function; does not say the change site is a `do_prompt` call's validator argument; does not name the file, module, or any of the three patched symbols; does not disclose the delegation shape (`if x == '': return x; return is_path(x)`). The modeled callee is called `strictPathValidator`/`strictAccepts`/`pathExpanded` -- none embeds `is_path`, `is_path_or_empty`, or `ask_user`. Axiomatizing the unchanged callee is structurally forced (a submission with a turns-away fact cannot be specified without it) and is what mapping.md/axiom_check.py are for; it localizes nothing.\n\nBENIGN, RECORDED FOR THE RECORD: view line 105 names the stdlib symbol `os.path.isdir` ('`os.path.isdir` of the guarded expansion can only be true where the expansion answered'). It is not a patched symbol, not on any changed line, and the gold patch does not touch it; it describes the unchanged callee's directory test, which the public error message 'Please enter a valid path name' already implies. Not edit-localizing, so not a leak -- but it is the one repo-grounded identifier in the view and I looked at it deliberately rather than letting the screen's patched-symbol-only rule pass it silently.\n\nFINDING -- INHERITANCE HAZARD IN verdict.md (not reviewer-directed instruction, but reported as asked): the non-ledger files are clean -- grep -rniE 'attacker|reviewer|G-PANEL|honest verdict|you should submit|NO-LEAKAGE|do not submit|record (this|it) as' over mapping.md, refinement.md, properties.py, axiom_check.py, conformance_check.py returns ZERO hits, so nothing in the spec-adjacent material tries to tell me how to record. verdict.md (the gate ledger) DOES carry two prior G-PANEL-3 records ending 'CONCLUSION: no line of the spec view carries edit-localizing information beyond the public problem_statement. Verdict NO-LEAKAGE', including a pre-written 'NO FILE ADDRESSES THE REVIEWER' paragraph and the exact grep line to justify it. That is a retained prior verdict in the ledger rather than an instruction planted for me, and I did not inherit it: I re-derived same_spec, both verify runs, the screen, and the symbol/line extraction from scratch. Flagging it because a reader could mistake that pre-formatted paragraph for a measurement.\n\nSTALE STAMPS (freshness, not leakage): current Solution.lean sha256 is 85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62 (mtime 09:50), which matches NO gate stamp -- G-AX/G-CONF/G-LEAK/G-MUT/G-EQ/G-PANEL-3 recorded b37d358b... and G-DIFF/G-GOLD/G-VERIFY recorded 2159b4d2... (09:41). So every stamped gate on this bundle, including the prior G-LEAK pass and the prior G-PANEL-3 NO-LEAKAGE, predates the current bytes. My verdict rests only on what I re-ran on 85817573..., where verify passes, prepatch fails, same_spec holds, and the screen is clean. Worth a re-stamp regardless of this gate.\n\nOUT OF SCOPE, NOTED: G-EQ and G-PANEL-1 are fail on this bundle (spec-too-weak -- atk_A1_derived_probe.lean verifies but its patch does not resolve, a derived-argument read of the non-total expansion primitive). That is a strength defect, orthogonal to leakage: a spec that is too weak discloses less, not more, and no relaxation argument here depends on those gates passing.\n\nVERDICT: NO-LEAKAGE. The spec view discloses exactly the empty-entry-accepted-vs-refused facet the public problem_statement already reports, and nothing about where or how the repo edit is made.",
+      "gate": "G-PANEL",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T11:12:19+00:00",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T11:12:17+00:00",
+      "code_version": "32ee4cb69-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 17 admissible attacks re-run of 17 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 17 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_00_prepatch.lean`, `atk_07_hoisted.lean`, `atk_08_empty_refused.lean`, `atk_09_partial_short.lean`, `atk_10_accept_all.lean`, `atk_11_domain_as_verdict.lean`, `atk_12_derived_probe_as_verdict.lean`, `atk_13_empty_via_expansion.lean`, `atk_15_return_derived_expansion.lean`, `atk_04a_raw_match.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_01_derived_probe.lean`, `atk_02_strictAccepts_derived.lean`, `atk_03_const_probe.lean`, `atk_04b_raw_via_empty_fact.lean`, `atk_05_derived_submit_nul.lean`, `atk_06_oracle_echo.lean`, `atk_14_derived_submit_tilde.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "properties.py": "ed0dc647725ce693e38a73ada1c0595f95f2b2e1d60212da6654e805b3f9fdc7"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T10:11:02+00:00",
+      "code_version": "b7e02e38a-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFUL \u2014 no diverging input found. Independent (not re-run of shipped gates) differential testing of the modeled function against the REAL patched callee, plus independent re-derivation of all five axioms against the base commit.\n\nSETUP. Reference for `optionalPathValidator` =  (base e05cef574 + patch.diff applied; confirmed `is_path_or_empty` present in patched, absent in base). Reference for the axioms =  (base commit). Note the env python (3.10.20) trips `sys.version_info > (3,10)` in sphinx/util/typing.py (`from types import Union`), so I extracted `is_path` / `is_path_or_empty` / `ValidationError` from the real source TEXT via ast (atk2b_9320_extract.py) rather than importing the package \u2014 the callee bodies are the real bytes.\n\n1. SPEC-REGION IDENTITY. markers.same_spec(Solution.lean, Solution_prepatch.lean, backend.language) = True. Two controls: weakening `require expansionAnswers entry = true` \u2192 `require True` gives False (the checker does cover the require); a whitespace-only edit inside an ensures gives True (normalization is whitespace-level only, as expected). Spec region is genuinely frozen across the prepatch.\n\n2. MODELED FUNCTION vs REAL PATCHED FUNCTION \u2014 ~180k inputs, 4 independent harnesses, seeds of my own choosing (31337 / 777 / 20260816), not the bundle's 9320. Modeled oracle: `''\u2192ok ''`; else `ok guarded_expansion(x)` if `isdir(guarded)` else `error`.\n  - atk2b_9320_diff.py: 60050 inputs (boundary + 60k fuzz over an alphabet carrying NUL, high AND low surrogates, `~`, real usernames). buckets oo/acc/ref = 697/14065/45288. 0 in-domain disagreements, 0 in-domain escapes (domain not too large), 0 out-of-domain returns (domain not too small).\n  - atk2b_9320_users.py: 80281 inputs seeded from 40 REAL /etc/passwd usernames (`~<user>`, `~<user>/..`, `~<user>\\x00`, case-flipped). buckets 6541/16514/57226. 0 violations.\n  - atk2b_9320_env.py: real on-disk dirs with adversarial names (a directory literally NAMED `~`, `~root`, embedded newline, low surrogate, spaces), a live symlink, a DANGLING symlink, a regular file, `dir/`, `dir//`, `dir/.`, `dir/..`, `file/` \u2014 crossed with 6 HOME settings incl. HOME=<a dir named `~`>, HOME='', HOME unset. 168 checks, 0 violations.\n  - atk2b_9320_edge.py: 100k-char entries, 60-deep nesting, ENAMETOOLONG paths, `~`*100, chr(0x10FFFF) runs, Unicode case-folding traps (\u0130/\u1e9b/\u00df), crossed with pathological HOME ('/', '//', '///', 'rel/ative', ''). 275 checks, 0 violations.\n\n3. THE TWO ENSURES CLAUSES, SEPARATELY. Empty clause: real `is_path_or_empty('')` returns `''` \u2192 `Except.ok []` under mapping.md \u00a72, and it is reached WITHOUT calling `is_path` (the patch's `if x == '': return x` short-circuits) \u2014 so the routing-around content is real, not just the value. Non-empty clause: real returns `path.expanduser(x)` VERBATIM where accepted (matches `pathExpanded entry`, not `x`) and raises ValidationError otherwise; 0 counterexamples across all four harnesses.\n\n4. AXIOMS RE-DERIVED AT BASE COMMIT (atk2b_9320_ax.py, 40054 inputs, seed 777, buckets 649/1850/37555). fact1 expanduser('')=='' \u2713; fact2 isdir('') is False \u2713; fact5 answers('') \u2713; derived strictAccepts_empty=false \u2713 and end-to-end `is_path('')` does not come back \u2713 (the load-bearing premise for the reported bug). axiom3 (in-domain \u2227 accepted \u2192 returns guarded expansion verbatim): 0 violations. axiom4 (UNGUARDED: \u00acaccepted \u2192 does not come back): 0 violations \u2014 I specifically checked the unguarded region (out-of-domain entries), where it holds because the getpwnam escape propagates through `is_path` too. Theorem accepted_in_domain (accepts \u2192 answers): 0 violations. \u00a71.1 totality: `isdir` and the guarded expansion took control away from nobody at 3 arguments each (the entry, and the derived `'~'+NUL+entry` / `'~'+high-surrogate+entry` that the require says nothing about) \u2014 ~120k reads, 0 escapes. So no read a verifying impl may perform refines to Python that escapes.\n\n5. THE `require` IS NOT AN OVER-BROAD EXCUSE. I attacked it from both sides. Too large? No \u2014 every out-of-domain input escaped for real (ValueError 'embedded null byte' / UnicodeEncodeError from pwd.getpwnam, uncaught out of `is_path_or_empty`), so the spec is not excusing a specifiable input. Too small? No \u2014 every in-domain input came back with a value or ValidationError. And it is NOT vacuous on Lean-representable inputs: `'~' :: Char.ofNat 0 :: rest` IS a legal Lean `List Char` and IS out of domain in Python, so the restriction does real work rather than only fencing off inputs Lean cannot express. Conversely the empty entry \u2014 the one input the change is about \u2014 is INSIDE the domain by a checked fact, so the discriminating clause is non-vacuous.\n\n6. VERIFIER. scripts/lean_verify.sh on the frozen Solution.lean: exit 0. On Solution_prepatch.lean: exit 1, failing exactly `case \u00abensures_2: entry = [] \u2192 out = Except.ok []\u00bb` with goal `entry = [] \u2192 Except.error () = Except.ok []` \u2014 the discriminating clause is what the prepatch violates, with the require in context.\n\nNOT-A-DEFECT ITEMS I CONSIDERED AND REJECTED. (a) The domain restriction excluding `~`+NUL entries: this is a legitimate spec-too-strong REPAIR, not a drift \u2014 the real patched function has a third outcome there (neither ok nor ValidationError) that mapping.md \u00a72.2 / refinement.md \u00a7C disclose and measure; comparing against the base version there would be the base-commit trap the brief warns about (the patch changes nothing on those entries anyway). (b) The impl-shape restriction (gold's own `return is_path(x)` control flow cannot verify under termination \"total\"): a restriction on which shapes may establish the clauses, disclosed in refinement.md \u00a7C, and it adds no obligation the real post-patch behavior violates \u2014 the frozen impl refines patched behavior exactly, which is what my 180k-input fuzz measured. (c) Lean `Char` excluding surrogates: a carrier-coverage gap that makes the spec narrower, never stronger.\n\nCONCLUSION. On every input where the spec claims an outcome, the modeled function agrees with the real patched `is_path_or_empty`; all five axioms hold of the real base-commit callee including in the unguarded region; the domain is measured tight in both directions. No diverging input exists that I could find, so no defect is claimed.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T10:06:44+00:00",
+      "code_version": "096c93deb-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE: judged the CONSUMER spec view derived exactly as the harness does -- markers.spec_view(Solution.lean, VelvetBackend().language); impl region and prove_correct body collapse to 'implementation elided / proof elided' (256 view lines, dumped to specview_9320.txt). All measurements below are mine, run on the CURRENT bytes.\n\nNO RELAXATION IN PLAY: there is no RELAXED_LEAKAGE.md anywhere under the instance dir (checked instance root + velvet/ + lean/ + nagini/ + ears/), and meta.json has no relaxed_leakage key (keys are additional_change_sites, axioms, base_commit, changed_files, conf_skip, deep_model_references, gates, instance_id, modeled_functions, pbt_audit, repo, schema_version, spec_provenance, string_modeling, version). So this is an ordinary full-strictness leakage judgement, not an inherited disposition.\n\nSPEC REGION IDENTICAL (I ran it): markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend().language) -> True. The only diff between the two files is inside impl-start/impl-end (prepatch routes every entry through strictAccepts; post adds the `if entry = [] then return Except.ok []` branch). No spec-region drift between the gold and prepatch impls, so the spec view I judged is the one the consumer sees for either.\n\nNON-VACUITY (I ran it): scripts/lean_verify.sh Solution.lean 300 -> exit 0. scripts/lean_verify.sh Solution_prepatch.lean 300 -> exit 1, 'unsolved goals' at 262:36, case <<ensures_2: entry = [] -> out = Except.ok []>>, both branches (|- entry = [] -> Except.ok x = Except.ok [] and |- entry = [] -> Except.error () = Except.ok []). So the empty-entry discriminating clause is load-bearing against the PRE-patch impl -- the clause I am judging is real, not inert prose.\n\nMECHANICAL SCREEN (I ran it): leakage.screen(Solution.lean, velvet tables, gold patch, problem_statement, test_patch) -> hard_failures=[], warnings=[]. Independently re-derived the screen inputs: changed files ['sphinx/cmd/quickstart.py'], changed symbols ['ask_user', 'is_path', 'is_path_or_empty'], changed lines ['def is_path_or_empty(x: str) -> str:', \"if x == '':\", 'return x', 'return is_path(x)', \"'', is_path)\", \"'', is_path_or_empty)\"]. Grepped the view for each of these plus 'quickstart', 'do_prompt', 'sys.exit', 'conf.py', 'sphinx', 'allow_empty', 'ValidationError', 'monkeypatch', 'test_': ZERO hits. No file path, no module path, no patched symbol, no diff marker, no narration verb (fix/bug/patch/previously/...) anywhere in the view.\n\nHINTS NOT ECHOED: hints_text says the tool 'should exit with status 1 immediately'. The spec view says nothing about an exit, an exit status, or immediacy -- it speaks only of an outcome value (Except.ok [] vs Except.error ()). Judged against problem_statement only, as required.\n\nDISCRIMINATOR IS PUBLIC. The facet the spec view discloses is: an empty entry is an accepted sentinel returned verbatim and never submitted to the strict validator; every non-empty entry gets the strict validator's verdict (lines 216-234, and the two `ensures` at 246-249). Every element of that is derivable from problem_statement alone: it states the prompt is 'Please enter a new root path name (or just Enter to exit)', that pressing Enter (the empty entry -- the only input the whole report is about) is rejected with 'Please enter a valid path name' (i.e. a path-name validity check currently governs and refuses it), and that the expected behavior is for the empty entry to be accepted and acted upon. 'Empty must be accepted rather than refused by the path-name check, non-empty unchanged' IS the public bug report; the spec view restates that behavior and stops there. Strip the narration and the spec still fails on the prepatch impl (measured above), so the clause is load-bearing rather than decorative -- and it is load-bearing on a fact the task already hands the solver.\n\nWHAT THE VIEW WITHHOLDS: it does not say the edit adds a NEW top-level function; does not say the change site is a `do_prompt` call's validator argument; does not name the file, module, or any of the three patched symbols; does not disclose the delegation shape (`if x == '': return x; return is_path(x)`). The modeled callee is called `strictPathValidator`/`strictAccepts`/`pathExpanded` -- none embeds `is_path`, `is_path_or_empty`, or `ask_user`. Axiomatizing the unchanged callee is structurally forced (a submission with a turns-away fact cannot be specified without it) and is what mapping.md/axiom_check.py are for; it localizes nothing.\n\nBENIGN, RECORDED FOR THE RECORD: view line 105 names the stdlib symbol `os.path.isdir` ('`os.path.isdir` of the guarded expansion can only be true where the expansion answered'). It is not a patched symbol, not on any changed line, and the gold patch does not touch it; it describes the unchanged callee's directory test, which the public error message 'Please enter a valid path name' already implies. Not edit-localizing, so not a leak -- but it is the one repo-grounded identifier in the view and I looked at it deliberately rather than letting the screen's patched-symbol-only rule pass it silently.\n\nFINDING -- INHERITANCE HAZARD IN verdict.md (not reviewer-directed instruction, but reported as asked): the non-ledger files are clean -- grep -rniE 'attacker|reviewer|G-PANEL|honest verdict|you should submit|NO-LEAKAGE|do not submit|record (this|it) as' over mapping.md, refinement.md, properties.py, axiom_check.py, conformance_check.py returns ZERO hits, so nothing in the spec-adjacent material tries to tell me how to record. verdict.md (the gate ledger) DOES carry two prior G-PANEL-3 records ending 'CONCLUSION: no line of the spec view carries edit-localizing information beyond the public problem_statement. Verdict NO-LEAKAGE', including a pre-written 'NO FILE ADDRESSES THE REVIEWER' paragraph and the exact grep line to justify it. That is a retained prior verdict in the ledger rather than an instruction planted for me, and I did not inherit it: I re-derived same_spec, both verify runs, the screen, and the symbol/line extraction from scratch. Flagging it because a reader could mistake that pre-formatted paragraph for a measurement.\n\nSTALE STAMPS (freshness, not leakage): current Solution.lean sha256 is 85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62 (mtime 09:50), which matches NO gate stamp -- G-AX/G-CONF/G-LEAK/G-MUT/G-EQ/G-PANEL-3 recorded b37d358b... and G-DIFF/G-GOLD/G-VERIFY recorded 2159b4d2... (09:41). So every stamped gate on this bundle, including the prior G-LEAK pass and the prior G-PANEL-3 NO-LEAKAGE, predates the current bytes. My verdict rests only on what I re-ran on 85817573..., where verify passes, prepatch fails, same_spec holds, and the screen is clean. Worth a re-stamp regardless of this gate.\n\nOUT OF SCOPE, NOTED: G-EQ and G-PANEL-1 are fail on this bundle (spec-too-weak -- atk_A1_derived_probe.lean verifies but its patch does not resolve, a derived-argument read of the non-total expansion primitive). That is a strength defect, orthogonal to leakage: a spec that is too weak discloses less, not more, and no relaxation argument here depends on those gates passing.\n\nVERDICT: NO-LEAKAGE. The spec view discloses exactly the empty-entry-accepted-vs-refused facet the public problem_statement already reports, and nothing about where or how the repo edit is made.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:29:49+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-guard-inverted",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-emptiness-test-equivalent",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-per-shape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 3.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-decision-inlined",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-domain-guard-redundant",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 3.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-derived-probe-guarded",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 3.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-derived-submission-earned",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 3.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-outcome-nondegenerate",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 3.5
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals hcon : wp (pure (Except.ok [])) fun out => out = Except.ok [] \u22a2 False",
+            "id": "weak-delegate-everything",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals hcon : True \u22a2 False",
+            "id": "weak-reject-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals hcon : True \u22a2 False",
+            "id": "weak-empty-sentinel-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals not_accepted : strictAccepts ['a'] = false answers : expansionAnswers ['a'] = true hcon : wp (pure (Except.error ())) fun out => out = Except.error () \u22a2 False",
+            "id": "weak-accept-everything",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals not_accepted : strictAccepts ['a'] = false answers : expansionAnswers ['a'] = true hcon : True \u22a2 False",
+            "id": "weak-affordance-overreach",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rewrite` failed: Did not find an occurrence of the pattern strictPathValidator entry.reverse in the target expression wp (pure (Except.error ())) fun out => (entry = [] \u2192 out = Except.ok []) \u2227 (entry \u2260 [] \u2192 out = Except.error ())",
+            "id": "weak-argument-reordered",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals accepted : strictAccepts ['a'] = true answers : expansionAnswers ['a'] = true hcon : True \u22a2 False",
+            "id": "weak-outcome-rewritten",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals accepted : strictAccepts ['a'] = true answers : expansionAnswers ['a'] = true expanded : pathExpanded ['a'] = ['a', 'b'] hcon : wp (Except.ok <$> strictPathValidator ['a']) fun out => out = Except.ok ['a', 'b'] \u22a2 False",
+            "id": "weak-constant-accept-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals accepted : strictAccepts ['a', 'b', 'c'] = true answers : expansionAnswers ['a', 'b', 'c'] = true hcon : wp (Except.ok <$> strictPathValidator ['a', 'b', 'c']) fun out => out = Except.ok (pathExpanded ['a', 'b', 'c']) \u22a2 False",
+            "id": "weak-long-entry-refused",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon has type wp (Except.ok <$> strictPathValidator ['a', 'b']) fun out => out = Except.ok (pathExpanded ['a', 'b']) but is expected to have type pathExpanded ['a', 'b'] = [] in the application expansion_nonempty hcon",
+            "id": "weak-branches-swapped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rewrite` failed: Did not find an occurrence of the pattern wp (?x >>= ?f) ?post in the target expression (expansionAnswers [] = true) \u2264 wp (if [] = [] then pure (Except.ok []) else if strictAccepts [] = true then do let accepted \u2190 strictPathValidator [] pure (Except.ok accepted) else pure (Except.error ())) fun out => ([] = [] \u2192 out = Except.ok []) \u2227",
+            "id": "weak-submission-hoisted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rewrite` failed: Did not find an occurrence of the pattern wp (?x >>= ?f) ?post in the target expression (expansionAnswers [] = true) \u2264 wp (if [] = [] then pure (Except.ok []) else if strictAccepts [] = true then do let accepted \u2190 strictPathValidator [] pure (Except.ok accepted) else pure (Except.error ())) fun out => ([] = [] \u2192 out = Except.ok []) \u2227",
+            "id": "weak-unconsumed-probe",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals hcon : True \u22a2 False",
+            "id": "weak-domain-guard-as-verdict",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals derived_not_accepted : strictAccepts ['~', Char.ofNat 0] = false hcon : True \u22a2 False",
+            "id": "weak-derived-probe-as-verdict",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 7,
+          "uniqueness": 14
+        },
+        "manifest_sha256": "b5670f9da8bbfdf7fdae9a5ca162f20604b0a4df6eaa021133d96e3f61a37075",
+        "n_cases": 22,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 22 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62",
+        "properties.py": "b5670f9da8bbfdf7fdae9a5ca162f20604b0a4df6eaa021133d96e3f61a37075"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T05:22:24+00:00",
+      "code_version": "661192977-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7ada66adf06eb158ef0c1c3586712b41854005fed06e43b39b55b0fe52b38f33",
+        "patch.diff": "af65b22541beffc8349c79a6557b7e592b4f1bebe9ed1527c47fc5b20b0ddb98"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T14:05:39+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "wall_time_s": 6.1
+      },
+      "detail": "verified in 6.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "85817573100b21736e0261182f303fa1436566a7fe8787b9804f876c18425f62"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sphinx-doc__sphinx-9320",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List Char; outcome Except Unit (List Char); spec over List Char",
+      "model_symbol": "optionalPathValidator",
+      "repo_location": "sphinx/cmd/quickstart.py (new function, after is_path:91)",
+      "repo_symbol": "sphinx.cmd.quickstart.is_path_or_empty"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      "A statement integrity: skeleton-blanking byte-diff of all 22 variants against the frozen file \u2014 all identical, including method header, require and both ensures. Only 2 cases retune prove_correct and both retunings are load-bearing (frozen-proof controls C1/C2 exit 1).",
+      "B witness discrimination re-derived independently for all 14 reject cases: rival exit 0, frozen solution exit 1, plus 8 consistency probes all exit 1 (no forgery).",
+      "B' forgery/type-reveal, mandatory for the non-plain-evaluation gold_signatures: `exact (hcon : Nat)` reveal on 12 value-route cases showing hcon's real type on each side; for the 2 submission-route cases (wp_bind rewrite-miss signatures) a same-claim TRUTH TABLE proved in both directions across 7 subjects (T_pos/T_neg x gold, 2 rivals, 4 correct positives).",
+      "C rival-is-wrong: reveal probes reduced rivals to concrete falsehoods at named inputs (e.g. Except.error () = Except.ok []; ['a'] != [] -> Except.ok [] = Except.ok ['a','b']).",
+      "D SPEC-TOO-WEAK: six NEW wrong impls (raw entry returned, double expansion, unearned submission in the reject branch, refuse-fixpoint expansion, derived domain as verdict, len-1 accepted verbatim) \u2014 all rejected with real semantic goals. No hole.",
+      "E SPEC-TOO-STRONG: correct reshapes E2/E2b/E4 exit 0, and E1c/E3c/E5c/E6-family exit 0 with adequate tails. No hole.",
+      "FALSE-REJECT control for the submission-route witnesses: a correct submitting impl verifies (exit 0) and is NOT killed by either witness (exit 1).",
+      "F omission re-derivation for all 14 nagini SPEC_TESTS, including same_spec re-derived with the real variant_scope on validator rewrites, and the frame class rebuilt from scratch (Fr1/Fr2/Fr3, FRm/FRw/FRn).",
+      "F' divergence lane judged against the bundle's actual loom.semantics.termination \"total\": module-level rejection confirmed, witness-file compilation confirmed, and 14 witness attempts recorded with their error texts.",
+      "G coverage: reporter clean (obl=1 cases=22 (+8/-14) binders=1 pts=4-4 ok), 0 findings.",
+      "Gate re-run twice after the edits; G-INTEGRITY Solution.lean hash unchanged, meta.json diff gate-written only."
+    ],
+    "audited_at": "weakgold",
+    "cases": [
+      {
+        "evidence": "Attack A: spec skeleton and method header/require/ensures byte-identical to frozen; keeps loom_solve verbatim, so the frozen obligation is reproven, not restated. Verifies (gate 4.7s). Attack F2: both submission-route witnesses fail against it (exit 1), so it is not accidentally in the reject class.",
+        "expect": "verify",
+        "id": "pos-guard-inverted",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical spec skeleton, frozen loom_solve retained. Verifies.",
+        "expect": "verify",
+        "id": "pos-emptiness-test-equivalent",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical spec skeleton, frozen loom_solve retained. Verifies. Truth-table probe T_pos__ok_branch_per_shape exit 0 / T_neg exit 1: it genuinely comes back at [], on the same claim the submission rivals fail.",
+        "expect": "verify",
+        "id": "pos-branch-per-shape",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical skeleton, frozen loom_solve. Verifies. T_pos__ok_decision_inlined exit 0 / T_neg exit 1. P_comesback__posdecision exit 0. Submits nothing yet still satisfies the obligation, which is the correct reshape this positive is for.",
+        "expect": "verify",
+        "id": "pos-decision-inlined",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical skeleton, frozen loom_solve. Verifies. T_pos__ok_domain_guard exit 0 / T_neg exit 1.",
+        "expect": "verify",
+        "id": "pos-domain-guard-redundant",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical skeleton, frozen loom_solve retained. Verifies. A guarded read at a derived entry, discarded \u2014 genuinely a legal shape, not a weakening.",
+        "expect": "verify",
+        "id": "pos-derived-probe-guarded",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "One of only two cases that retunes prove_correct, and the retuning is LOAD-BEARING, not a weakening: control C2_derived_submission_frozen_proof (same impl + frozen loom_solve) exits 1, so the accepted_in_domain tail is discharging a real side condition the frozen script cannot see. Spec skeleton still byte-identical. Truth table: T_pos exit 1 / T_neg exit 1 \u2014 it does NOT satisfy the trivial 'comes back' claim in the form I probed, but it verifies the real obligation, so the submission it makes is earned.",
+        "expect": "verify",
+        "id": "pos-derived-submission-earned",
+        "lane": "soundness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Lane is live, not decorative, and I broke it three ways. A3_assert_false_control: replacing the in-region assert with False gives exit 1 ('decide proved that the proposition False is false'), so the assert region is checked, not inert. A1_domain_conjunct_at_a: moving the domain conjunct off [] to ['a'] gives exit 1 (Application type mismatch, expansionAnswers_empty has type expansionAnswers [] = true) \u2014 the conjunct is pinned to the one input the modeled change is about. A2_false_nondegeneracy: flipping a non-degeneracy conjunct to a false one gives exit 1. Its prove_correct retuning is load-bearing (C1_admiss_frozen_proof exit 1).",
+        "expect": "verify",
+        "id": "admiss-outcome-nondegenerate",
+        "lane": "admissibility",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Witness reproduced: rival exit 0, frozen exit 1. B' type-reveal: rival's hcon reduces to the concrete false equation `Except.error () = Except.ok []`, frozen's stays its own wp term \u2014 the error tracks the claim, not a tactic mismatch. Gold PROVES the positive form of what the witness negates (exit 0). Consistency probe exit 1 (no forgery).",
+        "expect": "reject",
+        "id": "weak-delegate-everything",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. Gold proves the positive form (exit 0). B' reveal shows claim-tracking reduction. Witness names the input it discriminates at ([]). Cross-check: this witness does NOT kill the ++['x'] frame rival (FRn__rejectempty_on_FR_APPEND exit 1), so it is not an over-broad killer.",
+        "expect": "reject",
+        "id": "weak-reject-empty",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. Gold proves the positive form (exit 0). B' reveal claim-tracking.",
+        "expect": "reject",
+        "id": "weak-empty-sentinel-value",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. B' type-reveal: hcon types differ and track the claim; frozen's remains its own wp term. Rival is genuinely WRONG (accepts entries the obligation requires be turned away), not merely reshaped.",
+        "expect": "reject",
+        "id": "weak-accept-everything",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. B' reveal claim-tracking. Consistency probe exit 1.",
+        "expect": "reject",
+        "id": "weak-affordance-overreach",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "gold_signature is a rewrite miss (pattern strictPathValidator entry.reverse), so B' was MANDATORY here. Type-reveal discharges it: the rival's hcon is its own reversed-argument program while the frozen solution's is the unreversed one, i.e. the miss is caused by the rival's reshaping of the argument, and the rival is wrong because it decides on entry.reverse. Hypotheses jointly realisable (entry whose reversal names a directory, itself naming nothing); consistency probe exit 1.",
+        "expect": "reject",
+        "id": "weak-argument-reordered",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. B' reveal claim-tracking.",
+        "expect": "reject",
+        "id": "weak-outcome-rewritten",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. B' type-reveal is especially clean: the rival's hcon reduces to `['a'] != [] -> Except.ok [] = Except.ok ['a','b']`, a concrete falsehood at a named input. Bonus coverage discovered during attack F: this same witness also kills the frame-mutation rival that resets the local to [] (FRn__constaccept_on_FR_EMPTY exit 0), which is why that frame rival adds no discriminating power.",
+        "expect": "reject",
+        "id": "weak-constant-accept-empty",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. B' reveal claim-tracking. Hypotheses at ['a','b','c'] realisable.",
+        "expect": "reject",
+        "id": "weak-long-entry-refused",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "gold_signature is an Application type mismatch (expansion_nonempty hcon), so B' was mandatory. Type-reveal discharges it: the mismatch arises from the rival's swapped arms changing hcon's type, and the frozen solution's hcon is its own unswapped wp term. Rival is wrong (returns the accept outcome on the refuse branch and vice versa).",
+        "expect": "reject",
+        "id": "weak-branches-swapped",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "This was my main suspicion \u2014 gold_signature is a claim-independent-looking `rw [wp_bind]` pattern miss, so B' was mandatory. I discharged it with a TRUTH TABLE on one single claim ('the method comes back at []'), proved in BOTH directions: positive form proves against the frozen solution (T_pos__gold exit 0) and against four correct positives; negative form proves against this rival (T_neg__rival_hoisted exit 0) and fails against the frozen solution and every correct positive (exit 1). The reveal probe shows why, semantically: at [] the frozen program is `if True then pure (Except.ok [])` with NO bind, while this rival binds strictPathValidator [] unconditionally \u2014 it hands the empty entry to the validator, which the obligation forbids. So the wp_bind miss IS the discriminating fact, not noise. FALSE-REJECT check cleared: a correct impl that submits (N_module__E2_submit_computed exit 0) is NOT killed by this witness (N_witness__E2 exit 1), so it discriminates on wrongness, not on leading-bind shape.",
+        "expect": "reject",
+        "id": "weak-submission-hoisted",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Same mandatory-B' situation as weak-submission-hoisted and discharged the same way: T_neg__rival_unconsumed exit 0 while T_neg on the frozen solution and on all four correct positives exits 1; T_pos__rival_unconsumed exit 1 (unsolved goals) while T_pos__gold exit 0. Reveal shows the rival binds strictPathValidator [] and discards the result. F3_trivialpost pair (rival exit 0 / gold exit 1) agrees. Not an over-rejection: the E2 correct-submitting impl survives it.",
+        "expect": "reject",
+        "id": "weak-unconsumed-probe",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. Gold proves the positive form of the negated claim (exit 0). Rival is wrong: it uses the domain condition it is GIVEN as the accept/refuse verdict, which is a different function from the acceptance test.",
+        "expect": "reject",
+        "id": "weak-domain-guard-as-verdict",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival exit 0 / frozen exit 1. Gold proves the positive form (exit 0). Correctly paired with the pos-derived-probe-guarded positive: reading at a derived entry is legal, using that read as the verdict is not \u2014 the battery ships both sides of that line, which is real discrimination.",
+        "expect": "reject",
+        "id": "weak-derived-probe-as-verdict",
+        "lane": "uniqueness",
+        "verdict": "earned"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "D1-point-wrong-at-q",
+            "kind": "wrong-impl (attack D)",
+            "outcome": "rejected as it should be \u2014 exit 1, unsolved goal on the C2 clause. Adds a second bypass point (entry=['q']); spec catches it."
+          },
+          {
+            "id": "D2-uppercased-arg",
+            "kind": "wrong-impl (attack D)",
+            "outcome": "rejected \u2014 exit 1, unsolved C2 goal on `strictPathValidator (List.map Char.toUpper entry)`. Argument-corruption variant distinct from reversal (wrong even at length 1)."
+          },
+          {
+            "id": "D3-drop-head-arg",
+            "kind": "wrong-impl (attack D)",
+            "outcome": "rejected \u2014 exit 1, unsolved C2 goal on `strictPathValidator entry.tail`."
+          },
+          {
+            "id": "D4-unconstrained-choice / D4b",
+            "kind": "demonic-choice oracle echo (attack D)",
+            "outcome": "rejected \u2014 exit 1. D4b (`let result :| (result = result)`) fails `failed to synthesize Findable`, i.e. an unconstrained demonic choice does not even elaborate here, so it cannot be used to dodge the obligation."
+          },
+          {
+            "id": "D5-spec-echo-choice / D5b",
+            "kind": "ungrounded-oracle echo (attack D)",
+            "outcome": "rejected \u2014 exit 1. Echoing the postcondition verbatim into a `:|` choice fails `failed to synthesize Findable` (no constructive witness), confirming the docstring's UNGROUNDED-ORACLE-ECHO N/A disposition mechanically rather than by argument."
+          },
+          {
+            "id": "D6-error-on-long",
+            "kind": "wrong-impl (attack D)",
+            "outcome": "rejected \u2014 exit 1, unsolved C2 goal. Rejects entries of length>=3 while delegating the rest; the length dependence is caught."
+          },
+          {
+            "id": "D7-ok-error-collapse",
+            "kind": "correct reshape via Except round-trip (attack E, probing carrier collapse)",
+            "outcome": "VERIFIED (exit 0) \u2014 correct, so this is the right outcome. Re-destructuring the callee's outcome and rebuilding it (ok v -> ok v, error _ -> error ()) is definitionally the identity here because the error payload is Unit; confirms the Unit abstraction collapses nothing the spec needs."
+          },
+          {
+            "id": "D8-empty-via-error-unit",
+            "kind": "wrong-impl (attack D)",
+            "outcome": "rejected \u2014 exit 1, unsolved goal on ensures_2 (C1). match-shaped restatement of reject-on-empty."
+          },
+          {
+            "id": "D9-outcome-flipped",
+            "kind": "wrong-impl, GAP FOUND (attack D)",
+            "outcome": "rejected by the spec (exit 1) BUT unattacked by the battery \u2014 the spec is strong enough, the MANIFEST was not probing the 'answer returned unaltered' half of C2. Built a discriminating witness (rival 0 / gold 1 / probe 1) and SHIPPED it as the new case weak-outcome-rewritten."
+          },
+          {
+            "id": "D10-constant-outcome",
+            "kind": "wrong-impl, GAP FOUND (attack D)",
+            "outcome": "rejected by the spec (exit 1) but unattacked: no original rival was binder-INDEPENDENT. Witness needed a distinct closer (first attempt exit 1 with `Invalid projection`); corrected version rival 0 / gold 1. SHIPPED as weak-constant-accept-empty."
+          },
+          {
+            "id": "E1-ok-entry-in-empty-branch",
+            "kind": "correct reshape (attack E)",
+            "outcome": "VERIFIED (exit 0). Returns `Except.ok entry` in the empty branch rather than the literal `Except.ok []` \u2014 no spec-too-strong hole."
+          },
+          {
+            "id": "E2-length-zero-test",
+            "kind": "correct reshape (attack E)",
+            "outcome": "VERIFIED (exit 0). `entry.length = 0` as the emptiness test."
+          },
+          {
+            "id": "E3-append-nil-arg",
+            "kind": "correct reshape (attack E)",
+            "outcome": "VERIFIED (exit 0). Forwards `entry ++ []`."
+          },
+          {
+            "id": "E4-reverse-reverse-arg",
+            "kind": "correct reshape (attack E)",
+            "outcome": "VERIFIED (exit 0). Forwards `entry.reverse.reverse` \u2014 the involution is seen through, so the spec is not too strong on the argument's syntactic form even though weak-argument-reordered rejects a single reversal."
+          },
+          {
+            "id": "E5-early-return-shape",
+            "kind": "correct reshape (attack E)",
+            "outcome": "VERIFIED (exit 0). Early `return` in the empty branch then a bare `return strictPathValidator entry`, no bound let."
+          },
+          {
+            "id": "E6-call-and-discard / E6b",
+            "kind": "correct reshape probing C1's 'WITHOUT being submitted' (attack E)",
+            "outcome": "E6 exit 1 for a TOOLING reason only (`failed to synthesize Decidable (probe = probe)` on an opaque Except, cascading to a sorry). E6b, the same idea via a match on the probed outcome, VERIFIED (exit 0). Worth recording: an impl that DOES submit the empty entry to the strict validator and then discards the answer still verifies. That is not a spec hole \u2014 C1 constrains the returned outcome, and the modeled callee is pure, so the call has no observable footprint; the real callee's own purity is what mapping.md \u00a73 / G-AX establish. No finding, but it bounds what C1's 'bypass' prose can be read to mean."
+          },
+          {
+            "id": "F1-mutate-input",
+            "kind": "frame-mutation re-derivation (attack F)",
+            "outcome": "CONFIRMED INEXPRESSIBLE. `entry := entry ++ ['z']` gives exit 1 with `` `entry` cannot be mutated, only variables declared using `let mut` can be mutated `` + `Failed to parse an assertion without names: WPGen sorry` \u2014 a malformed file, not a wrong-but-well-formed rival."
+          },
+          {
+            "id": "strict-validator-reshape",
+            "kind": "omission re-derivation (attack F)",
+            "outcome": "CONFIRMED INEXPRESSIBLE by carrier, not by difficulty. Replacing `opaque strictPathValidator` with a `def` that accepts everything is reported `spec view differs (same_spec failed)` by variant_scope \u2014 the opaque lives in the axioms region, which the consumer spec view KEEPS, so it has no body to reshape in-scope."
+          },
+          {
+            "id": "tester-route",
+            "kind": "verification of the docstring's WITNESS MECHANICS measurement",
+            "outcome": "CONFIRMED. `prove_postcondition_decidable_for` leaves both `Decidable` goals unsolved (`Decidable (entry != [] -> out = strictPathValidator entry)` and the C1 one), `derive_tester_for` then errors `no executable found`. So the port's stated reason for conditioning instead of computing is accurate, and \u2014 per the guidance's warning \u2014 it did NOT use 'the carrier is opaque' to drop any rival: all 9 rivals carry landed witnesses."
+          },
+          {
+            "id": "gold-satisfies-the-witnessed-triple",
+            "kind": "faithfulness of the witness restatement",
+            "outcome": "CONFIRMED at all three witness points. The exact `triple` the witnesses negate is PROVABLE of gold at [], ['a'] and ['a','b'] (three builds, all exit 0, closing with `unfold; rw [triple, wp_pure]; simp only [loomLogicSimp]; simp`). This is the check that rules out a neutered/weakened restatement: the witnesses negate a proposition gold genuinely satisfies, so their gold-side failures are refusals to refute, not artifacts."
+          }
+        ],
+        "audited_at": "a7",
+        "cases": [
+          {
+            "evidence": "Diff vs frozen touches ONLY the impl region: guard inverted (non-empty tested first, empty as fall-through), and the two frozen impl comment lines drop. Statement integrity (attack A): the `method`/`ensures` header and the `prove_correct optionalPathValidator by loom_solve` block are byte-identical to Solution.lean in every one of the 13 modules \u2014 diffed programmatically against the frozen file; the only hunks in ANY case fall inside impl-start/impl-end (plus the retuned tactic body in admiss-*). Not definitionally trivial: `if entry \u2260 [] then A else B` is not syntactically the frozen `if entry = [] then B else A`, yet the frozen loom_solve still closes it. Gate re-ran: verified [27.4s].",
+            "id": "pos-guard-inverted",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Real reshape, not a rename: the branch test becomes `entry.isEmpty` (a Bool-valued predicate + Decidable coercion) instead of the Prop equation `entry = []`. Frozen loom_solve unchanged and still closes. Statement byte-identical. Gate: verified [26.8s].",
+            "id": "pos-emptiness-test-equivalent",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Genuine control-flow reshape: `match entry with | [] => return ... | c :: cs => return strictPathValidator (c :: cs)` \u2014 two return sites instead of one bound `let`, and the non-empty arm forwards the entry REASSEMBLED from its own head/tail rather than passing `entry` itself. Frozen loom_solve still closes. Gate: verified [17.4s].",
+            "id": "pos-branch-per-shape",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "LIVENESS RE-MEASURED (the port claimed only 'either emptiness conjunct'; I checked three flips with real builds). Flipping the non-empty emptiness conjunct (['a']=[] <-> True), the empty one (([]=[]) <-> False), and the rejection-is-not-an-acceptance one (error.toOption.isSome = true) each gave exit 1 with `Tactic 'decide' proved that the proposition ... is false` \u2014 so the assert is decided on its merits, not discharged by something that would accept anything. The impl is kept verbatim so the method's own obligation still discharges; only the tactic body gains `all_goals decide` for the extra assert goal. Corrected the docstring's understated liveness claim. Gate: verified [22.8s].",
+            "id": "admiss-outcome-nondegenerate",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rival is the genuine pre-image (no empty affordance; every entry delegated) \u2014 observably different from gold at entry=[] (attack C). Witness rebuilt by me: rival exit 0, gold exit 1, consistency probe exit 1. Gold-side failure is SEMANTIC, not syntactic: `Application type mismatch ... hcon has type (if True then Except.ok [] else strictPathValidator []) = Except.ok [] AND ... but is expected to have type strictPathValidator [] = Except.ok []` \u2014 i.e. gold's own outcome at [] is the accepted empty value, so the hypothesis cannot be applied. Hypothesis realisable on the real callee (which does not accept the empty entry).",
+            "id": "weak-delegate-everything",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rival explicitly rejects the empty entry; observably differs from gold at []. Witness rebuilt: rival 0, gold 1, no binders so no probe needed. Gold-side failure is semantic: `unsolved goals / hcon : (if True then Except.ok [] else ...) = Except.ok [] AND ... |- False` \u2014 gold's postcondition genuinely holds at [], so no contradiction is derivable. Not a missing identifier, type error, unfolding failure, or timeout.",
+            "id": "weak-reject-empty",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Nearest miss in the battery: accepts the empty entry but carrying ['x']; agrees with gold on the ENTIRE non-empty sub-domain, so [] is the only discriminating input and that is exactly where the witness sits. Witness rebuilt: rival 0, gold 1 (same semantic `|- False` unsolved shape as weak-reject-empty). Unconditioned, so no probe.",
+            "id": "weak-empty-sentinel-value",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rival accepts every entry verbatim, never consulting the callee. Witness rebuilt: rival 0, gold 1, probe 1. Gold-side failure semantic: mismatch shows gold's outcome at ['a'] IS `strictPathValidator ['a']`, so it cannot be forced to equal `Except.ok ['a']`. Hypothesis (`... ['a'] != Except.ok ['a']`) realisable on the real callee: I executed the real strict validator \u2014 an entry naming nothing is rejected, so the disequality holds there.",
+            "id": "weak-accept-everything",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Partial-domain near-miss on C2: affordance widened to length<=1, so correct at [] AND at every length>=2 entry; ['a'] is the single wrong input and the witness sits there. Witness rebuilt: rival 0, gold 1, probe 1. Gold-side failure semantic (gold's outcome at ['a'] is the callee applied to ['a']). Hypothesis holds outright on the real callee, which never accepts a non-empty entry carrying the empty value.",
+            "id": "weak-affordance-overreach",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rival forwards `entry.reverse`; observably differs from gold only at length>=2 entries with distinct code points, which is where the witness sits. Witness rebuilt: rival 0, gold 1, probe 1. Gold-side failure semantic. BUT the port's prose claimed the hypothesis is 'true of the real unchanged callee ... (they name different locations)'. I executed the real callee: with 'ab' present and 'ba' absent the two applications differ, but when NEITHER names a directory both are a rejection and \u2014 because the rejection payload is abstracted to Unit (mapping.md \u00a72) \u2014 the two applications are EQUAL on this carrier. So the hypothesis is realisable-on-a-sub-domain, not unconditionally true. That is all the witness needs and all the probe checks, but the prose overclaimed; rewrote it with the per-hypothesis realisability accounting.",
+            "id": "weak-argument-reordered",
+            "verdict": "earned (hypothesis claim corrected)"
+          },
+          {
+            "evidence": "Closes an attack-D gap: every pre-existing C2 rival either SKIPS the call or corrupts its ARGUMENT, so a spec pinning 'the callee is consulted on the right argument' while leaving its ANSWER free would have been rejected by all seven original rivals. This rival consults the callee on the unchanged entry and then inverts its verdict. Rival module exit 1 (unsolved goal on ensures_1, the C2 clause). Witness built by me: rival 0, gold 1, probe 1. Its hypothesis polarity is unique in the battery (assumes the callee ACCEPTS ['a'] verbatim \u2014 realisable by an entry naming a real directory, measured on the real callee). Gate: rejected (witness refutes the rival) [14.1s].",
+            "id": "weak-outcome-rewritten",
+            "verdict": "earned (ADDED by this audit)"
+          },
+          {
+            "evidence": "Closes the binder-independence gap and lands the sibling's dropped constant-answer attack (weak-abort-const-false). Outcome is the literal `Except.ok []`, ignoring `entry` entirely; distinct from weak-accept-everything (accepts verbatim, so still binder-dependent) and weak-branches-swapped (still consults the callee at []). Rival module exit 1 (unsolved ensures_1: `entry != [] -> Except.ok [] = strictPathValidator entry`). Witness: rival 0, gold 1. Needed a different closer from every other case \u2014 `simp only [loomLogicSimp]` discharges C1 outright here (the constant IS the accepted empty value), leaving hcon as the bare C2 implication rather than a conjunction; my first attempt with the shared conjunction closer failed with `Invalid projection ... hcon has type ['a'] != [] -> ...`, which is itself the mechanical signature of the binder-independence. Gate: rejected [16.2s].",
+            "id": "weak-constant-accept-empty",
+            "verdict": "earned (ADDED by this audit)"
+          },
+          {
+            "evidence": "Arms exchanged: wrong on BOTH clauses, so wrong on a strictly larger sub-domain than weak-affordance-overreach. Shares the ['a'] witness point with that rival, which the port's rationale explicitly justifies and I confirmed is legitimate: the two rivals are not the same impl (this one submits the empty entry to the callee, the other satisfies C1 exactly) and the nearer miss has its own discriminating witness. Witness rebuilt: rival 0, gold 1, probe 1; gold-side failure semantic.",
+            "id": "weak-branches-swapped",
+            "verdict": "earned"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "SCOPE OF WHAT I RAN: 41 real verifier builds via scripts/lean_verify.sh, all scratch under a private /tmp dir (nothing written into the bundle or the repo root). Frozen artifacts untouched \u2014 verified with `git show HEAD:<path> | diff -`: Solution.lean UNCHANGED, instance.json UNCHANGED. Only properties.py was edited (+152/-16); meta.json changed solely because the gate re-stamped it.\n\nWHAT WAS WRONG WITH THE ORIGINAL SOUND. It was not hollow \u2014 all 7 original rivals are observably different from gold and all 7 witnesses genuinely discriminate with semantic gold-side failures, which I reproduced myself. But it was INCOMPLETE in a way no gate could see, in two independent directions:\n(1) C2 conjoins four demands (call it / call it on the right argument / return its answer unaltered / depend on the input at all) and the battery probed only the first two. A spec that let an impl rewrite the callee's verdict, or ignore the input entirely, would have been rejected by all seven original cases \u2014 so the recorded SOUND attested to strength across C2 that the manifest never exercised. Both gaps are now closed by rivals whose witnesses I built and the gate re-verified.\n(2) One prose claim was false. The docstring asserted every witness hypothesis is 'true of the REAL unchanged callee', naming 'distinguishes two entries that differ in order'. I executed the real callee: when neither entry names a directory, both applications are a rejection, and since the rejection payload is abstracted to Unit the two are EQUAL on this carrier. The hypothesis is realisable on a sub-domain (measured: with one directory present and the other absent they differ), which is all the witness needs and all the consistency probe checks \u2014 but 'true of the real callee' overclaimed. Rewritten as a per-hypothesis realisability accounting, including the polarity split (six disequality hypotheses vs the one positive-acceptance hypothesis the new weak-outcome-rewritten introduces).\nAlso corrected: the admissibility liveness claim (said 'either emptiness conjunct'; I measured three flips, all exit 1 with decide proving the proposition false) and the case/rival counts.\n\nNO SPEC HOLE. Ten new wrong impls, including two demonic-choice oracle-echo attempts, were all rejected; five new correct reshapes were all verified (E4's reverse-reverse involution is seen through even though a single reversal is rejected, so the spec is not too strong on the argument's syntactic form). The spec is exactly as strong as the battery now claims.\n\nONE BOUNDED READING, recorded rather than filed as a finding: E6b shows an impl that DOES submit the empty entry to the strict validator and then discards the answer still verifies (exit 0). That is not a hole \u2014 C1 constrains the returned outcome and the modeled callee is pure, so the call leaves no footprint the spec could observe; the real callee's purity is a mapping.md \u00a73 / G-AX matter. It does bound how literally C1's 'WITHOUT being submitted' prose can be read, so I note it here rather than silently.\n\nDIVERGENCE LANE: not re-derived and not re-reported. The port's disposition (nothing shippable) is correct; at that round the bundle's termination line read `partial` and the class was left to the corpus-wide termination-semantics finding rather than re-derived here, with no builds spent on it and nothing entered in spec_holes. Superseded by the later round, which rebuilt it: the bundle sets `total`, under which both divergence rivals are refused at exit 1 on the loop's own descent obligation.\n\nCOVERAGE (advisory): clean before and after, now `obl=1 cases=13 (+4/-9) binders=1 pts=3-3 ok`. The three witness points remain [] / ['a'] / ['a','b'], and I checked the variation is MEANINGFUL rather than two spellings of one point: each is the input at which some rival is uniquely wrong ([] for the C1 rivals, ['a'] for the length-1 overreach that is correct at [] and at length>=2, ['a','b'] for the reversal that is correct at [] and every length-1 entry). Two rivals legitimately share ['a'] \u2014 confirmed they are different impls, with the nearer miss carrying its own discriminating witness.",
+        "omissions_reviewed": [
+          {
+            "evidence": "Landed as pos-guard-inverted; gate records verified.",
+            "nagini_case": "pos-vae-reorder",
+            "verdict": "ported (not omitted)"
+          },
+          {
+            "evidence": "The sibling inlines the CONSUMER function's (abort_on_empty_reprompt) let-bindings. This carrier models one operation, so there is no second obligation to inline. Its content \u2014 an equivalent-expression reshape \u2014 is carried by pos-emptiness-test-equivalent, which I confirmed is a real reshape (Bool predicate + Decidable coercion vs a Prop equation) and not a rename.",
+            "nagini_case": "pos-abort-inline",
+            "verdict": "inexpressible as stated; content preserved"
+          },
+          {
+            "evidence": "Reshapes the STRICT validator's own body (accept-first / raise-on-fall-through). Demonstrated mechanically, not asserted: that validator is `opaque` here with no body, declared in the axioms region which the spec view KEEPS, so any rewrite is `spec view differs (same_spec failed)` \u2014 out of scope, not a rival. Its shape-reshape content is instead carried by pos-branch-per-shape on the modeled operation.",
+            "nagini_case": "pos-strict-reorder",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The sibling probes that a normal input satisfies `Requires(Acc(list_pred(x),1/2))`. There is NO `require` clause here \u2014 the domain is every List Char \u2014 so the precondition half is degenerate and nothing can be too strong. The port re-aimed it at the residual risk (post-image degeneracy at the interesting point) as admiss-outcome-nondegenerate; I re-measured its liveness with three conjunct flips (all exit 1, `decide` proving the proposition false), so the substitute is live rather than decorative.",
+            "nagini_case": "admiss-empty-and-nonempty",
+            "verdict": "inexpressible as stated; re-aimed"
+          },
+          {
+            "evidence": "Re-derived with a real build: `entry := entry ++ ['z']` in the impl region yields `` `entry` cannot be mutated ... `` + `WPGen sorry`, exit 1 \u2014 a file the front end refuses, not a wrong-but-well-formed rival. Lean is functional: no aliasing, no fractional permission, and the input is not `mut`, so the permission-hole class has no analogue.",
+            "nagini_case": "frame-mut-vae-append",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Same wall as frame-mut-vae-append, and additionally targets the consumer function this carrier does not model. Same measured error.",
+            "nagini_case": "frame-mut-abort-append",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Landed as weak-delegate-everything; witness rebuilt 0/1/1.",
+            "nagini_case": "weak-vae-prepatch-delegate-all",
+            "verdict": "ported (not omitted)"
+          },
+          {
+            "evidence": "Landed as weak-reject-empty; witness rebuilt 0/1.",
+            "nagini_case": "weak-vae-raise-on-empty",
+            "verdict": "ported (not omitted)"
+          },
+          {
+            "evidence": "Landed as weak-empty-sentinel-value; witness rebuilt 0/1.",
+            "nagini_case": "partial-vae-empty-returns-nonempty",
+            "verdict": "ported (not omitted)"
+          },
+          {
+            "evidence": "Dropping the directory guard INSIDE the strict validator is out of scope here (opaque, in the spec-view-visible axioms region \u2014 verified `same_spec failed`). The port re-expressed it as weak-accept-everything (accept every entry without consulting the callee), which attacks the corresponding clause C2 on this carrier; its witness rebuilds 0/1/1.",
+            "nagini_case": "weak-strict-accept-all",
+            "verdict": "inexpressible against the callee; re-expressed against the delegation clause"
+          },
+          {
+            "evidence": "Inverts the CONSUMER decision (`if d['path']` vs `if not d['path']`), which the sibling models as a third function. This carrier models one operation and the consuming decision is not part of the defended surface (mapping.md \u00a71 records the call site as refinement-audit-only), so there is no obligation to invert. The nearest expressible analogue \u2014 inverting the modeled operation's own arms \u2014 is already present as weak-branches-swapped.",
+            "nagini_case": "weak-abort-inverted",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The port dropped the sibling's constant-answer rival with the rest of the consumer-side cases, but the class does not depend on the consumer function: a constant outcome that ignores the input binder is perfectly expressible against THIS obligation. Built it (`let result := Except.ok []`), confirmed the spec rejects it (exit 1, unsolved `entry != [] -> Except.ok [] = strictPathValidator entry`), and built a discriminating witness (rival 0 / gold 1) \u2014 which needed a closer distinct from every other case in the battery, since loomLogicSimp discharges C1 outright and leaves hcon as a bare implication. SHIPPED as weak-constant-accept-empty; the re-run gate records it rejected [16.2s].",
+            "nagini_case": "weak-abort-const-false",
+            "verdict": "EXPRESSIBLE \u2014 this was a finding, and I landed it"
+          },
+          {
+            "evidence": "AXIOM_TESTS are the axiom lane. G-PBT's docstring states the axiom lane is G-AX's job and that manifests may carry AXIOM_TESTS 'ignored here'; this bundle's callee facts are checked by velvet/axiom_check.py at base_commit (mapping.md \u00a73). Not a port gap.",
+            "nagini_case": "ax-sound-expand_home / ax-sound-path_is_dir / ax-contain-both-requires-true",
+            "verdict": "inexpressible in this lane (out of scope by design)"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "gold_exit": 1,
+            "id": "weak-delegate-everything",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-reject-empty",
+            "probe_exit": "n/a (no binders; gate skips the probe)",
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-empty-sentinel-value",
+            "probe_exit": "n/a (no binders)",
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-accept-everything",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-affordance-overreach",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-argument-reordered",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-branches-swapped",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-outcome-rewritten",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-constant-accept-empty",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 9
+      },
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "Dx-wrong-long-entry",
+            "kind": "D (SPEC-TOO-WEAK probe): refuse entries of length >= 3 without consulting the callee",
+            "outcome": "REJECTED by the spec (exit 1) -> no hole, but it exposed a real COVERAGE gap: it agreed with gold at every witness point the battery had. LANDED as the new case weak-long-entry-refused (rival 0 / gold 1 / probe 1, forgery inverts). Coverage reporter went from pts=3-3 to pts=4-4."
+          },
+          {
+            "id": "Dx-wrong-truncate-arg",
+            "kind": "D: callee consulted on entry.take 1 (a different argument corruption from reverse)",
+            "outcome": "REJECTED (module exit 1). Witness rival 0 / gold 1 / probe 1; forgery flip 0 on gold / 1 on rival. No spec hole. Not landed: weak-argument-reordered already covers the argument-corruption class at the same length-2 point, so it would add a duplicate rather than a new binder point."
+          },
+          {
+            "id": "Dx-wrong-echo-entry-on-accept",
+            "kind": "D: callee consulted, but on acceptance the ENTRY is echoed instead of the callee's returned value",
+            "outcome": "REJECTED (module exit 1). Witness rival 0 / gold 1 / probe 1; forgery flip 0 on gold / 1 on rival. No hole. Not landed: weak-outcome-rewritten already attacks C2's 'unaltered' half."
+          },
+          {
+            "id": "Ex-ok-entry-in-empty-branch",
+            "kind": "E (SPEC-TOO-STRONG probe): return Except.ok entry in the empty branch instead of Except.ok []",
+            "outcome": "VERIFIES (exit 0). No soundness hole; the spec accepts this faithful reshape."
+          },
+          {
+            "id": "Ex-length-zero-test",
+            "kind": "E: decide emptiness with entry.length = 0",
+            "outcome": "VERIFIES (exit 0). No hole."
+          },
+          {
+            "id": "Ex-dependent-if",
+            "kind": "E: dependent if h : entry = [] then ... else ...",
+            "outcome": "VERIFIES (exit 0). No hole."
+          },
+          {
+            "id": "Ex-match-wildcard",
+            "kind": "E: match entry with [] => ... | _ => ... (wildcard rather than head::tail)",
+            "outcome": "VERIFIES (exit 0). No hole."
+          },
+          {
+            "id": "Ex-append-nil-arg",
+            "kind": "E: forward strictPathValidator (entry ++ []) -- an argument that is equal but not syntactically identical",
+            "outcome": "VERIFIES (exit 0). No hole; confirms C2 is not brittle on the argument's spelling."
+          },
+          {
+            "id": "Ex-early-return",
+            "kind": "E: early return in the empty branch, no let binding",
+            "outcome": "VERIFIES (exit 0). No hole. Six correct reshapes tried, six verified -> no evidence of SPEC-TOO-STRONG."
+          },
+          {
+            "id": "Fx-frame-mutate-input",
+            "kind": "F: re-derive the sibling's frame/permission-mutation rivals by assigning to the read-only input (entry := entry ++ ['z'])",
+            "outcome": "Confirms the port's INEXPRESSIBLE verdict mechanically: exit 1 with 'error: `entry` cannot be mutated, only variables declared using `let mut` can be mutated' + 'Failed to parse an assertion without names: WPGen sorry'. A malformed file, not a wrong-but-well-formed rival."
+          },
+          {
+            "id": "Fx-redefine-opaque",
+            "kind": "F: re-derive the sibling's strict-validator rivals by replacing the opaque callee with a def that accepts everything",
+            "outcome": "Confirms INEXPRESSIBLE: variant_scope reports 'spec view differs (same_spec failed)'. The opaque declaration sits in the axioms region, which the consumer spec view KEEPS, so rewriting it changes the spec rather than the impl. Out of scope, not a rival."
+          },
+          {
+            "id": "Fprime-diverge-naive",
+            "kind": "F' divergence, naive probe: while True do pure () prefix",
+            "outcome": "Under the bundle's frozen 'total': REJECTED (exit 1, 'Decreasing annotations are required in total correctness semantics'). With that one line flipped to 'partial' as a control, which is not the shipped setting: VERIFIES (exit 0) even returning the flatly wrong Except.error (), so the setting is load-bearing. So the naive probe is not landable under total."
+          },
+          {
+            "id": "Fprime-diverge-donewith-false",
+            "kind": "F' divergence, refined: diverging loop (guard i+1>0 a Nat tautology, measure supplied, exit condition False) with body return Except.error ()",
+            "outcome": "NO HOLE under 'total': REJECTED at exit 1 on case \u00abdecreasing_1: i\u00bb, residual i + 1 < i under if_pos : i + 1 > 0, so returning the pre-image behaviour (empty entry REFUSED) is refused. Control: the same done_with False on a TERMINATING loop is correctly rejected ('unsolved goals' on both clauses), so the escape is the unreachable exit, not the annotation alone. That escape reaches the two value clauses ONLY: the unreachable exit does absorb them, which is why the residual names no ensures goal, but the loop's own descent obligation is emitted and is arithmetically false, so the route is closed, and a diverging loop with a SATISFIABLE done_with is also correctly rejected. Nothing to report in spec_holes, and still not landable as a reject case: a trivial witness against it fails with the same decreasing-annotation error, exit 1 on both sides, the descent obligation failing at the method itself ahead of any appended tester."
+          },
+          {
+            "id": "Fprime-measure-not-enforced",
+            "kind": "F' divergence, second leg: TERMINATING loop annotated decreasing (10 - i) while i counts DOWN, so the annotated measure GROWS; frozen body",
+            "outcome": "NO HOLE (second leg): REJECTED at exit 1 on case \u00abdecreasing_1: (10 - i)\u00bb, residual 10 - (i - 1) < 10 - i under if_pos : i > 0, so the annotation is not accepted without being proven; its descent is a goal like any other and this one is arithmetically false. Control that isolates the annotation as load-bearing rather than decorative: the SAME loop with a genuinely descending measure ('decreasing i' in place of 'decreasing (10 - i)') verifies at exit 0, so what refuses this rival is the growth of the annotated measure and not the presence of a loop. Second control: 'decreasing 7' (a constant) fails to elaborate ('failed to synthesize OfNat (Option \u2115) 7'; the measure slot is an Option \u2115), so a bare numeral never reaches the descent goal. Nothing to report in spec_holes."
+          },
+          {
+            "id": "G-coverage",
+            "kind": "G: coverage reporter, and a check that the varied binder points change the spec's verdict",
+            "outcome": "Before repair: pts=3-3, 'ok'. After landing weak-long-entry-refused: pts=4-4, 'ok', 0 coverage findings. The four points are meaningful, not two spellings of one: each of [], ['a'], ['a','b'], ['a','b','c'] is the UNIQUE point refuting at least one rival (empty-sentinel needs [], affordance-overreach needs a length-1 entry, argument-reordered needs a length-2 entry with distinct elements, long-entry-refused needs length >= 3)."
+          },
+          {
+            "id": "A-statement-integrity",
+            "kind": "A: extract and diff every variant's spec text against the frozen file",
+            "outcome": "All 14 variants byte-identical to the frozen Solution.lean outside the impl and prove_correct regions (ensures clauses, method signature, opaque declaration and set_option lines all untouched). No reformatted or weakened hypothesis anywhere."
+          },
+          {
+            "id": "tester-route-claim",
+            "kind": "Verify the docstring's measured claim that velvet's derive_tester_for route does not work here",
+            "outcome": "CONFIRMED: prove_postcondition_decidable_for leaves 'unsolved goals' and the tester build reports 'no executable found for optionalPathValidator'. So conditioning each witness on the opaque callee is the right technique, not an evasion."
+          },
+          {
+            "id": "both-termination-settings",
+            "kind": "Robustness: re-run all 14 cases and all 10 witness pairs with the termination line flipped to 'partial' as well as under the bundle's frozen 'total'",
+            "outcome": "34/34 builds identical in outcome: 4 positives verify (exit 0), 10 rivals rejected (exit 1), 10 witnesses rival 0 / gold 1. The battery's SOUND does not depend on the termination line."
+          }
+        ],
+        "audited_at": "u4",
+        "cases": [
+          {
+            "evidence": "Attack A: byte-compared whole file outside impl/proof regions vs frozen -> SAME-OUTSIDE-REGIONS, ensures clauses + prove_correct statement untouched. Genuine reshape (non-empty guard first, empty fall-through), keeps loom_solve verbatim. Built standalone exit 0; also exit 0 with the termination line flipped to 'partial'.",
+            "id": "pos-guard-inverted",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Uses entry.isEmpty, not syntactically the frozen entry = [] test; loom_solve still closes. Exit 0 standalone and exit 0 under 'partial'. Real reshape, not a rename.",
+            "id": "pos-emptiness-test-equivalent",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. match entry with [] / c :: cs, two return sites, entry reassembled from head+tail. Exit 0 standalone; exit 0 under 'partial'. Frozen loom_solve kept.",
+            "id": "pos-branch-per-shape",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Liveness re-measured: flipped each of the 4 original conjuncts singly and rebuilt -> all 4 exit 1 with 'Tactic decide proved that the proposition ... is false', so none is vacuously discharged. BUT the case only asserted carrier non-degeneracy and never touched the obligation at an F2P-shaped input, which is what this lane exists for. REPAIR: added a 5th conjunct evaluating the frozen impl's OWN branch selection at the empty entry ((if ([]:List Char) = [] then (0:Nat) else 1) = 0), discharged by evaluation before the frozen obligation closes verbatim. Verified: as-is exit 0; the 5th conjunct flipped to '= 1' exit 1 with 'decide proved that the proposition ... is false' -> the new conjunct is live too. Impl kept verbatim so the method's own ensures still discharges. Note: an attempt to state this over the opaque callee instead (strictPathValidator inside the assert) fails 'failed to synthesize Decidable', which is why the projection is over the decidable branch selector.",
+            "id": "admiss-outcome-nondegenerate",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "THE pre-image rival (no empty affordance; every entry to the strict validator). Rebuilt: rival 0 / gold 1 / probe 1. Forgery (attack B', mandatory since gold_signature is an application type mismatch): flipped claim (dropped the negation) builds 0 on GOLD and 1 on RIVAL -- the exact inverse of the witness, so gold's exit code tracks the CLAIM not the syntax. Type-reveal shows hcon on gold is the frozen if-expression's own conjunction (NOT True), i.e. simp did not prove it for gold. Attack C: observably differs from gold at [] (gold returns Except.ok [] there, rival returns the opaque callee's value); hypothesis holds outright of the real callee, which does not accept the empty entry.",
+            "id": "weak-delegate-everything",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Empty entry branched then explicitly REJECTED. rival 0 / gold 1, no binders so no probe needed. Forgery: flip builds 0 on gold, 1 on rival. Type-reveal on rival shows the literal clash (if True then Except.error () ...) = Except.ok [] -- an unconditioned literal refutation simp closes. Observably wrong at [] vs gold.",
+            "id": "weak-reject-empty",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Closest miss: empty entry accepted but carrying ['x']. rival 0 / gold 1. Forgery: flip 0 on gold / 1 on rival. Type-reveal on rival: (if True then Except.ok ['x'] ...) = Except.ok [] -- literal value clash. Agrees with gold on the whole non-empty sub-domain, so the witness at [] is the only point that separates it; genuinely wrong on C1's VALUE half.",
+            "id": "weak-empty-sentinel-value",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Accepts every entry verbatim, callee never consulted. rival 0 / gold 1 / probe 1. Forgery: flip 0 on gold / 1 on rival. Type-reveal on rival gives Except.ok ['a'] = strictPathValidator ['a'] (concrete equation, not True) vs gold's frozen if-expression. Observably differs from gold at ['a'] whenever the callee does not accept it verbatim -- realisable (entry naming nothing).",
+            "id": "weak-accept-everything",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Affordance widened to length <= 1, so a length-1 entry bypasses the callee. rival 0 / gold 1 / probe 1. Forgery: flip 0 on gold / 1 on rival. Type-reveal on rival exposes the (if ['a'].length <= 1 ...) guard, gold's is the frozen guard. Correct at [] and at length >= 2, so the length-1 witness point is load-bearing and not shared redundantly.",
+            "id": "weak-affordance-overreach",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Callee consulted on entry.reverse -- the ARGUMENT attack. rival 0 / gold 1 / probe 1 (probe leaves False unsolved, so the two-application disequality hypothesis is satisfiable). Forgery: flip 0 on gold / 1 on rival. Type-reveal on rival shows strictPathValidator ['a','b'].reverse in the equation vs gold's unreversed. Conditions on a disequality between TWO applications, so injectivity is not assumed; correct at [] and all length-1 entries, so the length-2 point is the shortest that observes reversal.",
+            "id": "weak-argument-reordered",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Callee consulted on the right argument, then its verdict INVERTED -- the only rival attacking C2's 'unaltered' half. rival 0 / gold 1 / probe 1. Forgery: flip 0 on gold / 1 on rival. Uniquely conditions POSITIVELY (assumes the callee ACCEPTS ['a']), realisable by an entry naming a real directory, so the battery is not one-sided on hypothesis polarity.",
+            "id": "weak-outcome-rewritten",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Outcome ignores the input binder entirely (constant Except.ok []). rival 0 / gold 1 / probe 1. Forgery: flip 0 on gold / 1 on rival. Type-reveal confirms the rationale's mechanical claim exactly: on the rival hcon is the BARE C2 implication ['a'] != [] -> Except.ok [] = strictPathValidator ['a'] (C1's conjunct already discharged by simp), while on gold it is the full conjunction -- which is why this case's closer differs from every other and why it is not a duplicate of weak-affordance-overreach.",
+            "id": "weak-constant-accept-empty",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "NEW rival landed by this audit (attack D turned into a shippable case). Refuses entries of length >= 3 outright without consulting the callee; agrees with gold at EVERY point the pre-existing battery witnessed at ([], ['a'], ['a','b']), so before it a spec whose C2 bound only short entries would have been rejected by all nine other rivals and the SOUND would have overclaimed. Rebuilt: rival 0 / gold 1 / probe 1. Forgery: flip 0 on gold / 1 on rival. Type-reveal on gold is the frozen if-expression (not True). Gate re-ran it: 'rejected (witness refutes the rival)', gold_signature an application type mismatch expecting strictPathValidator ['a','b','c'] = Except.error (). Also verified with the termination line flipped to 'partial': rival 1, witness rival 0 / gold 1.",
+            "id": "weak-long-entry-refused",
+            "verdict": "added-by-audit"
+          },
+          {
+            "evidence": "Arms exchanged: empty entry delegated, non-empty entries get the empty affordance. Wrong on BOTH clauses. rival 0 / gold 1 / probe 1. Forgery: flip 0 on gold / 1 on rival. Shares the ['a'] witness point with weak-affordance-overreach legitimately (both return the accepted empty value on a non-empty entry) but is a distinct rival: type-reveal shows its guard arms swapped (if ['a'] = [] then strictPathValidator ['a'] else Except.ok []), and it additionally violates C1 where the overreach rival satisfies it.",
+            "id": "weak-branches-swapped",
+            "verdict": "earned"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "REPAIRS (3, all in properties.py; no frozen artifact edited): (1) landed weak-long-entry-refused, a new rival closing a real coverage gap -- every pre-existing rival agreed with gold from length 3 onward, so a spec whose delegation clause bound only short entries would have been rejected by all nine and the SOUND would have attested to strength never probed (coverage pts 3-3 -> 4-4); (2) strengthened admiss-outcome-nondegenerate with a fifth, live conjunct that discharges the obligation at the concrete F2P-shaped (empty) input by evaluation, so the admissibility lane tests the thing it exists for rather than only carrier non-degeneracy; (3) corrected the false divergence disposition in the docstring and replaced the two stale prose claims the repairs invalidated (binder coverage 3->4 points, rival count 9->10), and added the measured forgery evidence so a reader can see WHY these witnesses discriminate rather than taking the error text on faith.\n\nWHY NOT 'SHIP': the SOUND was not fully earned as ported -- the admissibility case was doing non-degeneracy work rather than admissibility work, the reject lane had an unprobed sub-domain above length 2, and the divergence prose asserted a termination setting the file contradicts. All three are now fixed and the real gate re-ran to pass :: SOUND on 14 cases.\n\nWHY NO SPEC FINDING (and REPAIRED without qualification): attack D's divergence rivals were rebuilt and neither holds under `total`. The refined rival with an unreachable exit is refused at exit 1 on case \u00abdecreasing_1: i\u00bb, residual i + 1 < i; the terminating loop annotated with a measure that grows is refused on case \u00abdecreasing_1: (10 - i)\u00bb, residual 10 - (i - 1) < 10 - i. The unreachable exit is real and does absorb the post-loop obligations, the two ensures among them, so the postcondition is not what refuses these rivals; the loop's own descent obligation is, which is why a real descent and an unreachable exit cannot both hold. spec_holes is empty and the verdict rests on the repairs alone.\n\nTERMINATION SETTING OF THE FROZEN ARTIFACT: this bundle's Solution.lean and Solution_prepatch.lean set `set_option loom.semantics.termination \"total\"`, and that is the committed state of both files. When this battery was ported the line read `partial`, which is why the ported docstring said so: the port was not careless there, the ground moved under it. The flip was observed on 388 velvet cells while it was still in flight, every diff being that single line; all 500 velvet Solution.lean files now set `\"total\"` and none sets `\"partial\"`. Two consequences worth keeping: (a) a record written before the flip was judged against the earlier setting, so a reader comparing an older record with the file should expect that one line to differ; (b) the flip DOES close the divergence class it was made to close, measured here: under `total` the refined rival is refused on the loop's descent obligation, residual i + 1 < i. All 14 cases and all 10 witness pairs were re-run under BOTH settings (34 extra builds) precisely so this battery's verdict does not depend on which one is in force: outcomes are identical either way.\n\nEVIDENCE HYGIENE: every exit code reported here is from a build I ran myself via scripts/lean_verify.sh (~130 builds total); nothing is inferred from meta.json. All scratch under a private mktemp -d $SCRATCH with logs, nothing written inside the bundle or the repo. The forgery pair (attack B') was run for all 10 reject cases, not just the ones whose gold_signature looked suspicious. CORRECTION: the escalated divergence hole was withdrawn after rebuild on this carrier. Both legs are refused at exit 1 on the loop's own descent obligation, residual i + 1 < i for the unreachable-exit rival and 10 - (i - 1) < 10 - i for the growing measure on a terminating loop. The unreachable exit is genuine and absorbs the post-loop obligations including both ensures; the descent obligation is what closes the route.\n\nSECOND-LEG REBUILD: the growing-measure rival (a countdown loop annotated 'decreasing (10 - i)' with body i := i - 1, frozen impl kept) was rebuilt against the frozen Solution.lean and is REJECTED, exit 1, unsolved goals on case \u00abdecreasing_1: (10 - i)\u00bb with residual 10 - (i - 1) < 10 - i under if_pos : i > 0. The earlier reading, that the annotation is accepted without being proven, is withdrawn. Isolating control on the SAME loop: with 'decreasing i' the module verifies at exit 0, so the annotation is load-bearing and its descent is discharged rather than assumed; with 'decreasing 7' it does not elaborate ('failed to synthesize OfNat (Option \u2115) 7', the measure slot being an Option \u2115), so a measure that cannot be compared is refused at the front end rather than waved through. Both residuals match the ones properties.py states, so the record and the battery it cites now agree.",
+        "omissions_reviewed": [
+          {
+            "evidence": "NOT dropped -- ported as pos-guard-inverted (guard inverted, non-empty tested first). Re-built at audit: exit 0 under both termination settings, Attack A clean.",
+            "nagini_case": "pos-vae-reorder",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "NOT dropped as a positive -- its control-flow-reshape content is ported as pos-branch-per-shape (exit 0). Its literal form (reshaping the strict validator's OWN body) is separately inexpressible: see weak-strict-accept-all below.",
+            "nagini_case": "pos-strict-reorder",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "NOT dropped -- its equivalent-expression content is ported as pos-emptiness-test-equivalent (entry.isEmpty vs entry = []), exit 0. The sibling's abort function itself has no analogue: this carrier models ONE operation, not three.",
+            "nagini_case": "pos-abort-inline",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "Ported as admiss-outcome-nondegenerate, and STRENGTHENED by this audit. The sibling's half that shows a precondition admits a normal input is genuinely degenerate here (no `require` clause, so every List Char is admitted), but the analogue on a total carrier -- the obligation being satisfiable at an F2P-shaped input -- was missing. I added a conjunct that evaluates the frozen impl's own branch selection at the empty entry and discharges it before the frozen obligation closes verbatim. Verified live: as-is exit 0, flipped exit 1 with `decide` proving it false. So the admissibility lane is present and non-vacuous, not silently dropped.",
+            "nagini_case": "admiss-empty-and-nonempty",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "DEMONSTRATED, not asserted: built a variant assigning to the read-only input (entry := entry ++ ['z']). Exit 1 with 'error: `entry` cannot be mutated, only variables declared using `let mut` can be mutated' plus 'Failed to parse an assertion without names: WPGen sorry'. That is a file the front end refuses, not a wrong-but-well-formed rival the spec could reject. The sibling's case exists because nagini gives the input a HALF (read-only) permission Acc(list_pred(x), 1/2); velvet is referentially transparent and the binder is an immutable value parameter, so there is no permission lane to violate.",
+            "nagini_case": "frame-mut-vae-append",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Same carrier reason as frame-mut-vae-append (measured with the same build), compounded by there being no separate abort operation on this carrier to mutate through.",
+            "nagini_case": "frame-mut-abort-append",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "NOT dropped -- ported as weak-delegate-everything, the pre-image rival. Rebuilt: rival 0 / gold 1 / probe 1, forgery inverts.",
+            "nagini_case": "weak-vae-prepatch-delegate-all",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "NOT dropped -- ported as weak-reject-empty. Rebuilt: rival 0 / gold 1, forgery inverts.",
+            "nagini_case": "weak-vae-raise-on-empty",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "NOT dropped -- ported as weak-empty-sentinel-value, the battery's closest miss. Rebuilt: rival 0 / gold 1, forgery inverts.",
+            "nagini_case": "partial-vae-empty-returns-nonempty",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "The sibling inverts a THIRD (abort) function this carrier does not model, so the literal case has no analogue; but its control-flow-inversion content is carried by weak-branches-swapped (arms exchanged), which the port landed. Rebuilt: rival 0 / gold 1 / probe 1. Not a silent drop.",
+            "nagini_case": "weak-abort-inverted",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "The constant-answer attack IS expressible against this obligation even though the abort function is not modelled, and the port correctly landed it as weak-constant-accept-empty (an outcome that ignores the input binder entirely). Rebuilt: rival 0 / gold 1 / probe 1; the type-reveal probe confirms its distinguishing mechanical signature (hcon reduces to the BARE C2 implication because simp discharges C1 outright). Recording this class as inexpressible would have been a finding.",
+            "nagini_case": "weak-abort-const-false",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "DEMONSTRATED mechanically for a carrier reason, not a difficulty one: on this carrier the strict validator has no body to reshape. It is `opaque` and declared in the axioms region, which the consumer spec view KEEPS, so replacing it with a `def` that accepts everything is reported by variant_scope as 'spec view differs (same_spec failed)' -- out of scope, a spec change rather than a rival. Its behavioural content is instead carried by G-AX against the real callee (mapping.md section 3), which is where an opaque A-reference's fidelity belongs. Its C2-level content (skipping the callee) is separately covered by weak-accept-everything.",
+            "nagini_case": "weak-strict-accept-all",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Out of this gate by construction, not dropped by the port: G-PBT is the spec lane and explicitly ignores AXIOM_TESTS (the runtime fuzz of an A-tagged callee against the real implementation is G-AX's job, run in the instance Docker image by axiom_check.py). mapping.md section 3 records the two facts G-AX checks for this callee.",
+            "nagini_case": "ax-sound-expand_home / ax-sound-path_is_dir / ax-contain-both-requires-true (AXIOM_TESTS lane)",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "FINDING, and the port's stated reason was wrong. The port recorded the bundle as `partial`, so 'the class is a known spec hole'. The file it ships against is `total`, under which the naive diverging probe IS rejected -- so on the port's own reasoning the case was shippable and the battery underported. Re-derived independently, then rebuilt: under `total` the refined rival (a supplied `decreasing` measure plus an exit condition of False making the exit unreachable) is REJECTED at exit 1 on case \u00abdecreasing_1: i\u00bb, residual i + 1 < i. The measure is a live descent obligation, not an annotation check, so the class is closed under the setting this bundle ships. The rival is still not landable as a reject case: its module does not compile at all, the descent obligation failing at the method itself ahead of any appended tester, so a trivial witness against it comes back exit 1 on both sides with the same decreasing-annotation error and cannot discriminate. The disposition therefore stands on a measured reason and there is nothing to escalate. Docstring corrected to state both settings rather than asserting a termination line.",
+            "nagini_case": "divergence / non-termination (no sibling case; class added by corpus policy)",
+            "verdict": "expressible"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0, the flipped claim is PROVEN of gold); reveal on gold: 'error: Type mismatch hcon has type (if True then Except.ok [] else strictPathValidator []) = Except.ok [] and ([] != [] -> ...)' -- a concrete equation, not True",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-delegate-everything",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival: 'Type mismatch hcon has type (if True then Except.error () else strictPathValidator []) = Except.ok [] and ...' (no binders, so the gate ran no consistency probe)",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-reject-empty",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival: 'Type mismatch hcon has type (if True then Except.ok ['x'] else strictPathValidator []) = Except.ok [] and ...'",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-empty-sentinel-value",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival: 'Type mismatch hcon has type (['a'] = [] -> Except.ok ['a'] = Except.ok []) and (['a'] != [] -> Except.ok ['a'] = strictPathValidator ['a'])' -- concrete, not True",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-accept-everything",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival exposes the widened guard 'if ['a'].length <= 1 then Except.ok [] else strictPathValidator ['a']'",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-affordance-overreach",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival shows 'strictPathValidator ['a','b'].reverse' in the equation, gold's shows the unreversed application",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-argument-reordered",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival shows the inverting match on strictPathValidator ['a']; gold's hcon is the frozen if-expression conjunction, not True",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-outcome-rewritten",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival: 'Type mismatch hcon has type ['a'] != [] -> Except.ok [] = strictPathValidator ['a']' -- the BARE C2 implication, confirming C1's conjunct was discharged by simp; gold's is the full conjunction",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-constant-accept-empty",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on gold: 'Type mismatch hcon has type (['a','b','c'] = [] -> (if ['a','b','c'] = [] then Except.ok [] else strictPathValidator ['a','b','c']) = Except.ok []) and ...' -- the frozen equation, not True",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-long-entry-refused",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip on gold: NO ERROR (exit 0); reveal on rival shows the swapped arms 'if ['a'] = [] then strictPathValidator ['a'] else Except.ok []'",
+            "forgery_exit": "flip_gold=0, flip_rival=1, reveal_gold=1, reveal_rival=1",
+            "gold_exit": 1,
+            "id": "weak-branches-swapped",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 10
+      }
+    ],
+    "notes": "Two independent excuses the brief flagged as historically mismeasured both turned out to be mismeasured here too, in opposite directions. 'The carrier is opaque so no witness can be built' was TRUE for the strict-validator rivals (machine-checked: same_spec fails on any rewrite of the opaque declaration) but FALSE for the frame class, where I built a working witness the port had declared impossible. 'The tactic I need is unavailable' was FALSE as stated for divergence (the witness file compiles fine) but TRUE in substance for a different reason than recorded (partial_fixpoint with no equation theorems). Both repairs are prose-only; I added, removed and altered no case, so the 22-case manifest and every verdict above are unchanged by my edits. I want to flag one thing I did NOT fully resolve, so it is not folded into a clean summary: 7 of my 14 'gold proves the positive form' closers still fail with '`simp` made no progress'. I am confident this is my own closer-authoring problem rather than a battery defect, because those same 7 cases are already discharged by the B' type-reveal pairs and by the truth table, but I did not land those particular proofs and so do not claim them. I made no change to Solution.lean, meta.json or instance.json, ran no writing git command, and kept every scratch file under a private /tmp directory with build logs.",
+    "omissions_reviewed": [
+      {
+        "evidence": "pos-guard-inverted and pos-emptiness-test-equivalent both verify with the frozen loom_solve and byte-identical spec skeletons.",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "pos-vae-reorder",
+        "recorded": "ported as a soundness positive (guard inversion / equivalent emptiness test)"
+      },
+      {
+        "evidence": "pos-branch-per-shape / pos-decision-inlined cover the reshape; both verify. Attack E independently confirmed several further correct reshapes are provable (E2 submit-then-answer exit 0, E4 decision-in-local exit 0, E1c/E3c/E5c exit 0 with adequate tails), so the spec is not too strong.",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "pos-strict-reorder",
+        "recorded": "ported as a soundness positive"
+      },
+      {
+        "evidence": "pos-decision-inlined verifies with frozen loom_solve; T_pos exit 0.",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "pos-abort-inline",
+        "recorded": "ported (decision inlined, submits nothing)"
+      },
+      {
+        "evidence": "Lane is live and load-bearing under three controls (A1/A2/A3 all exit 1). The abort-half claim is consistent with the frozen obligation, which declares a single method.",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "admiss-empty-and-nonempty",
+        "recorded": "ported as admiss-outcome-nondegenerate; the abort half N/A because this carrier models one operation"
+      },
+      {
+        "evidence": "DEFECT, REPAIRED. The direct form is indeed refused (Fr1_assign_param exit 1, '`entry` cannot be mutated'), but `let mut e := entry` IS accepted (Fr2_mut_shadow exit 0) and a rival taking its verdict on the mutated local is well-formed AND spec-rejected (Fr3/FRm_module__append exit 1, FRm_module__empty exit 1). The `e := []` form is even fully witnessable (FRw__empty rival exit 0 / frozen exit 1). So 'inexpressible' was false. It is however SUBSUMED: the shipped weak-constant-accept-empty witness kills the e:=[] rival unchanged (exit 0). I rewrote the bullet to record it as subsumed plus an admitted non-load-bearing gap for the ++['x'] form, which is spec-rejected but for which I landed no witness.",
+        "my_verdict": "expressible",
+        "nagini_case": "frame-mut-vae-append",
+        "recorded": "INEXPRESSIBLE \u2014 the front end refuses mutation of the read-only input"
+      },
+      {
+        "evidence": "Same measurements and same repair as frame-mut-vae-append; covered by the same rewritten bullet.",
+        "my_verdict": "expressible",
+        "nagini_case": "frame-mut-abort-append",
+        "recorded": "INEXPRESSIBLE, same reason"
+      },
+      {
+        "evidence": "Witness reproduced (rival 0 / frozen 1); reveal shows the concrete false equation Except.error () = Except.ok [].",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "weak-vae-prepatch-delegate-all",
+        "recorded": "ported as weak-delegate-everything"
+      },
+      {
+        "evidence": "Witness reproduced; gold proves the positive form (exit 0).",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "weak-vae-raise-on-empty",
+        "recorded": "ported as weak-reject-empty"
+      },
+      {
+        "evidence": "Witness reproduced (rival 0 / frozen 1); gold proves the positive form.",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "partial-vae-empty-returns-nonempty",
+        "recorded": "ported as weak-empty-sentinel-value"
+      },
+      {
+        "evidence": "Confirmed against the frozen obligation, which declares exactly one method with two ensures clauses; there is no separate abort obligation to invert. The nearest expressible attack (inverting the two arms) IS shipped, as weak-branches-swapped, which passes.",
+        "my_verdict": "inexpressible",
+        "nagini_case": "weak-abort-inverted",
+        "recorded": "N/A \u2014 the sibling models the consuming decision as a third function; this carrier models one operation"
+      },
+      {
+        "evidence": "weak-constant-accept-empty reproduces (rival 0 / frozen 1) and its reveal shows a concrete constant-answer falsehood, so the substance of the class did land.",
+        "my_verdict": "correctly-ported",
+        "nagini_case": "weak-abort-const-false",
+        "recorded": "N/A for the same reason; the constant-answer attack is shipped as weak-constant-accept-empty"
+      },
+      {
+        "evidence": "Re-derived with the real variant_scope rather than by argument: turning `opaque strictPathValidator` into `def` yields ['spec view differs (same_spec failed)'], and the same for pathIsDir. Control: all 22 shipped cases return [] from variant_problems. So the claim is accurate and the class genuinely cannot be a same-spec variant here.",
+        "my_verdict": "inexpressible",
+        "nagini_case": "weak-strict-always-raise",
+        "recorded": "INEXPRESSIBLE \u2014 the validator is opaque, so rewriting it changes the SPEC (same_spec fails)"
+      },
+      {
+        "evidence": "Same machine-checked same_spec result as weak-strict-always-raise.",
+        "my_verdict": "inexpressible",
+        "nagini_case": "weak-strict-returns-unresolved",
+        "recorded": "INEXPRESSIBLE, same carrier reason"
+      },
+      {
+        "evidence": "Same same_spec result. Note the consumer-side analogue of accept-all IS shipped and passes as weak-accept-everything, so the behavior is not left uncovered.",
+        "my_verdict": "inexpressible",
+        "nagini_case": "weak-strict-accept-all",
+        "recorded": "INEXPRESSIBLE, same carrier reason"
+      },
+      {
+        "evidence": "DEFECT, REPAIRED. The stated reason is factually wrong: pbt_witness.witness_file STRIPS prove_correct, so the descent obligation is NOT in the witness file, and an annotated diverging rival's witness file COMPILES (Fp4 exit 0, V1_div_witnessfile_trivial exit 0). Only the un-annotated form fails that early (V6 exit 1, 'Decreasing annotations are required in total correctness semantics'). The class IS genuinely rejected at the module level under loom.semantics.termination \"total\" (Fp1 exit 1; Fp2/Fp5 exit 1 on the measure's own goal, case \u00abdecreasing_1: spin\u00bb |- spin < spin), so REJECTED-BY-SPEC stands. The true blocker is TOOLING, and I report it with error text per the brief: the loop elaborates to an irreducible `forIn Lean.Loop.mk ... decreasingGadget ...` term and Loop.forIn.loop is a partial_fixpoint with no equation theorems. Fourteen independent witness attempts (V2-V5, W1-W4, X1-X3, Y1-Y3) all failed, across 'Tactic unfold failed to unfold Lean.Loop.forIn', 'Failed to rewrite using equation theorems for Loop.forIn', wp_bind and wp_map pattern misses, and Type mismatch reveals showing the unreduced forIn term \u2014 which is exactly the gate's own _STUCK_UNIFICATION shape. I rewrote the bullet to state these measured facts and to flag that the class becomes portable if Loop.forIn gains equation theorems. Under F' this is UNDERPORTED-but-blocked, not a spec weakness.",
+        "my_verdict": "expressible-reason-false",
+        "nagini_case": "divergence / non-termination (class disposition, no single sibling case)",
+        "recorded": "REJECTED-BY-SPEC and 'inexpressible as a witnessed case' because a diverging rival's module 'does not compile at all (the descent obligation fails at the method, ahead of any appended witness), so even a trivial witness comes back witness-unproven'"
+      },
+      {
+        "evidence": "Consistent with the frozen obligation's two ensures clauses; no answer key exists for an impl to echo. Attack D corroborates: six new wrong impls were all rejected with real semantic goals rather than echo-shaped ones.",
+        "my_verdict": "inexpressible",
+        "nagini_case": "ungrounded-oracle echo",
+        "recorded": "N/A \u2014 the postconditions pin the result to a literal and to a decision on the method's own input"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "forgery_error": "gold: NO ERROR, exit 0 (only `unused variable` warnings for reverse_answers/reversed_accepted, the two binders only the rival's reversal needs) \u2014 gold PROVES the very proposition the witness denies, so its exit 1 is about the CLAIM. rival exit 1: `unsolved goals ... \u22a2 wp (if strictAccepts entry.reverse = true then Except.ok <$> strictPathValidator entry.reverse else pure (Except.error ())) fun out => out = Except.error ()`. Second control, script byte-identical and only the claimed OUTCOME swapped (accept <-> turn-away in C1 and C2): gold exit 1 with the same `strictPathValidator entry.reverse` pattern miss but the printed target carrying the flipped post, so the miss tracks the claim's own text. WORLD (a): real evidence.",
+        "forgery_exit": "claim flipped to the OPPOSITE proposition (leading `\u00ac` dropped, so it now claims the obligation HOLDS at this entry), the witness's own reduction lines kept and only the by-contradiction closer replaced by a discharge: 0 on gold / 1 on rival",
+        "gold_exit": 1,
+        "id": "weak-argument-reordered",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: NO ERROR, exit 0 (only an `unused variable` warning for expansion_nonempty, the binder only the rival needs). rival exit 1: `unsolved goals ... \u22a2 pathExpanded ['a', 'b'] = []` \u2014 the swapped arms really do hand back the accepted EMPTY value where C2 demands the entry's own expansion. Second control, script byte-identical with only the claimed outcome swapped: gold exit 1, same `Application type mismatch ... in the application expansion_nonempty hcon`, but hcon's printed type now carries the flipped post. WORLD (a): real evidence.",
+        "forgery_exit": "same claim with the leading `\u00ac` dropped, reduction lines kept and the contradiction closer replaced by the acceptance equation `strictPathValidator_accepted ['a','b'] answers accepted`: 0 on gold / 1 on rival",
+        "gold_exit": 1,
+        "id": "weak-branches-swapped",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: NO ERROR, exit 0 \u2014 gold PROVES the instantiated obligation at [], so the witness's claim is FALSE of gold rather than merely unprovable there. rival exit 1: `unsolved goals \u22a2 expansionAnswers [] = true \u2192 wp ((fun a => Except.ok []) <$> strictPathValidator []) fun out => out = Except.ok []` \u2014 the unearned leading submission of [] is what does not discharge. The byte-identical-script outcome-swap control fails IDENTICALLY on gold (same `wp (?x >>= ?f) ?post` miss, same target expression), because this witness never reads the post: it refutes through `does not come back`, which is stronger and post-independent. That is settled instead by a come-back truth table on that ONE claim: `triple (l := Prop) (expansionAnswers [] = true) (optionalPathValidator []) (fun _ => True)` proves against gold (exit 0) and fails against this rival (exit 1), while its negation, proved by the witness's own script, holds of this rival (exit 0) and fails on gold (exit 1). Shape control: the same witness does NOT kill pos-derived-submission-earned (exit 1), a CORRECT impl that does bind strictPathValidator at entry = [] (on the derived entry ['~'], inside the branch showing it accepted), so the rewrite miss is about the unearned submission of [] and not about the presence of a bind. WORLD (a): real evidence.",
+        "forgery_exit": "same claim with the leading `\u00ac` dropped (it now claims the obligation HOLDS at []): 0 on gold / 1 on rival",
+        "gold_exit": 1,
+        "id": "weak-submission-hoisted",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: NO ERROR, exit 0 (gold proves the instantiated obligation at []). rival exit 1: `unsolved goals \u22a2 expansionAnswers [] = true \u2192 wp ((fun a => Except.ok []) <$> strictPathValidator []) fun out => out = Except.ok []` \u2014 discarding the answer does not help, the leading submission of [] still has to come back. This witness is BYTE-IDENTICAL to weak-submission-hoisted's (sha256 1477967d8172), so its gold-side build is literally the same file and its `wp (?x >>= ?f) ?post` signature is shared for that reason; the discriminating builds are per rival and were run per case. Byte-identical-script outcome-swap control: gold exit 1, identical error (the post is inert on this route), rival exit 0. Come-back truth table against THIS rival: positive form `triple ... (fun _ => True)` gold exit 0 / rival exit 1; negative form (witness's own script) rival exit 0 / gold exit 1. Shape control: the same witness does not kill pos-derived-submission-earned (exit 1). WORLD (a): real evidence.",
+        "forgery_exit": "same claim with the leading `\u00ac` dropped: 0 on gold / 1 on THIS rival (every discriminating build re-run against this rival's own module, not inherited from weak-submission-hoisted)",
+        "gold_exit": 1,
+        "id": "weak-unconsumed-probe",
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": null
+  },
+  "repo": "sphinx-doc/sphinx",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "string_modeling": "List Char; emptiness-driven branch (entry = [] <-> x == ''); the modeled function's own outcome is Except Unit (List Char) (error <-> a ValidationError leaving is_path_or_empty, which do_prompt catches and re-prompts on; ok v <-> the accepted value). The CALLEE's refusal is modeled differently and deliberately: a ValidationError raised by is_path INSIDE the modeled function is modeled as control not coming back (no guarantee of termination), because nothing there catches it -- mapping.md 2.1. That asymmetry is what makes an unearned submission refutable; its one cost (the propagate-the-raise impl shape cannot verify under total-correctness semantics) is disclosed and measured in refinement.md C.",
+  "version": "4.1"
+}

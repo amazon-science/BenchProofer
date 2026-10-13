@@ -1,0 +1,525 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real fcntl.flock on real fds \u2014 a granted LOCK_EX/LOCK_SH (\u00b1NB) hands back THE EMPTY VALUE and puts the lock in force (a third party's non-blocking request is then refused); the value clause is checked in BOTH directions, with negative controls asserting that the real value does not count as 'set', does not order against a number, does not enter arithmetic and does not compare equal to zero, each paired with the opposite answer a stand-in number gives; non-blocking contention raises OSError",
+      "encoded_property": "normal completion reachable only on the available case (Ensures(available is True)); the normal-completion value is THE EMPTY VALUE ITSELF (Ensures(Result() is None)) \u2014 the callee's own value carried as itself, with NO numeric fact claimed of it, not an exact number and not even the weaker 'differs from zero', because the callee hands back no number and every number answers questions the empty value refuses (is it 'set', how does it order, what is it minus itself) on which a body could then decide the reported boolean; on the normal-completion path leaves the subject HOLDING the requested lock (Ensures(holds_lock()) \u2014 the single-valued, reversible abstraction of the flock(2) claim the subject description holds); Exsures(LockUnavailable, available is False and lock_state() and holds_lock() == Old(holds_lock())) for a refusal (raises, and moves nothing in the requested lock). Weakest contract that is true of the callee; raise path modelled explicitly (no termination/no-raise over-claim). Additionally conditioned on answerable_acquisition(), an EXPENDABLE resource: the two-answer contract describes exactly the requests the kernel ANSWERS and settles outright \u2014 an acquisition without LOCK_NB may be left PENDING indefinitely by an incompatible holder. Being a resource and not a proposition it cannot be created, duplicated or interrogated, and primitive_lock CONSUMES it without re-establishing it, so one authorisation buys exactly ONE answered acquisition; acquire is handed one, release deliberately is not.",
+      "kind": "A-consumed",
+      "models": "fcntl.flock (CPython stdlib, acquisition mode)",
+      "name": "primitive_lock",
+      "provenance": "CPython Modules/fcntlmodule.c; docs.python.org/3/library/fcntl.html#fcntl.flock \u2014 returns None on success, raises OSError (BlockingIOError, EWOULDBLOCK/EAGAIN) on non-blocking contention; called at locks.py:110 (pre-patch) / inside the new try (post-patch)",
+      "purity": "@ContractOnly (NOT @Pure: used only in impl, not inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real fcntl.flock(LOCK_UN) hands back THE EMPTY VALUE without raising and ends the subject's claim \u2014 same two-direction value check and negative controls as the acquisition primitive",
+      "encoded_property": "normal completion hands back THE EMPTY VALUE (Ensures(Result() is None)) \u2014 same reading and same reason as primitive_lock: the callee's own value, with no numeric fact claimed of it; leaves the subject NOT holding the lock (Ensures(holds_lock() is False)) \u2014 the second direction of the state observation, which is what makes it reversible rather than monotone; no Exsures (a release of a held lock does not signal a refusal). Weakest contract that is true of the callee. Carries NO answerability capability: a release of a lock the caller holds has nobody to wait for and always completes, which is why the release helper's promise to report back is UNCONDITIONAL and why a release body has nothing with which to pay for an acquisition step.",
+      "kind": "A-consumed",
+      "models": "fcntl.flock(fd, LOCK_UN) (CPython stdlib, release mode)",
+      "name": "primitive_release",
+      "provenance": "same CPython callee; releasing a held lock returns None and does not raise; called at locks.py:114",
+      "purity": "@ContractOnly (NOT @Pure: used only in impl)"
+    }
+  ],
+  "base_commit": "580a4341cb0b4cbfc215a70afc004875a7e815f4",
+  "changed_files": [
+    "django/core/files/locks.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T05:35:23+00:00",
+      "code_version": "e7a05dead-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: real fcntl.flock returns THE EMPTY VALUE on normal completion for acquire and release -- and that value does not count as 'set', does not order against a number and does not enter arithmetic, while a stand-in number answers all three the opposite way, so the empty-value clause is sound AND the numeric reading it replaces is refuted -- raises OSError on non-blocking contention, gives the SUBJECT description the requested claim on a granted acquisition, leaves the subject's standing in the requested lock untouched on a refused one, and ends the subject's claim on release (the state observation is reversible in both directions) -- INCLUDING in the shared-holder world, where another description's compatible claim survives and an aggregate probe would still answer 'held' though the subject's claim is gone; primitive_lock / primitive_release axioms sound under the per-description reading the model uses",
+      "gate": "G-AX",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "53182cdbea51e6c5dee0a8b88c3b8be85c8d90bbddfc36d5902b88130da96e3e",
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T05:35:39+00:00",
+      "code_version": "e7a05dead-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100020,
+          "disagreements": 0,
+          "seed": 13410,
+          "shadow": "direct (contract-stripped impl region; primitives grounded in the real fcntl.flock)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100020, \"disagreements\": 0, \"seed\": 13410, \"shadow\": \"direct (contract-stripped impl region; primitives grounded in the real fcntl.flock)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "89aba02270eb13382b9f6641bad51eda6fb491a48566c31e7890e6d71092477c",
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:55:25+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc",
+        "model_prepatch.py": "0a7be7f78db4d5d25a0abc41584a98a0bdf86c270518fc53fa7d8cb225accafd",
+        "model_prepatch_2.py": "00b07ac5516a9e2066dbebe7a7c427358dd5c457aac0c1426d58606543a55dba"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T05:16:59+00:00",
+      "code_version": "83ba7e28f-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 32 admissible attacks re-run of 32 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 32 admissible attacks re-run of 32 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 32 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 21 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_21.py`, `atk_22.py`, `atk_25.py`, `atk_27.py`, `atk_28.py`, `atk_29.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 11 | `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_16.py`, `atk_20.py`, `atk_23.py`, `atk_24.py`, `atk_26.py`, `atk_30.py`, `atk_31.py`, `atk_32.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T05:27:40+00:00",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc",
+        "properties.py": "d593915dff0c554b3aeba2a06d9ac2b57db567226de83cc73bc9c7165fb23b59"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:56:29+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc",
+        "model_prepatch.py": "0a7be7f78db4d5d25a0abc41584a98a0bdf86c270518fc53fa7d8cb225accafd",
+        "model_prepatch_2.py": "00b07ac5516a9e2066dbebe7a7c427358dd5c457aac0c1426d58606543a55dba"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T05:38:23+00:00",
+      "code_version": "bbccd3869-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "548dd49b21430ba9b2fbe240dcd00363fc4e44544d23a522ec6f586b964d0978",
+          "impl": "25f420c272520da83ed3256a828abd698cf0366d6f8a24fa9cd03cd772040bae",
+          "post-conditions": "abd7bec853d47f089c548b4a6dce99c28bf50e5b56b196015fa3fa558df3c470",
+          "pre-conditions": "4af388396ccdb4a572fa48d9aaa6405780f859361fdf1c48ae3934b07d1e889e",
+          "pure": "4107292397a023d9f51c78e5b49294317ac435671d8b05f43d28ffe74d3acf17",
+          "spec_view": "7a3cdf270dc495276dbe23d04b5938c40d1e929b5e34f65a61c398cb96d9fe4e"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T05:38:23+00:00",
+      "code_version": "bbccd3869-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4ea0ec1990a7d6c6ab3b8620be4eeb726ac34ab075aa7f8322862bd6e7a6ca43",
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T05:38:23+00:00",
+      "code_version": "bbccd3869-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T05:37:01+00:00",
+      "code_version": "e7a05dead-dirty",
+      "data": {
+        "judged": 3,
+        "killed": 3,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 3,
+        "unjudged": []
+      },
+      "detail": "killed 3/3 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T03:56:07+00:00",
+      "code_version": "99654c693-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 32 admissible attacks re-run of 32 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "G-PANEL-2 (faithfulness / spec-too-strong) for django__django-13410 nagini. Reference built by me: fresh worktree of repos/django_django.git at base_commit 580a4341cb0b4cbfc215a70afc004875a7e815f4 with the dataset's patch.diff APPLIED (per instructions the patched tree is the reference for the modelled functions; base is reference only for the axiomatized callee fcntl.flock). Test patch applied too. bundle not modified.\n\nSPEC INTEGRITY: `adversary same-spec nagini django__django-13410 gold_model.py` -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification'; `diff` against the bundle model.py is byte-identical (I audited the shipped bytes, not a paraphrase).\n\nPOSITIVE CONTROL: scripts/nagini_verify.sh on the bundle model.py -> 'Verification successful' (10.63s). F2P pair on my patched worktree -> 2 passed (test_exclusive_lock, test_shared_lock). So gold is admitted and the oracle is fit \u2014 the spec is not vacuously over-strong.\n\nNO DIVERGING INPUT FOUND IN THE MODELLED DOMAIN. I drove the real patched locks.lock/locks.unlock directly and checked each helper postcondition (Result()==available; Implies(Result is True, holds_lock()); Implies(Result is False, holds_lock()==Old(holds_lock())); release's Result() is True and holds_lock() is False), with holds_lock() instantiated as the PER-OPEN-FILE-DESCRIPTION reading mapping.md \u00a71/\u00a73.3 specifies (drain other holders, then probe):\n  * exhaustive boundary sweep: holder in {none,SH,EX} x subject-pre-state in {none,SH,EX} x request in {EX, SH, EX|NB, SH|NB}, skipping requests the kernel would leave PENDING (explicitly outside the modelled scope) -> 0 violations.\n  * randomized sweep, seed 13410, 2229 in-domain trials over the same space -> 0 violations.\n  * release sweep over subject-pre-state x other-holder (incl. the shared-holder test_shared_lock world) -> 0 violations; unlock returns True and the SUBJECT's claim is gone in every case.\n\nAXIOMS RE-DERIVED ON THE REAL CALLEE (base-commit-unchanged fcntl.flock), independently of the bundle's script: every granted acquisition (EX, SH, EX|NB, SH|NB) returns None \u2014 so `Ensures(Result() is None)` is exact, not an over-claim; non-blocking contention raises BlockingIOError (errno 11, a subclass of OSError); a refused request leaves the subject's standing in the REQUESTED lock unmoved; LOCK_UN returns None, never raises, and ends the subject's claim even with nothing held. The per-description vs aggregate distinction the model leans on is real and is the correct (weaker) reading: in the shared-holder world an aggregate probe still answers 'held' while the subject's claim is genuinely gone, so the model does NOT assert the stronger 'nobody holds it'. I also reran the bundle's own axiom_check.py (exit 0) and conformance_check.py against MY worktree (exit 0, 100020 trials, 0 disagreements) \u2014 both reproduce.\n\nRESIDUAL EDGES EXAMINED AND JUDGED OUT-OF-DOMAIN (not drift):\n  (a) lock(f, LOCK_UN): real patched lock returns True while the subject holds nothing, which would falsify Implies(Result is True, holds_lock()). But LOCK_UN is NOT in locks.__all__ ('LOCK_EX','LOCK_SH','LOCK_NB','lock','unlock') and not an attribute of the module, and no repo caller passes it (all six call sites \u2014 testcases.py:1569, filebased.py:65, storage.py:270, move.py:61, plus the two F2P tests \u2014 pass LOCK_EX or LOCK_SH optionally |LOCK_NB). Spelling a release as an acquisition is not a lock REQUEST, so it is outside the stated R-refinement '(f,flags) -> available = was the requested lock operation granted'.\n  (b) lock(f, 0) raises a non-BlockingIOError OSError (EINVAL) which real gold propagates, whereas the model's LockUnavailable would absorb it into False. mapping.md \u00a72/\u00a73.1 states the refinement carrier explicitly as LockUnavailable <-> BlockingIOError (contention), and flags=0 is not a value any caller in the POSIX branch supplies. Documented scope, not undocumented drift.\nNeither edge is reachable from repo behavior, so I do not treat either as a faithfulness defect; both are disclosed here so a future pass can weigh them.\n\nOVER-STRENGTH OBSERVATION FOR THE SIBLING LANE (not a faithfulness break, no diverging input): a double-acquisition impl (`primitive_lock(available)` twice, then return True) is REJECTED by the spec \u2014 `adversary weakness` -> exit non-candidate, 'attack does not verify' \u2014 because primitive_lock CONSUMES answerable_acquisition() and acquire is handed exactly one. On the real callee a second flock(fd, LOCK_EX) on the same description succeeds and is value- and state-identical to gold, so that impl would plausibly resolve. This is the answerability capability rejecting a would-be-correct rival, i.e. a candidate SPEC-TOO-STRONG-for-rivals point, but it is not a disagreement between the modelled function and the real callee on any input, and gold still verifies, so it does not make the spec unfaithful. Flagging it for G-EQ/G-PANEL-1 rather than claiming it here.\n\nSTALENESS NOTE (important for reading verdict.md): the recorded G-EQ and G-PANEL-1 fails both rest on `Ensures(Result() == EMPTY_RESULT)` with EMPTY_RESULT = -1 letting an impl distinguish -1 from None. The model.py I audited no longer contains that clause \u2014 both primitives now carry `Ensures(Result() is None)` (model.py:363 and :407) and there is no numeric sentinel in the axioms region. Those two recorded fails therefore judge a spec that has since been repaired; my pass is against the current bytes (sha per meta.json G-AX/G-CONF sources: 4df519d4e6c5...).\n\nCONCLUSION: FAITHFUL. No input exists in the modelled domain on which the specified acquire/release disagrees with the real patched django.core.files.locks.lock/unlock; every axiom clause is met exactly by the unchanged fcntl.flock; gold verifies and the F2P pair passes. I am submitting FAITHFUL rather than manufacturing a divergence from out-of-domain flag spellings.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "ROLE: leakage / gold-reconstruction, django__django-13410 nagini. Live model.py sha256[:12]=4df519d4e6c5. All work under mktemp'd; bundle unmodified.\n\n(0) NO RELAXATION IS ON OFFER. meta.json has NO `relaxed_leakage` key (keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version) and no RELAXED_LEAKAGE.md exists under the instance dir. So there is no unavoidability argument to re-derive and no disposition to inherit \u2014 the verdict below is my own measurement, not an inherited one.\n\n(0b) NOTHING IN THE BUNDLE ADDRESSES ME. Grepped model.py/mapping.md/refinement.md/axiom_check.py/conformance_check.py for G-PANEL|attacker|panel|reviewer|submit_result|NO-LEAKAGE|you must|honest verdict -> zero hits; leakage.reviewer_directed() returns [] on model.py, mapping.md, refinement.md AND verdict.md. The only text speaking to my role is a PRIOR G-PANEL-3 note embedded in verdict.md/meta.json; it describes rather than instructs, and I treated it strictly as a claim. Notably it stamps model.py as 582e74d351a7 while the live file is 4df519d4e6c5, i.e. the prior leakage pass judged superseded bytes \u2014 which is why I re-derived everything from scratch rather than adopting it.\n\n(1) SPEC VIEW RENDERS AND ELIDES. markers.spec_view(model.py, nagini) = 539 lines; BOTH impl regions are replaced by `...  # implementation elided`. The gold edit is exactly and only the two helper bodies, so the discriminating bytes are structurally absent from what the consumer sees.\n\n(2) LEXICAL SCREEN, RE-RUN MYSELF (not read off the stamp). leakage.screen(model.py, nagini, frozen patch, frozen problem_statement) -> passed=True, hard_failures=[], warnings=[]. Independently: narration-vocabulary hits = [] (no bug/fix/patch/pre-patch/previously/incorrectly/wrong anywhere in the spec view); diff markers present = [] (no @@, `diff --git`, `+++ `, `--- `, `\\nindex`).\n\n(3) IDENTIFIER / SYMBOL DISJOINTNESS, MEASURED. AST identifiers of the spec view = {ContractOnly, Ensures, Exception, Exsures, Implies, LockUnavailable, MustTerminate, Old, Optional, Predicate, Pure, Requires, Result, acquire, answerable_acquisition, available, bool, holds_lock, int, lock_state, primitive_lock, primitive_release, release}. Intersection with the token set of the gold patch = EMPTY. No repo symbol (lock, unlock, _fd, flock), no exception class, no path.\n\n(4) THE DISCRIMINATOR IS ONLY IN THE PUBLIC TEXT, NOT THE SPEC. Per-term presence (spec_view | problem_statement): fcntl F|T, flock F|T, OSError F|T, LOCK_UN F|T, _fd F|T, 'ret == 0' F|T, 'locks.py' F|T, 'django/core' F|T, BlockingIOError F|F. The public problem_statement is STRICTLY MORE EXPLICIT than the spec view \u2014 it contains the literal proposed diff. So there is no fact the spec view supplies beyond it; the direction of leakage is reversed.\n\n(5) MANUAL GOLD-CHANGED-LINE CHECK. Whitespace-normalized, of the 11 added/removed gold lines the only substring collision is `try:` (4 chars), and I located it: it falls inside the normalized comment text \"...operations' asymmetry:the ACQUISITION helper...\" \u2014 a normalization artifact spanning \"asymmetry:\"+\"the\", not a reproduced code line, and below the screen's own 8-char threshold. No gold line is reproduced.\n\n(6) GOLD IS NOT RECONSTRUCTIBLE \u2014 THE STRONGEST MEASUREMENT. The gold patch and the problem_statement's proposed patch DISAGREE on the release helper: gold writes bare `flock(...LOCK_UN); return True`, the public text proposes `try: ... except OSError: return False`. If the spec leaked gold's shape it would have to reject the public shape. It does not. I built two same-spec attacks (spec region untouched) and ran the toolkit:\n  - atk_ps_release.py (release body = the problem_statement's try/except shape): `adversary same-spec` -> exit 0 \"SAME\"; `adversary weakness` -> exit 0 \"CANDIDATE-COUNTEREXAMPLE: shares spec AND verifies (14.2s)\".\n  - atk_var_acquire.py (acquire rewritten through an explicit bool variable): same-spec exit 0; weakness exit 0 \"shares spec AND verifies (14.4s)\".\n  I also confirmed byte-identity directly with markers.same_spec(gold, atk) = True and sha256(spec_view(gold)) == sha256(spec_view(atk)) for both. So the spec admits gold's shape AND the public-text shape AND a third rewrite: a consumer reading only the spec view cannot recover which one gold chose.\n\n(7) CONTROLS, so \"admits both\" is not \"admits everything\". Positive: `scripts/nagini_verify.sh` on the live gold model.py -> \"Verification successful\" (13.70s). Negative: neg_prepatch.py (acquire reverted to `ret = primitive_lock(available); return ret == 0`) -> `adversary weakness` exit 2, \"NOT-A-COUNTEREXAMPLE: attack does not verify \u2014 the spec rejected this impl\". The spec is discriminating, and it discriminates on the abstract control-flow-vs-value axis without naming the edit.\n\n(8) SCOPE OF THE VIEW CONFIRMED FROM THE HARNESS, not assumed. eval/prompts.py::initial_user assembles problem_statement + optional hints + localization block + _spec_block(task.spec_view) only; grep for refinement|mapping in prompts.py and agent.py -> zero hits. refinement.md and mapping.md DO quote the gold diff verbatim (refinement.md:25-34, 61-65; mapping.md:8-25 name locks.py, fcntl.flock, BlockingIOError), but they are audit-side artifacts, never handed to a solver, and eval/adapter.py::spec_view hard-guards that impl elision actually happened before exposing anything. Solver-visible meta fields (modeled_functions repo_symbol/repo_location, changed_files) give edit LOCALIZATION only \u2014 `locks.py:109/:113`, lock/unlock \u2014 which is the deliberate localization aid also present in mode 0 and already in the public problem_statement; it names WHERE, never the try/except-vs-`ret == 0` discriminator.\n\nRESIDUALS FOR THE OWNING ROLE, NOT LEAKAGE FINDINGS (routing only): (a) meta.json top-level region_hashes are STALE against the live bytes for axioms (live 548dd49b / meta 2711f2f4), post-conditions (abd7bec8 / 571c371b), pure (41072923 / aa3505b5) and spec_view (7a3cdf27 / d50184ef); only impl (25f420c2) and pre-conditions (4af38839) agree \u2014 freshness checks keyed on the top-level ledger will misread the current spec. (b) G-PANEL-3's recorded stamp carries an EMPTY source_digests map and its note cites a model.py digest (582e74d351a7) that matches neither the live bytes nor the ledger, so that pass is not attributable to any artifact. Neither affects leakage: the gates my disposition actually leans on I re-ran or re-derived myself (G-LEAK screen re-run clean; spec_view elision verified; same-spec byte identity verified; gold verification and the prepatch rejection both re-measured on the live bytes).\n\nVERDICT: NO-LEAKAGE. The spec view names no file, no repo symbol, no exception class, and no before/after code shape from the gold edit; its identifier set is disjoint from the gold patch's tokens; every discriminating term it could have used appears only in the strictly-more-explicit public problem_statement; and I measured that the spec still admits both the gold release shape and the problem_statement's competing release shape while rejecting the pre-patch shape \u2014 the opposite of gold-reconstruction.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 32 admissible attacks re-run of 32 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 G-PANEL-2 (faithfulness / spec-too-strong) for django__django-13410 nagini. Reference built by me: fresh worktree of repos/django_django.git at base_commit 580a4341cb0b4cbfc215a70afc004875a7e815f4 with the dataset's patch.diff APPLIED (per instructions the patched tree is the reference for the modelled functions; base is reference only for the axiomatized callee fcntl.flock). Test patch applied too. bundle not modified.\n\nSPEC INTEGRITY: `adversary same-spec nagini django__django-13410 gold_model.py` -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification'; `diff` against the bundle model.py is byte-identical (I audited the shipped bytes, not a paraphrase).\n\nPOSITIVE CONTROL: scripts/nagini_verify.sh on the bundle model.py -> 'Verification successful' (10.63s). F2P pair on my patched worktree -> 2 passed (test_exclusive_lock, test_shared_lock). So gold is admitted and the oracle is fit \u2014 the spec is not vacuously over-strong.\n\nNO DIVERGING INPUT FOUND IN THE MODELLED DOMAIN. I drove the real patched locks.lock/locks.unlock directly and checked each helper postcondition (Result()==available; Implies(Result is True, holds_lock()); Implies(Result is False, holds_lock()==Old(holds_lock())); release's Result() is True and holds_lock() is False), with holds_lock() instantiated as the PER-OPEN-FILE-DESCRIPTION reading mapping.md \u00a71/\u00a73.3 specifies (drain other holders, then probe):\n  * exhaustive boundary sweep: holder in {none,SH,EX} x subject-pre-state in {none,SH,EX} x request in {EX, SH, EX|NB, SH|NB}, skipping requests the kernel would leave PENDING (explicitly outside the modelled scope) -> 0 violations.\n  * randomized sweep, seed 13410, 2229 in-domain trials over the same space -> 0 violations.\n  * release sweep over subject-pre-state x other-holder (incl. the shared-holder test_shared_lock world) -> 0 violations; unlock returns True and the SUBJECT's claim is gone in every case.\n\nAXIOMS RE-DERIVED ON THE REAL CALLEE (base-commit-unchanged fcntl.flock), independently of the bundle's script: every granted acquisition (EX, SH, EX|NB, SH|NB) returns None \u2014 so `Ensures(Result() is None)` is exact, not an over-claim; non-blocking contention raises BlockingIOError (errno 11, a subclass of OSError); a refused request leaves the subject's standing in the REQUESTED lock unmoved; LOCK_UN returns None, never raises, and ends the subject's claim even with nothing held. The per-description vs aggregate distinction the model leans on is real and is the correct (weaker) reading: in the shared-holder world an aggregate probe still answers 'held' while the subject's claim is genuinely gone, so the model does NOT assert the stronger 'nobody holds it'. I also reran the bundle's own axiom_check.py (exit 0) and conformance_check.py against MY worktree (exit 0, 100020 trials, 0 disagreements) \u2014 both reproduce.\n\nRESIDUAL EDGES EXAMINED AND JUDGED OUT-OF-DOMAIN (not drift):\n  (a) lock(f, LOCK_UN): real patched lock returns True while the subject holds nothing, which would falsify Implies(Result is True, holds_lock()). But LOCK_UN is NOT in locks.__all__ ('LOCK_EX','LOCK_SH','LOCK_NB','lock','unlock') and not an attribute of the module, and no repo caller passes it (all six call sites \u2014 testcases.py:1569, filebased.py:65, storage.py:270, move.py:61, plus the two F2P tests \u2014 pass LOCK_EX or LOCK_SH optionally |LOCK_NB). Spelling a release as an acquisition is not a lock REQUEST, so it is outside the stated R-refinement '(f,flags) -> available = was the requested lock operation granted'.\n  (b) lock(f, 0) raises a non-BlockingIOError OSError (EINVAL) which real gold propagates, whereas the model's LockUnavailable would absorb it into False. mapping.md \u00a72/\u00a73.1 states the refinement carrier explicitly as LockUnavailable <-> BlockingIOError (contention), and flags=0 is not a value any caller in the POSIX branch supplies. Documented scope, not undocumented drift.\nNeither edge is reachable from repo behavior, so I do not treat either as a faithfulness defect; both are disclosed here so a future pass can weigh them.\n\nOVER-STRENGTH OBSERVATION FOR THE SIBLING LANE (not a faithfulness break, no diverging input): a double-acquisition impl (`primitive_lock(available)` twice, then return True) is REJECTED by the spec \u2014 `adversary weakness` -> exit non-candidate, 'attack does not verify' \u2014 because primitive_lock CONSUMES answerable_acquisition() and acquire is handed exactly one. On the real callee a second flock(fd, LOCK_EX) on the same description succeeds and is value- and state-identical to gold, so that impl would plausibly resolve. This is the answerability capability rejecting a would-be-correct rival, i.e. a candidate SPEC-TOO-STRONG-for-rivals point, but it is not a disagreement between the modelled function and the real callee on any input, and gold still verifies, so it does not make the spec unfaithful. Flagging it for G-EQ/G-PANEL-1 rather than claiming it here.\n\nSTALENESS NOTE (important for reading verdict.md): the recorded G-EQ and G-PANEL-1 fails both rest on `Ensures(Result() == EMPTY_RESULT)` with EMPTY_RESULT = -1 letting an impl distinguish -1 from None. The model.py I audited no longer contains that clause \u2014 both primitives now carry `Ensures(Result() is None)` (model.py:363 and :407) and there is no numeric sentinel in the axioms region. Those two recorded fails therefore judge a spec that has since been repaired; my pass is against the current bytes (sha per meta.json G-AX/G-CONF sources: 4df519d4e6c5...).\n\nCONCLUSION: FAITHFUL. No input exists in the modelled domain on which the specified acquire/release disagrees with the real patched django.core.files.locks.lock/unlock; every axiom clause is met exactly by the unchanged fcntl.flock; gold verifies and the F2P pair passes. I am submitting FAITHFUL rather than manufacturing a divergence from out-of-domain flag spellings.; G-PANEL-3 (leakage): pass \u2014 ROLE: leakage / gold-reconstruction, django__django-13410 nagini. Live model.py sha256[:12]=4df519d4e6c5. All work under mktemp'd; bundle unmodified.\n\n(0) NO RELAXATION IS ON OFFER. meta.json has NO `relaxed_leakage` key (keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version) and no RELAXED_LEAKAGE.md exists under the instance dir. So there is no unavoidability argument to re-derive and no disposition to inherit \u2014 the verdict below is my own measurement, not an inherited one.\n\n(0b) NOTHING IN THE BUNDLE ADDRESSES ME. Grepped model.py/mapping.md/refinement.md/axiom_check.py/conformance_check.py for G-PANEL|attacker|panel|reviewer|submit_result|NO-LEAKAGE|you must|honest verdict -> zero hits; leakage.reviewer_directed() returns [] on model.py, mapping.md, refinement.md AND verdict.md. The only text speaking to my role is a PRIOR G-PANEL-3 note embedded in verdict.md/meta.json; it describes rather than instructs, and I treated it strictly as a claim. Notably it stamps model.py as 582e74d351a7 while the live file is 4df519d4e6c5, i.e. the prior leakage pass judged superseded bytes \u2014 which is why I re-derived everything from scratch rather than adopting it.\n\n(1) SPEC VIEW RENDERS AND ELIDES. markers.spec_view(model.py, nagini) = 539 lines; BOTH impl regions are replaced by `...  # implementation elided`. The gold edit is exactly and only the two helper bodies, so the discriminating bytes are structurally absent from what the consumer sees.\n\n(2) LEXICAL SCREEN, RE-RUN MYSELF (not read off the stamp). leakage.screen(model.py, nagini, frozen patch, frozen problem_statement) -> passed=True, hard_failures=[], warnings=[]. Independently: narration-vocabulary hits = [] (no bug/fix/patch/pre-patch/previously/incorrectly/wrong anywhere in the spec view); diff markers present = [] (no @@, `diff --git`, `+++ `, `--- `, `\\nindex`).\n\n(3) IDENTIFIER / SYMBOL DISJOINTNESS, MEASURED. AST identifiers of the spec view = {ContractOnly, Ensures, Exception, Exsures, Implies, LockUnavailable, MustTerminate, Old, Optional, Predicate, Pure, Requires, Result, acquire, answerable_acquisition, available, bool, holds_lock, int, lock_state, primitive_lock, primitive_release, release}. Intersection with the token set of the gold patch = EMPTY. No repo symbol (lock, unlock, _fd, flock), no exception class, no path.\n\n(4) THE DISCRIMINATOR IS ONLY IN THE PUBLIC TEXT, NOT THE SPEC. Per-term presence (spec_view | problem_statement): fcntl F|T, flock F|T, OSError F|T, LOCK_UN F|T, _fd F|T, 'ret == 0' F|T, 'locks.py' F|T, 'django/core' F|T, BlockingIOError F|F. The public problem_statement is STRICTLY MORE EXPLICIT than the spec view \u2014 it contains the literal proposed diff. So there is no fact the spec view supplies beyond it; the direction of leakage is reversed.\n\n(5) MANUAL GOLD-CHANGED-LINE CHECK. Whitespace-normalized, of the 11 added/removed gold lines the only substring collision is `try:` (4 chars), and I located it: it falls inside the normalized comment text \"...operations' asymmetry:the ACQUISITION helper...\" \u2014 a normalization artifact spanning \"asymmetry:\"+\"the\", not a reproduced code line, and below the screen's own 8-char threshold. No gold line is reproduced.\n\n(6) GOLD IS NOT RECONSTRUCTIBLE \u2014 THE STRONGEST MEASUREMENT. The gold patch and the problem_statement's proposed patch DISAGREE on the release helper: gold writes bare `flock(...LOCK_UN); return True`, the public text proposes `try: ... except OSError: return False`. If the spec leaked gold's shape it would have to reject the public shape. It does not. I built two same-spec attacks (spec region untouched) and ran the toolkit:\n  - atk_ps_release.py (release body = the problem_statement's try/except shape): `adversary same-spec` -> exit 0 \"SAME\"; `adversary weakness` -> exit 0 \"CANDIDATE-COUNTEREXAMPLE: shares spec AND verifies (14.2s)\".\n  - atk_var_acquire.py (acquire rewritten through an explicit bool variable): same-spec exit 0; weakness exit 0 \"shares spec AND verifies (14.4s)\".\n  I also confirmed byte-identity directly with markers.same_spec(gold, atk) = True and sha256(spec_view(gold)) == sha256(spec_view(atk)) for both. So the spec admits gold's shape AND the public-text shape AND a third rewrite: a consumer reading only the spec view cannot recover which one gold chose.\n\n(7) CONTROLS, so \"admits both\" is not \"admits everything\". Positive: `scripts/nagini_verify.sh` on the live gold model.py -> \"Verification successful\" (13.70s). Negative: neg_prepatch.py (acquire reverted to `ret = primitive_lock(available); return ret == 0`) -> `adversary weakness` exit 2, \"NOT-A-COUNTEREXAMPLE: attack does not verify \u2014 the spec rejected this impl\". The spec is discriminating, and it discriminates on the abstract control-flow-vs-value axis without naming the edit.\n\n(8) SCOPE OF THE VIEW CONFIRMED FROM THE HARNESS, not assumed. eval/prompts.py::initial_user assembles problem_statement + optional hints + localization block + _spec_block(task.spec_view) only; grep for refinement|mapping in prompts.py and agent.py -> zero hits. refinement.md and mapping.md DO quote the gold diff verbatim (refinement.md:25-34, 61-65; mapping.md:8-25 name locks.py, fcntl.flock, BlockingIOError), but they are audit-side artifacts, never handed to a solver, and eval/adapter.py::spec_view hard-guards that impl elision actually happened before exposing anything. Solver-visible meta fields (modeled_functions repo_symbol/repo_location, changed_files) give edit LOCALIZATION only \u2014 `locks.py:109/:113`, lock/unlock \u2014 which is the deliberate localization aid also present in mode 0 and already in the public problem_statement; it names WHERE, never the try/except-vs-`ret == 0` discriminator.\n\nRESIDUALS FOR THE OWNING ROLE, NOT LEAKAGE FINDINGS (routing only): (a) meta.json top-level region_hashes are STALE against the live bytes for axioms (live 548dd49b / meta 2711f2f4), post-conditions (abd7bec8 / 571c371b), pure (41072923 / aa3505b5) and spec_view (7a3cdf27 / d50184ef); only impl (25f420c2) and pre-conditions (4af38839) agree \u2014 freshness checks keyed on the top-level ledger will misread the current spec. (b) G-PANEL-3's recorded stamp carries an EMPTY source_digests map and its note cites a model.py digest (582e74d351a7) that matches neither the live bytes nor the ledger, so that pass is not attributable to any artifact. Neither affects leakage: the gates my disposition actually leans on I re-ran or re-derived myself (G-LEAK screen re-run clean; spec_view elision verified; same-spec byte identity verified; gold verification and the prepatch rejection both re-measured on the live bytes).\n\nVERDICT: NO-LEAKAGE. The spec view names no file, no repo symbol, no exception class, and no before/after code shape from the gold edit; its identifier set is disjoint from the gold patch's tokens; every discriminating term it could have used appears only in the strictly-more-explicit public problem_statement; and I measured that the spec still admits both the gold release shape and the problem_statement's competing release shape while rejecting the pre-patch shape \u2014 the opposite of gold-reconstruction.",
+      "gate": "G-PANEL",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T05:27:40+00:00",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T05:27:39+00:00",
+      "code_version": "661192977-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 32 admissible attacks re-run of 32 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 32 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 21 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_21.py`, `atk_22.py`, `atk_25.py`, `atk_27.py`, `atk_28.py`, `atk_29.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 11 | `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_16.py`, `atk_20.py`, `atk_23.py`, `atk_24.py`, `atk_26.py`, `atk_30.py`, `atk_31.py`, `atk_32.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc",
+        "properties.py": "d593915dff0c554b3aeba2a06d9ac2b57db567226de83cc73bc9c7165fb23b59"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T04:10:38+00:00",
+      "code_version": "c92235f44-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "G-PANEL-2 (faithfulness / spec-too-strong) for django__django-13410 nagini. Reference built by me: fresh worktree of repos/django_django.git at base_commit 580a4341cb0b4cbfc215a70afc004875a7e815f4 with the dataset's patch.diff APPLIED (per instructions the patched tree is the reference for the modelled functions; base is reference only for the axiomatized callee fcntl.flock). Test patch applied too. bundle not modified.\n\nSPEC INTEGRITY: `adversary same-spec nagini django__django-13410 gold_model.py` -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification'; `diff` against the bundle model.py is byte-identical (I audited the shipped bytes, not a paraphrase).\n\nPOSITIVE CONTROL: scripts/nagini_verify.sh on the bundle model.py -> 'Verification successful' (10.63s). F2P pair on my patched worktree -> 2 passed (test_exclusive_lock, test_shared_lock). So gold is admitted and the oracle is fit \u2014 the spec is not vacuously over-strong.\n\nNO DIVERGING INPUT FOUND IN THE MODELLED DOMAIN. I drove the real patched locks.lock/locks.unlock directly and checked each helper postcondition (Result()==available; Implies(Result is True, holds_lock()); Implies(Result is False, holds_lock()==Old(holds_lock())); release's Result() is True and holds_lock() is False), with holds_lock() instantiated as the PER-OPEN-FILE-DESCRIPTION reading mapping.md \u00a71/\u00a73.3 specifies (drain other holders, then probe):\n  * exhaustive boundary sweep: holder in {none,SH,EX} x subject-pre-state in {none,SH,EX} x request in {EX, SH, EX|NB, SH|NB}, skipping requests the kernel would leave PENDING (explicitly outside the modelled scope) -> 0 violations.\n  * randomized sweep, seed 13410, 2229 in-domain trials over the same space -> 0 violations.\n  * release sweep over subject-pre-state x other-holder (incl. the shared-holder test_shared_lock world) -> 0 violations; unlock returns True and the SUBJECT's claim is gone in every case.\n\nAXIOMS RE-DERIVED ON THE REAL CALLEE (base-commit-unchanged fcntl.flock), independently of the bundle's script: every granted acquisition (EX, SH, EX|NB, SH|NB) returns None \u2014 so `Ensures(Result() is None)` is exact, not an over-claim; non-blocking contention raises BlockingIOError (errno 11, a subclass of OSError); a refused request leaves the subject's standing in the REQUESTED lock unmoved; LOCK_UN returns None, never raises, and ends the subject's claim even with nothing held. The per-description vs aggregate distinction the model leans on is real and is the correct (weaker) reading: in the shared-holder world an aggregate probe still answers 'held' while the subject's claim is genuinely gone, so the model does NOT assert the stronger 'nobody holds it'. I also reran the bundle's own axiom_check.py (exit 0) and conformance_check.py against MY worktree (exit 0, 100020 trials, 0 disagreements) \u2014 both reproduce.\n\nRESIDUAL EDGES EXAMINED AND JUDGED OUT-OF-DOMAIN (not drift):\n\n  (a) lock(f, LOCK_UN): real patched lock returns True while the subject holds nothing, which would falsify Implies(Result is True, holds_lock()). But LOCK_UN is NOT in locks.__all__ ('LOCK_EX','LOCK_SH','LOCK_NB','lock','unlock') and not an attribute of the module, and no repo caller passes it (all six call sites \u2014 testcases.py:1569, filebased.py:65, storage.py:270, move.py:61, plus the two F2P tests \u2014 pass LOCK_EX or LOCK_SH optionally |LOCK_NB). Spelling a release as an acquisition is not a lock REQUEST, so it is outside the stated R-refinement '(f,flags) -> available = was the requested lock operation granted'.\n\n  (b) lock(f, 0) raises a non-BlockingIOError OSError (EINVAL) which real gold propagates, whereas the model's LockUnavailable would absorb it into False. mapping.md \u00a72/\u00a73.1 states the refinement carrier explicitly as LockUnavailable <-> BlockingIOError (contention), and flags=0 is not a value any caller in the POSIX branch supplies. Documented scope, not undocumented drift.\nNeither edge is reachable from repo behavior, so I do not treat either as a faithfulness defect; both are disclosed here so a future pass can weigh them.\n\nOVER-STRENGTH OBSERVATION FOR THE SIBLING LANE (not a faithfulness break, no diverging input): a double-acquisition impl (`primitive_lock(available)` twice, then return True) is REJECTED by the spec \u2014 `adversary weakness` -> exit non-candidate, 'attack does not verify' \u2014 because primitive_lock CONSUMES answerable_acquisition() and acquire is handed exactly one. On the real callee a second flock(fd, LOCK_EX) on the same description succeeds and is value- and state-identical to gold, so that impl would plausibly resolve. This is the answerability capability rejecting a would-be-correct rival, i.e. a candidate SPEC-TOO-STRONG-for-rivals point, but it is not a disagreement between the modelled function and the real callee on any input, and gold still verifies, so it does not make the spec unfaithful. Flagging it for G-EQ/G-PANEL-1 rather than claiming it here.\n\nSTALENESS NOTE (important for reading verdict.md): the recorded G-EQ and G-PANEL-1 fails both rest on `Ensures(Result() == EMPTY_RESULT)` with EMPTY_RESULT = -1 letting an impl distinguish -1 from None. The model.py I audited no longer contains that clause \u2014 both primitives now carry `Ensures(Result() is None)` (model.py:363 and :407) and there is no numeric sentinel in the axioms region. Those two recorded fails therefore judge a spec that has since been repaired; my pass is against the current bytes (sha per meta.json G-AX/G-CONF sources: 4df519d4e6c5...).\n\nCONCLUSION: FAITHFUL. No input exists in the modelled domain on which the specified acquire/release disagrees with the real patched django.core.files.locks.lock/unlock; every axiom clause is met exactly by the unchanged fcntl.flock; gold verifies and the F2P pair passes. I am submitting FAITHFUL rather than manufacturing a divergence from out-of-domain flag spellings.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T03:56:07+00:00",
+      "code_version": "99654c693-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ROLE: leakage / gold-reconstruction, django__django-13410 nagini. Live model.py sha256[:12]=4df519d4e6c5. All work under mktemp'd; bundle unmodified.\n\n(0) NO RELAXATION IS ON OFFER. meta.json has NO `relaxed_leakage` key (keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version) and no RELAXED_LEAKAGE.md exists under the instance dir. So there is no unavoidability argument to re-derive and no disposition to inherit \u2014 the verdict below is my own measurement, not an inherited one.\n\n(0b) NOTHING IN THE BUNDLE ADDRESSES ME. Grepped model.py/mapping.md/refinement.md/axiom_check.py/conformance_check.py for G-PANEL|attacker|panel|reviewer|submit_result|NO-LEAKAGE|you must|honest verdict -> zero hits; leakage.reviewer_directed() returns [] on model.py, mapping.md, refinement.md AND verdict.md. The only text speaking to my role is a PRIOR G-PANEL-3 note embedded in verdict.md/meta.json; it describes rather than instructs, and I treated it strictly as a claim. Notably it stamps model.py as 582e74d351a7 while the live file is 4df519d4e6c5, i.e. the prior leakage pass judged superseded bytes \u2014 which is why I re-derived everything from scratch rather than adopting it.\n\n(1) SPEC VIEW RENDERS AND ELIDES. markers.spec_view(model.py, nagini) = 539 lines; BOTH impl regions are replaced by `...  # implementation elided`. The gold edit is exactly and only the two helper bodies, so the discriminating bytes are structurally absent from what the consumer sees.\n\n(2) LEXICAL SCREEN, RE-RUN MYSELF (not read off the stamp). leakage.screen(model.py, nagini, frozen patch, frozen problem_statement) -> passed=True, hard_failures=[], warnings=[]. Independently: narration-vocabulary hits = [] (no bug/fix/patch/pre-patch/previously/incorrectly/wrong anywhere in the spec view); diff markers present = [] (no @@, `diff --git`, `+++ `, `--- `, `\\nindex`).\n\n(3) IDENTIFIER / SYMBOL DISJOINTNESS, MEASURED. AST identifiers of the spec view = {ContractOnly, Ensures, Exception, Exsures, Implies, LockUnavailable, MustTerminate, Old, Optional, Predicate, Pure, Requires, Result, acquire, answerable_acquisition, available, bool, holds_lock, int, lock_state, primitive_lock, primitive_release, release}. Intersection with the token set of the gold patch = EMPTY. No repo symbol (lock, unlock, _fd, flock), no exception class, no path.\n\n(4) THE DISCRIMINATOR IS ONLY IN THE PUBLIC TEXT, NOT THE SPEC. Per-term presence (spec_view | problem_statement): fcntl F|T, flock F|T, OSError F|T, LOCK_UN F|T, _fd F|T, 'ret == 0' F|T, 'locks.py' F|T, 'django/core' F|T, BlockingIOError F|F. The public problem_statement is STRICTLY MORE EXPLICIT than the spec view \u2014 it contains the literal proposed diff. So there is no fact the spec view supplies beyond it; the direction of leakage is reversed.\n\n(5) MANUAL GOLD-CHANGED-LINE CHECK. Whitespace-normalized, of the 11 added/removed gold lines the only substring collision is `try:` (4 chars), and I located it: it falls inside the normalized comment text \"...operations' asymmetry:the ACQUISITION helper...\" \u2014 a normalization artifact spanning \"asymmetry:\"+\"the\", not a reproduced code line, and below the screen's own 8-char threshold. No gold line is reproduced.\n\n(6) GOLD IS NOT RECONSTRUCTIBLE \u2014 THE STRONGEST MEASUREMENT. The gold patch and the problem_statement's proposed patch DISAGREE on the release helper: gold writes bare `flock(...LOCK_UN); return True`, the public text proposes `try: ... except OSError: return False`. If the spec leaked gold's shape it would have to reject the public shape. It does not. I built two same-spec attacks (spec region untouched) and ran the toolkit:\n  - atk_ps_release.py (release body = the problem_statement's try/except shape): `adversary same-spec` -> exit 0 \"SAME\"; `adversary weakness` -> exit 0 \"CANDIDATE-COUNTEREXAMPLE: shares spec AND verifies (14.2s)\".\n  - atk_var_acquire.py (acquire rewritten through an explicit bool variable): same-spec exit 0; weakness exit 0 \"shares spec AND verifies (14.4s)\".\n  I also confirmed byte-identity directly with markers.same_spec(gold, atk) = True and sha256(spec_view(gold)) == sha256(spec_view(atk)) for both. So the spec admits gold's shape AND the public-text shape AND a third rewrite: a consumer reading only the spec view cannot recover which one gold chose.\n\n(7) CONTROLS, so \"admits both\" is not \"admits everything\". Positive: `scripts/nagini_verify.sh` on the live gold model.py -> \"Verification successful\" (13.70s). Negative: neg_prepatch.py (acquire reverted to `ret = primitive_lock(available); return ret == 0`) -> `adversary weakness` exit 2, \"NOT-A-COUNTEREXAMPLE: attack does not verify \u2014 the spec rejected this impl\". The spec is discriminating, and it discriminates on the abstract control-flow-vs-value axis without naming the edit.\n\n(8) SCOPE OF THE VIEW CONFIRMED FROM THE HARNESS, not assumed. eval/prompts.py::initial_user assembles problem_statement + optional hints + localization block + _spec_block(task.spec_view) only; grep for refinement|mapping in prompts.py and agent.py -> zero hits. refinement.md and mapping.md DO quote the gold diff verbatim (refinement.md:25-34, 61-65; mapping.md:8-25 name locks.py, fcntl.flock, BlockingIOError), but they are audit-side artifacts, never handed to a solver, and eval/adapter.py::spec_view hard-guards that impl elision actually happened before exposing anything. Solver-visible meta fields (modeled_functions repo_symbol/repo_location, changed_files) give edit LOCALIZATION only \u2014 `locks.py:109/:113`, lock/unlock \u2014 which is the deliberate localization aid also present in mode 0 and already in the public problem_statement; it names WHERE, never the try/except-vs-`ret == 0` discriminator.\n\nRESIDUALS FOR THE OWNING ROLE, NOT LEAKAGE FINDINGS (routing only): (a) meta.json top-level region_hashes are STALE against the live bytes for axioms (live 548dd49b / meta 2711f2f4), post-conditions (abd7bec8 / 571c371b), pure (41072923 / aa3505b5) and spec_view (7a3cdf27 / d50184ef); only impl (25f420c2) and pre-conditions (4af38839) agree \u2014 freshness checks keyed on the top-level ledger will misread the current spec. (b) G-PANEL-3's recorded stamp carries an EMPTY source_digests map and its note cites a model.py digest (582e74d351a7) that matches neither the live bytes nor the ledger, so that pass is not attributable to any artifact. Neither affects leakage: the gates my disposition actually leans on I re-ran or re-derived myself (G-LEAK screen re-run clean; spec_view elision verified; same-spec byte identity verified; gold verification and the prepatch rejection both re-measured on the live bytes).\n\nVERDICT: NO-LEAKAGE. The spec view names no file, no repo symbol, no exception class, and no before/after code shape from the gold edit; its identifier set is disjoint from the gold patch's tokens; every discriminating term it could have used appears only in the strictly-more-explicit public problem_statement; and I measured that the spec still admits both the gold release shape and the problem_statement's competing release shape while rejecting the pre-patch shape \u2014 the opposite of gold-reconstruction.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:48:29+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-acquire-single-exit",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 33.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-release-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.9
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-acquire-indomain",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 34.8
+          },
+          {
+            "expect": "reject",
+            "id": "control-flow-effect-acquire-noop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.8
+          },
+          {
+            "expect": "reject",
+            "id": "control-flow-effect-release-noop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.0
+          },
+          {
+            "expect": "reject",
+            "id": "inverted-value-acquire",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.0
+          },
+          {
+            "expect": "reject",
+            "id": "always-false-acquire-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.6
+          },
+          {
+            "expect": "reject",
+            "id": "always-false-release-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.3
+          },
+          {
+            "expect": "reject",
+            "id": "inverse-effect-acquire-drops-lock",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.9
+          },
+          {
+            "expect": "reject",
+            "id": "inverse-effect-release-retakes-lock",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.3
+          },
+          {
+            "expect": "reject",
+            "id": "frame-preservation-acquire-drops-on-failure",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.2
+          },
+          {
+            "expect": "reject",
+            "id": "pending-step-release-acquires-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.3
+          },
+          {
+            "expect": "reject",
+            "id": "value-truthiness-acquire",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.9
+          },
+          {
+            "expect": "reject",
+            "id": "value-truthiness-release",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.4
+          },
+          {
+            "expect": "reject",
+            "id": "value-ordering-acquire",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.0
+          },
+          {
+            "expect": "reject",
+            "id": "vacuous-value-interrogation-acquire",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 13
+        },
+        "manifest_sha256": "d593915dff0c554b3aeba2a06d9ac2b57db567226de83cc73bc9c7165fb23b59",
+        "n_cases": 16,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 16 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc",
+        "properties.py": "d593915dff0c554b3aeba2a06d9ac2b57db567226de83cc73bc9c7165fb23b59"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T03:45:25+00:00",
+      "code_version": "69dfa6a4e-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4ea0ec1990a7d6c6ab3b8620be4eeb726ac34ab075aa7f8322862bd6e7a6ca43",
+        "patch.diff": "cb1afa47138b17aa28c6296c57ceb7e9d0cdf781dd6cb89bd3f9a02dd6776f18"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T05:33:33+00:00",
+      "code_version": "e7a05dead-dirty",
+      "data": {
+        "wall_time_s": 19.7
+      },
+      "detail": "verified in 19.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4df519d4e6c533363ff4171157eb5320f527b962f8df1e03bb5f91320777a3dc"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13410",
+  "modeled_functions": [
+    {
+      "carrier_type": "(f, flags) -> abstract boolean `available` (whether the requested lock can be acquired); return bool",
+      "model_symbol": "acquire",
+      "repo_location": "django/core/files/locks.py:109",
+      "repo_symbol": "django.core.files.locks.lock (POSIX else branch)",
+      "role": "modeled changed function #1 (lock-acquisition helper)"
+    },
+    {
+      "carrier_type": "() -> bool; release of a held lock",
+      "model_symbol": "release",
+      "repo_location": "django/core/files/locks.py:113",
+      "repo_symbol": "django.core.files.locks.unlock (POSIX else branch)",
+      "role": "modeled changed function #2 (lock-release helper)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "Postcondition of acquire: Assertion (Result() == available) might not hold \u2014 the value obligation the patch is about. The body invokes the primitive and then DERIVES the report from the value it handed back; a granted request hands back the empty value, so the interrogation answers NO and the helper reports FAILURE on a lock it holds. The unhandled refusal signal is a second defect in the same body. (Shares the strengthened spec including the holds_lock() exit-state clauses and the answerable_acquisition() scope; still fails, on the value clause.)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "lock() / acquire(): success now reported as True",
+      "reverted_to": "the old value-derived report `ret = flock(...); return <value test>` with no try/except"
+    },
+    {
+      "fails_on": "Postcondition of release: Assertion (Result() is True) might not hold \u2014 a completed release hands back the empty value, so the value-derived report is FALSE. (Shares the strengthened spec including the answerability asymmetry; its release DOES call primitive_release so the exit-state clause holds_lock() is False is establishable, but Result() is True still fails.)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "unlock() / release(): success now reported as True",
+      "reverted_to": "the old value-derived report `ret = flock(..., LOCK_UN); return <value test>`"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "2711f2f470aab8f1915c2ea26d7fd2a14bfa81eddd950cd4f8730f60b738b3d4",
+    "impl": "25f420c272520da83ed3256a828abd698cf0366d6f8a24fa9cd03cd772040bae",
+    "post-conditions": "571c371bef41dd0a14fa304a1bd0e8b650ac45e7c6376609bbc35f248b68557a",
+    "pre-conditions": "c84def53056944f0c1a3b1c8a69383bfaeb24a65b791748c2995b803dcc14e8f",
+    "pure": "aa3505b53d5f34d2042916d2c594f0c6ac3fc3b1dbeb08a0450e621200924bef",
+    "spec_view": "d50184ef69f65c083832d87a4238bb68d24dfe31cd313a000a902926935230b7"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none required: the entire observable behaviour is the helpers' boolean outcome. The carriers are a plain bool (available), the helpers' bool return, the model language's OWN EMPTY VALUE for the primitives' normal-completion result (no stand-in number: a number would answer questions the real value refuses, on which a body could decide the reported boolean), and a user-defined LockUnavailable exception for fcntl.flock's OSError/BlockingIOError contention signal.",
+  "version": "3.2"
+}

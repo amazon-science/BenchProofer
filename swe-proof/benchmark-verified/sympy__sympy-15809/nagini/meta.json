@@ -1,0 +1,538 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "The single deleted guard fixes BOTH Min() and Max() (F2P test_Min and test_Max) identically \u2014 Min() -> identity oo, Max() -> identity -oo. Both are the one modeled function lattice_reduce with the identity/zero sentinels swapped; the fix is not independently observable per lattice, so one model_prepatch.py discriminates both.",
+      "repo_location": "sympy/functions/elementary/miscellaneous.py:730-731 (Max.zero/identity), 795-796 (Min.zero/identity)",
+      "repo_symbol": "Min vs Max instantiations of the same MinMaxBase.__new__"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real sympy Min/Max on the empty collection NEVER raise (return the identity element); every collection containing a non-comparable operand (I, S.ComplexInfinity, S.NaN, and the substituted Min/Max(cos(x),sin(x)).subs(x,I)) DOES raise ValueError -> has_noncomparable_operand([])==False and ==True on non-comparable collections",
+      "encoded_property": "Implies(len(operands)==0, not Result()) \u2014 an empty operand collection contains no operand, so the comparability pre-filter can never reject it (weakest sufficient contract; the raise fires only inside the per-arg loop body, which never runs on an empty sequence). Underpins the model's Exsures(NonComparableOperand, has_noncomparable_operand(operands)) pinning the unchanged non-comparable rejection.",
+      "kind": "A-consumed",
+      "models": "the comparability raise path of MinMaxBase._new_args_filter (raise ValueError('...is not comparable.'), UNCAUGHT, propagates out of __new__)",
+      "name": "has_noncomparable_operand",
+      "provenance": "sympy/functions/elementary/miscellaneous.py:508-534 (_new_args_filter; comparability guard raises ValueError at 521-523), NOT caught in __new__ (only ShortCircuit is caught at 350-352)",
+      "purity": "@Pure @ContractOnly (used inside Ensures and Exsures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real sympy Min/Max on the empty collection return the identity element, never the annihilator cls.zero -> has_absorbing_operand([]) == False",
+      "encoded_property": "Implies(len(operands)==0, not Result()) \u2014 an empty operand collection contains no operand, so the pre-filter can never detect the absorbing element on it (weakest sufficient contract; the short-circuit is raised only inside the per-arg loop body, which never runs on an empty sequence)",
+      "kind": "A-consumed",
+      "models": "the ShortCircuit path of MinMaxBase._new_args_filter (caught in __new__ -> return cls.zero)",
+      "name": "has_absorbing_operand",
+      "provenance": "sympy/functions/elementary/miscellaneous.py:508-534 (_new_args_filter; raise ShortCircuit at 525-526), caught at __new__ 349-352",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX, A2): the real reduction of the empty collection returns (Min() == oo / Max() == -oo), so the empty-collection property holds; the predicate is NON-TRIVIAL on the real callee (x + I, x - I, I*x, sign(x), Order(x) all pass the per-operand scan and the pass still fails, so the model's failure leg is reachable rather than dead); and it is vacuously true wherever the scan already decided (an absorbing operand collapses the reduction in EITHER order alongside such an operand and the pass is never reached).",
+      "encoded_property": "Implies(len(operands)==0, Result()) \u2014 an EMPTY collection leaves that pass nothing to compare, so it cannot fail on it (weakest sufficient contract; the axiom claims NOTHING about any non-empty collection, in particular it does not claim the pass is defined there). Guards canonical_count's Requires, so the count is only ever read where a canonical set exists, and underpins both the model's obligation Ensures(has_absorbing_operand or canonical_reduction_defined) and its Exsures(ReductionUndefined, ...) permission.",
+      "kind": "A-consumed",
+      "models": "DEFINEDNESS of the canonical-set pass: whether cls._collapse_arguments then cls._find_localzeros YIELD a canonical set at all, rather than propagating their own comparison failure over the survivors the per-operand scan passed over. A DIFFERENT observation from the scan: the scan judges each operand ALONE, _find_localzeros compares SURVIVORS against one another through _is_connected.",
+      "name": "canonical_reduction_defined",
+      "provenance": "sympy/functions/elementary/miscellaneous.py:536-560 (_find_localzeros; con = cls._is_connected(v, z) at 552), 563-589 (_is_connected; r = hit(x >= y, Max, Min) at 574 and x = factor_terms(x - y) at 588), reached from __new__ at 359 (base_commit numbering, as elsewhere in this record; the patch deletes 2 lines so the patched tree is -2 after :341). The comparison propagates out of sympy/core/expr.py:295 (raise TypeError(\"Invalid comparison of complex %s\")) for survivors like x + I that the scan's :518-523 guard passes over (x.is_real is None, not False, and neither operand is_number), and out of sympy/core/expr.py:2985 (raise NotImplementedError, \"... has no _eval_as_leading_term routine\") for sign(x)/Order(x). Neither line is touched by patch.diff, which only deletes the empty-args guard at :342-343.",
+      "purity": "@Pure @ContractOnly (used inside Requires, Ensures and Exsures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real sympy Min/Max on the empty collection take the empty-canonical-set branch and return the identity element -> canonical_count([]) == 0",
+      "encoded_property": "Requires(canonical_reduction_defined(operands)) plus Result() >= 0 and Implies(len(operands)==0, Result()==0) \u2014 the canonical count is PARTIAL: it is claimed only where the canonical-set pass is defined, and there it is non-negative, with the empty collection reducing to the empty canonical set. The definedness Requires is the fix for the 3rd-pass defect D4: without it, Result() >= 0 was a claim on EVERY input, i.e. a claim that the count EXISTS, which is false on the collections where _find_localzeros propagates a comparison failure.",
+      "kind": "A-consumed",
+      "models": "the canonical-set reduction: cls._collapse_arguments + cls._find_localzeros, whose length the 'if not args' / 'if len(args)==1' tests read",
+      "name": "canonical_count",
+      "provenance": "sympy/functions/elementary/miscellaneous.py:373-506 (_collapse_arguments; 'if not args: return args' at 402-403), 536-560 (_find_localzeros), whose len() the 'if not args' / 'if len(args)==1' tests read at 359-365; PARTIAL for the reason recorded on canonical_reduction_defined (base_commit numbering)",
+      "purity": "@Pure @ContractOnly (used inside Ensures; its Requires names canonical_reduction_defined, so every use site must first establish that a canonical set exists)"
+    }
+  ],
+  "base_commit": "28d913d3cead6c5646307ffa6540b21d65059dfd",
+  "changed_files": [
+    "sympy/functions/elementary/miscellaneous.py"
+  ],
+  "deep_model_references": [],
+  "exception_modeling": "Three user-defined exception classes (a builtin exception in an Exsures crashes the Nagini translator, SPEC_GUIDE \u00a72). (1) EmptyReductionRejected stands in for the DELETED empty-args ValueError; the post-patch spec FORBIDS it everywhere (it appears in NO Exsures, so raising it is unprovable \u2014 that is exactly what refutes model_prepatch.py, whose diagnostic is 'method only raises exceptions of types NonComparableOperand, ReductionUndefined'). (2) NonComparableOperand stands in for the UNCHANGED comparability ValueError that _new_args_filter still raises at :523 and that propagates uncaught out of __new__ (only ShortCircuit is caught, :349-350). The spec PINS it from both sides: Exsures(NonComparableOperand, has_noncomparable_operand(operands)) grants the permission ONLY on that class, and Ensures(not has_noncomparable_operand(operands)) makes the rejection an OBLIGATION (a normal return is inadmissible there), which is what the F2P tests assert as raises(ValueError, ...). (3) ReductionUndefined stands in for whatever error the UNCHANGED canonical-set pass itself propagates \u2014 TypeError('Invalid comparison of complex ...') from sympy/core/expr.py:295 via _is_connected (:574), NotImplementedError from sympy/core/expr.py:2985 via :588 \u2014 on survivors the per-operand scan passed over. The model cannot name one builtin for it, so conformance_check.py's decode ASKS THE REAL CHAIN which error it propagated for the collection and compares that type name; what the shadow decides on its own is WHETHER to fail. The spec pins it from both sides too: Exsures(ReductionUndefined, not has_noncomparable_operand and not has_absorbing_operand and not canonical_reduction_defined) is the permission, and Ensures(has_absorbing_operand or canonical_reduction_defined) is the obligation. This third class is the 3rd-pass fix (D4) for the over-strong totality the second adversarial panel refuted: the spec used to obligate a NORMAL return of one of the four sentinels on every fully-scanned collection, while the real patched constructor raises on Min(x, x+I) / Max(sign(x), Order(x)).",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T00:39:09+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: empty-collection -> identity (Min()==oo, Max()==-oo), single survivor -> operand, >=2 survivors -> aggregate; a non-comparable operand (I/zoo/nan/subs) -> ValueError; has_noncomparable_operand([])==False, has_absorbing_operand([])==False, canonical_reduction_defined([])==True and canonical_count([])==0 hold; the two decisive scan events are MUTUALLY EXCLUSIVE \u2014 on both orders of {absorbing, non-comparable} the constructor agrees with the real scan's FIRST event (Min(-oo,I)==-oo vs Min(I,-oo) raises); and the canonical-set pass is a DISTINCT partial observation \u2014 18 collections whose every operand the scan passed over still failed in that pass (never with the scan's own ValueError), while an absorbing operand collapses the reduction in either order alongside one of them (the pass is never reached, so definedness is vacuously true) \u2014 on the real sympy reductions over 6208 observations.",
+      "gate": "G-AX",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "4ee0289d09e48a6504c25de55aa78b8acf2a3bbe9a599e30541724f9d93f3d2d",
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T00:39:01+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "branch_hits": {
+            "aggregate": 33113,
+            "identity": 12922,
+            "reject": 21644,
+            "single": 23182,
+            "undefined": 1984,
+            "zero": 7437
+          },
+          "checked": 100282,
+          "disagreements": 0,
+          "oracle": "MinMaxBase.__new__ (sympy/functions/elementary/miscellaneous.py:341) called via sympy.Max/sympy.Min",
+          "seed": 15809,
+          "shadow": "model.py impl region verbatim, contracts stripped",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"branch_hits\": {\"aggregate\": 33113, \"identity\": 12922, \"reject\": 21644, \"single\": 23182, \"undefined\": 1984, \"zero\": 7437}, \"checked\": 100282, \"disagreements\": 0, \"oracle\": \"MinMaxBase.__new__ (sympy/functions/elementary/miscellaneous.py:341) called via sympy.Max/sympy.Min\", \"seed\": 15809, \"shadow\": \"model.py impl region verbatim, contracts stripped\", \"status\": \"pass\"}",
+      "gate": "G-CONF",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "ebc8dbcc31ff844039172700238b36b5befe2ea28e803325e42cfe5a0211f180",
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:19:09+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24",
+        "model_prepatch.py": "5817172aa0bd5c11a32abedb5deabc8849ed727d7721f003e6ce8ab9baf70278"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T01:05:12+00:00",
+      "code_version": "bc031a20d-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 13 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n\n**Non-vacuity.** The positive control `pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24",
+        "properties.py": "4c225d18a4fe05d36c66a4d9a51d01f30e58f048aebff5e80430aecc9e907794"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:19:54+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24",
+        "model_prepatch.py": "5817172aa0bd5c11a32abedb5deabc8849ed727d7721f003e6ce8ab9baf70278"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T00:33:31+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "559fbcf4a30e1c88fb3046826309a1ada72424391455a66241500b3437f6c708",
+          "impl": "13d8cb65e1aba0ab7a5f66831e298da8a48baca85821267015a7b8b2cad2e3d3",
+          "post-conditions": "e685d58ac7235b34c806e6c0600033841a8ca7d8ec3fcb198986b486e51c4c0b",
+          "pre-conditions": "8f5a193bb038ff5ffa0e85fdff27cf303ee2f86e308aa95071f2dd6b6dccc9ba",
+          "pure": "681964d7625500607f2163ae8ad8aabd5b4f9930547b67de910aca0663935cf8",
+          "spec_view": "da4e821c5d4d84b8b483a6fd2ea2ebe93ed7ea3bb3d5d38ebea782c41ff1fbc3"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T00:33:30+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "5b6c08e14ac3aeb7d19233f9e67705d0d020a0ab71972044f86a351ba10bff6b",
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T00:33:31+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:59:34+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "judged": 6,
+        "killed": 6,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 6,
+        "unjudged": []
+      },
+      "detail": "killed 6/6 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T01:05:12+00:00",
+      "code_version": "bc031a20d-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SPEC REGION INTEGRITY: `adversary same-spec nagini sympy__sympy-15809` on a byte-copy of the bundle model.py => exit 0 (\"SAME\"). Bundle model.py verifies under the pinned verifier: `scripts/nagini_verify.sh` => \"Verification successful\" (22.6s).\n\nWHAT I ATTACKED. Faithfulness here means: for every operand collection, the modeled `lattice_reduce` (impl + the 4 @ContractOnly axioms' contracts) must agree with the real PATCHED `MinMaxBase.__new__` (miscellaneous.py:341). I built an independent harness () that, per input, reads the predicate values off the REAL unchanged callees (`_new_args_filter` for the scan's first decisive event; `_collapse_arguments`+`_find_localzeros` for definedness/count), evaluates the model impl on them, runs the real `Min`/`Max`, and then checks EVERY spec clause: the 4 axiom Ensures, the 4 outcome-decode clauses (identity/zero/single/aggregate decoded to cls.identity/cls.zero/list(args).pop()/the assembled aggregate), the exception-type bridge, and crucially BOTH obligation Ensures (`not has_noncomparable_operand` and `has_absorbing_operand or canonical_reduction_defined`), which are what a spec-too-strong defect would break.\n\nRESULTS (all 0 problems):\n1. Broad differential, seed 20260815: 15,518 comparisons, 0 problems. Branch tally: identity 1079, zero 488, single 2561, aggregate 4483, reject 6669, undefined 238 (TypeError 178 / NotImplementedError 60) \u2014 all six branches live, so no branch is dead/unexercised.\n2. Large fresh-seed fuzz (seed 777333, 30k fuzz collections/lattice): 63,518 comparisons, 0 problems.\n3. Exotic-operand hunt (8,094 comparisons): ~60 hand-picked operand kinds \u2014 Interval, FiniteSet, Matrix, MatrixSymbol, ImageSet, S.Reals, relationals, And/Or/Not, Sum/Integral/Derivative/Limit, Order, sign, arg, conjugate, im/re, gamma/zeta/besselj/LambertW/polylog, factorial/binomial, KroneckerDelta/DiracDelta/Heaviside, floor/ceiling/frac/Mod, Piecewise with I/nan branches, Float('inf'/'nan'), oo+I, zoo+1, roots of negatives \u2014 alone, doubled, and crossed with 9 comparable controls. 0 problems.\n4. Forged pathological nested nodes (bypassing __new__ via Expr.__new__ to plant cls.zero / I / x+I / cls.identity / empty INSIDE a nested node, which `_new_args_filter` re-yields WITHOUT re-checking comparability): 0 problems. This was my best spec-too-strong candidate and it holds \u2014 e.g. Max(forged Max(I,x)) has a CLEAN scan yet the real ctor raises TypeError, and the spec correctly predicts ReductionUndefined there (not a normal return), because `canonical_reduction_defined` is False. A scan-only spec would have been UNFAITHFUL here; the bundle's separate definedness axiom is exactly what saves it.\n\nTARGETED CLAUSE-BY-CLAUSE CONFIRMATIONS:\n- The load-bearing EXCLUSIVITY clause (`Implies(Result(), not has_noncomparable_operand)` on `has_absorbing_operand`) matches reality on both orders: Min(-oo,I)=-oo / Min(I,-oo) raises; Max(oo,I)=oo / Max(I,oo) raises; also behind a comparable symbol and with repeats. A containment reading would have been unfaithful on the first of each pair; the bundle gets it right.\n- The PINNED behaviour: Min()==oo==Min.identity, Max()==-oo==Max.identity, scan clean, pass defined, count 0. Stable under 9 kwarg variants (evaluate=False/True, real, positive, integer, commutative, combinations, unknown kwarg) \u2014 empty->identity in all 18 cases, never a raise.\n- Non-empty inputs reaching the count==0 identity branch (cls.identity-only operands, e.g. Min(oo), Min(oo,oo,oo)) all return cls.identity, matching the model's more-general `count==0 => identity` clause rather than only the empty case.\n- UNAXIOMATIZED TAIL: over 10,181 inputs where scan is clean AND the pass is defined (so the spec's four-outcome totality clause FORBIDS raising), the real ctor raised 0 times. So `list(args).pop()` / `Expr.__new__` assembly never falsifies the totality clause \u2014 the spec is not too strong.\n- DETERMINISM (@Pure soundness): `_find_localzeros` iterates a frozenset with id()-based comparisons, so I re-ran the full predicate+outcome vector under PYTHONHASHSEED=0/1/12345/999 \u2014 byte-identical JSON (414,735 bytes each), 0 differing keys across ~8.5k inputs/seed. The axioms are genuine functions of the operand list.\n- EXCEPTION BRIDGE: SympifyError is a ValueError subclass, so sympify failures route to NonComparableOperand on BOTH the model and oracle side consistently \u2014 no hidden mismatch. The ReductionUndefined decode was checked against the pass's ACTUAL propagated type (TypeError vs NotImplementedError), not merely \"it raised\".\n- Bundle's own axiom_check.py re-run against my worktree: exit 0, 6208 observations, 18 non-trivial undefined-pass collections \u2014 so the ReductionUndefined leg is reachable, not dead.\n\nNON-FINDING I EXPLICITLY CLEARED: `evaluate=False` changes the outcome branch on 72/19,518 inputs (e.g. Min(Max(2,y), sqrt(2)) is `single` by default but `aggregate` with evaluate=False, since `_collapse_arguments` is skipped). This is NOT a faithfulness defect: `**assumptions` is outside the modeled signature (mapping.md \u00a71 binds `lattice_reduce` to the collection + the four sentinels only), the axioms are read off the real callees in whichever mode the oracle runs, the F2P behaviour (empty->identity) is invariant under every kwarg I tried, and the patch touches none of this. The delta is a property of the unchanged `_collapse_arguments`, identical in base and patched.\n\nNON-VACUITY CONTROL: model_prepatch.py shares the exact spec (same-spec exit 0) and FAILS the pinned verifier \u2014 \"method only raises exceptions of types NonComparableOperand, ReductionUndefined\" might not hold \u2014 so the spec genuinely senses the patch delta and my FAITHFUL verdict is not a rubber-stamp on a vacuous spec.\n\nI also confirmed I did not commit the briefing's warned-against error: I used the patch-APPLIED worktree as the reference for the modeled function, so the empty-collection behaviour (Min()==oo) is agreement, not a divergence. Comparing against base would have manufactured a false UNFAITHFUL on exactly the patch delta.\n\nCONCLUSION: no diverging input found; the spec is neither too strong nor drifted. VERDICT FAITHFUL. Residual risk is the usual finite-search one (the operand space is infinite), concentrated in operand kinds none of my ~60 exotic classes or the fuzz pool reached, but the two structurally-suspicious classes (unaxiomatized assembly tail, nested re-yield without re-check) were both probed directly and both hold. No bundle file was modified;",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE. Judged the CONSUMER SPEC VIEW only = markers.spec_view(model.py, nagini/python backend) -- module docstring + 3 exception classes + axioms + pure + pre/post-conditions, impl region collapsed. I confirmed the elision is real: spec_view.txt lines 282-284 are exactly `# impl-start / ...  # implementation elided -- supplied by the consumer / # impl-end`. This matters here, because the impl region of model.py DOES name the edit shape verbatim (`(The stale guard \\`if len(operands) == 0: raise EmptyReductionRejected()\\` is absent: ...)`) and model_prepatch.py's impl region says `PRE-PATCH (stale): the reduction REJECTS the empty operand collection up front`. Neither reaches the consumer -- both live strictly inside impl-start/impl-end and are projected away. Had they been in a spec region this would have been LEAKAGE; they are not.\n\nNO RELAXATION IN THIS BUNDLE. There is no RELAXED_LEAKAGE.md and meta.json has no `relaxed_leakage` key (checked: `'relaxed_leakage' in meta` -> False; meta keys are additional_change_sites, ax_apply_gold, axioms, base_commit, changed_files, ..., region_hashes, repo, schema_version, string_modeling, version). So I judged this as an ordinary strict-mode leakage review, not as an inherited disposition, and no unavoidability argument needed re-deriving.\n\nGOLD EDIT (from the frozen row, data/swe_bench_verified/test.jsonl). sympy/functions/elementary/miscellaneous.py, MinMaxBase.__new__ -- a pure DELETION of two lines, `if not args:` / `raise ValueError(\"The Max/Min functions must have arguments.\")`, so control falls through to the pre-existing `if not args: return cls.identity` at :361 and Max()->-oo, Min()->oo. Confirmed against a throwaway worktree of repos/sympy_sympy.git at base_commit 28d913d3cead6c5646307ffa6540b21d65059dfd (read :339-370 pre-patch, then removed the worktree; all work in /tmp, bundle untouched).\n\nPROBLEM_STATEMENT BASELINE (solver-visible; hints_text deliberately NOT used as a baseline). \"Zero-argument Min() and Max() / Right now Min() and Max() with no arguments raise ValueError: The Max/Min functions must have arguments. It might be mathematically more convenient to have them return oo and -oo, respectively.\" So THREE facts are already public: (a) the empty-argument case is the subject; (b) it currently raises ValueError; (c) the desired results are oo for Min and -oo for Max. The spec's discriminating clause -- `Ensures(Implies(len(operands) == 0, Result() == identity))` plus the docstring's \"for the maximum the identity is negative infinity; for the minimum it is positive infinity\" -- is a restatement of (c), which is the public ASK, not the hidden edit.\n\nMECHANICAL HALF -- MY OWN RUN, not the recorded gate. Re-ran leakage.screen(model.py, nagini backend, row.patch, row.problem_statement, row.test_patch): hard_failures = [] and warnings = [] (empty both). Independently:\n- L1 gold-diff lines: changed_lines = ['if not args:', 'raise ValueError(\"The Max/Min functions must have arguments.\")']; neither normalized form occurs in the normalized view. Substring sweep for `not args`, `raise ValueError`, `must have arguments`, `no arguments`, `zero-argument` -> 0 hits each.\n- L1 diff markers ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') -> absent.\n- L2 patched path `sympy/functions/elementary/miscellaneous.py` and its dotted form -> 0 hits; `miscellaneous` -> 0. The only `sympy` occurrence in the view is the instance-id in the docstring header, a uniform convention across bundles, not edit-localization.\n- L2/L4/L5 changed_symbols = {'real_root'} (harvested from the hunk section header, not from the edit) -- no spec-view identifier embeds it, no comment names it.\n- L3 narration: leakage._NARRATION_RE.findall(view) == [] (zero hits for bug/fix/patched/pre-patch/regression/previously/incorrectly/wrong/broken). Per my own prior note that G-LEAK trips on 'fixed'/'copy' in measure prose, I checked specifically: that false-positive mode does not fire on this bundle.\n- Repo-symbol sweep beyond the screen: MinMaxBase, LatticeOp, _new_args_filter, _find_localzeros, _collapse_arguments, ShortCircuit, _argset, sympify, frozenset, __new__, Infinity, `Min`, `Max` -> ALL 0 occurrences in the view. The spec speaks only abstracted lattice vocabulary (operands / identity / annihilator / canonical set / survivors).\n- Edit-SHAPE vocabulary sweep (the thing a lexical screen would miss): delete/remove/up front/early -> 0 hits. `stale` -> 1 hit and `guard` -> 1 hit, both benign on inspection: line 81 \"Stands in for the `ValueError` a stale implementation raises on an empty collection\" restates public fact (b) -- the problem_statement itself says the current code raises ValueError on no arguments -- and line 164 \"the definedness axiom above guards this one's `Requires`\" is Nagini contract vocabulary about canonical_count's precondition, nothing to do with the deleted `if not args` guard. Neither names the deletion, its file, its method, or its position.\n\nSEMANTIC HALF -- IS THE DISCRIMINATOR LOAD-BEARING, AND IS ANYTHING BEYOND IT DISCLOSED? Ran the strip test in the sound direction: the two twins share a BYTE-IDENTICAL spec view (spec_view(model.py) == spec_view(model_prepatch.py) -> True; same_spec -> True; sha da4e821c5d4d...), so the entire gold/pre-patch difference lives in the elided impl and NO spec-region byte encodes which twin is which. I then confirmed the discriminator is genuinely load-bearing rather than decorative: `bash scripts/nagini_verify.sh gold.py` -> \"Verification successful\" (13.5s, exit 0), and the same spec against the PRE-patch impl -> \"Verification failed ... Postcondition of lattice_reduce might not hold. Assertion \\\"method only raises exceptions of types NonComparableOperand, ReductionUndefined\\\" might not hold\" (exit 1). So the empty-collection clause discriminates, and it discriminates on exactly the public ask. Everything the view says beyond that clause is UNCHANGED behaviour being PRESERVED (the non-comparable-operand rejection, the reduction-undefined failure, the single/aggregate branches, the annihilator collapse) -- describing behaviour the gold patch does not touch is not disclosure of the gold edit, and none of it tells a solver where or what to delete.\n\nNO ARTIFACT ADDRESSED ME. Ran leakage.reviewer_directed over every text file in the bundle -> zero hits in all of them, and a manual grep for `submit NO-LEAKAGE|record NO-LEAKAGE|the honest verdict|recording convention|dear auditor/reviewer/panel|leakage panel` across refinement.md, mapping.md, model.py, model_prepatch.py, axiom_check.py, conformance_check.py -> no matches. Nothing in this bundle tried to steer my recording.\n\nTWO OBSERVATIONS FOR THE RECORD, NEITHER A LEAKAGE FINDING (out of my facet, flagged so they are not lost):\n1. meta.json `region_hashes` is STALE w.r.t. the shipped model.py: I recomputed markers.region_hashes(model.py) and axioms / impl / pre-conditions / post-conditions / spec_view ALL mismatch the recorded values (only `pure` and the null `invariants` agree). It is not a spec_view-convention difference -- model_prepatch.py mismatches the same five. This is consistent with the recorded G-EQ / G-PANEL / G-PANEL-1/2/3 gates carrying sources.model.py digest 4004444a... while G-LEAK, G-VERIFY, G-AX, G-CONF, G-GOLD, G-MUT, G-PBT carry the current cc0269f5... -- i.e. the model was refined (meta.refinement_applied_3rd_pass documents a D4 spec-too-strong fix to canonical_count) and the region_hashes block plus the panel gate records were not recomputed. Because my mechanical half is my OWN re-run against the current cc0269f5 bytes, my verdict does not depend on the stale block.\n2. Consequently the prior G-PANEL-3 record (agent_verdict NO-LEAKAGE, digest 4004444a) is a measurement of a superseded model. Mine is on the shipped one. Separately, G-PANEL-2 is recorded `fail` (faithfulness: canonical_count modeled TOTAL while the real _find_localzeros is PARTIAL on [x, x+I]) against that same stale digest -- a faithfulness question, not a leakage one, and not mine to re-dispose; noting only that my NO-LEAKAGE is scoped to leakage and asserts nothing about that gate.\n\nCONCLUSION. The spec view discloses exactly the publicly-asked-for behaviour -- empty reduction returns the lattice identity, oo for Min / -oo for Max -- and nothing about the deletion that implements it: not the file, not MinMaxBase.__new__, not the `if not args` guard, not the error string, not the fact that the fix is a removal. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SPEC REGION INTEGRITY: `adversary same-spec nagini sympy__sympy-15809` on a byte-copy of the bundle model.py => exit 0 (\"SAME\"). Bundle model.py verifies under the pinned verifier: `scripts/nagini_verify.sh` => \"Verification successful\" (22.6s).\n\nWHAT I ATTACKED. Faithfulness here means: for every operand collection, the modeled `lattice_reduce` (impl + the 4 @ContractOnly axioms' contracts) must agree with the real PATCHED `MinMaxBase.__new__` (miscellaneous.py:341). I built an independent harness () that, per input, reads the predicate values off the REAL unchanged callees (`_new_args_filter` for the scan's first decisive event; `_collapse_arguments`+`_find_localzeros` for definedness/count), evaluates the model impl on them, runs the real `Min`/`Max`, and then checks EVERY spec clause: the 4 axiom Ensures, the 4 outcome-decode clauses (identity/zero/single/aggregate decoded to cls.identity/cls.zero/list(args).pop()/the assembled aggregate), the exception-type bridge, and crucially BOTH obligation Ensures (`not has_noncomparable_operand` and `has_absorbing_operand or canonical_reduction_defined`), which are what a spec-too-strong defect would break.\n\nRESULTS (all 0 problems):\n1. Broad differential, seed 20260815: 15,518 comparisons, 0 problems. Branch tally: identity 1079, zero 488, single 2561, aggregate 4483, reject 6669, undefined 238 (TypeError 178 / NotImplementedError 60) \u2014 all six branches live, so no branch is dead/unexercised.\n2. Large fresh-seed fuzz (seed 777333, 30k fuzz collections/lattice): 63,518 comparisons, 0 problems.\n3. Exotic-operand hunt (8,094 comparisons): ~60 hand-picked operand kinds \u2014 Interval, FiniteSet, Matrix, MatrixSymbol, ImageSet, S.Reals, relationals, And/Or/Not, Sum/Integral/Derivative/Limit, Order, sign, arg, conjugate, im/re, gamma/zeta/besselj/LambertW/polylog, factorial/binomial, KroneckerDelta/DiracDelta/Heaviside, floor/ceiling/frac/Mod, Piecewise with I/nan branches, Float('inf'/'nan'), oo+I, zoo+1, roots of negatives \u2014 alone, doubled, and crossed with 9 comparable controls. 0 problems.\n4. Forged pathological nested nodes (bypassing __new__ via Expr.__new__ to plant cls.zero / I / x+I / cls.identity / empty INSIDE a nested node, which `_new_args_filter` re-yields WITHOUT re-checking comparability): 0 problems. This was my best spec-too-strong candidate and it holds \u2014 e.g. Max(forged Max(I,x)) has a CLEAN scan yet the real ctor raises TypeError, and the spec correctly predicts ReductionUndefined there (not a normal return), because `canonical_reduction_defined` is False. A scan-only spec would have been UNFAITHFUL here; the bundle's separate definedness axiom is exactly what saves it.\n\nTARGETED CLAUSE-BY-CLAUSE CONFIRMATIONS:\n- The load-bearing EXCLUSIVITY clause (`Implies(Result(), not has_noncomparable_operand)` on `has_absorbing_operand`) matches reality on both orders: Min(-oo,I)=-oo / Min(I,-oo) raises; Max(oo,I)=oo / Max(I,oo) raises; also behind a comparable symbol and with repeats. A containment reading would have been unfaithful on the first of each pair; the bundle gets it right.\n- The PINNED behaviour: Min()==oo==Min.identity, Max()==-oo==Max.identity, scan clean, pass defined, count 0. Stable under 9 kwarg variants (evaluate=False/True, real, positive, integer, commutative, combinations, unknown kwarg) \u2014 empty->identity in all 18 cases, never a raise.\n- Non-empty inputs reaching the count==0 identity branch (cls.identity-only operands, e.g. Min(oo), Min(oo,oo,oo)) all return cls.identity, matching the model's more-general `count==0 => identity` clause rather than only the empty case.\n- UNAXIOMATIZED TAIL: over 10,181 inputs where scan is clean AND the pass is defined (so the spec's four-outcome totality clause FORBIDS raising), the real ctor raised 0 times. So `list(args).pop()` / `Expr.__new__` assembly never falsifies the totality clause \u2014 the spec is not too strong.\n- DETERMINISM (@Pure soundness): `_find_localzeros` iterates a frozenset with id()-based comparisons, so I re-ran the full predicate+outcome vector under PYTHONHASHSEED=0/1/12345/999 \u2014 byte-identical JSON (414,735 bytes each), 0 differing keys across ~8.5k inputs/seed. The axioms are genuine functions of the operand list.\n- EXCEPTION BRIDGE: SympifyError is a ValueError subclass, so sympify failures route to NonComparableOperand on BOTH the model and oracle side consistently \u2014 no hidden mismatch. The ReductionUndefined decode was checked against the pass's ACTUAL propagated type (TypeError vs NotImplementedError), not merely \"it raised\".\n- Bundle's own axiom_check.py re-run against my worktree: exit 0, 6208 observations, 18 non-trivial undefined-pass collections \u2014 so the ReductionUndefined leg is reachable, not dead.\n\nNON-FINDING I EXPLICITLY CLEARED: `evaluate=False` changes the outcome branch on 72/19,518 inputs (e.g. Min(Max(2,y), sqrt(2)) is `single` by default but `aggregate` with evaluate=False, since `_collapse_arguments` is skipped). This is NOT a faithfulness defect: `**assumptions` is outside the modeled signature (mapping.md \u00a71 binds `lattice_reduce` to the collection + the four sentinels only), the axioms are read off the real callees in whichever mode the oracle runs, the F2P behaviour (empty->identity) is invariant under every kwarg I tried, and the patch touches none of this. The delta is a property of the unchanged `_collapse_arguments`, identical in base and patched.\n\nNON-VACUITY CONTROL: model_prepatch.py shares the exact spec (same-spec exit 0) and FAILS the pinned verifier \u2014 \"method only raises exceptions of types NonComparableOperand, ReductionUndefined\" might not hold \u2014 so the spec genuinely senses the patch delta and my FAITHFUL verdict is not a rubber-stamp on a vacuous spec.\n\nI also confirmed I did not commit the briefing's warned-against error: I used the patch-APPLIED worktree as the reference for the modeled function, so the empty-collection behaviour (Min()==oo) is agreement, not a divergence. Comparing against base would have manufactured a false UNFAITHFUL on exactly the patch delta.\n\nCONCLUSION: no diverging input found; the spec is neither too strong nor drifted. VERDICT FAITHFUL. Residual risk is the usual finite-search one (the operand space is infinite), concentrated in operand kinds none of my ~60 exotic classes or the fuzz pool reached, but the two structurally-suspicious classes (unaxiomatized assembly tail, nested re-yield without re-check) were both probed directly and both hold. No bundle file was modified; all work and.; G-PANEL-3 (leakage): pass \u2014 SCOPE. Judged the CONSUMER SPEC VIEW only = markers.spec_view(model.py, nagini/python backend) -- module docstring + 3 exception classes + axioms + pure + pre/post-conditions, impl region collapsed. I confirmed the elision is real: spec_view.txt lines 282-284 are exactly `# impl-start / ...  # implementation elided -- supplied by the consumer / # impl-end`. This matters here, because the impl region of model.py DOES name the edit shape verbatim (`(The stale guard \\`if len(operands) == 0: raise EmptyReductionRejected()\\` is absent: ...)`) and model_prepatch.py's impl region says `PRE-PATCH (stale): the reduction REJECTS the empty operand collection up front`. Neither reaches the consumer -- both live strictly inside impl-start/impl-end and are projected away. Had they been in a spec region this would have been LEAKAGE; they are not.\n\nNO RELAXATION IN THIS BUNDLE. There is no RELAXED_LEAKAGE.md and meta.json has no `relaxed_leakage` key (checked: `'relaxed_leakage' in meta` -> False; meta keys are additional_change_sites, ax_apply_gold, axioms, base_commit, changed_files, ..., region_hashes, repo, schema_version, string_modeling, version). So I judged this as an ordinary strict-mode leakage review, not as an inherited disposition, and no unavoidability argument needed re-deriving.\n\nGOLD EDIT (from the frozen row, data/swe_bench_verified/test.jsonl). sympy/functions/elementary/miscellaneous.py, MinMaxBase.__new__ -- a pure DELETION of two lines, `if not args:` / `raise ValueError(\"The Max/Min functions must have arguments.\")`, so control falls through to the pre-existing `if not args: return cls.identity` at :361 and Max()->-oo, Min()->oo. Confirmed against a throwaway worktree of repos/sympy_sympy.git at base_commit 28d913d3cead6c5646307ffa6540b21d65059dfd (read :339-370 pre-patch, then removed the worktree; all work in /tmp, bundle untouched).\n\nPROBLEM_STATEMENT BASELINE (solver-visible; hints_text deliberately NOT used as a baseline). \"Zero-argument Min() and Max() / Right now Min() and Max() with no arguments raise ValueError: The Max/Min functions must have arguments. It might be mathematically more convenient to have them return oo and -oo, respectively.\" So THREE facts are already public: (a) the empty-argument case is the subject; (b) it currently raises ValueError; (c) the desired results are oo for Min and -oo for Max. The spec's discriminating clause -- `Ensures(Implies(len(operands) == 0, Result() == identity))` plus the docstring's \"for the maximum the identity is negative infinity; for the minimum it is positive infinity\" -- is a restatement of (c), which is the public ASK, not the hidden edit.\n\nMECHANICAL HALF -- MY OWN RUN, not the recorded gate. Re-ran leakage.screen(model.py, nagini backend, row.patch, row.problem_statement, row.test_patch): hard_failures = [] and warnings = [] (empty both). Independently:\n- L1 gold-diff lines: changed_lines = ['if not args:', 'raise ValueError(\"The Max/Min functions must have arguments.\")']; neither normalized form occurs in the normalized view. Substring sweep for `not args`, `raise ValueError`, `must have arguments`, `no arguments`, `zero-argument` -> 0 hits each.\n- L1 diff markers ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') -> absent.\n- L2 patched path `sympy/functions/elementary/miscellaneous.py` and its dotted form -> 0 hits; `miscellaneous` -> 0. The only `sympy` occurrence in the view is the instance-id in the docstring header, a uniform convention across bundles, not edit-localization.\n- L2/L4/L5 changed_symbols = {'real_root'} (harvested from the hunk section header, not from the edit) -- no spec-view identifier embeds it, no comment names it.\n- L3 narration: leakage._NARRATION_RE.findall(view) == [] (zero hits for bug/fix/patched/pre-patch/regression/previously/incorrectly/wrong/broken). Per my own prior note that G-LEAK trips on 'fixed'/'copy' in measure prose, I checked specifically: that false-positive mode does not fire on this bundle.\n- Repo-symbol sweep beyond the screen: MinMaxBase, LatticeOp, _new_args_filter, _find_localzeros, _collapse_arguments, ShortCircuit, _argset, sympify, frozenset, __new__, Infinity, `Min`, `Max` -> ALL 0 occurrences in the view. The spec speaks only abstracted lattice vocabulary (operands / identity / annihilator / canonical set / survivors).\n- Edit-SHAPE vocabulary sweep (the thing a lexical screen would miss): delete/remove/up front/early -> 0 hits. `stale` -> 1 hit and `guard` -> 1 hit, both benign on inspection: line 81 \"Stands in for the `ValueError` a stale implementation raises on an empty collection\" restates public fact (b) -- the problem_statement itself says the current code raises ValueError on no arguments -- and line 164 \"the definedness axiom above guards this one's `Requires`\" is Nagini contract vocabulary about canonical_count's precondition, nothing to do with the deleted `if not args` guard. Neither names the deletion, its file, its method, or its position.\n\nSEMANTIC HALF -- IS THE DISCRIMINATOR LOAD-BEARING, AND IS ANYTHING BEYOND IT DISCLOSED? Ran the strip test in the sound direction: the two twins share a BYTE-IDENTICAL spec view (spec_view(model.py) == spec_view(model_prepatch.py) -> True; same_spec -> True; sha da4e821c5d4d...), so the entire gold/pre-patch difference lives in the elided impl and NO spec-region byte encodes which twin is which. I then confirmed the discriminator is genuinely load-bearing rather than decorative: `bash scripts/nagini_verify.sh gold.py` -> \"Verification successful\" (13.5s, exit 0), and the same spec against the PRE-patch impl -> \"Verification failed ... Postcondition of lattice_reduce might not hold. Assertion \\\"method only raises exceptions of types NonComparableOperand, ReductionUndefined\\\" might not hold\" (exit 1). So the empty-collection clause discriminates, and it discriminates on exactly the public ask. Everything the view says beyond that clause is UNCHANGED behaviour being PRESERVED (the non-comparable-operand rejection, the reduction-undefined failure, the single/aggregate branches, the annihilator collapse) -- describing behaviour the gold patch does not touch is not disclosure of the gold edit, and none of it tells a solver where or what to delete.\n\nNO ARTIFACT ADDRESSED ME. Ran leakage.reviewer_directed over every text file in the bundle -> zero hits in all of them, and a manual grep for `submit NO-LEAKAGE|record NO-LEAKAGE|the honest verdict|recording convention|dear auditor/reviewer/panel|leakage panel` across refinement.md, mapping.md, model.py, model_prepatch.py, axiom_check.py, conformance_check.py -> no matches. Nothing in this bundle tried to steer my recording.\n\nTWO OBSERVATIONS FOR THE RECORD, NEITHER A LEAKAGE FINDING (out of my facet, flagged so they are not lost):\n1. meta.json `region_hashes` is STALE w.r.t. the shipped model.py: I recomputed markers.region_hashes(model.py) and axioms / impl / pre-conditions / post-conditions / spec_view ALL mismatch the recorded values (only `pure` and the null `invariants` agree). It is not a spec_view-convention difference -- model_prepatch.py mismatches the same five. This is consistent with the recorded G-EQ / G-PANEL / G-PANEL-1/2/3 gates carrying sources.model.py digest 4004444a... while G-LEAK, G-VERIFY, G-AX, G-CONF, G-GOLD, G-MUT, G-PBT carry the current cc0269f5... -- i.e. the model was refined (meta.refinement_applied_3rd_pass documents a D4 spec-too-strong fix to canonical_count) and the region_hashes block plus the panel gate records were not recomputed. Because my mechanical half is my OWN re-run against the current cc0269f5 bytes, my verdict does not depend on the stale block.\n2. Consequently the prior G-PANEL-3 record (agent_verdict NO-LEAKAGE, digest 4004444a) is a measurement of a superseded model. Mine is on the shipped one. Separately, G-PANEL-2 is recorded `fail` (faithfulness: canonical_count modeled TOTAL while the real _find_localzeros is PARTIAL on [x, x+I]) against that same stale digest -- a faithfulness question, not a leakage one, and not mine to re-dispose; noting only that my NO-LEAKAGE is scoped to leakage and asserts nothing about that gate.\n\nCONCLUSION. The spec view discloses exactly the publicly-asked-for behaviour -- empty reduction returns the lattice identity, oo for Min / -oo for Max -- and nothing about the deletion that implements it: not the file, not MinMaxBase.__new__, not the `if not args` guard, not the error string, not the fact that the fix is a removal. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24",
+        "properties.py": "4c225d18a4fe05d36c66a4d9a51d01f30e58f048aebff5e80430aecc9e907794"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T01:05:12+00:00",
+      "code_version": "bc031a20d-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 13 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n\n**Non-vacuity.** The positive control `pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24",
+        "properties.py": "4c225d18a4fe05d36c66a4d9a51d01f30e58f048aebff5e80430aecc9e907794"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T01:02:14+00:00",
+      "code_version": "bc031a20d-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SPEC REGION INTEGRITY: `adversary same-spec nagini sympy__sympy-15809` on a byte-copy of the bundle model.py => exit 0 (\"SAME\"). Bundle model.py verifies under the pinned verifier: `scripts/nagini_verify.sh` => \"Verification successful\" (22.6s).\n\nWHAT I ATTACKED. Faithfulness here means: for every operand collection, the modeled `lattice_reduce` (impl + the 4 @ContractOnly axioms' contracts) must agree with the real PATCHED `MinMaxBase.__new__` (miscellaneous.py:341). I built an independent harness () that, per input, reads the predicate values off the REAL unchanged callees (`_new_args_filter` for the scan's first decisive event; `_collapse_arguments`+`_find_localzeros` for definedness/count), evaluates the model impl on them, runs the real `Min`/`Max`, and then checks EVERY spec clause: the 4 axiom Ensures, the 4 outcome-decode clauses (identity/zero/single/aggregate decoded to cls.identity/cls.zero/list(args).pop()/the assembled aggregate), the exception-type bridge, and crucially BOTH obligation Ensures (`not has_noncomparable_operand` and `has_absorbing_operand or canonical_reduction_defined`), which are what a spec-too-strong defect would break.\n\nRESULTS (all 0 problems):\n1. Broad differential, seed 20260815: 15,518 comparisons, 0 problems. Branch tally: identity 1079, zero 488, single 2561, aggregate 4483, reject 6669, undefined 238 (TypeError 178 / NotImplementedError 60) \u2014 all six branches live, so no branch is dead/unexercised.\n2. Large fresh-seed fuzz (seed 777333, 30k fuzz collections/lattice): 63,518 comparisons, 0 problems.\n3. Exotic-operand hunt (8,094 comparisons): ~60 hand-picked operand kinds \u2014 Interval, FiniteSet, Matrix, MatrixSymbol, ImageSet, S.Reals, relationals, And/Or/Not, Sum/Integral/Derivative/Limit, Order, sign, arg, conjugate, im/re, gamma/zeta/besselj/LambertW/polylog, factorial/binomial, KroneckerDelta/DiracDelta/Heaviside, floor/ceiling/frac/Mod, Piecewise with I/nan branches, Float('inf'/'nan'), oo+I, zoo+1, roots of negatives \u2014 alone, doubled, and crossed with 9 comparable controls. 0 problems.\n4. Forged pathological nested nodes (bypassing __new__ via Expr.__new__ to plant cls.zero / I / x+I / cls.identity / empty INSIDE a nested node, which `_new_args_filter` re-yields WITHOUT re-checking comparability): 0 problems. This was my best spec-too-strong candidate and it holds \u2014 e.g. Max(forged Max(I,x)) has a CLEAN scan yet the real ctor raises TypeError, and the spec correctly predicts ReductionUndefined there (not a normal return), because `canonical_reduction_defined` is False. A scan-only spec would have been UNFAITHFUL here; the bundle's separate definedness axiom is exactly what saves it.\n\nTARGETED CLAUSE-BY-CLAUSE CONFIRMATIONS:\n- The load-bearing EXCLUSIVITY clause (`Implies(Result(), not has_noncomparable_operand)` on `has_absorbing_operand`) matches reality on both orders: Min(-oo,I)=-oo / Min(I,-oo) raises; Max(oo,I)=oo / Max(I,oo) raises; also behind a comparable symbol and with repeats. A containment reading would have been unfaithful on the first of each pair; the bundle gets it right.\n- The PINNED behaviour: Min()==oo==Min.identity, Max()==-oo==Max.identity, scan clean, pass defined, count 0. Stable under 9 kwarg variants (evaluate=False/True, real, positive, integer, commutative, combinations, unknown kwarg) \u2014 empty->identity in all 18 cases, never a raise.\n- Non-empty inputs reaching the count==0 identity branch (cls.identity-only operands, e.g. Min(oo), Min(oo,oo,oo)) all return cls.identity, matching the model's more-general `count==0 => identity` clause rather than only the empty case.\n- UNAXIOMATIZED TAIL: over 10,181 inputs where scan is clean AND the pass is defined (so the spec's four-outcome totality clause FORBIDS raising), the real ctor raised 0 times. So `list(args).pop()` / `Expr.__new__` assembly never falsifies the totality clause \u2014 the spec is not too strong.\n- DETERMINISM (@Pure soundness): `_find_localzeros` iterates a frozenset with id()-based comparisons, so I re-ran the full predicate+outcome vector under PYTHONHASHSEED=0/1/12345/999 \u2014 byte-identical JSON (414,735 bytes each), 0 differing keys across ~8.5k inputs/seed. The axioms are genuine functions of the operand list.\n- EXCEPTION BRIDGE: SympifyError is a ValueError subclass, so sympify failures route to NonComparableOperand on BOTH the model and oracle side consistently \u2014 no hidden mismatch. The ReductionUndefined decode was checked against the pass's ACTUAL propagated type (TypeError vs NotImplementedError), not merely \"it raised\".\n- Bundle's own axiom_check.py re-run against my worktree: exit 0, 6208 observations, 18 non-trivial undefined-pass collections \u2014 so the ReductionUndefined leg is reachable, not dead.\n\nNON-FINDING I EXPLICITLY CLEARED: `evaluate=False` changes the outcome branch on 72/19,518 inputs (e.g. Min(Max(2,y), sqrt(2)) is `single` by default but `aggregate` with evaluate=False, since `_collapse_arguments` is skipped). This is NOT a faithfulness defect: `**assumptions` is outside the modeled signature (mapping.md \u00a71 binds `lattice_reduce` to the collection + the four sentinels only), the axioms are read off the real callees in whichever mode the oracle runs, the F2P behaviour (empty->identity) is invariant under every kwarg I tried, and the patch touches none of this. The delta is a property of the unchanged `_collapse_arguments`, identical in base and patched.\n\nNON-VACUITY CONTROL: model_prepatch.py shares the exact spec (same-spec exit 0) and FAILS the pinned verifier \u2014 \"method only raises exceptions of types NonComparableOperand, ReductionUndefined\" might not hold \u2014 so the spec genuinely senses the patch delta and my FAITHFUL verdict is not a rubber-stamp on a vacuous spec.\n\nI also confirmed I did not commit the briefing's warned-against error: I used the patch-APPLIED worktree as the reference for the modeled function, so the empty-collection behaviour (Min()==oo) is agreement, not a divergence. Comparing against base would have manufactured a false UNFAITHFUL on exactly the patch delta.\n\nCONCLUSION: no diverging input found; the spec is neither too strong nor drifted. VERDICT FAITHFUL. Residual risk is the usual finite-search one (the operand space is infinite), concentrated in operand kinds none of my ~60 exotic classes or the fuzz pool reached, but the two structurally-suspicious classes (unaxiomatized assembly tail, nested re-yield without re-check) were both probed directly and both hold. No bundle file was modified;\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T00:49:46+00:00",
+      "code_version": "45f9f8c0b-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE. Judged the CONSUMER SPEC VIEW only = markers.spec_view(model.py, nagini/python backend) -- module docstring + 3 exception classes + axioms + pure + pre/post-conditions, impl region collapsed. I confirmed the elision is real: spec_view.txt lines 282-284 are exactly `# impl-start / ...  # implementation elided -- supplied by the consumer / # impl-end`. This matters here, because the impl region of model.py DOES name the edit shape verbatim (`(The stale guard \\`if len(operands) == 0: raise EmptyReductionRejected()\\` is absent: ...)`) and model_prepatch.py's impl region says `PRE-PATCH (stale): the reduction REJECTS the empty operand collection up front`. Neither reaches the consumer -- both live strictly inside impl-start/impl-end and are projected away. Had they been in a spec region this would have been LEAKAGE; they are not.\n\nNO RELAXATION IN THIS BUNDLE. There is no RELAXED_LEAKAGE.md and meta.json has no `relaxed_leakage` key (checked: `'relaxed_leakage' in meta` -> False; meta keys are additional_change_sites, ax_apply_gold, axioms, base_commit, changed_files, ..., region_hashes, repo, schema_version, string_modeling, version). So I judged this as an ordinary strict-mode leakage review, not as an inherited disposition, and no unavoidability argument needed re-deriving.\n\nGOLD EDIT (from the frozen row, data/swe_bench_verified/test.jsonl). sympy/functions/elementary/miscellaneous.py, MinMaxBase.__new__ -- a pure DELETION of two lines, `if not args:` / `raise ValueError(\"The Max/Min functions must have arguments.\")`, so control falls through to the pre-existing `if not args: return cls.identity` at :361 and Max()->-oo, Min()->oo. Confirmed against a throwaway worktree of repos/sympy_sympy.git at base_commit 28d913d3cead6c5646307ffa6540b21d65059dfd (read :339-370 pre-patch, then removed the worktree; all work in /tmp, bundle untouched).\n\nPROBLEM_STATEMENT BASELINE (solver-visible; hints_text deliberately NOT used as a baseline). \"Zero-argument Min() and Max() / Right now Min() and Max() with no arguments raise ValueError: The Max/Min functions must have arguments. It might be mathematically more convenient to have them return oo and -oo, respectively.\" So THREE facts are already public: (a) the empty-argument case is the subject; (b) it currently raises ValueError; (c) the desired results are oo for Min and -oo for Max. The spec's discriminating clause -- `Ensures(Implies(len(operands) == 0, Result() == identity))` plus the docstring's \"for the maximum the identity is negative infinity; for the minimum it is positive infinity\" -- is a restatement of (c), which is the public ASK, not the hidden edit.\n\nMECHANICAL HALF -- MY OWN RUN, not the recorded gate. Re-ran leakage.screen(model.py, nagini backend, row.patch, row.problem_statement, row.test_patch): hard_failures = [] and warnings = [] (empty both). Independently:\n- L1 gold-diff lines: changed_lines = ['if not args:', 'raise ValueError(\"The Max/Min functions must have arguments.\")']; neither normalized form occurs in the normalized view. Substring sweep for `not args`, `raise ValueError`, `must have arguments`, `no arguments`, `zero-argument` -> 0 hits each.\n- L1 diff markers ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') -> absent.\n- L2 patched path `sympy/functions/elementary/miscellaneous.py` and its dotted form -> 0 hits; `miscellaneous` -> 0. The only `sympy` occurrence in the view is the instance-id in the docstring header, a uniform convention across bundles, not edit-localization.\n- L2/L4/L5 changed_symbols = {'real_root'} (harvested from the hunk section header, not from the edit) -- no spec-view identifier embeds it, no comment names it.\n- L3 narration: leakage._NARRATION_RE.findall(view) == [] (zero hits for bug/fix/patched/pre-patch/regression/previously/incorrectly/wrong/broken). Per my own prior note that G-LEAK trips on 'fixed'/'copy' in measure prose, I checked specifically: that false-positive mode does not fire on this bundle.\n- Repo-symbol sweep beyond the screen: MinMaxBase, LatticeOp, _new_args_filter, _find_localzeros, _collapse_arguments, ShortCircuit, _argset, sympify, frozenset, __new__, Infinity, `Min`, `Max` -> ALL 0 occurrences in the view. The spec speaks only abstracted lattice vocabulary (operands / identity / annihilator / canonical set / survivors).\n- Edit-SHAPE vocabulary sweep (the thing a lexical screen would miss): delete/remove/up front/early -> 0 hits. `stale` -> 1 hit and `guard` -> 1 hit, both benign on inspection: line 81 \"Stands in for the `ValueError` a stale implementation raises on an empty collection\" restates public fact (b) -- the problem_statement itself says the current code raises ValueError on no arguments -- and line 164 \"the definedness axiom above guards this one's `Requires`\" is Nagini contract vocabulary about canonical_count's precondition, nothing to do with the deleted `if not args` guard. Neither names the deletion, its file, its method, or its position.\n\nSEMANTIC HALF -- IS THE DISCRIMINATOR LOAD-BEARING, AND IS ANYTHING BEYOND IT DISCLOSED? Ran the strip test in the sound direction: the two twins share a BYTE-IDENTICAL spec view (spec_view(model.py) == spec_view(model_prepatch.py) -> True; same_spec -> True; sha da4e821c5d4d...), so the entire gold/pre-patch difference lives in the elided impl and NO spec-region byte encodes which twin is which. I then confirmed the discriminator is genuinely load-bearing rather than decorative: `bash scripts/nagini_verify.sh gold.py` -> \"Verification successful\" (13.5s, exit 0), and the same spec against the PRE-patch impl -> \"Verification failed ... Postcondition of lattice_reduce might not hold.\n\nAssertion \\\"method only raises exceptions of types NonComparableOperand, ReductionUndefined\\\" might not hold\" (exit 1). So the empty-collection clause discriminates, and it discriminates on exactly the public ask. Everything the view says beyond that clause is UNCHANGED behaviour being PRESERVED (the non-comparable-operand rejection, the reduction-undefined failure, the single/aggregate branches, the annihilator collapse) -- describing behaviour the gold patch does not touch is not disclosure of the gold edit, and none of it tells a solver where or what to delete.\n\nNO ARTIFACT ADDRESSED ME. Ran leakage.reviewer_directed over every text file in the bundle -> zero hits in all of them, and a manual grep for `submit NO-LEAKAGE|record NO-LEAKAGE|the honest verdict|recording convention|dear auditor/reviewer/panel|leakage panel` across refinement.md, mapping.md, model.py, model_prepatch.py, axiom_check.py, conformance_check.py -> no matches. Nothing in this bundle tried to steer my recording.\n\nTWO OBSERVATIONS FOR THE RECORD, NEITHER A LEAKAGE FINDING (out of my facet, flagged so they are not lost):\n1. meta.json `region_hashes` is STALE w.r.t. the shipped model.py: I recomputed markers.region_hashes(model.py) and axioms / impl / pre-conditions / post-conditions / spec_view ALL mismatch the recorded values (only `pure` and the null `invariants` agree). It is not a spec_view-convention difference -- model_prepatch.py mismatches the same five. This is consistent with the recorded G-EQ / G-PANEL / G-PANEL-1/2/3 gates carrying sources.model.py digest 4004444a... while G-LEAK, G-VERIFY, G-AX, G-CONF, G-GOLD, G-MUT, G-PBT carry the current cc0269f5... -- i.e. the model was refined (meta.refinement_applied_3rd_pass documents a D4 spec-too-strong fix to canonical_count) and the region_hashes block plus the panel gate records were not recomputed. Because my mechanical half is my OWN re-run against the current cc0269f5 bytes, my verdict does not depend on the stale block.\n2. Consequently the prior G-PANEL-3 record (agent_verdict NO-LEAKAGE, digest 4004444a) is a measurement of a superseded model. Mine is on the shipped one. Separately, G-PANEL-2 is recorded `fail` (faithfulness: canonical_count modeled TOTAL while the real _find_localzeros is PARTIAL on [x, x+I]) against that same stale digest -- a faithfulness question, not a leakage one, and not mine to re-dispose; noting only that my NO-LEAKAGE is scoped to leakage and asserts nothing about that gate.\n\nCONCLUSION. The spec view discloses exactly the publicly-asked-for behaviour -- empty reduction returns the lattice identity, oo for Min / -oo for Max -- and nothing about the deletion that implements it: not the file, not MinMaxBase.__new__, not the `if not args` guard, not the error string, not the fact that the fix is a removal. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:44:22+00:00",
+      "code_version": "7df0fef9f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-operands",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-noncomparable-raise",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-empty-to-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-empty-to-single",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-absorbing-to-identity",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-swap-single-aggregate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-over-raise-on-comparable",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-undefined-pass-to-identity",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-over-propagate-undefined",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-swap-failure-modes",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 10
+        },
+        "manifest_sha256": "4c225d18a4fe05d36c66a4d9a51d01f30e58f048aebff5e80430aecc9e907794",
+        "n_cases": 12,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 12 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24",
+        "properties.py": "4c225d18a4fe05d36c66a4d9a51d01f30e58f048aebff5e80430aecc9e907794"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T00:34:26+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "5b6c08e14ac3aeb7d19233f9e67705d0d020a0ab71972044f86a351ba10bff6b",
+        "patch.diff": "721408a9d86c5c95e2a1f6d495ba550be573a072e016f5ad14e2d36dce8ccda1"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T00:31:43+00:00",
+      "code_version": "13375c0d6-dirty",
+      "data": {
+        "wall_time_s": 16.8
+      },
+      "detail": "verified in 16.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cc0269f58426c3d1de373decaa7bf501feee346362d4f6aecf9a1d7acb346b24"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-15809",
+  "modeled_functions": [
+    {
+      "carrier_type": "variadic *args (SymPy Expr tuple) -> List[int] of opaque operand ids (only cardinality observed); cls.identity/cls.zero/single survivor/aggregate -> four pairwise-distinct int sentinels",
+      "model_symbol": "lattice_reduce",
+      "repo_location": "sympy/functions/elementary/miscellaneous.py:341 (deleted guard at 342-343; identity branch at 361-362)",
+      "repo_symbol": "sympy.functions.elementary.miscellaneous.MinMaxBase.__new__",
+      "role": "modeled changed function: the Min/Max lattice constructor / fold; the empty-args rejection guard is removed so the empty collection returns the lattice identity element. Two UNCHANGED failure paths of the same constructor remain obligatory and are modeled as such: the comparability pre-filter still rejects a non-comparable operand with ValueError (Exsures(NonComparableOperand), part of the F2P contract), and the canonical-set pass (cls._collapse_arguments then cls._find_localzeros, :352-357) is PARTIAL \u2014 it propagates its own comparison failure on survivors the per-operand scan passed over (Exsures(ReductionUndefined)). Single contracted+implemented function (markers module-level singletons); the Min and Max instantiations are the same function with identity/zero sentinels swapped."
+    }
+  ],
+  "no_axiom_rationale": "The fix is a pure control-flow deletion (remove the empty-args ValueError guard so the empty collection falls through to 'if not args: return cls.identity'). The changed delta is modeled DIRECTLY by the absence of a leading raise in the impl and the reachable empty-canonical-set branch. The three consumed axioms cover UNCHANGED pre-reduction callees (_new_args_filter's comparability ValueError and ShortCircuit, _collapse_arguments + _find_localzeros) the constructor invokes; none is the operation that changed, so there is no A-reference deep model.",
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "the postcondition 'method only raises exceptions of types NonComparableOperand, ReductionUndefined' \u2014 on the empty collection the stale guard raises EmptyReductionRejected, which NO Exsures admits, instead of returning the identity element (the two admitted Exsures are guarded by has_noncomparable_operand and by not canonical_reduction_defined, and the axioms make both FALSE on the empty collection, so no exceptional outcome is available there at all; this also makes 'Implies(len(operands) == 0, Result() == identity)' unprovable). Re-confirmed against the 3rd-pass spec in 12.74s: \"Postcondition of lattice_reduce might not hold. Assertion 'method only raises exceptions of types NonComparableOperand, ReductionUndefined' might not hold.\"",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the empty operand collection is no longer rejected; it returns the lattice identity element",
+      "reverted_to": "the leading guard 'if len(operands) == 0: raise EmptyReductionRejected()' (the stand-in for the deleted ValueError) is re-introduced"
+    }
+  ],
+  "refinement_applied": {
+    "defects_fixed": [
+      "D1 (over-strong unconditional totality; G-EQ/faithfulness): the spec asserted lattice_reduce is total and never raises, which falsely rejected the gold impl (it still raises ValueError on non-comparable operands per the F2P tests). FIXED by adding has_noncomparable_operand axiom + Exsures(NonComparableOperand, has_noncomparable_operand(operands)) and conditioning the four-outcome totality on (not has_noncomparable_operand). Spec STRENGTHENED, not weakened: it now both rejects the prepatch empty-args bug AND pins the unchanged non-comparable rejection.",
+      "D2 (axiom under-modeled; G-AX): _new_args_filter's comparability ValueError path was not modeled. FIXED by adding has_noncomparable_operand whose weakest contract is Implies(len==0, not Result()) and recording its provenance in mapping.md 3.0.",
+      "D3 (axiom_check.py blind spot; G-AX evidence): the fuzz set omitted non-comparable inputs. FIXED by adding I/S.ComplexInfinity/S.NaN (alone, mixed, random position) and the substituted Min/Max(cos(x),sin(x)).subs(x,I), asserting they raise ValueError. axiom_check.py confirmed RC=0 in-container with gold applied (6028 observations)."
+    ],
+    "spec_regions_changed": "yes (docstring, axioms, pre-conditions, post-conditions, impl all changed identically in model.py and model_prepatch.py; same_spec True); region_hashes regenerated",
+    "verdict": "experiments/generation/batch02_verdicts/sympy__sympy-15809.md (NEEDS-REFINEMENT)"
+  },
+  "refinement_applied_2nd_pass": {
+    "fix": "Added ONE postcondition before the Exsures clauses, identically in model.py and model_prepatch.py: Ensures(not has_noncomparable_operand(operands)). A NORMAL return is admissible ONLY when no operand is non-comparable; equivalently a collection with a non-comparable operand MUST raise (it can never silently return a value). This OBLIGATES the rejection the prior Exsures only permitted. Sound: the gold code raises NonComparableOperand on every non-comparable operand (the impl's leading 'if has_noncomparable_operand(operands): raise NonComparableOperand()'), confirmed by source + the in-container fuzz, so the normal-return path is only reached when has_noncomparable_operand is False -> gold still verifies (26.0s).",
+    "proof": "BEFORE fix: weakness atk_2 = CANDIDATE-COUNTEREXAMPLE (verifies 27.5s). AFTER fix: weakness atk_2 = NOT-A-COUNTEREXAMPLE; the rejecting clause is exactly 'Postcondition of lattice_reduce might not hold. Assertion (not has_noncomparable_operand(operands)) might not hold.' (model.py:172). Panel re-run: atk_1(prepatch)/atk_3(empty->zero)/atk_4(swap single/aggregate)/atk_5(absorbing->identity)/atk_8(empty->single)/atk_10(over-raise on comparable) all NOT-A-COUNTEREXAMPLE; structurally-different correct positive control VERIFIES (22.8s). G-VERIFY/G-DIFF/G-MUT 6/6/G-INTEGRITY/G-HYGIENE/G-LEAK all PASS (gates --static-only 6/6); same_spec True.",
+    "residual_hole": "G-EQ spec-too-weak (the dual of D1, introduced by the 1st refinement's over-correction). The 1st pass conditioned the four-outcome totality on (not has_noncomparable_operand) and added Exsures(NonComparableOperand, has_noncomparable_operand(operands)) to PERMIT the non-comparable raise \u2014 but an Exsures grants permission, not obligation, so the non-comparable case was entirely unconstrained. The re-audit's surviving counterexample (atk_2): a same-spec impl that DROPS the non-comparable raise and returns identity/single/aggregate instead VERIFIED (27.5s) yet refines to code (gold + suppress the unchanged comparability ValueError) that makes Min(I)/Min(I,x)/Min(S.ComplexInfinity,x)/Max(I)/Max(S.ComplexInfinity,1) no longer raise ValueError, so test_Min/test_Max FAIL (pytest RC=1). Those raises(ValueError,...) lines are in the F2P functions at base+test_patch.",
+    "spec_regions_changed": "post-conditions only (one added Ensures + its explanatory comment), identical in model.py + model_prepatch.py; same_spec True; post-conditions + spec_view region_hashes regenerated; axioms/pure/pre-conditions/impl hashes unchanged.",
+    "verdict": "experiments/generation/batch02_recover_verdicts/sympy__sympy-15809.md (STILL-NEEDS-REFINEMENT)"
+  },
+  "refinement_applied_3rd_pass": {
+    "defect": "D4 (spec too STRONG / unfaithful; G-PANEL-2, model.py digest 4004444a...): the modeled reduction was TOTAL on every collection whose per-operand scan is clean, because canonical_count was a @Pure @ContractOnly function with Ensures(Result() >= 0) and no Requires \u2014 i.e. the count was claimed to EXIST for every operand list. Its real counterpart is PARTIAL. On raw = [x, x+I] both operands PASS the comparability guard at miscellaneous.py:518-523 (x.is_real is None, not False, and neither is_number), so has_noncomparable_operand is False and the old Ensures(Implies(not has_noncomparable_operand, Result() == identity or zero or single or aggregate)) obligated a NORMAL return, while the only Exsures was guarded by has_noncomparable_operand and so admitted no failure at all \u2014 yet the real patched constructor RAISES TypeError('Invalid comparison of complex I') from :552 -> :574 -> sympy/core/expr.py:295. Same shape with NotImplementedError (sympy/core/expr.py:2985) on [sign(x), Order(x)] via :588. Both divergences are on callees patch.diff does not touch, and both sides of the patch behave identically on them, so this was a coverage gap in the model, not the gold delta.",
+    "fix": "Made the previously-unconstrained observable OBSERVABLE and pinned it, rather than adding a precondition that excludes the counterexamples. Added a fourth kind-A axiom canonical_reduction_defined(operands) with the weakest sufficient contract Implies(len(operands)==0, Result()); made canonical_count PARTIAL by giving it Requires(canonical_reduction_defined(operands)); added a third rejection class ReductionUndefined; and stated the new failure from BOTH sides \u2014 the OBLIGATION Ensures(has_absorbing_operand(operands) or canonical_reduction_defined(operands)) (a normal return is inadmissible when the pass is reached and undefined) and the PERMISSION Exsures(ReductionUndefined, not has_noncomparable_operand and not has_absorbing_operand and not canonical_reduction_defined) (the failure is admissible on that exact class and nowhere else). The definedness conjunct was added to the antecedent of the totality clause and of the three count clauses, which is where the count is read. The DISCRIMINATING obligation is untouched and still unconditional: Ensures(Implies(len(operands) == 0, Result() == identity)), and it is not escapable through the new class \u2014 the axioms force not has_noncomparable_operand, not has_absorbing_operand and canonical_reduction_defined on the empty collection, so both Exsures guards are false there and the empty collection MUST return identity. Net effect: one obligation ADDED (the mirror Ensures), one rejection class ADDED, the domain of the four-outcome disjunction narrowed to exactly the collections on which the real code has a result.",
+    "justification": "sympy/functions/elementary/miscellaneous.py (base_commit 28d913d3cead6c5646307ffa6540b21d65059dfd): :347-350 consumes the per-operand scan and catches ONLY ShortCircuit, so the absorbing event is decided BEFORE the canonical-set pass and the pass is vacuously defined there (model: the absorbing return precedes the definedness raise, and the Exsures guard carries not has_absorbing_operand); :354 _collapse_arguments and :359 _find_localzeros are the pass, whose per-pair comparison at :552 -> :574 / :588 is what can propagate; :361-362 'if not args: return cls.identity' is the identity branch the deleted guard used to pre-empt; :364-365 the single-survivor branch; :367-371 the aggregate assembly. sympy/core/expr.py:295 and :2985 are the two propagated errors. None of these lines is in patch.diff.",
+    "proof": "REPRODUCTION of the recorded refutation, then its closure, both machine-checked with the bundle's own G-CONF harness against a worktree at base_commit with patch.diff applied: the OLD conformance_check.py (git beb38b516) with the five counterexample collections injected into boundary_catalogue and N_FUZZ=0 reports status=fail, 8 disagreements, branch_hits['error']=8 (shadow SHADOW-ERROR vs oracle RAISE TypeError / NotImplementedError). The CURRENT harness, which carries those same collections in its catalogue plus the whole undefined class (x + I, x + 2*I, x - I, I*x, sign(x), Order(x) alone, doubled, paired with symbols in both orders, and behind/ahead of absorbing and non-comparable operands), reports status=pass, checked=4282, disagreements=0, with branch_hits {'aggregate': 1425, 'identity': 534, 'reject': 903, 'single': 967, 'undefined': 103, 'zero': 350} at N_FUZZ=2000 (the recorded G-CONF run is the full N_FUZZ=50000). Positive control: model.py verifies (13.23s). Prepatch twin: refuted (12.74s, diagnostic above). SELF-ADVERSARY, 9 fresh same-spec wrong impls (adversary same-spec rc=0 on all nine, only the impl region differs), ALL rejected, each by the clause named: (A) over-approximation, aggregate case over-rejected with the new failure -> Exsures(ReductionUndefined) guard 'not canonical_reduction_defined'; (B) partial-domain guard, count==0 and len>=3 -> single -> the general count==0 => identity clause (not the len==0 witness); (C) boundary token swap, the undefined pass raises NonComparableOperand -> Exsures(NonComparableOperand) guard has_noncomparable_operand; (D) oracle echo of the REFUTED spec, 'return aggregate' where the pass is undefined -> the NEW obligation Ensures(has_absorbing_operand or canonical_reduction_defined). This is the decisive control: the behaviour the old spec admitted is now rejected, so the repair ADDED an obligation instead of merely narrowing a domain; (E) freedom-exploit, the new failure used as an escape hatch from the discriminating identity clause on a non-empty empty-canonical-set collection -> Exsures(ReductionUndefined) guard; (F) freedom-exploit, the EMPTY collection rejected with the new failure -> same guard, false there by the definedness axiom, so the F2P behaviour survives the new class; (G) vacuity control Assert(False) -> 'Assertion False might not hold', so the FOUR axioms plus the new partiality Requires are mutually consistent and no leg passes vacuously; (H) divergence, correct values but the undefined branch spins -> 'Obligation leak check failed', MustTerminate(2) at the method level still bites; (I) precedence swap, the definedness raise placed AHEAD of the absorbing return -> Exsures(ReductionUndefined) guard 'not has_absorbing_operand', which is what :347-350 preceding :359 makes true.",
+    "spec_regions_changed": "yes (docstring, axioms, post-conditions, impl changed identically in model.py and model_prepatch.py; same_spec True); region_hashes regenerated"
+  },
+  "region_hashes": {
+    "axioms": "a8f34b13d5c10a97179070898dd3a77e9d41c25529d18d6ed028e7b5ce1c4ce7",
+    "impl": "9b591798e4490dde7e402461080413cc254da602369d023e1f949e4bb0e72590",
+    "invariants": null,
+    "post-conditions": "55ad2b114648e4cbe54f8edb4c98a67fd17a3366c40bf5f954ca650bfffbd72e",
+    "pre-conditions": "69602fcbc58f4b3dd652e44be2e5fa0616fb48cd14bfa02f7b9ec1709ee87165",
+    "pure": "681964d7625500607f2163ae8ad8aabd5b4f9930547b67de910aca0663935cf8",
+    "spec_view": "3fe6c69108e39adabb96e6f33aab4c5e25db0b244a01bebace3dcc0332626c24"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "1.4"
+}

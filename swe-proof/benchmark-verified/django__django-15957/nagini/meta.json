@@ -1,0 +1,453 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "two-line replacement routing the prefetch through _filter_prefetch_queryset; behaviourally identical to the M2M site, covered by the single bounded_prefetch model and the same prepatch differential",
+      "repo_location": "django/db/models/fields/related_descriptors.py:738-742",
+      "repo_symbol": "ReverseManyToOneDescriptor.RelatedManager.get_prefetch_queryset (FK reverse site)"
+    },
+    {
+      "handling": "same routing through _filter_prefetch_queryset (with _next_is_sticky()); same modeled behaviour",
+      "repo_location": "django/db/models/fields/related_descriptors.py:1069-1073",
+      "repo_symbol": "ManyRelatedManager.get_prefetch_queryset (M2M site)"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX) S3: QuerySet.filter RAISES TypeError on a sliced query and SUCCEEDS (membership predicate present) on an unsliced query, against real Django 4.2",
+      "contract": "Requires(not is_sliced(query)); Ensures(membership_applied == True and membership_token(query))",
+      "kind": "A-consumed",
+      "model_symbol": "apply_membership",
+      "provenance": "django/db/models/query.py:1424 (filter), 1440-1442 (raises TypeError on a sliced query); django/db/models/sql/query.py:2095-2098 (can_filter == not is_sliced)",
+      "repo_callee": "django.db.models.query.QuerySet.filter (UNCHANGED predicate-application callee; NOT the function under change)",
+      "weakest_sufficient": "asserts only that the predicate is applied, that the query was unsliced at application time (the raise guard), and grants the capability token; no claim about predicate contents/ordering"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) S3 (token grantable only on the unsliced/successful filter path) + G-EQ echo attackers atk_echo_sliced / atk_echo_minimal (now both FAIL on the membership_token postcondition)",
+      "contract": "@ContractOnly @Predicate, abstract (no body) -> unforgeable: no impl can Fold it; obtainable ONLY from apply_membership's Ensures, i.e. only under not is_sliced",
+      "kind": "A-consumed (capability predicate)",
+      "model_symbol": "membership_token",
+      "provenance": "django/db/models/query.py:1424,1440-1442 (filter ANDs the predicate only when can_filter() holds)",
+      "repo_callee": "the EFFECT of a successful QuerySet.filter on a non-sliced query (the __in predicate actually ANDed onto the clone)",
+      "role": "load-bearing for verify=>correct: the membership step is a control-flow effect (filter-vs-raise) with NO value-level discriminator, so a forgeable membership_applied flag does not pin it. bounded_prefetch.Ensures(membership_token(Result())) forces every verifying impl to route through a successful application on an unsliced query, closing the directive-8 echo cheat."
+    }
+  ],
+  "base_commit": "f387d024fc75569d2a4a338bfda76cc2f328f627",
+  "changed_files": [
+    "django/db/models/fields/related_descriptors.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): runs the REAL _filter_prefetch_queryset on 5 slice patterns ([:], [:3], [1:], [1:2], [2:5]) + 6 Query is_sliced/clear_limits cases, asserting bound presence (index-level), bound values (==low_mark/==high_mark), and window-cleared, all against real Django 4.2",
+      "encoded_property": "when sliced: lower_bound == low_mark always (GreaterThan over Window(RowNumber, partition_by=field)); upper_bound == high_mark iff high_mark is not None (LessThanOrEqual); limits cleared. When unsliced: marks untouched, no bound recorded.",
+      "kind": "A-reference",
+      "models": "_filter_prefetch_queryset + Query slice machinery (is_sliced / clear_limits)",
+      "name": "bounded_prefetch (structural slice->bound translation)",
+      "provenance": "django/db/models/fields/related_descriptors.py:86 (helper); django/db/models/sql/query.py:2081-2098 (clear_limits/is_sliced/can_filter)",
+      "role": "the slice->bound translation is modeled DEEPLY as structural carrier updates; validated == the real helper by axiom_check.py"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:11:57+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: structural slice->bound translation sound against the REAL _filter_prefetch_queryset + Query slice machinery over 5 helper cases and 6 is_sliced/clear_limits cases (membership always; lower bound == low_mark iff sliced; upper bound == high_mark iff finite high; window cleared); plus the apply_membership consumed-axiom raise guard (S3): QuerySet.filter raises on a sliced query and succeeds (membership predicate present) on an unsliced one \u2014 the membership_token is grantable only on the unsliced path.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "3be7b47471a5b0a2cc8461ea7cce2f17a1826baf253b74e63bb6a64a58905312",
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:12:45+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100288,
+          "disagreements": 0,
+          "seed": 15957,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callee bridged to the real filter)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100288, \"disagreements\": 0, \"seed\": 15957, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callee bridged to the real filter)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "72a2beeca1390104d93f26cc7258cff53a94081964f1a59b55efe91810969983",
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:22:07+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a",
+        "model_prepatch.py": "3c7bccb4bd4e11f902d235c7d3d3c0d9595055d923bffc37758bd9f15ec767c0"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T19:36:48+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 9 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 9 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:22:52+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a",
+        "model_prepatch.py": "3c7bccb4bd4e11f902d235c7d3d3c0d9595055d923bffc37758bd9f15ec767c0"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:11:44+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "40cb1e5f928434889aa1fbf45ef501da58a15e199696139505f8ceb65ff14c59",
+          "impl": "1dfec71677f9ce273f260923717c060d84cfd40408114ffeeb957feefd5135ef",
+          "post-conditions": "72cc9dbeb834420452342e985f6510c48a10f8c8d1458d226ab786632560befd",
+          "pre-conditions": "5ed0175dd271f761a6e14e71dd13185b50059e92518d90eaf791bc64d728c2ac",
+          "pure": "dae6f7612ef9fd56cd55515ea6fd798bf43afe61279c6c61c74aca4048d6ed08",
+          "spec_view": "c2e6672b5d8e1f361cd6f362e4e4909b60f6aa2cf46dff2d93525415ae305e5b"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:11:44+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "1e124373cad4c3b88f10bb704f643db9b7a0d179b3f614f27bd4c8946c0af625",
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:11:44+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:29:30+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T19:36:50+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) verdict: FAITHFUL. The bundle models the gold-patch helper _filter_prefetch_queryset(queryset, field_name, instances) as bounded_prefetch. All checks run independently against the real repo at base_commit f387d024fc (worktree $SCRATCH with the gold patch applied; Django 4.2.0a).\n\n(1) same-spec on an identity copy of model.py => SAME (exit 0): the spec region is byte-identical (not tampered).\n(2) nagini_verify.sh model.py => 'Verification successful' (13.68s): positive control verifies.\n(3) axiom_check.py driven with PYTHONPATH=$SCRATCH against the REAL patched _filter_prefetch_queryset => G-AX OK (exit 0) across slice patterns (0,None),(0,3),(1,None),(1,2),(2,5) and is_sliced/clear_limits cases.\n(4) meta.json G-CONF: 100288 inputs, 0 disagreements, seed 15957.\n(5) My own differential probe over 11 slice patterns including edge cases [0:0] (high=0), [10:], [3:], [0:10], [4:7] driving the real gold helper: EVERY modeled postcondition matched the real callee on every input, 0 divergences: membership predicate ALWAYS ANDed (membership_applied/token); lower_bound present iff Old(is_sliced) with value == low_mark (offset_mark); upper_bound present iff sliced AND finite high with value == high_mark (limit_mark); slice cleared so is_sliced becomes false afterward (marks reset to 0/None); model is_sliced (offset_mark!=0 or limit_mark is not None) agrees with real Query.is_sliced; and QuerySet.filter raises TypeError on a sliced query while succeeding on an unsliced one (validating apply_membership's Requires(not is_sliced) + token-on-unsliced-path).\n\nThe only representational difference \u2014 the model asserts Result() is query (mutates the carrier in place) whereas the real helper returns a queryset.filter() clone (out is qs == False) \u2014 is a carrier-identity abstraction, not a behavioral divergence: which bounds are recorded, membership application, and the unsliced result are all identical. No input found where the modeled function disagrees with the real repo, and the gold patch satisfies the spec on every tested input, so the spec is not too strong. (Note: G-PANEL-1 spec-too-WEAK is a separate attacker role and orthogonal to this too-strong/drift assessment.)",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (leakage.screen -> passed=True, no hard failures). Independent gold-reconstruction judgment confirms NO-LEAKAGE:\n\nPublic problem_statement already discloses: prefetch fails on sliced querysets with 'AssertionError: Cannot filter a query once a slice has been taken', and the goal is to make slicing work in prefetch (return N example objects per parent).\n\nThe gold edit's DISTINCTIVE machinery \u2014 the new helper `_filter_prefetch_queryset`, `Window(RowNumber(), partition_by=..., order_by=...)`, `GreaterThan(window, low_mark)`, `LessThanOrEqual(window, high_mark)`, `clear_limits()`, `queryset.query.low_mark/high_mark` \u2014 appears NOWHERE in the spec view. The view uses only abstracted carrier vocabulary (offset_mark/limit_mark/lower_bound/upper_bound/membership_token/apply_membership). No diff markers, no patched file path (related_descriptors.py), no patched module dotted path, no bug/fix narration.\n\nBehaviours (1)-(3) restate only the abstract correctness obligation that ANY correct fix must meet (predicate always applied; un-slice before applying the predicate; preserve the slice's per-position restriction), directly implied by the public premise. They do NOT reveal the gold's specific row-number Window approach \u2014 a solver must still independently discover that Django needs a RowNumber window predicate per partition to preserve slice positions.\n\nThe only overlapping token is `is_sliced`, which also occurs in a gold-added line (`queryset.query.is_sliced`). But it is a generic slice-presence predicate directly entailed by the problem statement's own 'sliced querysets'/'slice has been taken' wording; it localizes no edit, is not a def/class symbol introduced by the patch, and reveals nothing about the distinctive mechanism. Not a leak.\n\nThe spec view goes no further than public problem_statement + inherent correctness requirement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 9 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) verdict: FAITHFUL. The bundle models the gold-patch helper _filter_prefetch_queryset(queryset, field_name, instances) as bounded_prefetch. All checks run independently against the real repo at base_commit f387d024fc (worktree $SCRATCH with the gold patch applied; Django 4.2.0a).\n\n(1) same-spec on an identity copy of model.py => SAME (exit 0): the spec region is byte-identical (not tampered).\n(2) nagini_verify.sh model.py => 'Verification successful' (13.68s): positive control verifies.\n(3) axiom_check.py driven with PYTHONPATH=$SCRATCH against the REAL patched _filter_prefetch_queryset => G-AX OK (exit 0) across slice patterns (0,None),(0,3),(1,None),(1,2),(2,5) and is_sliced/clear_limits cases.\n(4) meta.json G-CONF: 100288 inputs, 0 disagreements, seed 15957.\n(5) My own differential probe over 11 slice patterns including edge cases [0:0] (high=0), [10:], [3:], [0:10], [4:7] driving the real gold helper: EVERY modeled postcondition matched the real callee on every input, 0 divergences: membership predicate ALWAYS ANDed (membership_applied/token); lower_bound present iff Old(is_sliced) with value == low_mark (offset_mark); upper_bound present iff sliced AND finite high with value == high_mark (limit_mark); slice cleared so is_sliced becomes false afterward (marks reset to 0/None); model is_sliced (offset_mark!=0 or limit_mark is not None) agrees with real Query.is_sliced; and QuerySet.filter raises TypeError on a sliced query while succeeding on an unsliced one (validating apply_membership's Requires(not is_sliced) + token-on-unsliced-path).\n\nThe only representational difference \u2014 the model asserts Result() is query (mutates the carrier in place) whereas the real helper returns a queryset.filter() clone (out is qs == False) \u2014 is a carrier-identity abstraction, not a behavioral divergence: which bounds are recorded, membership application, and the unsliced result are all identical. No input found where the modeled function disagrees with the real repo, and the gold patch satisfies the spec on every tested input, so the spec is not too strong. (Note: G-PANEL-1 spec-too-WEAK is a separate attacker role and orthogonal to this too-strong/drift assessment.); G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (leakage.screen -> passed=True, no hard failures). Independent gold-reconstruction judgment confirms NO-LEAKAGE:\n\nPublic problem_statement already discloses: prefetch fails on sliced querysets with 'AssertionError: Cannot filter a query once a slice has been taken', and the goal is to make slicing work in prefetch (return N example objects per parent).\n\nThe gold edit's DISTINCTIVE machinery \u2014 the new helper `_filter_prefetch_queryset`, `Window(RowNumber(), partition_by=..., order_by=...)`, `GreaterThan(window, low_mark)`, `LessThanOrEqual(window, high_mark)`, `clear_limits()`, `queryset.query.low_mark/high_mark` \u2014 appears NOWHERE in the spec view. The view uses only abstracted carrier vocabulary (offset_mark/limit_mark/lower_bound/upper_bound/membership_token/apply_membership). No diff markers, no patched file path (related_descriptors.py), no patched module dotted path, no bug/fix narration.\n\nBehaviours (1)-(3) restate only the abstract correctness obligation that ANY correct fix must meet (predicate always applied; un-slice before applying the predicate; preserve the slice's per-position restriction), directly implied by the public premise. They do NOT reveal the gold's specific row-number Window approach \u2014 a solver must still independently discover that Django needs a RowNumber window predicate per partition to preserve slice positions.\n\nThe only overlapping token is `is_sliced`, which also occurs in a gold-added line (`queryset.query.is_sliced`). But it is a generic slice-presence predicate directly entailed by the problem statement's own 'sliced querysets'/'slice has been taken' wording; it localizes no edit, is not a def/class symbol introduced by the patch, and reveals nothing about the distinctive mechanism. Not a leak.\n\nThe spec view goes no further than public problem_statement + inherent correctness requirement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 9 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) verdict: FAITHFUL. The bundle models the gold-patch helper _filter_prefetch_queryset(queryset, field_name, instances) as bounded_prefetch. All checks run independently against the real repo at base_commit f387d024fc (worktree $SCRATCH with the gold patch applied; Django 4.2.0a).\n\n(1) same-spec on an identity copy of model.py => SAME (exit 0): the spec region is byte-identical (not tampered).\n\n(2) nagini_verify.sh model.py => 'Verification successful' (13.68s): positive control verifies.\n\n(3) axiom_check.py driven with PYTHONPATH=$SCRATCH against the REAL patched _filter_prefetch_queryset => G-AX OK (exit 0) across slice patterns (0,None),(0,3),(1,None),(1,2),(2,5) and is_sliced/clear_limits cases.\n\n(4) meta.json G-CONF: 100288 inputs, 0 disagreements, seed 15957.\n\n(5) My own differential probe over 11 slice patterns including edge cases [0:0] (high=0), [10:], [3:], [0:10], [4:7] driving the real gold helper: EVERY modeled postcondition matched the real callee on every input, 0 divergences: membership predicate ALWAYS ANDed (membership_applied/token); lower_bound present iff Old(is_sliced) with value == low_mark (offset_mark); upper_bound present iff sliced AND finite high with value == high_mark (limit_mark); slice cleared so is_sliced becomes false afterward (marks reset to 0/None); model is_sliced (offset_mark!=0 or limit_mark is not None) agrees with real Query.is_sliced; and QuerySet.filter raises TypeError on a sliced query while succeeding on an unsliced one (validating apply_membership's Requires(not is_sliced) + token-on-unsliced-path).\n\nThe only representational difference \u2014 the model asserts Result() is query (mutates the carrier in place) whereas the real helper returns a queryset.filter() clone (out is qs == False) \u2014 is a carrier-identity abstraction, not a behavioral divergence: which bounds are recorded, membership application, and the unsliced result are all identical. No input found where the modeled function disagrees with the real repo, and the gold patch satisfies the spec on every tested input, so the spec is not too strong. (Note: G-PANEL-1 spec-too-WEAK is a separate attacker role and orthogonal to this too-strong/drift assessment.)\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (leakage.screen -> passed=True, no hard failures). Independent gold-reconstruction judgment confirms NO-LEAKAGE:\n\nPublic problem_statement already discloses: prefetch fails on sliced querysets with 'AssertionError: Cannot filter a query once a slice has been taken', and the goal is to make slicing work in prefetch (return N example objects per parent).\n\nThe gold edit's DISTINCTIVE machinery \u2014 the new helper `_filter_prefetch_queryset`, `Window(RowNumber(), partition_by=..., order_by=...)`, `GreaterThan(window, low_mark)`, `LessThanOrEqual(window, high_mark)`, `clear_limits()`, `queryset.query.low_mark/high_mark` \u2014 appears NOWHERE in the spec view. The view uses only abstracted carrier vocabulary (offset_mark/limit_mark/lower_bound/upper_bound/membership_token/apply_membership). No diff markers, no patched file path (related_descriptors.py), no patched module dotted path, no bug/fix narration.\n\nBehaviours (1)-(3) restate only the abstract correctness obligation that ANY correct fix must meet (predicate always applied; un-slice before applying the predicate; preserve the slice's per-position restriction), directly implied by the public premise. They do NOT reveal the gold's specific row-number Window approach \u2014 a solver must still independently discover that Django needs a RowNumber window predicate per partition to preserve slice positions.\n\nThe only overlapping token is `is_sliced`, which also occurs in a gold-added line (`queryset.query.is_sliced`). But it is a generic slice-presence predicate directly entailed by the problem statement's own 'sliced querysets'/'slice has been taken' wording; it localizes no edit, is not a def/class symbol introduced by the patch, and reveals nothing about the distinctive mechanism. Not a leak.\n\nThe spec view goes no further than public problem_statement + inherent correctness requirement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:44:43+00:00",
+      "code_version": "7df0fef9f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder-clear-first",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reorder-writes",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-sliced-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.5
+          },
+          {
+            "expect": "reject",
+            "id": "atk-echo-sliced",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-echo-after-clear",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-drop-lower-offset-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.1
+          },
+          {
+            "expect": "reject",
+            "id": "atk-no-clear",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.1
+          },
+          {
+            "expect": "reject",
+            "id": "atk-swap-bounds",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-upper-always",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "atk-vacuous",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "b6711a2acd9f24c6505cc8bf6e23c32aafedec3edec39352749d70920c573f44",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a",
+        "properties.py": "b6711a2acd9f24c6505cc8bf6e23c32aafedec3edec39352749d70920c573f44"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:45:56+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:29:43+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 12.2
+      },
+      "detail": "verified in 12.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b093fca2bbc17763b5bdf27076ca6aa241be98a2f65ea776ab698e99d8ac767a"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15957",
+  "modeled_functions": [
+    {
+      "carrier_type": "queryset/queryset.query -> PrefetchQuery (offset_mark:int, limit_mark:Optional[int], membership_applied:bool, lower_bound:Optional[int], upper_bound:Optional[int]); field_name:str -> member_code:int (opaque); instances(list) -> instance_count:int (length)",
+      "model_symbol": "bounded_prefetch",
+      "repo_location": "django/db/models/fields/related_descriptors.py:86 (new helper added by the patch); routed in at the FK-reverse site line 741 and the M2M site line 1072",
+      "repo_symbol": "django.db.models.fields.related_descriptors._filter_prefetch_queryset",
+      "role": "modeled changed function: build the prefetch filter, translating any slice window into per-partition row-position bounds and dropping the slice so the membership predicate is applicable"
+    },
+    {
+      "carrier_type": "queryset.filter(predicate) -> set membership_applied=True AND grant membership_token(query), under Requires(not is_sliced(query))",
+      "model_symbol": "apply_membership",
+      "repo_location": "django/db/models/query.py:1424 (filter), 1440-1442 (TypeError guard); django/db/models/sql/query.py:2095-2098 (can_filter)",
+      "repo_symbol": "django.db.models.query.QuerySet.filter (predicate application; raises on a sliced query via _filter_or_exclude / Query.can_filter)",
+      "role": "modeled UNCHANGED callee, now @ContractOnly (consumed axiom): applies the membership predicate; its precondition not is_sliced models the real TypeError 'Cannot filter a query once a slice has been taken.', and its Ensures grants the unforgeable membership_token capability so the membership step cannot be faked by a flag write (directive-8 echo cheat closed)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "precondition of apply_membership: Assertion (not is_sliced(query)) might not hold (model_prepatch.py:157) \u2014 the faithful encoding of the real TypeError 'Cannot filter a query once a slice has been taken.'",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "applying the prefetch membership predicate to a sliced query (the slice support the fix adds)",
+      "reverted_to": "pre-patch: queryset.filter(**{field__in: instances}) applied directly to the (possibly sliced) query, with no slice->bound translation and no clear_limits"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "c382c1d94543efae9bf9fff83526d11186d9cebafd4d5c87a5515b925c5053b8",
+    "impl": "1dfec71677f9ce273f260923717c060d84cfd40408114ffeeb957feefd5135ef",
+    "post-conditions": "72cc9dbeb834420452342e985f6510c48a10f8c8d1458d226ab786632560befd",
+    "pre-conditions": "e78b48994b04ea3a06a178ce10204cff6d2aa3adeaac5a9b95930c424cbd8e75",
+    "pure": "dae6f7612ef9fd56cd55515ea6fd798bf43afe61279c6c61c74aca4048d6ed08",
+    "spec_view": "1daa71e2657957eb1e5fe8a30f0bc3732a9f2ead783b7561f67f75e8ba14d1b8"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none required; the change is structural query-state manipulation. The rich QuerySet/Query is abstracted to PrefetchQuery carrying only the touched slice marks and applied-predicate set; field_name (str) and instances (list) are opaque to the slice translation and carried as scalars (member_code:int, instance_count:int).",
+  "version": "4.2"
+}

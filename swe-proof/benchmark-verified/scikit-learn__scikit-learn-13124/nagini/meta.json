@@ -1,0 +1,412 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "9f0b959a8c9195d1b6e203f08b698e052b426ca9",
+  "changed_files": [
+    "sklearn/model_selection/_split.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real numpy RandomState shared-source advances over 25 seeds; re-seed is constant over 25 seeds; real patched StratifiedKFold test sets are seed-dependent",
+      "encoded_property": "the per-class draw states are the advancing stream from the seed's initial state (class k draws from the k-fold-advanced state), never all from one fixed state",
+      "kind": "deep model (uses abstract A-reference symbols seed_state/advance)",
+      "models": "the per-class draw stream produced by the shared, advancing RandomState across the per-class KFold loop (sklearn/model_selection/_split.py:653-656)",
+      "name": "state_stream",
+      "provenance": "the fix hoists check_random_state out of the per-class loop so one source advances per class; state_stream(s,n) = [s] + state_stream(advance(s), n-1)",
+      "role": "deep model of the changed data-flow; NOT a consumed axiom (the proof unfolds it definitionally and consumes no callee Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the real RandomState(seed) seeds the shared source whose per-class draws advance",
+      "encoded_property": "none claimed (abstract deterministic function of the seed)",
+      "kind": "A-reference (abstract pure symbol, no claimed Ensures)",
+      "models": "sklearn.utils.check_random_state(int) == numpy.random.RandomState(seed) initial internal state",
+      "name": "seed_state",
+      "provenance": "sklearn/utils/validation.py:760 (int branch); the seed-to-source conversion the fix introduces at _split.py:623"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): one shared source yields per-class permutations that advance (differ); re-seed yields identical permutations",
+      "encoded_property": "none claimed (abstract deterministic function of the state); the discriminating fact that it is a genuine state MOVE is validated empirically, not asserted",
+      "kind": "A-reference (abstract pure symbol, no claimed Ensures)",
+      "models": "the per-draw state transition of the one shared RandomState (numpy RandomState.shuffle in KFold._iter_test_indices, _split.py:423-427)",
+      "name": "advance",
+      "provenance": "_split.py:423-427; the shared rng is drawn from once per class"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:36:31+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: shared source advances (A-reference) over 25 seeds; re-seed is constant over 25 seeds; real patched StratifiedKFold test sets are seed-dependent (end-to-end).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "8cfae2d3856727980731dc788b6aaf2607e993aa2fec9490e04dfec7a7d204c5",
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:41:42+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100042,
+          "disagreements": 0,
+          "seed": 13124,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callees call the real repo functions)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100042, \"disagreements\": 0, \"seed\": 13124, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callees call the real repo functions)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e68208204bad32afe5e790a50d136792e15d400379521a9f30084cfa92acacab",
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:55:50+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375",
+        "model_prepatch.py": "4e4fc6eec15b7c2c9ea391704faf63aa92974f072a2341435ad151ecd69eaef3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T04:52:03+00:00",
+      "code_version": "dc63dfaac-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:56:33+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375",
+        "model_prepatch.py": "4e4fc6eec15b7c2c9ea391704faf63aa92974f072a2341435ad151ecd69eaef3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:36:24+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "be0e07bf0481d845c1f19f59770db8f329a2323a874920258c51398e82febfc6",
+          "impl": "0433ae5a320706170adf52cace1d024b20aa0e11dc18f721291c9132472e6791",
+          "invariants": "bf51959a5d554d964895d763d8eeed4115a9fa20eeb7e36f92f0668eb0cc4001",
+          "post-conditions": "6488c997ed89b25a602960726568b2ba9a7d5087d3936fea7cec1ca320f86bfe",
+          "pre-conditions": "3ccfbe4cc6e7cc12919f3df2769f0c7eccdca84dd324595d8dd67ef590c3b8e0",
+          "pure": "c22308467eca4d07432d5ba0d4ef57dd693826d05f13127b343fbd1b948299e3",
+          "spec_view": "31e15c6e28f0f36af47e431ddde9e378c39560242e71cd85aab670fc13d8a013"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:36:25+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "84af66495662dac74cde128cd8dad033dfc342af95ea2bd1686b800bbb359755",
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:36:25+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:06:42+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 8,
+        "unjudged": [
+          "line 108: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 7/7 (100%); no verdict on 1: [\"line 108: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T04:52:06+00:00",
+      "code_version": "dc63dfaac-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Role: panel_2 (faithfulness). Verdict FAITHFUL. Rationale: (1) model.py verifies under pinned Nagini (Verification successful, 10.19s). (2) seed_state/advance are @ContractOnly abstract pure symbols claiming only determinism (no value contract); the real numpy RandomState transition IS deterministic in (state, m), and within the balanced modeled domain m is constant, so advance is a faithful deterministic function of state alone. (3) The modeled function's signature (seed, n_classes) has no per-class-count parameter, so the unbalanced regime where the single-advance abstraction would diverge is not expressible by the model \u2014 it is genuinely out of scope, not a hidden overclaim. (4) The abstraction domain matches the correctness oracle: the F2P test test_shuffle_stratifiedkfold uses balanced y=[0]*20+[1]*20, and G-CONF's differential check (real seed_state/advance callees + unchanged downstream bookkeeping vs real patched StratifiedKFold._make_test_folds) passed 100k balanced fuzz + boundary cases with zero disagreements. (5) Empirically confirmed: real shared-advancing RandomState per-class states == model state_stream for balanced configs. The spec is neither too strong nor drifting from real repo behavior within its declared domain; a verifying same-spec impl reproduces the gold's balanced per-class draw states and thus resolves the F2P. NB: this cell is flagged G-PANEL-1=fail in the queue (a separate role); the panel_2 faithfulness dimension is clean.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Gold edit: `rng = self.random_state` -> `rng = check_random_state(self.random_state)` in StratifiedKFold._make_test_folds (+ docstring reword), i.e. convert the seed to a RandomState source ONCE and share the advancing source across per-class draws instead of re-seeding an identical fresh source per class.\n\nMechanical G-LEAK screen PASSES (leakage.screen -> passed=True, no hard failures).\n\nSemantic gold-reconstruction check of the spec view (docstring + axioms/pure/pre/post regions):\n- No patched file path (`sklearn/model_selection/_split.py`) or dotted module path present.\n- No patched repo symbol echoed: `StratifiedKFold`, `_make_test_folds`, `check_random_state`, `random_state`, `RandomState`, `shuffle` all absent. Spec-view identifiers are abstract (`seed_state`, `advance`, `state_stream`, `per_class_draw_states`).\n- No verbatim gold-diff line, no diff markers.\n- No bug/fix narration; comments explicitly frame everything as 'desired behaviour, not an edit' and call the primitives 'unchanged'.\n\nThe spec formalizes desired behavior (per-class draws come from one shared, ADVANCING pseudo-random stream so different seeds yield different, position-dependent draws) at an abstract mathematical level. This is exactly the behavior the PUBLIC problem_statement already describes as expected: the reporter shows that with shuffle=True the batches are identical for any random_state and states 'I expect batches to be different ... for different random_state seeds.' The spec neither localizes the one-line edit nor names the fix function/callee, so it does not reconstruct the gold edit beyond what the problem_statement already makes public. Describing correct behavior is the spec's legitimate purpose.\n\nVerdict: NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Role: panel_2 (faithfulness). Verdict FAITHFUL. Rationale: (1) model.py verifies under pinned Nagini (Verification successful, 10.19s). (2) seed_state/advance are @ContractOnly abstract pure symbols claiming only determinism (no value contract); the real numpy RandomState transition IS deterministic in (state, m), and within the balanced modeled domain m is constant, so advance is a faithful deterministic function of state alone. (3) The modeled function's signature (seed, n_classes) has no per-class-count parameter, so the unbalanced regime where the single-advance abstraction would diverge is not expressible by the model \u2014 it is genuinely out of scope, not a hidden overclaim. (4) The abstraction domain matches the correctness oracle: the F2P test test_shuffle_stratifiedkfold uses balanced y=[0]*20+[1]*20, and G-CONF's differential check (real seed_state/advance callees + unchanged downstream bookkeeping vs real patched StratifiedKFold._make_test_folds) passed 100k balanced fuzz + boundary cases with zero disagreements. (5) Empirically confirmed: real shared-advancing RandomState per-class states == model state_stream for balanced configs. The spec is neither too strong nor drifting from real repo behavior within its declared domain; a verifying same-spec impl reproduces the gold's balanced per-class draw states and thus resolves the F2P. NB: this cell is flagged G-PANEL-1=fail in the queue (a separate role); the panel_2 faithfulness dimension is clean.; G-PANEL-3 (leakage): pass \u2014 Gold edit: `rng = self.random_state` -> `rng = check_random_state(self.random_state)` in StratifiedKFold._make_test_folds (+ docstring reword), i.e. convert the seed to a RandomState source ONCE and share the advancing source across per-class draws instead of re-seeding an identical fresh source per class.\n\nMechanical G-LEAK screen PASSES (leakage.screen -> passed=True, no hard failures).\n\nSemantic gold-reconstruction check of the spec view (docstring + axioms/pure/pre/post regions):\n- No patched file path (`sklearn/model_selection/_split.py`) or dotted module path present.\n- No patched repo symbol echoed: `StratifiedKFold`, `_make_test_folds`, `check_random_state`, `random_state`, `RandomState`, `shuffle` all absent. Spec-view identifiers are abstract (`seed_state`, `advance`, `state_stream`, `per_class_draw_states`).\n- No verbatim gold-diff line, no diff markers.\n- No bug/fix narration; comments explicitly frame everything as 'desired behaviour, not an edit' and call the primitives 'unchanged'.\n\nThe spec formalizes desired behavior (per-class draws come from one shared, ADVANCING pseudo-random stream so different seeds yield different, position-dependent draws) at an abstract mathematical level. This is exactly the behavior the PUBLIC problem_statement already describes as expected: the reporter shows that with shuffle=True the batches are identical for any random_state and states 'I expect batches to be different ... for different random_state seeds.' The spec neither localizes the one-line edit nor names the fix function/callee, so it does not reconstruct the gold edit beyond what the problem_statement already makes public. Describing correct behavior is the spec's legitimate purpose.\n\nVerdict: NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Role: panel_2 (faithfulness). Verdict FAITHFUL. Rationale:\n\n(1) model.py verifies under pinned Nagini (Verification successful, 10.19s).\n\n(2) seed_state/advance are @ContractOnly abstract pure symbols claiming only determinism (no value contract); the real numpy RandomState transition IS deterministic in (state, m), and within the balanced modeled domain m is constant, so advance is a faithful deterministic function of state alone.\n\n(3) The modeled function's signature (seed, n_classes) has no per-class-count parameter, so the unbalanced regime where the single-advance abstraction would diverge is not expressible by the model \u2014 it is genuinely out of scope, not a hidden overclaim.\n\n(4) The abstraction domain matches the correctness oracle: the F2P test test_shuffle_stratifiedkfold uses balanced y=[0]*20+[1]*20, and G-CONF's differential check (real seed_state/advance callees + unchanged downstream bookkeeping vs real patched StratifiedKFold._make_test_folds) passed 100k balanced fuzz + boundary cases with zero disagreements.\n\n(5) Empirically confirmed: real shared-advancing RandomState per-class states == model state_stream for balanced configs. The spec is neither too strong nor drifting from real repo behavior within its declared domain; a verifying same-spec impl reproduces the gold's balanced per-class draw states and thus resolves the F2P. NB: this cell is flagged G-PANEL-1=fail in the queue (a separate role); the panel_2 faithfulness dimension is clean.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Gold edit: `rng = self.random_state` -> `rng = check_random_state(self.random_state)` in StratifiedKFold._make_test_folds (+ docstring reword), i.e. convert the seed to a RandomState source ONCE and share the advancing source across per-class draws instead of re-seeding an identical fresh source per class.\n\nMechanical G-LEAK screen PASSES (leakage.screen -> passed=True, no hard failures).\n\nSemantic gold-reconstruction check of the spec view (docstring + axioms/pure/pre/post regions):\n- No patched file path (`sklearn/model_selection/_split.py`) or dotted module path present.\n- No patched repo symbol echoed: `StratifiedKFold`, `_make_test_folds`, `check_random_state`, `random_state`, `RandomState`, `shuffle` all absent. Spec-view identifiers are abstract (`seed_state`, `advance`, `state_stream`, `per_class_draw_states`).\n- No verbatim gold-diff line, no diff markers.\n- No bug/fix narration; comments explicitly frame everything as 'desired behaviour, not an edit' and call the primitives 'unchanged'.\n\nThe spec formalizes desired behavior (per-class draws come from one shared, ADVANCING pseudo-random stream so different seeds yield different, position-dependent draws) at an abstract mathematical level. This is exactly the behavior the PUBLIC problem_statement already describes as expected: the reporter shows that with shuffle=True the batches are identical for any random_state and states 'I expect batches to be different ... for different random_state seeds.' The spec neither localizes the one-line edit nor names the fix function/callee, so it does not reconstruct the gold edit beyond what the problem_statement already makes public. Describing correct behavior is the spec's legitimate purpose.\n\nVerdict: NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:35:10+00:00",
+      "code_version": "86d931006-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-rename-locals",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-zero-early-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-constant-state-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-double-advance",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-start-advanced",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-last-class",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "a78c3c1a668ea65f9c26482997315a9260f5dd65322ede36f06bf8db88357afb",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375",
+        "properties.py": "a78c3c1a668ea65f9c26482997315a9260f5dd65322ede36f06bf8db88357afb"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:52:46+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:22:54+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "wall_time_s": 50.9
+      },
+      "detail": "verified in 50.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0d5ec1d34752791e56722cd3aeec11e359fdd69b894930fd580114eb00622375"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-13124",
+  "modeled_functions": [
+    {
+      "carrier_type": "int seed + int class count -> List[int] of per-class draw states; specification over PSeq[int] via the advancing fold state_stream",
+      "model_symbol": "per_class_draw_states",
+      "repo_location": "sklearn/model_selection/_split.py:622 (changed line 623)",
+      "repo_symbol": "sklearn.model_selection._split.StratifiedKFold._make_test_folds",
+      "role": "modeled changed function: the per-class randomized source handling; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result()) == state_stream(seed_state(seed), n_classes): a constant list [start, start, ...] cannot be proven equal to the advancing stream [start, advance(start), ...] for the abstract advance",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "per-class pseudo-random source advancing (vs re-seeding)",
+      "reverted_to": "rng = self.random_state (raw int); a fresh source is re-converted from the identical seed for every class, so every class emits seed_state(seed)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "be0e07bf0481d845c1f19f59770db8f329a2323a874920258c51398e82febfc6",
+    "impl": "0433ae5a320706170adf52cace1d024b20aa0e11dc18f721291c9132472e6791",
+    "invariants": "bf51959a5d554d964895d763d8eeed4115a9fa20eeb7e36f92f0668eb0cc4001",
+    "post-conditions": "6488c997ed89b25a602960726568b2ba9a7d5087d3936fea7cec1ca320f86bfe",
+    "pre-conditions": "3ccfbe4cc6e7cc12919f3df2769f0c7eccdca84dd324595d8dd67ef590c3b8e0",
+    "pure": "c22308467eca4d07432d5ba0d4ef57dd693826d05f13127b343fbd1b948299e3",
+    "spec_view": "31e15c6e28f0f36af47e431ddde9e378c39560242e71cd85aab670fc13d8a013"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": "n/a (the carrier is integer seed/state and List[int] of per-class draw states; specification carried by PSeq[int] via ToSeq; the advancing per-class stream is a front-recursive fold state_stream giving a single unfold per loop step, threaded by a forward loop with the prefix++rest==whole invariant)",
+  "version": "0.21"
+}

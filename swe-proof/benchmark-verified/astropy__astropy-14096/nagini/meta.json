@@ -1,0 +1,547 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real SkyCoord.__getattribute__ on a property reading a missing inner attr blames the inner name, not the requested name, over boundary + 300 fuzz pairs; AND the resolving direction \u2014 class attributes / instance-dict entries / bound methods / dunders return normally and deterministically, with the resolve-vs-fail selector exclusive and stable",
+      "encoded_property": "the ordinary resolver's TWO paths, selected by ordinary_lookup_resolves(name): where it resolves it returns standard_lookup_value(name) (Ensures); otherwise it surfaces an AttributeError whose blamed subject is standard_lookup_subject(name) (Exsures). Both paths grant the reentered_ordinary_lookup(name) capability. It does NOT claim the mechanism never returns \u2014 that would be false of object.__getattribute__ and would reject a faithful gold impl.",
+      "kind": "A-consumed",
+      "models": "self.__getattribute__(attr) \u2014 object.__getattribute__, the unchanged CPython attribute-lookup mechanism the fail branch newly re-enters (post-patch sky_coordinate.py:898)",
+      "name": "ordinary_lookup",
+      "provenance": "astropy/coordinates/sky_coordinate.py:898 (post-patch); object.__getattribute__ is the standard descriptor/attribute machinery, unchanged by the patch",
+      "purity": "@ContractOnly (NOT @Pure: it raises and is used only in the impl, not inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the resolve-vs-fail selector read off the real callee is exclusive (never both, never neither \u2014 no non-AttributeError escape) and stable across re-probes, on both resolving and failing names",
+      "encoded_property": "a function of `name` (Ensures(True)) recording which of the mechanism's two paths runs; it lets the consumer's returning and raising paths each be conditional on the mechanism's own outcome, so a delegating impl cannot swallow the mechanism's failure or raise where it resolved",
+      "kind": "A-consumed",
+      "models": "whether self.__getattribute__(attr) RESOLVES attr (returns) rather than raising AttributeError \u2014 the mechanism's own path selector",
+      "name": "ordinary_lookup_resolves",
+      "provenance": "astropy/coordinates/sky_coordinate.py:898 (post-patch); object.__getattribute__ either returns a value or raises AttributeError, unchanged by the patch",
+      "purity": "@Pure @ContractOnly (used inside Ensures/Exsures)"
+    },
+    {
+      "checked_by": "no separate runtime probe: the capability is definitionally 'the surfaced outcome was produced by the ordinary lookup mechanism itself', which is exactly what axiom_check.py's soundness probes execute (they call the real __getattribute__ and observe ITS failure and ITS resolution)",
+      "encoded_property": "abstract, unforgeable capability token (bodyless @ContractOnly @Predicate) granted SOLELY by ordinary_lookup's two paths (its Ensures and its Exsures); resolve_missing's returning and raising postconditions each require it, so the no-resolution leg must actually re-enter the ordinary mechanism \u2014 closes the directive-8 oracle-echo hole on both paths (raise AttributeAccessError(standard_lookup_subject(name)), or return standard_lookup_value(name), without delegating)",
+      "kind": "A-consumed",
+      "models": "the control-flow fact that the surfaced outcome \u2014 the AttributeError, or the returned value \u2014 came FROM self.__getattribute__(attr) actually running, not fabricated by the fallback",
+      "name": "reentered_ordinary_lookup",
+      "provenance": "astropy/coordinates/sky_coordinate.py:898 (post-patch): the leg is `return self.__getattribute__(attr)`, so whichever outcome escapes is the mechanism's own",
+      "purity": "@ContractOnly @Predicate (bodyless; unfoldable by construction)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): determinism + the discriminating fact standard_lookup_subject(prop)==random_attr != prop on the regression scenario, and ==name on the degenerate plain-missing case",
+      "encoded_property": "a function of `name` (Ensures(True)); crucially the proof does NOT assume it equals `name`, so a leg blaming `name` cannot discharge the postcondition",
+      "kind": "A-consumed",
+      "models": "the symbol id the ordinary lookup mechanism blames when it fails for `name` (the genuinely-missing name reached inside the descriptor invoked for `name`)",
+      "name": "standard_lookup_subject",
+      "provenance": "astropy/coordinates/sky_coordinate.py:898 (post-patch); the `name` carried by the AttributeError object.__getattribute__ surfaces",
+      "purity": "@Pure @ContractOnly (used inside Ensures/Exsures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): for names the real callee resolves, obj.__getattribute__(name) returns normally and returns the same value on re-probe (deterministic)",
+      "encoded_property": "a function of `name` (Ensures(True)); enough that the consumer cannot invent a value on the returning path and call it the mechanism's",
+      "kind": "A-consumed",
+      "models": "the value self.__getattribute__(attr) returns when it resolves attr",
+      "name": "standard_lookup_value",
+      "provenance": "astropy/coordinates/sky_coordinate.py:898 (post-patch); the value object.__getattribute__ yields on its resolving path, unchanged by the patch",
+      "purity": "@Pure @ContractOnly (used inside Ensures/Exsures)"
+    }
+  ],
+  "base_commit": "1a4462d72eb03f30dc83a879b1dd57aac8b2c18b",
+  "changed_files": [
+    "astropy/coordinates/sky_coordinate.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T08:50:54+00:00",
+      "code_version": "950177b46-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: residual_step / residual_step_subject / residual_step_value / residual_step_succeeds axioms sound \u2014 real SkyCoord.__getattribute__ blames the inner missing name (not the requested name) on 9 boundary + 300 fuzz property pairs; degenerate plain-missing case blames itself; the RESOLVING path returns normally and deterministically on 8 names; the resolve/fail selector is exclusive and stable on 13 names; all deterministic. The leg 2/3/4 step axioms (frame_attr_step / passthrough_step / transform_step) are PARTIAL and both directions are reachable on 32 real (object, name) probes \u2014 10 transform targets succeed and 11 FAIL (altaz/hadec/teme/lsr/galactocentric/hcrs/...), so no leg may be modelled as total; each step's outcome is stable.",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "848a8eb725c712a1fda539bfc5a204a7cff3d973730638c6b7c20e6881850126",
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T08:50:43+00:00",
+      "code_version": "950177b46-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 102183,
+          "disagreements": 0,
+          "outside_bridge": 12,
+          "seed": 14096,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 102183, \"disagreements\": 0, \"seed\": 14096, \"outside_bridge\": 12, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "78fd5bf3cb4a92453e8f45ee78a9040c1fa1cb0282608505a794fc33a24ee926",
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:42:19+00:00",
+      "code_version": "1d3cac452-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6",
+        "model_prepatch.py": "91134c1d3e5710248fad9da1740c529bec2de30f1088e4ba8f671bdf734ce961"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T11:17:29+00:00",
+      "code_version": "1684194d9-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py`, `atk_8.py`, `atk_10.py`, `atk_12.py`, `atk_14.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_19.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_6.py`, `atk_9.py`, `atk_11.py`, `atk_13.py`, `atk_15.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6",
+        "properties.py": "8677e0deec993250cc8de9d03f49856e5e23a049ceb5b6740c4ab2a0f2dbed00"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:43:29+00:00",
+      "code_version": "1d3cac452-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6",
+        "model_prepatch.py": "91134c1d3e5710248fad9da1740c529bec2de30f1088e4ba8f671bdf734ce961"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T08:44:31+00:00",
+      "code_version": "bef898856-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "6cef2f7d27704c916f0e085f994396c2cdcfcb32817267f00d239a6eb7b3bcb4",
+          "impl": "fbce760a4064b76f74e5c55a536b2c565866a2564fa3ae87921254d4b01e7fd0",
+          "post-conditions": "6539d5a8f663a0ebdfe6a9894836987bb86b91341ca237700c0e3c1bb364340c",
+          "pre-conditions": "d9282d68c3745c287fc2ce31609c0851e3e79cf8d1b6b900c2a804f24fe8afc8",
+          "pure": "3df5aa78cfc3e1f05bb8e5f2a94275e6d025be4071bccf8d348f626a045bfb8a",
+          "spec_view": "bdcc35410eae02b0336a64057c0bacdaeef3ccf12b1419999a824e431dd5d66a"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T08:44:30+00:00",
+      "code_version": "bef898856-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "077f564d44909a670bcd5257d93459d33825bb1979ee529937da2540e69d596e",
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T08:44:31+00:00",
+      "code_version": "bef898856-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T08:43:31+00:00",
+      "code_version": "bef898856-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T11:17:30+00:00",
+      "code_version": "1684194d9-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "No diverging input found. The spec is NOT too strong; every clause was measured against the real patched SkyCoord.__getattr__ and holds.\n\nSETUP (all work in /tmp; bundle untouched). Reference = swebench/sweb.eval.x86_64.astropy_1776_astropy-14096 image at base_commit 06c74e6ae/1a4462d72e with patch.diff APPLIED (container gp2b_14096, /testbed, conda env `testbed`). Confirmed the applied hunk is exactly the gold change (`raise AttributeError(...)` -> `return self.__getattribute__(attr)`), so I compared against the fixed behavior, not the base version. Also confirmed  carries the same one-hunk diff.\n\nBASELINE FACTS\n* `bash scripts/nagini_verify.sh` on the bundle model.py: exit 0 (verifies).\n* `adversary same-spec` on my byte copy: exit 0 (SAME) \u2014 spec region confirmed identical, so I audited the frozen spec.\n* Bundle model_prepatch.py: verifier exit 1, failing exactly `Assertion (not residual_step_succeeds(name)) might not hold` \u2014 the spec senses the patch (G-DIFF), i.e. it describes post-patch behavior as the brief states.\n\nINDEPENDENT PROBE (mine, not the bundle's). For each (object, name) I evaluated the four repo guards in the repo's own priority order, derived the leg the spec selects, ran THAT leg's own repo step expression, ran the real __getattr__, and checked the exact spec clause for the leg (selector direction + value equality; on leg 5 also the blamed-subject equality). One shared object per input, since getattr is non-mutating \u2014 my first run's `VALUE` reports were a harness artifact of comparing bound methods from two different instances, and vanished once corrected (a real defect would not).\n* Sweep A: 12 objects x 490 names = 5828 in-bridge inputs. 0 violations. Legs hit 10/160/116/270/5272; step-failing per leg {2:1, 3:0, 4:113, 5:5171}, step-succeeding {2:159, 3:116, 4:157, 5:101}. Surfaced exception kinds include ConvertError/UnitsError/TypeError/ValueError out of leg 4 \u2014 i.e. the non-AttributeError partiality the spec's two-path form allows and a total form would have wrongly rejected.\n* Sweep B (randomized, seed 99991): 51 builders (every instantiable registered frame, with and without obstime+location) x 1552 names = 79152 inputs. 0 violations, 0 guard-raised.\n* Leg 1 (the ONLY clause the spec asserts as TOTAL \u2014 its strongest claim, and the natural place for over-strength): swept 53 objects across every registered frame, 106 alias inputs where `_is_name(attr)` is True. Real function never raised and always returned `self`. Leg 1's totality is sound.\n* Leg 2/3 failing paths (thinnest coverage in Sweep A, so targeted directly): 48 constructed leg-2 step failures via `_<frame_attr>` descriptors raising TypeError/ValueError/RuntimeError, and 8 constructed leg-3 step failures via a one-shot data descriptor that passes the hasattr guard then raises on the step read (all four exception kinds). Real outcome matched the step outcome in every case. 0 violations.\n* Adversarial leg-5 edges: property raising a non-AttributeError (TypeError), self-recursive property (RecursionError), property blaming the requested name itself (degenerate subject==name), a property that RESOLVES (777), and resolving names __class__/_sky_coord_frame/__dict__. Real and step agreed on path and subject throughout, including subject=None when no name is blamed. Notably the spec does NOT assume subject==name, and a genuinely non-deterministic descriptor (alternating read) is the only place real and step differ \u2014 that is callee non-determinism, not a spec claim, and the spec's oracles are only ever applied per-call.\n\nCORROBORATION (bundle's own checkers, run by me inside the image): axiom_check.py exit 0 (leg-5 subject blames the inner missing name on 9 boundary + 300 fuzz pairs; resolving path returns normally; 10 transform targets succeed and 11 fail, so no leg may be total). conformance_check.py exit 0: 102183 inputs, 0 disagreements, with the 12 velocity/differential inputs reported as outside-the-type-bridge rather than silently dropped \u2014 an honest, checkable coverage claim, since for those the repo's passthrough GUARD itself raises and no boolean input exists to supply.\n\nASSESSMENT. The spec's central design choice \u2014 every leg but the alias is PARTIAL, stated as two paths keyed to that leg's own `*_step_succeeds(name)` selector \u2014 is exactly what the real function does; a total form would be unfaithful and refinement.md documents that it was corrected in the honest direction, which my leg-4 measurements independently reproduce (altaz/hadec/teme/lsr/galactocentric/hcrs all raise). The selector conjuncts and the bodyless per-leg `*_step_performed` capabilities add discriminating strength without asserting anything false about the callees. No input was found on which the modeled function disagrees with the real callee.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "NO RELAXATION IS IN PLAY \u2014 checked directly, not inherited. meta.json has no `relaxed_leakage` key (python `'relaxed_leakage' in meta` -> False), RELAXED_LEAKAGE.md does not exist anywhere under benchmark-verified/astropy__astropy-14096/ (find -iname '*RELAX*' -> empty), and gates.G-LEAK.status == \"pass\" with detail \"spec view clean\" (not \"relaxed\"). So there is no unavoidability argument for me to credit or reject; I judged this spec view against the strict \u00a70.6 standard, and it passes on that standard. No file in the bundle addresses the panel, tells me how to record, or asserts which verdict is honest \u2014 I grepped model.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py for panel/attacker/reviewer/verdict/NO-LEAKAGE/submit_result/\"record this as\"/\"do not flag\": the only hit is properties.py's \"clauses (the things an attacker must defeat)\", which is a rival-design comment in a non-spec-view file, not reviewer direction. Nothing to report as bundle-to-reviewer instruction.\n\nPROVENANCE. I derived the spec view myself via swebench_unified.markers.spec_view with the nagini LanguageTables (not from any stamp). sha256(model.py)=b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6, sha256(spec_view)=bdcc35410eae02b0336a64057c0bacdaeef3ccf12b1419999a824e431dd5d66a, 344 lines, spec_view idempotent (spec_view(spec_view(src))==spec_view(src)), impl region correctly collapsed to the elision placeholder, and the gold added line's idiom `__getattribute__` is absent from the whole view (count 0). Positive control: bash scripts/nagini_verify.sh on the bundle model.py -> exit 0; `adversary same-spec nagini astropy__astropy-14096` on it -> exit 0 (\"SAME\").\n\nTHE PRIOR G-PANEL-3 fail DOES NOT APPLY TO THIS TEXT \u2014 and I re-measured rather than assuming. verdict.md records a LEAKAGE at model.py digest 2e8a8d11..., citing prose that told the solver the fallback \"must re-enter the ordinary attribute-lookup mechanism for that same name and surface whatever that mechanism produces\". Every token of that disclosure is gone at the current digest b007674d...: counts in the spec view for 're-enter'=0, 'reenter'=0, 'ordinary'=0, 'mechanism'=0, 'lookup mechanism'=0, 'ordinary_lookup'=0, 'reentered'=0, 'standard_lookup'=0, 'getattribute'=0, 'delegat'=0. The identifiers were renamed to residual_step / residual_step_succeeds / residual_step_value / residual_step_subject / residual_step_performed and the prose to \"the residual resolution of that same name\", which names a position in the candidate list (leg 5 of 5), not Python's attribute-lookup machinery and not the gold idiom. The recorded G-PANEL-3 fail is a stale-digest artifact for this text.\n\nMECHANICAL SCREEN, INCLUDING THE HARD CASE. leakage.screen(model.py, nagini, gold_patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. I also ran it with problem_statement=\"\" so that NOTHING could be excused as already-public: still hard_failures=[]. So the pass is not resting on the PS excusing a symbol echo. Component checks: no diff marker in the view; no gold changed line reproduced (the six changed lines are '# Fail', 'raise AttributeError(', the f-string, ')', '# Call __getattribute__; this will give correct exception.', 'return self.__getattribute__(attr)' \u2014 none appear normalized in the view); patched file path 'astropy/coordinates/sky_coordinate.py' and dotted module absent; patch changed-symbol set is {'getattr'} and it does not occur in the view; _NARRATION_RE over view comments/docstrings -> empty (no bug/fix/patched/regression/previously/incorrectly/wrong/broken). Absent by direct grep: SkyCoord, sky_coordinate, AttributeError, transform_to, _is_name, frame_transform_graph, __getattribute__, random_attr, gh-8340, 'pre-patch', 'the change', 'no longer', 'used to'. The only 'swallow' hits describe a forbidden consumer behaviour, not a repo edit.\n\nHINTS-ONLY VOCABULARY (the failure mode \u00a70.6 calls most common) IS CLEAN. Set-differenced spec-view words (len>=5) against problem_statement and hints_text: the words present in hints_text and the view but not the PS are exactly ['about','another','different','exception','other','since','which'] \u2014 all generic English, no diagnosis. Notably the hints' actual proposed approach (\"catch the AttributeError in the property and raise another exception\", \"__getattr__ does not know about the other errors\") is nowhere echoed, and neither is the gold's opposite approach.\n\nSTRIP-THE-NARRATION TEST \u2014 RUN, NOT ASSERTED (lab, bundle untouched). I built v_denarr_gold.py: module docstring reduced to \"\"\"Model.\"\"\", every function/class docstring removed, every non-marker comment removed, EVERY contract conjunct left byte-identical, gold impl kept. Results with scripts/nagini_verify.sh: v_denarr_gold exit=0 (the de-narrated spec is neither vacuous nor broken); v_denarr_prepatch (de-narrated spec + pre-change behaviour `raise AttributeAccessError(name)`) exit=1, failing on `Assertion (not residual_step_succeeds(name)) might not hold`; v_denarr_echo (the pure-oracle cheat `if residual_step_succeeds(name): return residual_step_value(name)` else `raise AttributeAccessError(residual_step_subject(name))`, never invoking residual_step) exit=1. So the entire discriminating power lives in the CONTRACT (selector, subject equality, and the bodyless capability predicate) and ZERO of it lives in prose \u2014 which is the direction that matters here: it means the surviving prose is not a forced disclosure propping up a clause, and equally that there is nothing left in it to trim, because the mechanism vocabulary is already gone. Independently re-confirmed G-DIFF on the shipped artifact: bundle model_prepatch.py exit=1 on the same `(not residual_step_succeeds(name))` assertion.\n\nWHAT THE VIEW DOES DISCLOSE, AND WHY IT IS WITHIN THE PUBLIC PS. The discriminating observable stated in the view is that leg 5's surfaced failure blames `residual_step_subject(name)` \u2014 \"the name the residual resolution found missing\", explicitly NOT assumed equal to the requested name. That is verbatim the problem_statement: \"the error message is misleading because it says `prop` doesn't exist, where it should say `random_attr` doesn't exist\", and it is exactly what the F2P test reads (pytest.raises(AttributeError, match=\"random_attr\")). So this is a PS-derivable requirement, not a hidden discriminator. The view's other non-public-looking content is leg 5 having a SUCCEEDING path (residual_step_succeeds / residual_step_value) and the four partial domain legs; that is contract SHAPE required for faithfulness to the real function (verified against the real source at base_commit: sky_coordinate.py:869-898 shows the four unchanged guarded branches and the final fallback), and \u00a70.6 targets quoted gold lines, patched-symbol echoes, and prose narration of the bug->fix mechanism \u2014 none of which is present. A solver given this view learns \"a fifth fallback exists whose failure must blame the inner missing name\", which the issue already demands; it is not handed the `return self.__getattribute__(attr)` idiom the issue withheld.\n\nSCOPE. My verdict covers leakage only. meta.json also records G-PANEL-2 fail (spec-too-strong at the partial legs); that is a different gate and I neither re-ran nor credited it \u2014 this cell may not be green for reasons outside my finding. All work in /tmp (,); the bundle was read-only and unmodified (verified by sha256 of model.py matching before and after).",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 No diverging input found. The spec is NOT too strong; every clause was measured against the real patched SkyCoord.__getattr__ and holds.\n\nSETUP (all work in /tmp; bundle untouched). Reference = swebench/sweb.eval.x86_64.astropy_1776_astropy-14096 image at base_commit 06c74e6ae/1a4462d72e with patch.diff APPLIED (container gp2b_14096, /testbed, conda env `testbed`). Confirmed the applied hunk is exactly the gold change (`raise AttributeError(...)` -> `return self.__getattribute__(attr)`), so I compared against the fixed behavior, not the base version. Also confirmed  carries the same one-hunk diff.\n\nBASELINE FACTS\n* `bash scripts/nagini_verify.sh` on the bundle model.py: exit 0 (verifies).\n* `adversary same-spec` on my byte copy: exit 0 (SAME) \u2014 spec region confirmed identical, so I audited the frozen spec.\n* Bundle model_prepatch.py: verifier exit 1, failing exactly `Assertion (not residual_step_succeeds(name)) might not hold` \u2014 the spec senses the patch (G-DIFF), i.e. it describes post-patch behavior as the brief states.\n\nINDEPENDENT PROBE (mine, not the bundle's). For each (object, name) I evaluated the four repo guards in the repo's own priority order, derived the leg the spec selects, ran THAT leg's own repo step expression, ran the real __getattr__, and checked the exact spec clause for the leg (selector direction + value equality; on leg 5 also the blamed-subject equality). One shared object per input, since getattr is non-mutating \u2014 my first run's `VALUE` reports were a harness artifact of comparing bound methods from two different instances, and vanished once corrected (a real defect would not).\n* Sweep A: 12 objects x 490 names = 5828 in-bridge inputs. 0 violations. Legs hit 10/160/116/270/5272; step-failing per leg {2:1, 3:0, 4:113, 5:5171}, step-succeeding {2:159, 3:116, 4:157, 5:101}. Surfaced exception kinds include ConvertError/UnitsError/TypeError/ValueError out of leg 4 \u2014 i.e. the non-AttributeError partiality the spec's two-path form allows and a total form would have wrongly rejected.\n* Sweep B (randomized, seed 99991): 51 builders (every instantiable registered frame, with and without obstime+location) x 1552 names = 79152 inputs. 0 violations, 0 guard-raised.\n* Leg 1 (the ONLY clause the spec asserts as TOTAL \u2014 its strongest claim, and the natural place for over-strength): swept 53 objects across every registered frame, 106 alias inputs where `_is_name(attr)` is True. Real function never raised and always returned `self`. Leg 1's totality is sound.\n* Leg 2/3 failing paths (thinnest coverage in Sweep A, so targeted directly): 48 constructed leg-2 step failures via `_<frame_attr>` descriptors raising TypeError/ValueError/RuntimeError, and 8 constructed leg-3 step failures via a one-shot data descriptor that passes the hasattr guard then raises on the step read (all four exception kinds). Real outcome matched the step outcome in every case. 0 violations.\n* Adversarial leg-5 edges: property raising a non-AttributeError (TypeError), self-recursive property (RecursionError), property blaming the requested name itself (degenerate subject==name), a property that RESOLVES (777), and resolving names __class__/_sky_coord_frame/__dict__. Real and step agreed on path and subject throughout, including subject=None when no name is blamed. Notably the spec does NOT assume subject==name, and a genuinely non-deterministic descriptor (alternating read) is the only place real and step differ \u2014 that is callee non-determinism, not a spec claim, and the spec's oracles are only ever applied per-call.\n\nCORROBORATION (bundle's own checkers, run by me inside the image): axiom_check.py exit 0 (leg-5 subject blames the inner missing name on 9 boundary + 300 fuzz pairs; resolving path returns normally; 10 transform targets succeed and 11 fail, so no leg may be total). conformance_check.py exit 0: 102183 inputs, 0 disagreements, with the 12 velocity/differential inputs reported as outside-the-type-bridge rather than silently dropped \u2014 an honest, checkable coverage claim, since for those the repo's passthrough GUARD itself raises and no boolean input exists to supply.\n\nASSESSMENT. The spec's central design choice \u2014 every leg but the alias is PARTIAL, stated as two paths keyed to that leg's own `*_step_succeeds(name)` selector \u2014 is exactly what the real function does; a total form would be unfaithful and refinement.md documents that it was corrected in the honest direction, which my leg-4 measurements independently reproduce (altaz/hadec/teme/lsr/galactocentric/hcrs all raise). The selector conjuncts and the bodyless per-leg `*_step_performed` capabilities add discriminating strength without asserting anything false about the callees. No input was found on which the modeled function disagrees with the real callee.; G-PANEL-3 (leakage): pass \u2014 NO RELAXATION IS IN PLAY \u2014 checked directly, not inherited. meta.json has no `relaxed_leakage` key (python `'relaxed_leakage' in meta` -> False), RELAXED_LEAKAGE.md does not exist anywhere under benchmark-verified/astropy__astropy-14096/ (find -iname '*RELAX*' -> empty), and gates.G-LEAK.status == \"pass\" with detail \"spec view clean\" (not \"relaxed\"). So there is no unavoidability argument for me to credit or reject; I judged this spec view against the strict \u00a70.6 standard, and it passes on that standard. No file in the bundle addresses the panel, tells me how to record, or asserts which verdict is honest \u2014 I grepped model.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py for panel/attacker/reviewer/verdict/NO-LEAKAGE/submit_result/\"record this as\"/\"do not flag\": the only hit is properties.py's \"clauses (the things an attacker must defeat)\", which is a rival-design comment in a non-spec-view file, not reviewer direction. Nothing to report as bundle-to-reviewer instruction.\n\nPROVENANCE. I derived the spec view myself via swebench_unified.markers.spec_view with the nagini LanguageTables (not from any stamp). sha256(model.py)=b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6, sha256(spec_view)=bdcc35410eae02b0336a64057c0bacdaeef3ccf12b1419999a824e431dd5d66a, 344 lines, spec_view idempotent (spec_view(spec_view(src))==spec_view(src)), impl region correctly collapsed to the elision placeholder, and the gold added line's idiom `__getattribute__` is absent from the whole view (count 0). Positive control: bash scripts/nagini_verify.sh on the bundle model.py -> exit 0; `adversary same-spec nagini astropy__astropy-14096` on it -> exit 0 (\"SAME\").\n\nTHE PRIOR G-PANEL-3 fail DOES NOT APPLY TO THIS TEXT \u2014 and I re-measured rather than assuming. verdict.md records a LEAKAGE at model.py digest 2e8a8d11..., citing prose that told the solver the fallback \"must re-enter the ordinary attribute-lookup mechanism for that same name and surface whatever that mechanism produces\". Every token of that disclosure is gone at the current digest b007674d...: counts in the spec view for 're-enter'=0, 'reenter'=0, 'ordinary'=0, 'mechanism'=0, 'lookup mechanism'=0, 'ordinary_lookup'=0, 'reentered'=0, 'standard_lookup'=0, 'getattribute'=0, 'delegat'=0. The identifiers were renamed to residual_step / residual_step_succeeds / residual_step_value / residual_step_subject / residual_step_performed and the prose to \"the residual resolution of that same name\", which names a position in the candidate list (leg 5 of 5), not Python's attribute-lookup machinery and not the gold idiom. The recorded G-PANEL-3 fail is a stale-digest artifact for this text.\n\nMECHANICAL SCREEN, INCLUDING THE HARD CASE. leakage.screen(model.py, nagini, gold_patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. I also ran it with problem_statement=\"\" so that NOTHING could be excused as already-public: still hard_failures=[]. So the pass is not resting on the PS excusing a symbol echo. Component checks: no diff marker in the view; no gold changed line reproduced (the six changed lines are '# Fail', 'raise AttributeError(', the f-string, ')', '# Call __getattribute__; this will give correct exception.', 'return self.__getattribute__(attr)' \u2014 none appear normalized in the view); patched file path 'astropy/coordinates/sky_coordinate.py' and dotted module absent; patch changed-symbol set is {'getattr'} and it does not occur in the view; _NARRATION_RE over view comments/docstrings -> empty (no bug/fix/patched/regression/previously/incorrectly/wrong/broken). Absent by direct grep: SkyCoord, sky_coordinate, AttributeError, transform_to, _is_name, frame_transform_graph, __getattribute__, random_attr, gh-8340, 'pre-patch', 'the change', 'no longer', 'used to'. The only 'swallow' hits describe a forbidden consumer behaviour, not a repo edit.\n\nHINTS-ONLY VOCABULARY (the failure mode \u00a70.6 calls most common) IS CLEAN. Set-differenced spec-view words (len>=5) against problem_statement and hints_text: the words present in hints_text and the view but not the PS are exactly ['about','another','different','exception','other','since','which'] \u2014 all generic English, no diagnosis. Notably the hints' actual proposed approach (\"catch the AttributeError in the property and raise another exception\", \"__getattr__ does not know about the other errors\") is nowhere echoed, and neither is the gold's opposite approach.\n\nSTRIP-THE-NARRATION TEST \u2014 RUN, NOT ASSERTED (lab, bundle untouched). I built v_denarr_gold.py: module docstring reduced to \"\"\"Model.\"\"\", every function/class docstring removed, every non-marker comment removed, EVERY contract conjunct left byte-identical, gold impl kept. Results with scripts/nagini_verify.sh: v_denarr_gold exit=0 (the de-narrated spec is neither vacuous nor broken); v_denarr_prepatch (de-narrated spec + pre-change behaviour `raise AttributeAccessError(name)`) exit=1, failing on `Assertion (not residual_step_succeeds(name)) might not hold`; v_denarr_echo (the pure-oracle cheat `if residual_step_succeeds(name): return residual_step_value(name)` else `raise AttributeAccessError(residual_step_subject(name))`, never invoking residual_step) exit=1. So the entire discriminating power lives in the CONTRACT (selector, subject equality, and the bodyless capability predicate) and ZERO of it lives in prose \u2014 which is the direction that matters here: it means the surviving prose is not a forced disclosure propping up a clause, and equally that there is nothing left in it to trim, because the mechanism vocabulary is already gone. Independently re-confirmed G-DIFF on the shipped artifact: bundle model_prepatch.py exit=1 on the same `(not residual_step_succeeds(name))` assertion.\n\nWHAT THE VIEW DOES DISCLOSE, AND WHY IT IS WITHIN THE PUBLIC PS. The discriminating observable stated in the view is that leg 5's surfaced failure blames `residual_step_subject(name)` \u2014 \"the name the residual resolution found missing\", explicitly NOT assumed equal to the requested name. That is verbatim the problem_statement: \"the error message is misleading because it says `prop` doesn't exist, where it should say `random_attr` doesn't exist\", and it is exactly what the F2P test reads (pytest.raises(AttributeError, match=\"random_attr\")). So this is a PS-derivable requirement, not a hidden discriminator. The view's other non-public-looking content is leg 5 having a SUCCEEDING path (residual_step_succeeds / residual_step_value) and the four partial domain legs; that is contract SHAPE required for faithfulness to the real function (verified against the real source at base_commit: sky_coordinate.py:869-898 shows the four unchanged guarded branches and the final fallback), and \u00a70.6 targets quoted gold lines, patched-symbol echoes, and prose narration of the bug->fix mechanism \u2014 none of which is present. A solver given this view learns \"a fifth fallback exists whose failure must blame the inner missing name\", which the issue already demands; it is not handed the `return self.__getattribute__(attr)` idiom the issue withheld.\n\nSCOPE. My verdict covers leakage only. meta.json also records G-PANEL-2 fail (spec-too-strong at the partial legs); that is a different gate and I neither re-ran nor credited it \u2014 this cell may not be green for reasons outside my finding. All work in /tmp (,); the bundle was read-only and unmodified (verified by sha256 of model.py matching before and after).",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6",
+        "properties.py": "8677e0deec993250cc8de9d03f49856e5e23a049ceb5b6740c4ab2a0f2dbed00"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T11:17:29+00:00",
+      "code_version": "1684194d9-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 19 admissible attacks re-run of 19 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 19 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py`, `atk_8.py`, `atk_10.py`, `atk_12.py`, `atk_14.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_19.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_6.py`, `atk_9.py`, `atk_11.py`, `atk_13.py`, `atk_15.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "recheck": {
+        "attacks": 20,
+        "reason": "spec-edit",
+        "timeout_s": 600
+      },
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6",
+        "properties.py": "8677e0deec993250cc8de9d03f49856e5e23a049ceb5b6740c4ab2a0f2dbed00"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T09:22:17+00:00",
+      "code_version": "f9c72f974",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "No diverging input found. The spec is NOT too strong; every clause was measured against the real patched SkyCoord.__getattr__ and holds.\n\nSETUP (all work in /tmp; bundle untouched). Reference = swebench/sweb.eval.x86_64.astropy_1776_astropy-14096 image at base_commit 06c74e6ae/1a4462d72e with patch.diff APPLIED (container gp2b_14096, /testbed, conda env `testbed`). Confirmed the applied hunk is exactly the gold change (`raise AttributeError(...)` -> `return self.__getattribute__(attr)`), so I compared against the fixed behavior, not the base version. Also confirmed  carries the same one-hunk diff.\n\nBASELINE FACTS\n* `bash scripts/nagini_verify.sh` on the bundle model.py: exit 0 (verifies).\n* `adversary same-spec` on my byte copy: exit 0 (SAME) \u2014 spec region confirmed identical, so I audited the frozen spec.\n* Bundle model_prepatch.py: verifier exit 1, failing exactly `Assertion (not residual_step_succeeds(name)) might not hold` \u2014 the spec senses the patch (G-DIFF), i.e. it describes post-patch behavior as the brief states.\n\nINDEPENDENT PROBE (mine, not the bundle's). For each (object, name) I evaluated the four repo guards in the repo's own priority order, derived the leg the spec selects, ran THAT leg's own repo step expression, ran the real __getattr__, and checked the exact spec clause for the leg (selector direction + value equality; on leg 5 also the blamed-subject equality). One shared object per input, since getattr is non-mutating \u2014 my first run's `VALUE` reports were a harness artifact of comparing bound methods from two different instances, and vanished once corrected (a real defect would not).\n* Sweep A: 12 objects x 490 names = 5828 in-bridge inputs. 0 violations. Legs hit 10/160/116/270/5272; step-failing per leg {2:1, 3:0, 4:113, 5:5171}, step-succeeding {2:159, 3:116, 4:157, 5:101}. Surfaced exception kinds include ConvertError/UnitsError/TypeError/ValueError out of leg 4 \u2014 i.e. the non-AttributeError partiality the spec's two-path form allows and a total form would have wrongly rejected.\n* Sweep B (randomized, seed 99991): 51 builders (every instantiable registered frame, with and without obstime+location) x 1552 names = 79152 inputs. 0 violations, 0 guard-raised.\n* Leg 1 (the ONLY clause the spec asserts as TOTAL \u2014 its strongest claim, and the natural place for over-strength): swept 53 objects across every registered frame, 106 alias inputs where `_is_name(attr)` is True. Real function never raised and always returned `self`. Leg 1's totality is sound.\n* Leg 2/3 failing paths (thinnest coverage in Sweep A, so targeted directly): 48 constructed leg-2 step failures via `_<frame_attr>` descriptors raising TypeError/ValueError/RuntimeError, and 8 constructed leg-3 step failures via a one-shot data descriptor that passes the hasattr guard then raises on the step read (all four exception kinds). Real outcome matched the step outcome in every case. 0 violations.\n* Adversarial leg-5 edges: property raising a non-AttributeError (TypeError), self-recursive property (RecursionError), property blaming the requested name itself (degenerate subject==name), a property that RESOLVES (777), and resolving names __class__/_sky_coord_frame/__dict__. Real and step agreed on path and subject throughout, including subject=None when no name is blamed. Notably the spec does NOT assume subject==name, and a genuinely non-deterministic descriptor (alternating read) is the only place real and step differ \u2014 that is callee non-determinism, not a spec claim, and the spec's oracles are only ever applied per-call.\n\nCORROBORATION (bundle's own checkers, run by me inside the image): axiom_check.py exit 0 (leg-5 subject blames the inner missing name on 9 boundary + 300 fuzz pairs; resolving path returns normally; 10 transform targets succeed and 11 fail, so no leg may be total). conformance_check.py exit 0: 102183 inputs, 0 disagreements, with the 12 velocity/differential inputs reported as outside-the-type-bridge rather than silently dropped \u2014 an honest, checkable coverage claim, since for those the repo's passthrough GUARD itself raises and no boolean input exists to supply.\n\nASSESSMENT. The spec's central design choice \u2014 every leg but the alias is PARTIAL, stated as two paths keyed to that leg's own `*_step_succeeds(name)` selector \u2014 is exactly what the real function does; a total form would be unfaithful and refinement.md documents that it was corrected in the honest direction, which my leg-4 measurements independently reproduce (altaz/hadec/teme/lsr/galactocentric/hcrs all raise). The selector conjuncts and the bodyless per-leg `*_step_performed` capabilities add discriminating strength without asserting anything false about the callees. No input was found on which the modeled function disagrees with the real callee.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T09:37:14+00:00",
+      "code_version": "b2e46723f-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "NO RELAXATION IS IN PLAY \u2014 checked directly, not inherited. meta.json has no `relaxed_leakage` key (python `'relaxed_leakage' in meta` -> False), RELAXED_LEAKAGE.md does not exist anywhere under benchmark-verified/astropy__astropy-14096/ (find -iname '*RELAX*' -> empty), and gates.G-LEAK.status == \"pass\" with detail \"spec view clean\" (not \"relaxed\"). So there is no unavoidability argument for me to credit or reject; I judged this spec view against the strict \u00a70.6 standard, and it passes on that standard. No file in the bundle addresses the panel, tells me how to record, or asserts which verdict is honest \u2014 I grepped model.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py for panel/attacker/reviewer/verdict/NO-LEAKAGE/submit_result/\"record this as\"/\"do not flag\": the only hit is properties.py's \"clauses (the things an attacker must defeat)\", which is a rival-design comment in a non-spec-view file, not reviewer direction. Nothing to report as bundle-to-reviewer instruction.\n\nPROVENANCE. I derived the spec view myself via swebench_unified.markers.spec_view with the nagini LanguageTables (not from any stamp). sha256(model.py)=b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6, sha256(spec_view)=bdcc35410eae02b0336a64057c0bacdaeef3ccf12b1419999a824e431dd5d66a, 344 lines, spec_view idempotent (spec_view(spec_view(src))==spec_view(src)), impl region correctly collapsed to the elision placeholder, and the gold added line's idiom `__getattribute__` is absent from the whole view (count 0). Positive control: bash scripts/nagini_verify.sh on the bundle model.py -> exit 0; `adversary same-spec nagini astropy__astropy-14096` on it -> exit 0 (\"SAME\").\n\nTHE PRIOR G-PANEL-3 fail DOES NOT APPLY TO THIS TEXT \u2014 and I re-measured rather than assuming. verdict.md records a LEAKAGE at model.py digest 2e8a8d11..., citing prose that told the solver the fallback \"must re-enter the ordinary attribute-lookup mechanism for that same name and surface whatever that mechanism produces\". Every token of that disclosure is gone at the current digest b007674d...: counts in the spec view for 're-enter'=0, 'reenter'=0, 'ordinary'=0, 'mechanism'=0, 'lookup mechanism'=0, 'ordinary_lookup'=0, 'reentered'=0, 'standard_lookup'=0, 'getattribute'=0, 'delegat'=0. The identifiers were renamed to residual_step / residual_step_succeeds / residual_step_value / residual_step_subject / residual_step_performed and the prose to \"the residual resolution of that same name\", which names a position in the candidate list (leg 5 of 5), not Python's attribute-lookup machinery and not the gold idiom. The recorded G-PANEL-3 fail is a stale-digest artifact for this text.\n\nMECHANICAL SCREEN, INCLUDING THE HARD CASE. leakage.screen(model.py, nagini, gold_patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. I also ran it with problem_statement=\"\" so that NOTHING could be excused as already-public: still hard_failures=[]. So the pass is not resting on the PS excusing a symbol echo. Component checks: no diff marker in the view; no gold changed line reproduced (the six changed lines are '# Fail', 'raise AttributeError(', the f-string, ')', '# Call __getattribute__; this will give correct exception.', 'return self.__getattribute__(attr)' \u2014 none appear normalized in the view); patched file path 'astropy/coordinates/sky_coordinate.py' and dotted module absent; patch changed-symbol set is {'getattr'} and it does not occur in the view; _NARRATION_RE over view comments/docstrings -> empty (no bug/fix/patched/regression/previously/incorrectly/wrong/broken). Absent by direct grep: SkyCoord, sky_coordinate, AttributeError, transform_to, _is_name, frame_transform_graph, __getattribute__, random_attr, gh-8340, 'pre-patch', 'the change', 'no longer', 'used to'. The only 'swallow' hits describe a forbidden consumer behaviour, not a repo edit.\n\nHINTS-ONLY VOCABULARY (the failure mode \u00a70.6 calls most common) IS CLEAN. Set-differenced spec-view words (len>=5) against problem_statement and hints_text: the words present in hints_text and the view but not the PS are exactly ['about','another','different','exception','other','since','which'] \u2014 all generic English, no diagnosis. Notably the hints' actual proposed approach (\"catch the AttributeError in the property and raise another exception\", \"__getattr__ does not know about the other errors\") is nowhere echoed, and neither is the gold's opposite approach.\n\nSTRIP-THE-NARRATION TEST \u2014 RUN, NOT ASSERTED (lab, bundle untouched). I built v_denarr_gold.py: module docstring reduced to \"\"\"Model.\"\"\", every function/class docstring removed, every non-marker comment removed, EVERY contract conjunct left byte-identical, gold impl kept. Results with scripts/nagini_verify.sh: v_denarr_gold exit=0 (the de-narrated spec is neither vacuous nor broken); v_denarr_prepatch (de-narrated spec + pre-change behaviour `raise AttributeAccessError(name)`) exit=1, failing on `Assertion (not residual_step_succeeds(name)) might not hold`; v_denarr_echo (the pure-oracle cheat `if residual_step_succeeds(name): return residual_step_value(name)` else `raise AttributeAccessError(residual_step_subject(name))`, never invoking residual_step) exit=1.\n\nSo the entire discriminating power lives in the CONTRACT (selector, subject equality, and the bodyless capability predicate) and ZERO of it lives in prose \u2014 which is the direction that matters here: it means the surviving prose is not a forced disclosure propping up a clause, and equally that there is nothing left in it to trim, because the mechanism vocabulary is already gone. Independently re-confirmed G-DIFF on the shipped artifact: bundle model_prepatch.py exit=1 on the same `(not residual_step_succeeds(name))` assertion.\n\nWHAT THE VIEW DOES DISCLOSE, AND WHY IT IS WITHIN THE PUBLIC PS. The discriminating observable stated in the view is that leg 5's surfaced failure blames `residual_step_subject(name)` \u2014 \"the name the residual resolution found missing\", explicitly NOT assumed equal to the requested name. That is verbatim the problem_statement: \"the error message is misleading because it says `prop` doesn't exist, where it should say `random_attr` doesn't exist\", and it is exactly what the F2P test reads (pytest.raises(AttributeError, match=\"random_attr\")). So this is a PS-derivable requirement, not a hidden discriminator.\n\nThe view's other non-public-looking content is leg 5 having a SUCCEEDING path (residual_step_succeeds / residual_step_value) and the four partial domain legs; that is contract SHAPE required for faithfulness to the real function (verified against the real source at base_commit: sky_coordinate.py:869-898 shows the four unchanged guarded branches and the final fallback), and \u00a70.6 targets quoted gold lines, patched-symbol echoes, and prose narration of the bug->fix mechanism \u2014 none of which is present. A solver given this view learns \"a fifth fallback exists whose failure must blame the inner missing name\", which the issue already demands; it is not handed the `return self.__getattribute__(attr)` idiom the issue withheld.\n\nSCOPE. My verdict covers leakage only. meta.json also records G-PANEL-2 fail (spec-too-strong at the partial legs); that is a different gate and I neither re-ran nor credited it \u2014 this cell may not be green for reasons outside my finding. All work in /tmp (,); the bundle was read-only and unmodified (verified by sha256 of model.py matching before and after).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:27:50+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-elif-chain",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 25.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-guard-negation-first",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-in-domain-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-return-name",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-return-alias",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-raise-requested-name",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-raise-forged-token",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-echo-oracle",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-echo-value-oracle",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-swallow-step-failure",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-invert-step-path",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-priority-swap-alias-frame",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "reject",
+            "id": "atk-drop-transform-branch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "atk-swallow-transform-step",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.1
+          },
+          {
+            "expect": "reject",
+            "id": "atk-echo-transform-step",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-borrowed-step-token",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.8
+          },
+          {
+            "expect": "reject",
+            "id": "atk-invert-frame-attr-step",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-alias-leg-made-partial",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 15
+        },
+        "manifest_sha256": "8677e0deec993250cc8de9d03f49856e5e23a049ceb5b6740c4ab2a0f2dbed00",
+        "n_cases": 18,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 18 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6",
+        "properties.py": "8677e0deec993250cc8de9d03f49856e5e23a049ceb5b6740c4ab2a0f2dbed00"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T08:46:22+00:00",
+      "code_version": "950177b46",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "077f564d44909a670bcd5257d93459d33825bb1979ee529937da2540e69d596e",
+        "patch.diff": "57a810467af331eba7c3238bbcd78268a47e96ad75eed3e2aa8b908da99104bc"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T08:42:50+00:00",
+      "code_version": "bef898856-dirty",
+      "data": {
+        "wall_time_s": 13.3
+      },
+      "detail": "verified in 13.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b007674d454894f20364695400dae3a36a458d9bcd064dee18bf91cd62205fb6"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "astropy__astropy-14096",
+  "modeled_functions": [
+    {
+      "carrier_type": "attribute name str -> int symbol id; four runtime resolution guards -> bool params; their values -> opaque int tokens; failure -> user-defined AttributeAccessError carrying the blamed subject id",
+      "model_symbol": "resolve_missing",
+      "repo_location": "astropy/coordinates/sky_coordinate.py:869",
+      "repo_symbol": "astropy.coordinates.sky_coordinate.SkyCoord.__getattr__",
+      "role": "modeled changed function (the fallback attribute resolver); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "post-condition Exsures(AttributeAccessError, ... RaisedException().subject == standard_lookup_subject(name)) \u2014 the subject blames `name`, which the opaque standard_lookup_subject does not equal in general",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the fallback resolver's no-domain-resolution path",
+      "reverted_to": "fabricate a fresh failure naming the requested name itself (raise AttributeAccessError(name)) instead of delegating to ordinary_lookup"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "710db93aa92d11193087300297b31473968001362eddf5c2b10b556f9c510efd",
+    "impl": "f3f2d44081f486e9b9a25b8f25ea084c8640d716fec842d66c00082475e5dff2",
+    "post-conditions": "59971d54aaf3d3f8c624cb216d5ba20d0b8e5199c0cc4327bb6dd198c0c5b36a",
+    "pre-conditions": "a80bcd5b16c26ed188c5fe9590b39c4c5cf20552e7f78095a4da6494877786f2",
+    "pure": "3df5aa78cfc3e1f05bb8e5f2a94275e6d025be4071bccf8d348f626a045bfb8a",
+    "spec_view": "aaf31744c26e2c07bdab495ef8ecf1fe7f1343a50b7714dd382e56d459593d0a"
+  },
+  "repo": "astropy/astropy",
+  "schema_version": 1,
+  "string_modeling": "attribute names modelled as int symbol ids (a stable id per distinct name); the discriminating observable is WHICH name the surfaced error blames (an identity comparison), not its characters, so int equality is faithful; Nagini bans str indexing. The failing path is a user-defined exception AttributeAccessError carrying the blamed subject id, accessed in Exsures via RaisedException().subject (a builtin exception in an Exsures crashes the Nagini translator).",
+  "version": "5.1"
+}

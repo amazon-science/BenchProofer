@@ -1,0 +1,386 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "3eadeacc06c9f2ddcdac6ae39819faa9fbee9e39",
+  "changed_files": [
+    "lib/matplotlib/__init__.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): reproduces the gold patch's exact control flow over a real dict (snapshot, del distinguished key, body override, dict.update revert) and asserts the model's frozen postconditions on 7 boundary cases (incl. the F2P body-override-survives scenario and mappings with untouched extra keys) + 20000 fuzz cases",
+      "encoded_property": "(1) survive: the distinguished key holds the body-set value on exit (NOT reverted); (2) revert: every ordinary key the snapshot covered is reverted to its entry value; (3) no spurious key is introduced by the restore. The snapshot used by the revert excludes the distinguished key (gold's copy() + del orig['backend']), realised in the deep model as a snapshot recording only the to-be-reverted keys.",
+      "kind": "A-reference",
+      "models": "the CPython dict primitives the gold patch composes: dict(rcParams.copy()) (snapshot), del orig['backend'] (drop the distinguished key from the snapshot), and dict.update(rcParams, orig) (per-key revert)",
+      "name": "restore_after_temporary_overrides impl region (snapshot-excluding-distinguished-key + per-key revert)",
+      "provenance": "lib/matplotlib/__init__.py:1089-1098 post-patch; CPython dict copy/del/update semantics (every Python 3.x). These are language primitives, not a library callee.",
+      "role": "deep model (impl region) of the changed snapshot-construction operation; NOT a consumed axiom -- there is no @ContractOnly axiom in this bundle"
+    }
+  ],
+  "dict_modeling": "RcParams (a dict subclass) modeled as Dict[int,int]; string keys -> integer tokens (the distinguished 'backend' key -> key_resolved()==0, an ordinary key -> key_other()==1); values -> integer tokens. Held at FULL permission (genuinely mutated in place); exact post-state stated; entry values pinned by parameters as Old-style pre-state facts; the no-spurious-key clause via a forward Forall over Old(k in params); the FRAME/full-revert clause via a forward Forall pinning params[k] == Old(params[k]) for every non-distinguished entry key (closes the third-key-corruption scope-loss hole).",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:27:11+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model (snapshot + distinguished-key drop + per-key revert) == the real dict copy/del/update primitives on 7 boundary cases + 20000 fuzz cases (distinguished key survives; ordinary keys reverted; no spurious keys)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "c20b7166208c502ff5ee16f64a76ebdaa4f41073b7fe7832f0880f54bf853cf0",
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:27:36+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100174,
+          "disagreements": 0,
+          "seed": 23299,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100174, \"disagreements\": 0, \"seed\": 23299, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "8520d9b24a10fa20e4fba0d70662a9617cfce7eb4a22912a56771f3dcde328f0",
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:25:28+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77",
+        "model_prepatch.py": "9db7bc0303a88e6981492b6ac518a7783fdc0c5c9f7d9da6b40f5f48fbda049c"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T11:03:42+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk_1_prepatch.py`, `atk_2_no_revert_other.py`, `atk_3_diverge.py`, `atk_4_spurious.py`, `atk_6_partial_domain.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_5_echo.py`, `atk_7_direct.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_8_del_drop.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:26:14+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77",
+        "model_prepatch.py": "9db7bc0303a88e6981492b6ac518a7783fdc0c5c9f7d9da6b40f5f48fbda049c"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:26:42+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "frame_warnings": [
+          "param 'params' of restore_after_temporary_overrides() at FULL dict_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)"
+        ],
+        "region_hashes": {
+          "axioms": "88ea61add5f8a00f46bf16c124ad311816ce6f480bcdd32349764fa769c66746",
+          "impl": "56baf3d2f0a361eaaa1e91c54ee76d90e77e1228073171ff10a68b420e771464",
+          "post-conditions": "1a2d6a42f22097bac49a43b15f17f7b501b3a6ea3d100ab3c1f0b218d121f9e6",
+          "pre-conditions": "684ed811bde90483e16b8998a5d72746e54831c973010cafd6b1abd8eb867fdd",
+          "pure": "4146c95308247093ace96d82740a6c257324ac3f68e96bb692e597461482ae74",
+          "spec_view": "c81d8a28361cf746d9468a20772b2f48364ea891a47ab749a85b377c5c468abf"
+        }
+      },
+      "detail": "imports/markers/regions clean  [advisory] param 'params' of restore_after_temporary_overrides() at FULL dict_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:26:43+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "fafa3c7bdd43ca9a82efe539cf361457555dc2aed18941ebc54e7f6338758808",
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:26:44+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "RELAXED_LEAKAGE.md": "7e099f4c6b95dcf7611f521703e7dff53976003bc19dce0ed4857979908b2818",
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77"
+      },
+      "status": "relaxed"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T12:21:12+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {},
+      "detail": "no behavioural impl mutants (impl region carries no mutable computation outside verifier directives)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T11:03:44+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) check for matplotlib__matplotlib-23299 nagini. Real post-patch callee at base_commit worktree $SCRATCH (3eadeacc06): rc_context -> orig = dict(rcParams.copy()); del orig['backend']; body; finally dict.update(rcParams, orig). Model verifies (nagini_verify exit 0, 14.9s). Spec region is the standard rc_context contract (checked against model_prepatch spec region: identical Requires/Ensures). Differential test of the model impl vs the real gold-patched callee over the modeled domain (20000 randomized dicts including a third untouched pre-existing key; body writing the two observed keys): 0/20000 divergences. Each postcondition matches real behavior: (1) distinguished key survives with body value because del orig['backend'] excludes it from the revert; (2) ordinary key reverted to entry value; (4) frame clause reverts every non-distinguished pre-existing key to its entry value (matches dict.update over full-minus-backend snapshot); (3) no-new-key clause holds within the modeled domain since the body abstraction writes only the two pre-existing observed keys. The only clause that could conceivably be stronger than the raw callee is (3) 'no new key on exit' \u2014 the real callee would retain a body-ADDED key across the finally revert \u2014 but the model deliberately and explicitly abstracts the body's observable effect to writes on the two observed keys (documented in refinement.md A5 and mapping.md \u00a72); the modeled function admits no body-added key, so clause (3) is a sound domain restriction, not an input on which the model disagrees with the real callee. No diverging input found. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Properly-dispositioned relaxed-leakage instance (meta.relaxed_leakage=true, gates.G-LEAK.status='relaxed', RELAXED_LEAKAGE.md present). Independently re-verified, not rubber-stamped:\n\n(1) CORE SOUNDNESS INTACT. `bash scripts/nagini_verify.sh model.py` -> exit 0 (Verification successful, 16.84s). model_prepatch.py FAILS at 106:13 with exactly `Postcondition ... Assertion (params[key_resolved()] == new_resolved) might not hold` (prepatch keeps the distinguished key in the snapshot and reverts it, so the body-set value does not survive) \u2014 G-DIFF/G-EQ discriminator is load-bearing. `adversary same-spec nagini` -> SAME (exit 0) and markers.same_spec(model, prepatch) == True: spec regions + docstring are byte-identical, only impl differs.\n\n(2) UNAVOIDABILITY RE-DERIVED. problem_statement is a pure symptom report ('get_backend() clears figures from Gcf.figs if they were created under rc_context'); it never names the rcParams snapshot/revert mechanism. The gold discriminator (orig = dict(rcParams.copy()); del orig['backend'] \u2014 the distinguished key excluded from the exit-time revert so a body-set value SURVIVES) lives only in hints_text/gold internals. A faithful spec must pin survive-vs-revert (else prepatch would not fail), but no PS-only (Gcf.figs/get_backend-symptom) reformulation models the gold snapshot-exclusion fix. Faithful + PS-only-non-leaking is therefore provably impossible. Disposition sound.\n\n(3) NEW-LEAK SCAN over the actual spec view (impl region elided by markers.spec_view). Lexical scan for gold-specific vocabulary: backend / rcparams / rc_context / get_backend / gcf / switch_backend / 'del orig' / '.copy()' / sentinel / 're-resolve' / lib/matplotlib / __init__ / 'diff --git' / rc_file / figure \u2014 ALL ABSENT from the spec view. The impl-region text that quotes gold internals (rcParams.copy(), rc_file, yield, dict.update) is correctly elided and not part of the consumer view. The only 'matplotlib' occurrence is the instance-id header line present in every bundle (not an edit narration). No leaking line found beyond the accepted, documented survive-vs-revert facet (docstring lifecycle narration + key_resolved/key_other tokens + survive/revert/no-spurious/full-revert postconditions).\n\nHonest recording per RELAXED_LEAKAGE.md panel convention: NO-LEAKAGE (pass). LEAKAGE would be reserved for a NEW leak beyond the dispositioned facet or a broken disposition; neither is present.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) check for matplotlib__matplotlib-23299 nagini. Real post-patch callee at base_commit worktree $SCRATCH (3eadeacc06): rc_context -> orig = dict(rcParams.copy()); del orig['backend']; body; finally dict.update(rcParams, orig). Model verifies (nagini_verify exit 0, 14.9s). Spec region is the standard rc_context contract (checked against model_prepatch spec region: identical Requires/Ensures). Differential test of the model impl vs the real gold-patched callee over the modeled domain (20000 randomized dicts including a third untouched pre-existing key; body writing the two observed keys): 0/20000 divergences. Each postcondition matches real behavior: (1) distinguished key survives with body value because del orig['backend'] excludes it from the revert; (2) ordinary key reverted to entry value; (4) frame clause reverts every non-distinguished pre-existing key to its entry value (matches dict.update over full-minus-backend snapshot); (3) no-new-key clause holds within the modeled domain since the body abstraction writes only the two pre-existing observed keys. The only clause that could conceivably be stronger than the raw callee is (3) 'no new key on exit' \u2014 the real callee would retain a body-ADDED key across the finally revert \u2014 but the model deliberately and explicitly abstracts the body's observable effect to writes on the two observed keys (documented in refinement.md A5 and mapping.md \u00a72); the modeled function admits no body-added key, so clause (3) is a sound domain restriction, not an input on which the model disagrees with the real callee. No diverging input found. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Properly-dispositioned relaxed-leakage instance (meta.relaxed_leakage=true, gates.G-LEAK.status='relaxed', RELAXED_LEAKAGE.md present). Independently re-verified, not rubber-stamped:\n\n(1) CORE SOUNDNESS INTACT. `bash scripts/nagini_verify.sh model.py` -> exit 0 (Verification successful, 16.84s). model_prepatch.py FAILS at 106:13 with exactly `Postcondition ... Assertion (params[key_resolved()] == new_resolved) might not hold` (prepatch keeps the distinguished key in the snapshot and reverts it, so the body-set value does not survive) \u2014 G-DIFF/G-EQ discriminator is load-bearing. `adversary same-spec nagini` -> SAME (exit 0) and markers.same_spec(model, prepatch) == True: spec regions + docstring are byte-identical, only impl differs.\n\n(2) UNAVOIDABILITY RE-DERIVED. problem_statement is a pure symptom report ('get_backend() clears figures from Gcf.figs if they were created under rc_context'); it never names the rcParams snapshot/revert mechanism. The gold discriminator (orig = dict(rcParams.copy()); del orig['backend'] \u2014 the distinguished key excluded from the exit-time revert so a body-set value SURVIVES) lives only in hints_text/gold internals. A faithful spec must pin survive-vs-revert (else prepatch would not fail), but no PS-only (Gcf.figs/get_backend-symptom) reformulation models the gold snapshot-exclusion fix. Faithful + PS-only-non-leaking is therefore provably impossible. Disposition sound.\n\n(3) NEW-LEAK SCAN over the actual spec view (impl region elided by markers.spec_view). Lexical scan for gold-specific vocabulary: backend / rcparams / rc_context / get_backend / gcf / switch_backend / 'del orig' / '.copy()' / sentinel / 're-resolve' / lib/matplotlib / __init__ / 'diff --git' / rc_file / figure \u2014 ALL ABSENT from the spec view. The impl-region text that quotes gold internals (rcParams.copy(), rc_file, yield, dict.update) is correctly elided and not part of the consumer view. The only 'matplotlib' occurrence is the instance-id header line present in every bundle (not an edit narration). No leaking line found beyond the accepted, documented survive-vs-revert facet (docstring lifecycle narration + key_resolved/key_other tokens + survive/revert/no-spurious/full-revert postconditions).\n\nHonest recording per RELAXED_LEAKAGE.md panel convention: NO-LEAKAGE (pass). LEAKAGE would be reserved for a NEW leak beyond the dispositioned facet or a broken disposition; neither is present.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk_1_prepatch.py`, `atk_2_no_revert_other.py`, `atk_3_diverge.py`, `atk_4_spurious.py`, `atk_6_partial_domain.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_5_echo.py`, `atk_7_direct.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_8_del_drop.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) check for matplotlib__matplotlib-23299 nagini. Real post-patch callee at base_commit worktree $SCRATCH (3eadeacc06): rc_context -> orig = dict(rcParams.copy()); del orig['backend']; body; finally dict.update(rcParams, orig). Model verifies (nagini_verify exit 0, 14.9s). Spec region is the standard rc_context contract (checked against model_prepatch spec region: identical Requires/Ensures). Differential test of the model impl vs the real gold-patched callee over the modeled domain (20000 randomized dicts including a third untouched pre-existing key; body writing the two observed keys): 0/20000 divergences.\n\nEach postcondition matches real behavior: (1) distinguished key survives with body value because del orig['backend'] excludes it from the revert; (2) ordinary key reverted to entry value; (4) frame clause reverts every non-distinguished pre-existing key to its entry value (matches dict.update over full-minus-backend snapshot); (3) no-new-key clause holds within the modeled domain since the body abstraction writes only the two pre-existing observed keys.\n\nThe only clause that could conceivably be stronger than the raw callee is (3) 'no new key on exit' \u2014 the real callee would retain a body-ADDED key across the finally revert \u2014 but the model deliberately and explicitly abstracts the body's observable effect to writes on the two observed keys (documented in refinement.md A5 and mapping.md \u00a72); the modeled function admits no body-added key, so clause (3) is a sound domain restriction, not an input on which the model disagrees with the real callee. No diverging input found. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Properly-dispositioned relaxed-leakage instance (meta.relaxed_leakage=true, gates.G-LEAK.status='relaxed', RELAXED_LEAKAGE.md present). Independently re-verified, not rubber-stamped:\n\n(1) CORE SOUNDNESS INTACT. `bash scripts/nagini_verify.sh model.py` -> exit 0 (Verification successful, 16.84s). model_prepatch.py FAILS at 106:13 with exactly `Postcondition ... Assertion (params[key_resolved()] == new_resolved) might not hold` (prepatch keeps the distinguished key in the snapshot and reverts it, so the body-set value does not survive) \u2014 G-DIFF/G-EQ discriminator is load-bearing. `adversary same-spec nagini` -> SAME (exit 0) and markers.same_spec(model, prepatch) == True: spec regions + docstring are byte-identical, only impl differs.\n\n(2) UNAVOIDABILITY RE-DERIVED. problem_statement is a pure symptom report ('get_backend() clears figures from Gcf.figs if they were created under rc_context'); it never names the rcParams snapshot/revert mechanism. The gold discriminator (orig = dict(rcParams.copy()); del orig['backend'] \u2014 the distinguished key excluded from the exit-time revert so a body-set value SURVIVES) lives only in hints_text/gold internals. A faithful spec must pin survive-vs-revert (else prepatch would not fail), but no PS-only (Gcf.figs/get_backend-symptom) reformulation models the gold snapshot-exclusion fix. Faithful + PS-only-non-leaking is therefore provably impossible. Disposition sound.\n\n(3) NEW-LEAK SCAN over the actual spec view (impl region elided by markers.spec_view). Lexical scan for gold-specific vocabulary: backend / rcparams / rc_context / get_backend / gcf / switch_backend / 'del orig' / '.copy()' / sentinel / 're-resolve' / lib/matplotlib / __init__ / 'diff --git' / rc_file / figure \u2014 ALL ABSENT from the spec view. The impl-region text that quotes gold internals (rcParams.copy(), rc_file, yield, dict.update) is correctly elided and not part of the consumer view. The only 'matplotlib' occurrence is the instance-id header line present in every bundle (not an edit narration). No leaking line found beyond the accepted, documented survive-vs-revert facet (docstring lifecycle narration + key_resolved/key_other tokens + survive/revert/no-spurious/full-revert postconditions).\n\nHonest recording per RELAXED_LEAKAGE.md panel convention: NO-LEAKAGE (pass). LEAKAGE would be reserved for a NEW leak beyond the dispositioned facet or a broken disposition; neither is present.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere. This cell separately records G-LEAK as `relaxed`, which is a disclosure a reviewer accepted rather than the absence of one.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `relaxed` (the mechanical leakage screen over the same spec view). The account names `model.py`, `RELAXED_LEAKAGE.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:21:44+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder-writes",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-local-rename",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.2
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-requires-facts",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-revert-distinguished",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-no-revert-ordinary",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-revert-wrong-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-corrupt-third-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "b4f926f5fd8a612a3992c616ce0670d02f37ade915229e035a0a271714c321dd",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77",
+        "properties.py": "b4f926f5fd8a612a3992c616ce0670d02f37ade915229e035a0a271714c321dd"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-06T10:26:37+00:00",
+      "code_version": "346d4db1-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:24:55+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "wall_time_s": 39.2
+      },
+      "detail": "verified in 39.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd9eda18427c065f771a32b3402f8229556bc66c5cb4aef4b80acb38f76dcf77"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "matplotlib__matplotlib-23299",
+  "modeled_functions": [
+    {
+      "carrier_type": "RcParams (dict subclass) -> Dict[int,int]; string keys -> integer tokens, values -> integer tokens; the contextmanager generator lifecycle collapsed to straight-line snapshot/body/revert",
+      "model_symbol": "restore_after_temporary_overrides",
+      "repo_location": "lib/matplotlib/__init__.py:1057 (snapshot line 1090, revert line 1098)",
+      "repo_symbol": "matplotlib.rc_context",
+      "role": "modeled changed function (the save->body->restore lifecycle of the temporary-override context manager); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition params[key_resolved()] == new_resolved (the distinguished key's body-set value does not survive)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "rc_context backend survival across exit",
+      "reverted_to": "old orig = rcParams.copy() with no distinguished-key drop: the snapshot keeps the distinguished key and the exit-time revert (dict.update) writes its stale entry value back"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "88ea61add5f8a00f46bf16c124ad311816ce6f480bcdd32349764fa769c66746",
+    "impl": "56baf3d2f0a361eaaa1e91c54ee76d90e77e1228073171ff10a68b420e771464",
+    "post-conditions": "1a2d6a42f22097bac49a43b15f17f7b501b3a6ea3d100ab3c1f0b218d121f9e6",
+    "pre-conditions": "9e1e896f68104fab83fc672bfe000bff1d8aef12e57fc0aa1063aeae0bf67ca4",
+    "pure": "4146c95308247093ace96d82740a6c257324ac3f68e96bb692e597461482ae74",
+    "spec_view": "491776666ecd4b4f643bc477a6d8bee7099f4da80b101848b07e03b2c979f36a"
+  },
+  "relaxed_leakage": true,
+  "repo": "matplotlib/matplotlib",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "3.5"
+}

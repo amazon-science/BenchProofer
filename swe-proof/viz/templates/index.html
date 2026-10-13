@@ -1,0 +1,77 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{% extends "base.html" %}
+{% block content %}
+<div class="wrap wide">
+  <div class="filters">
+    <form method="get" action="/{{ bm }}/{{ bk }}/" class="filters" style="margin:0">
+      <input type="text" name="q" value="{{ q }}" placeholder="search instance id…">
+      <select name="repo_filter" onchange="this.form.submit()">
+        <option value="">all repos</option>
+        {% for r in repos %}<option value="{{ r }}" {{ 'selected' if r==repo_filter }}>{{ r }}</option>{% endfor %}
+      </select>
+      <select name="flagged" onchange="this.form.submit()">
+        <option value="">all instances</option>
+        <option value="green" {{ 'selected' if flagged=='green' }}>fully-green only</option>
+        <option value="not-green" {{ 'selected' if flagged=='not-green' }}>non-green only</option>
+        <option value="failing" {{ 'selected' if flagged=='failing' }}>failing a gate</option>
+        <option value="pending" {{ 'selected' if flagged=='pending' }}>pending verdicts</option>
+        <option value="blocked" {{ 'selected' if flagged=='blocked' }}>blocked</option>
+        <option value="timeout" {{ 'selected' if flagged=='timeout' }}>timeout</option>
+        <option value="relaxed" {{ 'selected' if flagged=='relaxed' }}>relaxed-leakage only</option>
+        <option value="axioms" {{ 'selected' if flagged=='axioms' }}>has axioms</option>
+        {% if comments_enabled %}<option value="open-comments" {{ 'selected' if flagged=='open-comments' }}>open comments</option>{% endif %}
+      </select>
+      <button class="btn primary" type="submit">filter</button>
+      <span class="muted" style="margin-left:auto">{{ rows|length }} / {{ total }} instances</span>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="body tight">
+      <table class="idx">
+        <thead><tr>
+          <th>instance</th><th>repo</th><th>status</th><th>gates</th><th>axioms</th>
+          <th>flags</th>{% if comments_enabled %}<th>comments</th>{% endif %}
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="id"><a href="/{{ bm }}/{{ bk }}/i/{{ r.instance_id }}" title="{{ r.instance_id }}">{{ r.instance_id | short_id }}</a></td>
+            <td class="muted">{{ r.repo }}</td>
+            <td>
+              {% if r.status == 'green' %}<span class="pill ok">green</span>
+              {% elif r.status == 'failing' %}<span class="pill bad" title="failing: {{ r.failing_gates|join(', ') }}">failing</span>
+              {% elif r.status == 'pending' %}<span class="pill neutral" title="constructed; gate/audit verdicts incomplete">pending</span>
+              {% elif r.status == 'timeout' %}<span class="pill warn">timeout</span>
+              {% elif r.status == 'blocked' %}<span class="pill bad">blocked</span>
+              {% else %}<span class="pill neutral">{{ r.status }}</span>{% endif %}
+            </td>
+            <td>
+              <span class="mini-gates">
+                {% for g in gate_order %}<span class="dot g-{{ r.gates[g] }}" title="{{ g }} = {{ r.gates[g] }}&#10;{{ gate_defs.get(g,'') }}"></span>{% endfor %}
+              </span>
+            </td>
+            <td class="muted">{% if r.n_axioms %}{{ r.n_axioms }}{% elif r.n_deepref %}{{ r.n_deepref }}*{% else %}–{% endif %}</td>
+            <td>
+              {% if r.relaxed_leakage %}<span class="pill warn">relaxed-leak</span>{% endif %}
+              {% if r.float_encoding %}<span class="pill violet">float</span>{% endif %}
+            </td>
+            {% if comments_enabled %}
+            <td>
+              {% if r.comments.total %}
+                <a href="/{{ bm }}/{{ bk }}/i/{{ r.instance_id }}#comments">
+                  {% if r.comments.open %}<span class="status-pending">{{ r.comments.open }} open</span>{% endif %}
+                  {% if r.comments.resolved %}<span class="muted"> {{ r.comments.resolved }}✓</span>{% endif %}
+                </a>
+              {% else %}<span class="faint">–</span>{% endif %}
+            </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

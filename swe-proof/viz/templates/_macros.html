@@ -1,0 +1,90 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{# reusable rendering macros #}
+
+{% macro gate_badges(gates, order, defs={}) %}
+<div class="gates">
+  {% for g in order %}
+    {% set st = gates.get(g, {}).get('status', '—') %}
+    {% set note = gates.get(g, {}).get('note','') %}
+    <span class="gate g-{{ st }}" tabindex="0" aria-label="{{ g }}: {{ defs.get(g,'') }}">
+      <span class="g">{{ g.replace('G-','') }}</span> {{ st }}
+      <span class="gate-pop" role="tooltip">
+        <span class="gp-head">{{ g }} · <span class="gp-st g-{{ st }}">{{ st }}</span></span>
+        {% if defs.get(g) %}<span class="gp-def">{{ defs.get(g) }}</span>{% endif %}
+        {% if note %}<span class="gp-note"><b>this instance:</b> {{ note }}</span>{% endif %}
+      </span>
+    </span>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro codeblock(name, label, lang, src) %}
+<details class="collapse" {{ 'open' if name in (model_file, prepatch_file) }}>
+  <summary>{{ label }} <span class="faint mono" style="font-weight:400">{{ name }}</span></summary>
+  <div class="inner" style="padding:0">
+    <div class="codewrap"><pre class="code highlight">{{ src | hl(lang) | safe }}</pre></div>
+  </div>
+</details>
+{% endmacro %}
+
+{% macro model_diff(d) %}
+<div class="diff modeldiff">
+  <div class="fname"><span>{{ d.name }} → {{ model_file }}</span><span class="faint" style="font-weight:400;font-size:.74rem">spec identical · impl differs</span></div>
+  {% for ln in d.lines %}
+    {% if ln.tag == 'gap' %}
+      <div class="ln gap"><span class="no"></span><span class="tx">{{ ln.text }}</span></div>
+    {% else %}
+      <div class="ln {{ ln.tag }}">
+        <span class="no">{{ ln.old if ln.old is not none else '' }}{{ '·' }}{{ ln.new if ln.new is not none else '' }}</span>
+        <span class="tx">{{ {'add':'+','del':'-','ctx':' '}[ln.tag] }}{{ ln.text }}</span>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro pbt_cases(title, cases) %}
+{% if cases %}
+<div class="pbt-lane">
+  <div class="pbt-lane-h">{{ title }} <span class="faint">({{ cases|length }})</span></div>
+  <table class="pbt">
+    <thead><tr><th>case</th><th>kind</th><th>expect</th><th>result</th></tr></thead>
+    <tbody>
+    {% for c in cases %}
+      <tr class="pbt-row {{ 'ok' if c.ok else 'bad' }}">
+        <td class="mono">{{ c.id }}</td>
+        <td class="muted">{{ c.kind }}</td>
+        <td class="mono faint">{{ c.expect }}</td>
+        <td>
+          <span class="pbt-mark {{ 'ok' if c.ok else 'bad' }}">{{ '✓' if c.ok else '✗' }}</span>
+          <span class="{{ '' if c.ok else 'pbt-failtext' }}">{{ c.outcome }}</span>
+          {% if c.wall_s %}<span class="faint" style="font-size:.72rem"> · {{ '%.0f'|format(c.wall_s) }}s</span>{% endif %}
+          {% if c.detail and c.detail != c.outcome %}
+          <details class="pbt-detail"><summary class="faint">detail</summary><pre class="mono">{{ c.detail }}</pre></details>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro diff_file(f) %}
+<div class="diff">
+  <div class="fname">
+    <span>{{ f.new_path or f.old_path }}</span>
+  </div>
+  {% for h in f.hunks %}
+    <div class="hunk-hdr">@@ {{ h.header }} @@</div>
+    {% for ln in h.lines %}
+      <div class="ln {{ ln.tag }}">
+        <span class="no">{{ ln.old if ln.old is not none else '' }}{{ '·' }}{{ ln.new if ln.new is not none else '' }}</span>
+        <span class="tx">{{ {'add':'+','del':'-','ctx':' '}[ln.tag] }}{{ ln.text }}</span>
+      </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+{% endmacro %}

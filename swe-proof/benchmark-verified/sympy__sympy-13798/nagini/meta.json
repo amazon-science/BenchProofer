@@ -1,0 +1,432 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real str.strip on the seven spacing tokens, whitespace-padded variants over the full stripped-whitespace class, all-whitespace tokens, and ~80000 fuzz inputs (ASCII + astral); asserts no_outer_blank(s) => s.strip()==s with zero violations; pins '\\,'.strip()=='\\,'",
+      "encoded_property": "no_outer_blank(s) => trimmed(s) == s, where no_outer_blank(s) holds iff s is empty or both endpoints are printable non-space ASCII (33..126). Conservative under-approximation of `str.strip is the identity here`: no code point str.strip removes lies in 33..126. The proof does NOT consume this Ensures (verified empirically: replacing it with Ensures(True), or even a contradictory always-empty Ensures, still verifies \u2014 the numeric postcondition discharges by functional congruence because impl and oracle call the same trimmed(s) and branch identically). The axiom is load-bearing as an A-reference: trimmed is validated == the real str.strip by G-AX, which is what makes the oracle's spacing-only test faithful to the real callee.",
+      "kind": "A-reference",
+      "models": "str.strip() (Python builtin, no-arg whitespace trim)",
+      "name": "trimmed",
+      "provenance": "CPython builtin str.strip; called post-patch inside the second `except KeyError` as self._settings['mul_symbol'].strip(); docs.python.org/3/library/stdtypes.html#str.strip",
+      "purity": "@Pure @ContractOnly (used inside Ensures via numeric_sep_of)"
+    }
+  ],
+  "base_commit": "7121bdf1facdd90d05b6994b4c2e5b2865a4638a",
+  "changed_files": [
+    "sympy/printing/latex.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:03:21+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: trimmed axiom (no_outer_blank(s) => str.strip(s)==s) sound on 192 boundary + 80000 fuzz inputs; thin-space selector \\, confirmed spacing-only",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "93576f6f875445313c9d08dd42ee931a6cf68b75b25b1f89929e4d15bc52a81e",
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:03:27+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100000,
+          "disagreements": 0,
+          "seed": 137980,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"disagreements\": 0, \"seed\": 137980, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "131539543c3d04285162d6c57c34a8c40e0b305cbc1af44c77170965d48b01a9",
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:16:55+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7",
+        "model_prepatch.py": "8baa551115f69405e371041a81d4fb08ffd12993ae59701295831e0f310dc721",
+        "model_prepatch_2.py": "0838dcb7dae39b1df984f866fc22d6cc165e401f635d264748f011009a412757"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T15:11:10+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1_partial_domain.py`, `atk_2_boundary_drop_spacing.py`, `atk_3_ctrlflow_swap_seps.py`, `atk_4_none_blank.py`, `atk_5_offbyone.py`, `atk_6_dot_always.py`, `atk_7_trimmed_exploit.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:18:08+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7",
+        "model_prepatch.py": "8baa551115f69405e371041a81d4fb08ffd12993ae59701295831e0f310dc721",
+        "model_prepatch_2.py": "0838dcb7dae39b1df984f866fc22d6cc165e401f635d264748f011009a412757"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:03:10+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "a05e65c978b8a9bd35fe4c6f9d265d643f33b272ceca4d1af032044c81eeab64",
+          "impl": "4468970828bbc5347362ac0a4b68a8b3f0738a382698fd7dac85acfc0247dd09",
+          "invariants": "7c2f9fa0eceb6ea66d0b18ed7c9ff7f016a0f9d3a8873c0c2051ca4d967425f6",
+          "post-conditions": "384524ed1feaf113d7909a63fed252cc7ae2b9593393ea7879a8f0415374b984",
+          "pre-conditions": "1d04d328a0fd86ad5c371f57b84a94b243475bd18820a717530cf1651c17ee86",
+          "pure": "25bfdcd11254669b91f70570d41038380bb61208f06f723d9b660e554e52fd33",
+          "spec_view": "b13f882fd2c5695424323da49059e96599c502a4dc37e8b480419f193c6ef1cb"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:03:10+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "b0adb7f21eb24cff1be15bba973dbbba8efd830c89663d83b3cdfe172c8a115f",
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:03:11+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:10:41+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T15:11:12+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Spec faithfully models the patched LatexPrinter.__init__ separator derivation. Verified three independent ways: (1) model.py verifies in Nagini (13.9s), so impl == pure derivations general_sep_of/numeric_sep_of exactly; (2) the bundle's differential conformance_check.py, run against the REAL patched repo worktree $SCRATCH at base_commit 7121bdf (patch applied), passes on 100,000 inputs (369 boundary + 820 exhaustive len<=3 + 98,811 fuzz) with 0 disagreements between the contract-stripped shadow impl (calling real str.strip) and LatexPrinter._settings['mul_symbol_latex'/'mul_symbol_latex_numbers']; (3) my own probe reimplementing the pure spec over strings vs. the real repo across 383 adversarial edge inputs (astral-plane and exotic Unicode whitespace \\x1c-\\x1f, \\xa0, \u2028, \u3000, \ufeff, whitespace-padded near-tokens, recognised tokens, spacing-only tokens) found 0 divergences and no in-domain oracle raise. The general separator is verbatim-on-unrecognised (matches except KeyError path); the numeric separator maps None->\\cdot (mul_symbol_table[None or 'dot']), recognised tokens to their table value, spacing-only-after-strip to \\cdot, else verbatim \u2014 all matching the gold try/except blocks. The trimmed axiom is a sound over-approximation of str.strip (G-AX) and is not proof-consumed; numeric postcondition discharges by functional congruence. No input where the modeled functions disagree with the real callee was found; spec is neither too strong nor drifted.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Judged leakage of the GOLD EDIT against the spec view (spec_view over model.py) relative to the public problem_statement only (not hints_text). Ran the mechanical G-LEAK screen (swebench_unified.leakage.screen, NaginiBackend, frozen problem_statement + gold patch): PASSED, zero hard failures. Independent review of the edit-localization signals:\n\n(1) File path leak: NONE. The patched repo file 'sympy/printing/latex.py' and its dotted module path never appear in the spec view.\n(2) Patched repo symbols: NONE named. The gold hunk lives in LatexPrinter.__init__ and keys on the dict 'mul_symbol_table'; neither 'LatexPrinter', '__init__', nor 'mul_symbol_table' appears in the spec view. The only library callee referenced is str.strip (a builtin, correctly excluded from patch-symbol collision), surfaced only via the abstract axiom name 'trimmed'. Modeled functions general_separator/numeric_separator are model-invented names, not repo symbols.\n(3) Diff mechanics: NONE. No diff markers; no gold-patch line reproduced. Critically, the actual MECHANISM of the gold change (wrapping two unguarded dict lookups in try/except KeyError, and the seven-element membership list) is nowhere reflected in the spec view \u2014 the spec is purely declarative over general_sep_of/numeric_sep_of.\n(4) Bug/fix narration: NONE. Docstrings state behaviour 'as desired behaviour, not as an edit'; no pre-patch/regression/fix wording in the spec-view comments.\n\nThe spec view does fully specify the target behaviour (unrecognised selector honoured verbatim for the general separator; spacing-only-after-trim selectors mapped to the centred dot for numbers) \u2014 which is richer than the problem_statement's request to 'allow an arbitrary mul_symbol such as \\,'. But that is the legitimate correctness oracle a twin-artifact spec must carry; G-PANEL-3/G-LEAK target leakage of the EDIT (file, repo symbols, diff structure, edit narration), none of which is present. The gold's implementation strategy (try/except defaulting) is not recoverable from the view. No RELAXED_LEAKAGE.md deferral was needed.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Spec faithfully models the patched LatexPrinter.__init__ separator derivation. Verified three independent ways: (1) model.py verifies in Nagini (13.9s), so impl == pure derivations general_sep_of/numeric_sep_of exactly; (2) the bundle's differential conformance_check.py, run against the REAL patched repo worktree $SCRATCH at base_commit 7121bdf (patch applied), passes on 100,000 inputs (369 boundary + 820 exhaustive len<=3 + 98,811 fuzz) with 0 disagreements between the contract-stripped shadow impl (calling real str.strip) and LatexPrinter._settings['mul_symbol_latex'/'mul_symbol_latex_numbers']; (3) my own probe reimplementing the pure spec over strings vs. the real repo across 383 adversarial edge inputs (astral-plane and exotic Unicode whitespace \\x1c-\\x1f, \\xa0, \u2028, \u3000, \ufeff, whitespace-padded near-tokens, recognised tokens, spacing-only tokens) found 0 divergences and no in-domain oracle raise. The general separator is verbatim-on-unrecognised (matches except KeyError path); the numeric separator maps None->\\cdot (mul_symbol_table[None or 'dot']), recognised tokens to their table value, spacing-only-after-strip to \\cdot, else verbatim \u2014 all matching the gold try/except blocks. The trimmed axiom is a sound over-approximation of str.strip (G-AX) and is not proof-consumed; numeric postcondition discharges by functional congruence. No input where the modeled functions disagree with the real callee was found; spec is neither too strong nor drifted.; G-PANEL-3 (leakage): pass \u2014 Judged leakage of the GOLD EDIT against the spec view (spec_view over model.py) relative to the public problem_statement only (not hints_text). Ran the mechanical G-LEAK screen (swebench_unified.leakage.screen, NaginiBackend, frozen problem_statement + gold patch): PASSED, zero hard failures. Independent review of the edit-localization signals:\n\n(1) File path leak: NONE. The patched repo file 'sympy/printing/latex.py' and its dotted module path never appear in the spec view.\n(2) Patched repo symbols: NONE named. The gold hunk lives in LatexPrinter.__init__ and keys on the dict 'mul_symbol_table'; neither 'LatexPrinter', '__init__', nor 'mul_symbol_table' appears in the spec view. The only library callee referenced is str.strip (a builtin, correctly excluded from patch-symbol collision), surfaced only via the abstract axiom name 'trimmed'. Modeled functions general_separator/numeric_separator are model-invented names, not repo symbols.\n(3) Diff mechanics: NONE. No diff markers; no gold-patch line reproduced. Critically, the actual MECHANISM of the gold change (wrapping two unguarded dict lookups in try/except KeyError, and the seven-element membership list) is nowhere reflected in the spec view \u2014 the spec is purely declarative over general_sep_of/numeric_sep_of.\n(4) Bug/fix narration: NONE. Docstrings state behaviour 'as desired behaviour, not as an edit'; no pre-patch/regression/fix wording in the spec-view comments.\n\nThe spec view does fully specify the target behaviour (unrecognised selector honoured verbatim for the general separator; spacing-only-after-trim selectors mapped to the centred dot for numbers) \u2014 which is richer than the problem_statement's request to 'allow an arbitrary mul_symbol such as \\,'. But that is the legitimate correctness oracle a twin-artifact spec must carry; G-PANEL-3/G-LEAK target leakage of the EDIT (file, repo symbols, diff structure, edit narration), none of which is present. The gold's implementation strategy (try/except defaulting) is not recoverable from the view. No RELAXED_LEAKAGE.md deferral was needed.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1_partial_domain.py`, `atk_2_boundary_drop_spacing.py`, `atk_3_ctrlflow_swap_seps.py`, `atk_4_none_blank.py`, `atk_5_offbyone.py`, `atk_6_dot_always.py`, `atk_7_trimmed_exploit.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec faithfully models the patched LatexPrinter.__init__ separator derivation. Verified three independent ways:\n\n(1) model.py verifies in Nagini (13.9s), so impl == pure derivations general_sep_of/numeric_sep_of exactly;\n\n(2) the bundle's differential conformance_check.py, run against the REAL patched repo worktree $SCRATCH at base_commit 7121bdf (patch applied), passes on 100,000 inputs (369 boundary + 820 exhaustive len<=3 + 98,811 fuzz) with 0 disagreements between the contract-stripped shadow impl (calling real str.strip) and LatexPrinter._settings['mul_symbol_latex'/'mul_symbol_latex_numbers'];\n\n(3) my own probe reimplementing the pure spec over strings vs. the real repo across 383 adversarial edge inputs (astral-plane and exotic Unicode whitespace \\x1c-\\x1f, \\xa0, , \u3000, \ufeff, whitespace-padded near-tokens, recognised tokens, spacing-only tokens) found 0 divergences and no in-domain oracle raise. The general separator is verbatim-on-unrecognised (matches except KeyError path); the numeric separator maps None->\\cdot (mul_symbol_table[None or 'dot']), recognised tokens to their table value, spacing-only-after-strip to \\cdot, else verbatim \u2014 all matching the gold try/except blocks. The trimmed axiom is a sound over-approximation of str.strip (G-AX) and is not proof-consumed; numeric postcondition discharges by functional congruence. No input where the modeled functions disagree with the real callee was found; spec is neither too strong nor drifted.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Judged leakage of the GOLD EDIT against the spec view (spec_view over model.py) relative to the public problem_statement only (not hints_text). Ran the mechanical G-LEAK screen (swebench_unified.leakage.screen, NaginiBackend, frozen problem_statement + gold patch): PASSED, zero hard failures. Independent review of the edit-localization signals:\n\n(1) File path leak: NONE. The patched repo file 'sympy/printing/latex.py' and its dotted module path never appear in the spec view.\n(2) Patched repo symbols: NONE named. The gold hunk lives in LatexPrinter.__init__ and keys on the dict 'mul_symbol_table'; neither 'LatexPrinter', '__init__', nor 'mul_symbol_table' appears in the spec view. The only library callee referenced is str.strip (a builtin, correctly excluded from patch-symbol collision), surfaced only via the abstract axiom name 'trimmed'. Modeled functions general_separator/numeric_separator are model-invented names, not repo symbols.\n(3) Diff mechanics: NONE. No diff markers; no gold-patch line reproduced. Critically, the actual MECHANISM of the gold change (wrapping two unguarded dict lookups in try/except KeyError, and the seven-element membership list) is nowhere reflected in the spec view \u2014 the spec is purely declarative over general_sep_of/numeric_sep_of.\n(4) Bug/fix narration: NONE. Docstrings state behaviour 'as desired behaviour, not as an edit'; no pre-patch/regression/fix wording in the spec-view comments.\n\nThe spec view does fully specify the target behaviour (unrecognised selector honoured verbatim for the general separator; spacing-only-after-trim selectors mapped to the centred dot for numbers) \u2014 which is richer than the problem_statement's request to 'allow an arbitrary mul_symbol such as \\,'. But that is the legitimate correctness oracle a twin-artifact spec must carry; G-PANEL-3/G-LEAK target leakage of the EDIT (file, repo symbols, diff structure, edit narration), none of which is present. The gold's implementation strategy (try/except defaulting) is not recoverable from the view. No RELAXED_LEAKAGE.md deferral was needed.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:34:35+00:00",
+      "code_version": "d061dd586-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-general-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-numeric-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-general-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-numeric-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-general-unrec-blank",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-numeric-no-spacing-fallback",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-general-dot-as-times",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.8
+          },
+          {
+            "expect": "reject",
+            "id": "partial-numeric-none-blank",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-general-thinspace",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.2
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-numeric-thinspace",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 20.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 2,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "5cfcc947df3736cd7914adca538db319617e27ace1c3ad06d1cdef6de45235ee",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7",
+        "properties.py": "5cfcc947df3736cd7914adca538db319617e27ace1c3ad06d1cdef6de45235ee"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:02:53+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:04:38+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 15.2
+      },
+      "detail": "verified in 15.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b71861123bf2663d728b5e41b532dbd94234e5f3a5c58f0678cd50f83d52ded7"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-13798",
+  "modeled_functions": [
+    {
+      "carrier_type": "mul_symbol (None | str) -> Optional[List[int]] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "general_separator",
+      "repo_location": "sympy/printing/latex.py:159-160",
+      "repo_symbol": "sympy.printing.latex.LatexPrinter.__init__ (mul_symbol_latex derivation)",
+      "role": "modeled changed behaviour: the general multiplication separator derived from the mul_symbol setting"
+    },
+    {
+      "carrier_type": "mul_symbol (None | str) -> Optional[List[int]] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "numeric_separator",
+      "repo_location": "sympy/printing/latex.py:162-163",
+      "repo_symbol": "sympy.printing.latex.LatexPrinter.__init__ (mul_symbol_latex_numbers derivation)",
+      "role": "modeled changed behaviour: the between-numbers multiplication separator derived from the mul_symbol setting"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result()) == general_sep_of(sym) on the unrecognised-token branch (requires the selector verbatim, e.g. '\\,' -> [92,44])",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "mul_symbol_latex (general separator) for an unrecognised selector",
+      "reverted_to": "unguarded dict lookup mul_symbol_table[mul_symbol] (KeyError on an unrecognised token); skeleton falls back to the blank separator [32] instead of honouring the selector verbatim"
+    },
+    {
+      "fails_on": "postcondition ToSeq(Result()) == numeric_sep_of(sym) on the unrecognised spacing-only branch (requires sep_dot() for '\\,')",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "mul_symbol_latex_numbers (numeric separator) for an unrecognised spacing-only selector",
+      "reverted_to": "unguarded dict lookup mul_symbol_table[mul_symbol or 'dot'] (KeyError on an unrecognised token; no spacing-only fall-back); skeleton falls back to the blank separator [32] instead of the centred dot"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "a05e65c978b8a9bd35fe4c6f9d265d643f33b272ceca4d1af032044c81eeab64",
+    "impl": "934d8cd0b48e4aba00ca1131bcdf7f92b29b4820bb102b2db17f51a7372a7901",
+    "invariants": "0672020943ad42d9ec92ee9c8873aa3cf4882dc3c4d0bf33221e755ee3fde888",
+    "post-conditions": "384524ed1feaf113d7909a63fed252cc7ae2b9593393ea7879a8f0415374b984",
+    "pre-conditions": "f80c31225ac29baf0270ddd4d90c7463c53dddccf2ce89813bbdbf2d370a6421",
+    "pure": "25bfdcd11254669b91f70570d41038380bb61208f06f723d9b660e554e52fd33",
+    "spec_view": "b7a7a68eb07e93bdd2230ae2f0f0216a8118f27a45b1f3c1286dc44089cd87ca"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "mul_symbol modelled as Optional[List[int]] of Unicode code points (None = the unset selector); specification carried by PSeq[int] via ToSeq; the verbatim-copy branches use a forward take()-fold loop invariant (ToSeq(res)==ToSeq(sym).take(i))",
+  "version": "1.1"
+}

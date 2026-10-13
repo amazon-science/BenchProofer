@@ -1,0 +1,447 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): runs real _check_vector on Vector inputs (identity), scalar zeros 0/S(0)/Integer(0)/Float(0) (raise), boundary non-Vectors + 2000 fuzz (raise)",
+      "encoded_property": "identity guard: a Vector operand is returned UNCHANGED (ToSeq(Result().terms)==ToSeq(other.terms), is_vector holds); a non-Vector operand raises (TypeError modeled as NotAVector). In particular the scalar zero is NOT a vector and raises. Weakest sufficient contract.",
+      "flag_dependency": "none (single positional arg; consults only isinstance(other, Vector))",
+      "kind": "A-consumed",
+      "models": "sympy.physics.vector.vector._check_vector (unchanged callee)",
+      "name": "vector_guard",
+      "provenance": "sympy/physics/vector/vector.py:723-726: `if not isinstance(other, Vector): raise TypeError('A Vector must be supplied'); return other`",
+      "purity": "@ContractOnly (NOT @Pure: not used inside any Ensures; called in impl, its Ensures+Exsures consumed)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): builds real Vectors via __add__/scalar-multiply (same-frame, mixed-frame, cancellation, the exact F2P additions) and asserts (a) len(Vector(a.args+b.args).args) <= len(a.args)+len(b.args) on 10 boundary pairs (>=6 strict merges) + 500 fuzz; (b) the naive length-preservation over-claim is FALSIFIED by a same-frame merge; (c) the constructor is a deterministic function of its arg list AND Vector(v1.args+v2.args).args != Vector(v1.args).args on the F2P merge (>=8 distinguishing pairs) -- so normal_form(self ++ other) differs from normal_form(self) alone, the property that rejects the dropped-other attacks. RC=0 in pinned container.",
+      "encoded_property": "CONTENT-BEARING: normal_form is a @Pure function of the whole component sequence, so (i) it never invents a component -> len(Result()) <= len(s), and (ii) equal inputs give equal normal forms while differing inputs are NOT provably equal. The vec_add post pins ToSeq(Result().terms) == normal_form(ToSeq(self.terms) + ToSeq(other.terms)) -- the normal form of the concatenation of BOTH modeled input carriers (grounded in the inputs, NOT an answer-key oracle). This excludes other-dropping impls (return self / Vec(self.terms) / Vec([])) whose result is normal_form of a different sequence. Tagged A-reference, not R: it changes the element count, a changed operation on the carrier, audited against the real callee.",
+      "flag_dependency": "none (single positional arg; merge keyed only on each term's reference frame)",
+      "kind": "A-reference",
+      "models": "sympy.physics.vector.vector.Vector.__init__ (unchanged merging constructor that __add__ calls on self.args + other.args), as a deterministic pure function of the whole argument sequence",
+      "name": "normal_form",
+      "provenance": "sympy/physics/vector/vector.py:26-53: __init__ builds a dict keyed by reference frame (`d[inp[1]] += inp[0]`), summing same-frame measure-number matrices and dropping zero-contribution frames -- frame-keyed summation, NOT verbatim concatenation; it is a deterministic function of its argument list (same arg list -> same .args)",
+      "purity": "@Pure @ContractOnly (used inside Ensures of vec_add, Vec.__init__, normalise -- a function whose determinism is the load-bearing property)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): same Vector.__init__ runs as normal_form -- the produced .args list is exactly the constructor output and the length bound holds (see normal_form checks)",
+      "encoded_property": "ToSeq(Result()) == normal_form(ToSeq(terms)) AND len(Result()) <= len(terms): the stored list's contents are exactly the normal form of the input concatenation, and the merge/cancel can only shrink it.",
+      "flag_dependency": "none",
+      "kind": "A-reference",
+      "models": "sympy.physics.vector.vector.Vector.__init__ -- the impl-side List[int] helper producing the stored component list with ToSeq(result) == normal_form(ToSeq(terms))",
+      "name": "normalise",
+      "provenance": "sympy/physics/vector/vector.py:26-53 (same constructor as normal_form; this is the value-producing face that the impl calls to build the result Vec)",
+      "purity": "@ContractOnly (NOT @Pure: returns a concrete List[int]; called when constructing the result Vec; its Ensures ties the produced list to normal_form)"
+    }
+  ],
+  "base_commit": "c6753448b5c34f95e250105d76709fe4d349ca1f",
+  "changed_files": [
+    "sympy/physics/vector/vector.py"
+  ],
+  "deep_model_references": [],
+  "exception_modeling": "TypeError('A Vector must be supplied') raised by _check_vector modeled as user-defined NotAVector (builtin exception in Exsures crashes the Nagini translator)",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:05:45+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: vector_guard (== _check_vector) sound on 14 Vector inputs (identity), 7 scalar-zero inputs (raise), 29 boundary non-Vectors + 2000 fuzz (raise); normal_form/normalise (== Vector.__init__) never-grows bound holds on 10 boundary pairs (>=6 strict merges) + 500 fuzz, the length-preservation over-claim is falsified by a same-frame merge, the constructor is a deterministic function of its argument list, and normal_form(self ++ other) differs from normal_form(self) alone on >=8 pairs (incl. the F2P merge) -- so the content-bearing post excludes the dropped-other attacks.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "73a422f3899d4bbb39636d7ac366fb9fdc7f081a6c6c10705c4a9f58af326caa",
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:05:58+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 101160,
+          "disagreements": 0,
+          "seed": 147110,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callees call the real repo functions)",
+          "skipped_out_of_domain": 10157
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101160, \"disagreements\": 0, \"seed\": 147110, \"skipped_out_of_domain\": 10157, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callees call the real repo functions)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "3d428caed2eaa22930e5fffa40357cab9ad7a3ea33d1e22d164712904e4d04d2",
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:17:50+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9",
+        "model_prepatch.py": "10484ba6e8be95c2b63e5cb5acd43fc8db517874130d3471edf4e7d8321d947b"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T18:18:07+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1_prepatch.py`, `atk_2_return_self.py`, `atk_3_drop_other_vec_self.py`, `atk_4_swallow_neither.py`, `atk_5_reversed_concat.py`, `atk_6_zero_norm_copy.py`, `atk_8_empty.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7_skip_guard.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:18:32+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9",
+        "model_prepatch.py": "10484ba6e8be95c2b63e5cb5acd43fc8db517874130d3471edf4e7d8321d947b"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:05:39+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "d7e30e251cef0e7886f23eee26353beba2f319fa0d249a312a0d21cb1da99f50",
+          "impl": "6fab7757e2cd0980b34cd54627cdf8fe7e1fdc5dd9f8df38a32110cef1f275f4",
+          "invariants": "864044c8fbe38ce6529d934efd4ba7c198f3b8ec47b15c4a2ec4456d503284ce",
+          "post-conditions": "3af934af6362236858d68c4f6217e224b776428c1aa258a4fbfb58343859195e",
+          "pre-conditions": "35b78d1bf3fa6cf1853fa67a67b77acef0f53ccb0ca5c5cdb102ba4c546f8d29",
+          "pure": "3bd07e242809c39d4f51ff8c6f327a63cc8646f8265d0a2dc75688037a76167d",
+          "spec_view": "438b0c38a71da2ff5eee2049821343cd10cce3b87be2283fbe12cdf48c2133f5"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:05:40+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "3e4102b47eb3a5a90b264f700077bb94071e8b42a51b2255c77373d8ec08f695",
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:05:40+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:04:29+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T18:18:09+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break audit found no divergence between the modeled vec_add spec and the real Vector.__add__ (sympy/physics/vector/vector.py:58) at base_commit c6753448. Evidence: (1) Nagini verifies model.py RC=0 (12.6s). (2) axiom_check.py runs the REAL callees and passes RC=0 (14 Vector identity cases, 7 scalar-zero raises, 29 boundary + 2000 fuzz non-Vector raises for _check_vector; never-grows bound + determinism + combined!=self distinguisher for Vector.__init__ on 10 boundary pairs incl. >=6 strict merges + 500 fuzz). (3) I directly enumerated all operand classes against a faithful reconstruction of the patched __add__: scalar 0/S(0) -> normal return of self (clause 1); genuine vector -> normal_form(self++other) which equals real Vector(self.args+other.args) (clause 2); non-zero scalar/string/object -> TypeError->NotAVector (clause 3); clause (3a) normal-return-only-for-0-or-Vector matches real semantics. (4) Zero-vector subtlety verified: N.x-N.x==0 is True, real code short-circuits on other==0 returning self; the model maps it to is_scalar_zero=True under Implies(is_scalar_zero,not is_vector), giving identical result, and even the is_vector alt path yields normal_form(self++[])==normal_form(self)==self, so no diverging input exists. Clause (2) is content-bearing normal_form(self++other), not verbatim concat (faithful to frame-keyed merge) and not a weak length bound (excludes dropped-other impls). No spec-too-strong / drift defect identified.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (0 hard failures). Independent review confirms the spec view leaks nothing about the gold edit (`if other == 0: return self`) beyond the PUBLIC problem_statement. The problem_statement itself already reveals the entire fix \u2014 its traceback contains the commented `#if other == 0: return self`, the full `__add__` body, `_check_vector`, and `raise TypeError('A Vector must be supplied')`, and the issue title is 'vector add 0 error'. Spec-view specifics: (a) no diff markers; (b) patched file path `sympy/physics/vector/vector.py` and its dotted module form never appear; (c) gold changed lines `if other == 0:` / `return self` are NOT reproduced \u2014 the impl region is elided to `...` and clause (1) states behavior abstractly ('the sum is the left vector itself, unchanged'), not the literal code; (d) the only distinctive patch-changed symbol is `hash` (from the `def __hash__` section header), never echoed in a spec-view identifier or comment; (e) no bug/fix/patch/regression narration. The spec is framed as desired behavior over abstract carriers (Vec, Operand, is_scalar_zero, is_vector, normal_form) and localizes the edit no more than the public issue already does \u2014 if anything, less. Note: refinement.md/mapping.md quote the gold hunk directly, but those are AUDITOR-only artifacts, not part of the solver-visible spec view.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break audit found no divergence between the modeled vec_add spec and the real Vector.__add__ (sympy/physics/vector/vector.py:58) at base_commit c6753448. Evidence: (1) Nagini verifies model.py RC=0 (12.6s). (2) axiom_check.py runs the REAL callees and passes RC=0 (14 Vector identity cases, 7 scalar-zero raises, 29 boundary + 2000 fuzz non-Vector raises for _check_vector; never-grows bound + determinism + combined!=self distinguisher for Vector.__init__ on 10 boundary pairs incl. >=6 strict merges + 500 fuzz). (3) I directly enumerated all operand classes against a faithful reconstruction of the patched __add__: scalar 0/S(0) -> normal return of self (clause 1); genuine vector -> normal_form(self++other) which equals real Vector(self.args+other.args) (clause 2); non-zero scalar/string/object -> TypeError->NotAVector (clause 3); clause (3a) normal-return-only-for-0-or-Vector matches real semantics. (4) Zero-vector subtlety verified: N.x-N.x==0 is True, real code short-circuits on other==0 returning self; the model maps it to is_scalar_zero=True under Implies(is_scalar_zero,not is_vector), giving identical result, and even the is_vector alt path yields normal_form(self++[])==normal_form(self)==self, so no diverging input exists. Clause (2) is content-bearing normal_form(self++other), not verbatim concat (faithful to frame-keyed merge) and not a weak length bound (excludes dropped-other impls). No spec-too-strong / drift defect identified.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (0 hard failures). Independent review confirms the spec view leaks nothing about the gold edit (`if other == 0: return self`) beyond the PUBLIC problem_statement. The problem_statement itself already reveals the entire fix \u2014 its traceback contains the commented `#if other == 0: return self`, the full `__add__` body, `_check_vector`, and `raise TypeError('A Vector must be supplied')`, and the issue title is 'vector add 0 error'. Spec-view specifics: (a) no diff markers; (b) patched file path `sympy/physics/vector/vector.py` and its dotted module form never appear; (c) gold changed lines `if other == 0:` / `return self` are NOT reproduced \u2014 the impl region is elided to `...` and clause (1) states behavior abstractly ('the sum is the left vector itself, unchanged'), not the literal code; (d) the only distinctive patch-changed symbol is `hash` (from the `def __hash__` section header), never echoed in a spec-view identifier or comment; (e) no bug/fix/patch/regression narration. The spec is framed as desired behavior over abstract carriers (Vec, Operand, is_scalar_zero, is_vector, normal_form) and localizes the edit no more than the public issue already does \u2014 if anything, less. Note: refinement.md/mapping.md quote the gold hunk directly, but those are AUDITOR-only artifacts, not part of the solver-visible spec view.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1_prepatch.py`, `atk_2_return_self.py`, `atk_3_drop_other_vec_self.py`, `atk_4_swallow_neither.py`, `atk_5_reversed_concat.py`, `atk_6_zero_norm_copy.py`, `atk_8_empty.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7_skip_guard.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break audit found no divergence between the modeled vec_add spec and the real Vector.__add__ (sympy/physics/vector/vector.py:58) at base_commit c6753448. Evidence: (1) Nagini verifies model.py RC=0 (12.6s). (2) axiom_check.py runs the REAL callees and passes RC=0 (14 Vector identity cases, 7 scalar-zero raises, 29 boundary + 2000 fuzz non-Vector raises for _check_vector; never-grows bound + determinism + combined!=self distinguisher for Vector.__init__ on 10 boundary pairs incl. >=6 strict merges + 500 fuzz).\n\n(3) I directly enumerated all operand classes against a faithful reconstruction of the patched __add__: scalar 0/S(0) -> normal return of self (clause 1); genuine vector -> normal_form(self++other) which equals real Vector(self.args+other.args) (clause 2); non-zero scalar/string/object -> TypeError->NotAVector (clause 3); clause (3a) normal-return-only-for-0-or-Vector matches real semantics. (4) Zero-vector subtlety verified: N.x-N.x==0 is True, real code short-circuits on other==0 returning self; the model maps it to is_scalar_zero=True under Implies(is_scalar_zero,not is_vector), giving identical result, and even the is_vector alt path yields normal_form(self++[])==normal_form(self)==self, so no diverging input exists. Clause (2) is content-bearing normal_form(self++other), not verbatim concat (faithful to frame-keyed merge) and not a weak length bound (excludes dropped-other impls). No spec-too-strong / drift defect identified.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (0 hard failures). Independent review confirms the spec view leaks nothing about the gold edit (`if other == 0: return self`) beyond the PUBLIC problem_statement. The problem_statement itself already reveals the entire fix \u2014 its traceback contains the commented `#if other == 0: return self`, the full `__add__` body, `_check_vector`, and `raise TypeError('A Vector must be supplied')`, and the issue title is 'vector add 0 error'.\n\nSpec-view specifics: (a) no diff markers; (b) patched file path `sympy/physics/vector/vector.py` and its dotted module form never appear; (c) gold changed lines `if other == 0:` / `return self` are NOT reproduced \u2014 the impl region is elided to `...` and clause (1) states behavior abstractly ('the sum is the left vector itself, unchanged'), not the literal code; (d) the only distinctive patch-changed symbol is `hash` (from the `def __hash__` section header), never echoed in a spec-view identifier or comment; (e) no bug/fix/patch/regression narration. The spec is framed as desired behavior over abstract carriers (Vec, Operand, is_scalar_zero, is_vector, normal_form) and localizes the edit no more than the public issue already does \u2014 if anything, less. Note: refinement.md/mapping.md quote the gold hunk directly, but those are AUDITOR-only artifacts, not part of the solver-visible spec view.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:52:59+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "admiss-gold",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 44.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-two-loops",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 53.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-write-self-terms",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 64.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-write-is-vector",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.6
+          },
+          {
+            "expect": "reject",
+            "id": "drop-other-return-self",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.5
+          },
+          {
+            "expect": "reject",
+            "id": "drop-other-vec-self",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.6
+          },
+          {
+            "expect": "reject",
+            "id": "drop-other-vec-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 52.7
+          },
+          {
+            "expect": "reject",
+            "id": "prepatch-no-shortcircuit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 62.6
+          },
+          {
+            "expect": "reject",
+            "id": "scalar-zero-renormalise",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.0
+          },
+          {
+            "expect": "reject",
+            "id": "swallow-neither-sharp",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.0
+          },
+          {
+            "expect": "reject",
+            "id": "swallow-not-a-vector",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 9
+        },
+        "manifest_sha256": "79f085724168c9189c0c9c3289c93ac0370c723b65d86876cc05a5646659bb88",
+        "n_cases": 11,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 11 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9",
+        "properties.py": "79f085724168c9189c0c9c3289c93ac0370c723b65d86876cc05a5646659bb88"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T04:40:19+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:04:42+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 13.7
+      },
+      "detail": "verified in 13.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c8fb7cd938b2e47d1ac9994c64c178eac7d758d08569a1460f8444301a43f6a9"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-14711",
+  "modeled_functions": [
+    {
+      "carrier_type": "Vector -> Vec with .args -> .terms as List[int] of opaque component-family (reference-frame) tags; the specification observes only the list LENGTH (the result is re-normalised by the frame-merging Vector constructor, so element identities are not load-bearing); right operand modeled by Operand with is_scalar_zero / is_vector discriminators",
+      "model_symbol": "vec_add",
+      "repo_location": "sympy/physics/vector/vector.py:58",
+      "repo_symbol": "sympy.physics.vector.vector.Vector.__add__",
+      "role": "modeled changed function (vector add operator); single contracted+implemented function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; checked with git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "Assert(not other.is_scalar_zero) (model_prepatch.py:190): after the unconditional vector_guard(other) the impl can no longer establish `not other.is_scalar_zero` (the guard was reached with a possibly-scalar-zero operand, which by its Exsures raises NotAVector on other.is_scalar_zero), contradicting clause (1)'s requirement that the scalar zero returns self NORMALLY",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "Vector.__add__ adding the scalar zero (other == 0)",
+      "reverted_to": "pre-patch body with no short-circuit: _check_vector(other) reached unconditionally, then Vector(self.args + other.args)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "557468ef7b0b1561a23f7116970f1bff0cf8ac34e516ae79d6026f892b36388b",
+    "impl": "0afaf77fae7c13596638626a0c47c033bd7167049a8e2da692c0f3250e888a68",
+    "invariants": "95478361e8a3e6e9e3489fdc18ea0a648cad968586539d17053a95d2b57dd465",
+    "post-conditions": "211688525ae53fbd09bc9db57ebf8e6e557c6a296cafa432a005ef3c3a6fca16",
+    "pre-conditions": "374e3bfda4f2afb476a0fc133d059eec13e1d483d7121a8e30fc325cba96fa0e",
+    "pure": "3bd07e242809c39d4f51ff8c6f327a63cc8646f8265d0a2dc75688037a76167d",
+    "spec_view": "8598ce6ef8854c835823b6abd4a9c34aec75c9917de6250f83fc3d9c6c1311d6"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "none; component-family lists modeled as List[int] of opaque frame tags; the post pins the result CONTENT as normal_form(ToSeq(self.terms)+ToSeq(other.terms)) -- the normal form of the concatenation of both operand carriers. The concatenation argument self.args+other.args is proven by an append loop (index fold), then the frame-merging constructor is modeled by the `normal_form` A-reference callee (a @Pure deterministic function with len(result)<=len(input)); `normalise` is the impl helper producing the stored list with ToSeq(result)==normal_form(ToSeq(terms))",
+  "version": "1.1"
+}

@@ -1,0 +1,402 @@
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 */
+
+/* SWE-Proof artifact site: light, calm, readable. */
+:root{
+  --bg:#fbfcfd; --panel:#ffffff; --ink:#1f2933; --muted:#647084; --faint:#8b95a6;
+  --line:#e4e8ee; --line2:#eef1f5; --accent:#1f6feb; --accent-soft:#e8f0fe;
+  --green:#1a7f47; --green-bg:#e7f6ec; --amber:#9a6700; --amber-bg:#fff6db;
+  --red:#b3261e; --red-bg:#fdecea; --violet:#6f42c1; --violet-bg:#f1ecfb;
+  --add-bg:#e6ffed; --add-ink:#116329; --del-bg:#ffebe9; --del-ink:#a40e26;
+  --radius:10px; --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+html{font-size:15px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre,.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+
+/* top bar.
+   flex-WRAP is load-bearing: the bar holds the brand, the chooser matrix, the
+   extra-backend box and the page nav, and on a narrow viewport that is wider
+   than the window. Wrapping onto a second line keeps every chooser column
+   readable; without it the bar squeezes its items and the matrix (the only
+   clipping item) silently loses its right-hand backend columns. */
+header.top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);
+  backdrop-filter:saturate(140%) blur(6px);border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:10px 20px}
+header.top .brand{font-weight:700;letter-spacing:-.01em}
+/* the brand is a link home, but it is the site's name, not a call to action:
+   accent-blue would make the one word in the corner the loudest thing on a page
+   whose subject is a table of verdicts */
+header.top .brand a{color:inherit}
+header.top .brand .sub{font-weight:500;color:var(--muted);margin-left:8px;font-size:.85rem}
+header.top nav{display:flex;gap:14px;margin-left:auto;font-size:.9rem}
+header.top nav a{color:var(--muted)}header.top nav a:hover{color:var(--ink)}
+/* benchmark x backend chooser: a real GRID, read like a table:
+       (corner) total  nagini velvet lean
+       verified     n       n      n     n
+       pro          n       n      n     n
+   Backend names head the columns, benchmarks label the rows, each cell is that
+   cell's fully-green count linking to the board. Grid (not flex rows) so a
+   column is the same width in every row and the numbers line up; the template
+   emits cells row-major and sets grid-template-columns from the backend count.
+
+   Grid lines are drawn by a 1px gap over the container's line-coloured
+   background, so they work for ANY row/column count (no nth-child arithmetic to
+   get stale when a benchmark or backend is added). Every cell therefore needs
+   its own background.
+
+   `overflow:hidden` (needed so the cell backgrounds stay inside the rounded
+   corners) sets this flex item's automatic minimum size to 0, so the header can
+   otherwise squeeze the table narrower than its own columns and CLIP them. The
+   columns are emitted left-to-right (row label, total, then one per backend),
+   so a squeeze eats the backend counts first and leaves a totals-only table
+   with nothing to click. flex-shrink:0 + min-width:min-content is the fix: the
+   table always occupies at least its content width and the header wraps
+   instead (see flex-wrap above). */
+header.top nav.bk-matrix{margin-left:22px;display:grid;
+  flex:0 0 auto;min-width:min-content;
+  gap:1px;background:var(--line2);border:1px solid var(--line2);
+  border-radius:8px;overflow:hidden;font-size:.9rem}
+/* only the LAST chooser box pushes the page nav right, so an extra-backend box
+   (no formal verifier, deliberately set apart) sits snugly beside the formal
+   matrix with just a small gap */
+header.top nav.bk-matrix:last-of-type{margin-right:auto}
+header.top nav.bk-matrix.bk-extra{margin-left:8px;border-style:dashed}
+header.top nav.bk-matrix > *{display:flex;align-items:center;
+  justify-content:center;background:var(--panel)}
+/* header band (column names) + the row-label gutter share the tinted look */
+header.top nav.bk-matrix .bk-corner,
+header.top nav.bk-matrix .bk-colhead,
+header.top nav.bk-matrix .bk-rowlab,
+header.top nav.bk-matrix .bk-total{background:var(--line2);font-size:.72rem;
+  font-weight:700;letter-spacing:.02em;color:var(--faint)}
+header.top nav.bk-matrix .bk-colhead{padding:2px 12px;text-transform:lowercase}
+header.top nav.bk-matrix .bk-colhead.active-col{color:var(--ink)}
+/* a backend column head is the same-instance switch (base.html), so it is a
+   LINK like every count in the table: suppress the global hover underline and
+   tint it the way the totals column does, or the header band ripples on hover. */
+header.top nav.bk-matrix a.bk-colhead:hover{color:var(--ink);background:#e3e9f1;
+  text-decoration:none}
+header.top nav.bk-matrix .bk-corner{padding:0}
+header.top nav.bk-matrix .bk-rowlab{justify-content:flex-start;padding:3px 10px;
+  text-transform:uppercase}
+header.top nav.bk-matrix .bk-rowlab.active-row{color:var(--ink);background:#eaeff6}
+/* totals column: tabular figures so the rows line up digit-for-digit. It is
+   a LINK like every other count in the table: the row's whole instance list,
+   unfiltered, so no number in the chooser is dead text. */
+header.top nav.bk-matrix .bk-total,
+header.top nav.bk-matrix .bk-total-head{padding:3px 10px;font-family:var(--mono);
+  font-variant-numeric:tabular-nums}
+header.top nav.bk-matrix .bk-total.active-row{color:var(--muted);background:#eaeff6}
+header.top nav.bk-matrix a.bk-total:hover{color:var(--ink);background:#e3e9f1;
+  text-decoration:none}
+/* the cells: just a number, centred under its backend column */
+header.top nav.bk-matrix .bk-cell{padding:3px 12px;font-weight:600;
+  font-size:.82rem;color:var(--muted)}
+header.top nav.bk-matrix .bk-cell:hover{background:#f2f5f9;text-decoration:none}
+header.top nav.bk-matrix .bk-cell.active{background:var(--ink)}
+header.top nav.bk-matrix .bk-count{padding:1px 7px;border-radius:9px;
+  font-size:.74rem;background:var(--green-bg);color:var(--green);
+  font-variant-numeric:tabular-nums}
+header.top nav.bk-matrix .bk-cell.active .bk-count{background:rgba(255,255,255,.18);color:#e7f6ec}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 80px}
+.wrap.wide{max-width:1500px}
+
+/* ------------------------------------------------------------- overview page
+   The front page is a reading page, not a dashboard: one column, no cards, and a
+   measure short enough to read at any window width. It keeps the site's face and
+   tokens, so clicking through to a board is not a change of typeface; what sets
+   it apart is the measure and the leading.
+
+   Deliberately absent: filled statistic tiles, gradients, accent bars, rows of
+   badges. Every figure appears inside a table at the same weight as the prose
+   around it, and links to the board that counts it. */
+.wrap.paper{max-width:830px;padding-top:40px}
+.wrap.paper p{line-height:1.72}
+.wrap.paper h1,.wrap.paper h2{letter-spacing:-.012em}
+
+.masthead{margin:0 0 4px}
+.masthead h1{margin:0;font-size:1.95rem;font-weight:680;line-height:1.2}
+.masthead .lede{margin:.45em 0 0;font-size:1.14rem}
+.masthead .sig{margin:.3em 0 0;font-size:.95rem;color:var(--muted)}
+
+/* sections separated by a hairline rather than by a box: nothing on this page
+   needs to be picked out of a list, so a panel per section would only add
+   borders to read past */
+.doc{margin:30px 0 0;padding-top:26px;border-top:1px solid var(--line2)}
+.doc h2{margin:0 0 .55em;font-size:1.12rem;font-weight:650}
+.doc p{margin:0 0 .8em}
+.doc>:last-child{margin-bottom:0}
+.doc .note{font-size:.9rem;color:var(--muted)}
+.doc p code,.doc dd code{background:#f0f2f5;border-radius:4px;padding:.1em .35em;
+  font-size:.86em}
+
+/* the central claim: set off by a rule in the margin, not by a coloured panel */
+.claim{margin:0 0 .9em;padding:1px 0 1px 16px;border-left:2px solid #ccd6e2;
+  font-size:1.03rem}
+
+/* figure tables: no outer border, hairline rows, numbers in the mono face so
+   columns line up digit for digit */
+table.facts{width:100%;border-collapse:collapse;font-size:.93rem;margin:.15em 0 .9em}
+table.facts th{text-align:left;font-weight:600;color:var(--muted);font-size:.75rem;
+  text-transform:uppercase;letter-spacing:.04em;padding:0 14px 6px 0;
+  border-bottom:1px solid var(--line);vertical-align:bottom}
+table.facts td{padding:9px 14px 9px 0;border-bottom:1px solid var(--line2);
+  vertical-align:top}
+table.facts tr:last-child td{border-bottom:0}
+table.facts th.num,table.facts td.num{text-align:right;padding:0 0 6px 18px;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.85rem;
+  white-space:nowrap}
+table.facts td.num{padding:9px 0 9px 18px}
+table.facts.families td.fam{width:216px;font-weight:650}
+table.facts .keys{display:block;margin-top:5px;font-weight:400}
+table.facts .keys code{display:inline-block;margin:0 4px 4px 0;padding:1px 6px;
+  font-size:.71rem;color:var(--muted);background:#fbfcfd;border:1px solid var(--line);
+  border-radius:5px}
+/* the chip is the hover target for its definition popover, so the anchor has to
+   be the wrapper: an absolutely positioned child of the <code> would be measured
+   against the chip's own padding box and inherit its monospace type */
+.gkey{position:relative;display:inline-block;cursor:help;outline-offset:2px}
+.gkey:hover code,.gkey:focus code{color:var(--ink);border-color:#d5dce5;
+  background:var(--panel)}
+
+/* artifact list: term and gloss side by side, collapsing to stacked lines when
+   the two columns no longer fit */
+dl.artifacts{margin:.15em 0 0;display:grid;grid-template-columns:max-content 1fr;
+  gap:11px 24px;font-size:.94rem}
+dl.artifacts dt{font-weight:650}
+dl.artifacts dd{margin:0;color:var(--muted)}
+@media(max-width:760px){
+  dl.artifacts{grid-template-columns:1fr;gap:0}
+  dl.artifacts dd{margin:2px 0 12px}
+}
+
+ul.plain{margin:.15em 0 0;padding-left:19px;font-size:.94rem}
+ul.plain li{margin:0 0 9px;line-height:1.65}
+ul.plain li:last-child{margin-bottom:0}
+
+pre.cmd{margin:.5em 0 1em;padding:10px 13px;font-size:.82rem;overflow:auto;
+  background:#f7f9fb;border:1px solid var(--line2);border-radius:8px}
+
+/* cards / panels */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin:0 0 18px}
+.card>h2,.card>h3{margin:0;padding:12px 16px;border-bottom:1px solid var(--line2);
+  font-size:.95rem;font-weight:650;display:flex;align-items:center;gap:10px}
+.card .body{padding:14px 16px}
+.card .body.tight{padding:0}
+
+/* gate badges */
+.gates{display:flex;flex-wrap:wrap;gap:6px}
+.gate{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid transparent;
+  white-space:nowrap}
+.gate .g{opacity:.7;font-weight:500}
+/* scoped to the badge/chip elements only; dots have their own 4-color palette below */
+.gate.g-pass,.gp-st.g-pass{background:var(--green-bg);color:var(--green);border-color:#bce5cb}
+.gate.g-skip,.gp-st.g-skip{background:var(--line2);color:var(--muted);border-color:var(--line)}
+.gate.g-vacuous,.gp-st.g-vacuous{background:var(--line2);color:var(--faint);border-color:var(--line)}
+.gate.g-relaxed,.gp-st.g-relaxed{background:var(--amber-bg);color:var(--amber);border-color:#f0e0a8}
+.gate.g-fail,.gate.g-error,.gp-st.g-fail,.gp-st.g-error{background:var(--red-bg);color:var(--red);border-color:#f3c9c4}
+
+.pill{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:20px;
+  background:var(--accent-soft);color:var(--accent);font-weight:600}
+.pill.warn{background:var(--amber-bg);color:var(--amber)}
+.pill.violet{background:var(--violet-bg);color:var(--violet)}
+.pill.ok{background:var(--green-bg);color:var(--green)}
+.pill.bad{background:var(--red-bg);color:var(--red)}
+.pill.neutral{background:#eef1f5;color:var(--muted)}
+
+/* gate badge hover/focus popover (definition + per-instance note).
+   Hidden by default via THREE independent properties so a partial/stale stylesheet
+   can never dump the definition inline; revealed only on hover/focus. */
+.gate{position:relative;cursor:help}
+.gate-pop{position:absolute;left:0;top:calc(100% + 8px);z-index:40;
+  display:none;visibility:hidden;opacity:0;pointer-events:none;
+  width:330px;max-width:min(330px,80vw);padding:11px 13px;border-radius:10px;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  font-size:.78rem;font-weight:400;line-height:1.5;
+  box-shadow:0 10px 30px rgba(16,24,40,.16);text-align:left;white-space:normal;cursor:auto;
+  transition:opacity .08s ease}
+.gate-pop::before{content:"";position:absolute;left:14px;top:-6px;width:11px;height:11px;
+  background:var(--panel);border-left:1px solid var(--line);border-top:1px solid var(--line);
+  transform:rotate(45deg)}
+.gate:hover .gate-pop,.gate:focus .gate-pop,.gate:focus-within .gate-pop,
+.gkey:hover .gate-pop,.gkey:focus .gate-pop,.gkey:focus-within .gate-pop{
+  display:block;visibility:visible;opacity:1;pointer-events:auto}
+/* keep the last badges' popovers from overflowing the right viewport edge */
+.gate:nth-last-child(-n+3) .gate-pop{left:auto;right:0}
+.gate:nth-last-child(-n+3) .gate-pop::before{left:auto;right:14px}
+/* the overview's key chips sit in the left column of a two-column table, so they
+   have room to the right; a chip in a narrow (stacked) layout does not, and the
+   popover is centred on it there instead of running off the page */
+@media(max-width:760px){
+  .gkey .gate-pop{left:50%;transform:translateX(-50%);max-width:min(330px,86vw)}
+  .gkey .gate-pop::before{left:50%;margin-left:-6px}
+}
+.gate-pop .gp-head{display:block;font-weight:700;margin-bottom:5px;letter-spacing:.01em;color:var(--ink)}
+.gate-pop .gp-st{padding:0 6px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid transparent}
+.gate-pop .gp-def{display:block;color:var(--muted)}
+.gate-pop .gp-note{display:block;margin-top:7px;padding-top:7px;border-top:1px solid var(--line2);color:var(--muted)}
+.gate-pop .gp-note b{color:var(--ink);font-weight:650}
+/* the status chip reuses the light badge palette (.g-pass etc. defined above) */
+
+/* G-PBT falsification table */
+.pbt-lane{margin:0 0 14px}
+.pbt-lane-h{font-weight:650;font-size:.84rem;margin:0 0 6px}
+table.pbt{width:100%;border-collapse:collapse;font-size:.8rem}
+table.pbt th{text-align:left;font-weight:600;color:var(--muted);font-size:.72rem;
+  text-transform:uppercase;letter-spacing:.03em;padding:5px 8px;border-bottom:1px solid var(--line)}
+table.pbt td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:top}
+.pbt-row.ok{background:#fcfdfc}.pbt-row.bad{background:var(--red-bg)}
+.pbt-mark{font-weight:800;margin-right:5px}.pbt-mark.ok{color:var(--green)}.pbt-mark.bad{color:var(--red)}
+.pbt-failtext{color:var(--red);font-weight:600}
+.pbt-detail{margin-top:4px}
+.pbt-detail>summary{cursor:pointer;font-size:.74rem;list-style:none}
+.pbt-detail>summary::-webkit-details-marker{display:none}
+.pbt-detail>summary::before{content:"▸ ";color:var(--faint)}
+.pbt-detail[open]>summary::before{content:"▾ "}
+.pbt-detail pre{margin:5px 0 0;padding:8px 10px;background:#fbfbfc;border:1px solid var(--line2);
+  border-radius:6px;font-size:.72rem;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
+
+/* index table */
+table.idx{width:100%;border-collapse:collapse;font-size:.88rem}
+table.idx th{text-align:left;font-weight:600;color:var(--muted);font-size:.78rem;
+  text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;border-bottom:1px solid var(--line)}
+table.idx td{padding:9px 10px;border-bottom:1px solid var(--line2);vertical-align:middle}
+table.idx tr:hover td{background:#f7f9fb}
+table.idx td.id a{font-weight:600}
+.mini-gates{display:flex;gap:3px}
+/* dots have exactly four colors: grey (default: skip/vacuous/missing/pending/...),
+   green (pass), amber (relaxed), red (any bad verdict); never the light badge palette */
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:#c4ccd6}
+.dot.g-pass{background:#2ea05a}
+.dot.g-relaxed{background:#d9a700}
+.dot.g-fail,.dot.g-error,.dot.g-unsatisfiable,.dot.g-would-fail{background:#d7382c}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.filters input[type=text],.filters select{font:inherit;padding:7px 10px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;color:var(--ink)}
+.filters input[type=text]{min-width:240px}
+.btn{font:inherit;font-size:.85rem;padding:7px 13px;border:1px solid var(--line);border-radius:8px;
+  background:#fff;color:var(--ink);cursor:pointer;font-weight:550}
+.btn:hover{background:#f3f5f8}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#1a5fd0}
+.btn.sm{padding:3px 9px;font-size:.78rem}
+
+/* layout: instance page = main + sidebar */
+.split{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start}
+@media(max-width:1100px){.split{grid-template-columns:1fr}}
+.sticky{position:sticky;top:64px}
+
+/* code blocks */
+pre.code{margin:0;padding:12px 14px;overflow:auto;font-size:.82rem;line-height:1.5;
+  background:#fcfcfd;border-radius:0 0 var(--radius) var(--radius)}
+.codewrap{border-radius:var(--radius)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:.86rem}
+.kv dt{color:var(--muted);font-weight:550}
+.kv dd{margin:0}
+
+/* diff */
+.diff{font-family:var(--mono);font-size:.8rem;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 12px}
+.diff .fname{background:#f3f5f8;padding:6px 12px;border-bottom:1px solid var(--line);font-weight:600;
+  display:flex;justify-content:space-between;align-items:center}
+.diff .hunk-hdr{background:#eef4ff;color:#3b5b9a;padding:3px 12px;font-size:.74rem}
+.diff .ln{display:flex;white-space:pre}
+.diff .ln .no{flex:0 0 78px;color:var(--faint);text-align:right;padding-right:10px;user-select:none}
+.diff .ln .tx{flex:1;padding-right:12px;white-space:pre-wrap;word-break:break-word}
+.diff .ln.add{background:var(--add-bg)}.diff .ln.add .tx{color:var(--add-ink)}
+.diff .ln.del{background:var(--del-bg)}.diff .ln.del .tx{color:var(--del-ink)}
+.diff .ln.ctx .tx{color:var(--ink)}
+.diff .ln.gap{background:#f7f8fa}.diff .ln.gap .tx{color:var(--faint);text-align:center;user-select:none}
+.modeldiff{margin:4px 0 0}
+
+/* markdown */
+.md{font-size:.92rem}
+.md h1{font-size:1.3rem}.md h2{font-size:1.12rem;margin-top:1.2em;border-bottom:1px solid var(--line2);padding-bottom:4px}
+.md h3{font-size:1rem}
+.md pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;font-size:.82rem}
+.md code{background:#f0f2f5;border-radius:4px;padding:.1em .35em;font-size:.86em}
+.md pre code{background:none;padding:0}
+/* A fence with no info string wraps; a tagged one keeps `overflow:auto` above.
+   An untagged fence in an audit record is almost never code: it holds the
+   auditor's own prose, whose lines run to hundreds of characters, and a
+   paragraph inside a non-wrapping <pre> is unreadable.
+   markdown-it emits `class="language-x"` only when the author named a
+   language, so the absence of a class is the author saying it is not code.
+   Wrapping only ever changes where a line breaks, so the few untagged blocks
+   that ARE code lose nothing but their horizontal scrollbar, while real code,
+   whose indentation and column alignment carry meaning, is tagged and untouched. */
+.md pre>code:not([class]){white-space:pre-wrap;word-break:break-word}
+.md table{border-collapse:collapse;font-size:.86rem}
+.md th,.md td{border:1px solid var(--line);padding:5px 9px}
+.md blockquote{border-left:3px solid var(--line);margin:.6em 0;padding:.2em 0 .2em 12px;color:var(--muted)}
+
+/* collapsible */
+details.collapse{border:1px solid var(--line);border-radius:8px;margin:0 0 10px;background:#fff}
+details.collapse>summary{cursor:pointer;padding:9px 13px;font-weight:600;font-size:.88rem;list-style:none}
+details.collapse>summary::-webkit-details-marker{display:none}
+details.collapse>summary::before{content:"▸";color:var(--faint);margin-right:8px}
+details.collapse[open]>summary::before{content:"▾"}
+details.collapse .inner{padding:0 13px 12px;border-top:1px solid var(--line2)}
+
+/* a long code block inside rendered markdown, folded by render._fold_long_code:
+   quieter than a section collapse, since it sits INSIDE prose rather than
+   around it, and it must not read as a heading. */
+details.fold-code{margin:.6em 0}
+details.fold-code>summary{font-weight:400;font-size:.78rem;color:var(--muted);
+  font-family:var(--mono);padding:5px 10px}
+details.fold-code>pre{margin:0}
+
+/* the folded tail of a long note, from render._fold_long_prose. Prose, so it
+   keeps the body font, and it is the last thing in its note, so it gets no
+   bottom margin -- it is a continuation of the paragraphs above rather than a
+   sibling section. The border-less summary keeps the note reading as one column
+   of text; the marker is the only cue that something follows. */
+details.fold-prose{margin:.4em 0 0;border:0;border-top:1px solid var(--line2);border-radius:0}
+details.fold-prose>summary{font-weight:400;font-size:.82rem;color:var(--muted);padding:7px 0 0}
+details.fold-prose>:last-child{margin-bottom:0}
+
+/* file tree */
+.tree{font-family:var(--mono);font-size:.82rem;line-height:1.9}
+.tree a{display:block;padding:0 6px;border-radius:5px}
+.tree a:hover{background:#eef4ff;text-decoration:none}
+.tree .t-tree::before{content:"📁 "}
+.tree .t-blob::before{content:"📄 "}
+
+/* comments */
+.cmt{border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:0 0 11px;background:#fff}
+.cmt .meta{font-size:.78rem;color:var(--muted);display:flex;gap:8px;align-items:center;margin-bottom:5px}
+.cmt .who{font-weight:650;color:var(--ink)}
+.cmt.reply{margin-left:22px;border-left:3px solid var(--accent-soft);background:#fafbfd}
+.cmt.maintainer .who::after{content:"maintainer";font-size:.66rem;background:var(--accent-soft);
+  color:var(--accent);padding:1px 6px;border-radius:10px;margin-left:6px;font-weight:600}
+.flag-tag{font-size:.7rem;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--violet-bg);color:var(--violet)}
+.status-pending{color:var(--amber);font-weight:600}
+.status-resolved{color:var(--green);font-weight:600}
+textarea,.cmt-form input[type=text]{font:inherit;width:100%;border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);resize:vertical}
+textarea{min-height:70px;font-size:.88rem}
+.cmt-form{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* a note in the sidebar about the site itself rather than about the bundle:
+   quieter than a card, since it is not one of the artifacts being reviewed */
+.sidenote{font-size:.8rem;line-height:1.6;color:var(--muted);margin:2px 2px 18px}
+.sidenote b{color:var(--ink);font-weight:650}
+.sidenote code{background:#f0f2f5;border-radius:4px;padding:.1em .35em;font-size:.9em}
+
+.empty{color:var(--faint);font-size:.88rem;padding:18px;text-align:center}
+.hint{font-size:.8rem;color:var(--muted);background:#f6f8fa;border:1px solid var(--line2);
+  border-radius:8px;padding:8px 11px;margin:0 0 12px}
+.spin{display:none}.htmx-request .spin{display:inline}
+.htmx-request.spin{display:inline}

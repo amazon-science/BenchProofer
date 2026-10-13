@@ -1,0 +1,599 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "unchanged by the patch; swaps old/new names and delegates to database_forwards (:375), inheriting both the inert case and the schedule shape. Modeled by the same rename_schema_schedule with swapped table identifiers (equality is symmetric). F2P asserts assertNumQueries(0) for backwards too; axiom_check.py drives the real database_backwards (0 requests in the noop scenario, the same [-1, 0, 1, 2] schedule when the identifiers differ) and conformance_check.py drives every one of its 101194 inputs in both directions.",
+      "repo_location": "django/db/migrations/operations/models.py:371-378",
+      "repo_symbol": "RenameModel.database_backwards"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "a754b82dac511475b6276039471ccd17cc64aeb8",
+  "changed_files": [
+    "django/db/migrations/operations/models.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): runs the REAL post-patch database_forwards & database_backwards under schema_editor(collect_sql=True) with alter_db_table / alter_field wrapped on the live editor, recording every TOP-LEVEL request in order and MERGING NOTHING (nested requests from the sqlite table rebuild are excluded by a depth counter). Scenario: Rider with options={'db_table': 'rider'}, a dependent Pony.rider FK (1 column relation) and an auto-created Rider.stables link table (1 link relation). Noop case: 0 requests and 0 SQL, both directions. Changed case (same scenario, ONLY the post-rename db_table reassigned): schedule [-1, 0, 1, 2] both directions -- main move first, then the column relation's rewrite, then the link table's move, then the rewrite of the column inside it; clauses (2)-(6) are asserted on it, including the exact length 1 + nc + 2*nl. Non-vacuity control: the clause-(2)/(6) checkers are re-run on two MUTANTS of the observed schedule (main move moved to the end; one link relation's two requests swapped) and G-AX fails unless both are REJECTED. Confirmed DISCRIMINATING and reproduced IN THE PINNED EVAL CONTAINER (swebench/sweb.eval.x86_64.django_1776_django-14999): post-patch exit 0.",
+      "encoded_property": "the requested schedule is EMPTY iff the before/after table identifiers are equal -- no main move and no dependent request, even with a foreign key and an auto-created link table present; otherwise it is the move of the renamed model's own table FIRST, followed by every dependent request exactly once and nothing else (one per column relation, TWO per link relation), with each link table moved BEFORE the column inside it is rewritten. The order of the dependents among themselves is free.",
+      "kind": "A-reference",
+      "models": "RenameModel.database_forwards / database_backwards (post-patch): the early-return-on-equal-db_table guard, the related_objects rewrite loop, and the m2m loop's link-table move + inside-column rewrite pair",
+      "provenance": "django/db/migrations/operations/models.py:319-369 (post-patch: locals old_db_table/new_db_table :323-324, guard `if old_db_table == new_db_table: return` :325-327, main move :329, related-object loop :331-348, m2m loop :350-369 with the link table's alter_db_table at :358-362 and the inside-column alter_field at :365-369). Schema-layer equality short-circuit that keeps a requested move SQL-free when the two names it is handed are equal: django/db/backends/base/schema.py:470-473 (alter_db_table) -- a request is still a request, which is why the observable is what the method ASKS FOR.",
+      "role": "deep model of the changed control flow (the early-return-on-equal-db_table guard) and of the preserved proceeding branch; NOT a consumed axiom -- the axioms region is empty and the proof consumes no @ContractOnly Ensures"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T16:51:48+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model fidelity confirmed against real RenameModel.database_forwards/backwards on the ORDERED REQUEST SCHEDULE, one entry per request -- unchanged db_table => empty schedule, 0 SQL (forwards & backwards, with 1 column relation(s) and 1 link relation(s) present: a foreign key and an auto-created link table); changed table => [-1, 0, 1, 2] forwards and [-1, 0, 1, 2] backwards, i.e. the move of the model's own table FIRST, then every dependent request exactly once (1 + 1 + 2*1 requests), with each link table moved BEFORE the column inside it is rewritten. Same scenario both times with only the identifier equality flipped, so the empty schedule is attributable to the identifier comparison; and the order checkers were shown to REJECT both the main-move-last and the swapped-link-pair mutants of the observed schedule. No consumed axioms.",
+      "gate": "G-AX",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "bcd6be4fbdf3b24ab9ee6b5adf04c7b6f79b547f725cdd2478efb34c3858ef8b",
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T16:51:45+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 18,
+          "checked": 101194,
+          "disagreements": 0,
+          "discrimination_self_test": {
+            "double-rewrite": "2/2",
+            "link-drop-inner-rewrite": "4/4",
+            "link-pair-swapped": "4/4",
+            "main-move-last": "2/2",
+            "prepatch-no-noop-guard": "2/2"
+          },
+          "exhaustive_sweep": 1176,
+          "fuzz": 100000,
+          "observable": "ordered per-request schedule, alpha = (first entry, multiset of dependent requests, per-link-relation move-before-its-own-rewrite flags)",
+          "oracle": "called: real patched RenameModel.database_forwards/database_backwards via schema_editor(collect_sql=True) with alter_db_table/alter_field instrumented at top level, nothing merged",
+          "seed": 14999,
+          "shadow": "direct (impl region minus Invariant() calls; no axiom, no PSeq)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101194, \"disagreements\": 0, \"seed\": 14999, \"exhaustive_sweep\": 1176, \"boundary\": 18, \"fuzz\": 100000, \"shadow\": \"direct (impl region minus Invariant() calls; no axiom, no PSeq)\", \"observable\": \"ordered per-request schedule, alpha = (first entry, multiset of dependent requests, per-link-relation move-before-its-own-rewrite flags)\", \"oracle\": \"called: real patched RenameModel.database_forwards/database_backwards via schema_editor(collect_sql=True) with alter_db_table/alter_field instrumented at top level, nothing merged\", \"discrimination_self_test\": {\"prepatch-no-noop-guard\": \"2/2\", \"main-move-last\": \"2/2\", \"double-rewrite\": \"2/2\", \"link-pair-swapped\": \"4/4\", \"link-drop-inner-rewrite\": \"4/4\"}}",
+      "gate": "G-CONF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "fede5c1ce2df8ea5cc5ee060629e1a86ae7685adf4cebf248a888481a1e6c050",
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T16:52:22+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c",
+        "model_prepatch.py": "64c40917a3d66ce8d8b64c6f4571adb40a66950fd406ea64156ebca2f2e4c328"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T20:28:16+00:00",
+      "code_version": "17d21390e-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 12 admissible attacks re-run of 12 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 12 admissible attacks re-run of 12 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 12 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T20:31:50+00:00",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c",
+        "properties.py": "2c0b1cbc366e4850f5102f84325ba965a489e777c5091ae873279d2c7df33c90"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T16:53:33+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c",
+        "model_prepatch.py": "64c40917a3d66ce8d8b64c6f4571adb40a66950fd406ea64156ebca2f2e4c328"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T16:53:33+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "7b7750199bc8de9aad19dcae39a9f81077462cb83864b278216f5963398838e6",
+          "impl": "ec4f295103b0cd4321bfe153295be5a5dc988bda13d4638fd428a368fdbb2335",
+          "invariants": "a5f5ac49a808433dfebd586a6ce0984c4263dba55f9e7b54effe6afc0922e7ae",
+          "post-conditions": "eaf8897b69fd99034005affecb1fed55a189306e5438bfb2221067b6dec91cf4",
+          "pre-conditions": "c7a9bd5481eee0abb8e646637e902bfc9d18348caeb809b03582bd83b76b6c63",
+          "pure": "20abd9c84dca588c67285e57c024bff3653136a9d2614cbca3110301b81664e7",
+          "spec_view": "4b65124ad816fa411e1fe34459f53f2f74cce7a9ac8a103b7409b78714744916"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T16:53:33+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "eecabd776e3ed777efcc5e07cefeed5e166973e62b4741a080c2c895bc740f24",
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T16:53:34+00:00",
+      "code_version": "18e4a6e32-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T17:56:30+00:00",
+      "code_version": "70785cfb4-dirty",
+      "data": {
+        "judged": 18,
+        "killed": 18,
+        "no_verdict": "timeout",
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 19,
+        "unjudged": [
+          "line 242: '2' -> '1'"
+        ]
+      },
+      "detail": "killed 18/18 (100%); no verdict on 1: [\"line 242: '2' -> '1'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "note": "The 19th sampled mutant (\"line 242: '2' -> '1'\") reaches no verdict inside its per-mutant cap rather than surviving; the G-VERIFY note records the mechanism (an untriggered quantified invariant over the list the loop appends to) and the ablations that identified it. Held as a non-measurement in both directions: the threshold is met on the 18 refutations alone, and nothing about the spec is inferred from the cap.",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T19:32:18+00:00",
+      "code_version": "6702e69f9-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 12 admissible attacks re-run of 12 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE SETUP. Fresh worktree of repos/django_django.git at base_commit a754b82dac511475b6276039471ccd17cc64aeb8 in /tmp (mktemp -d), with benchmark-verified/django__django-14999/patch.diff APPLIED via `git apply` -- the correct reference for the modeled function per the brief (base commit is the reference only for untouched callees, and the axioms region here is EMPTY, so there is no axiom to check against base). Confirmed by direct read that the patched guard `old_db_table = ...; new_db_table = ...; if old_db_table == new_db_table: return` is live in RenameModel.database_forwards (:322-327). Bundle NOT modified: `git status --porcelain benchmark-verified/django__django-14999/` is empty. Spec regions parse cleanly via swebench_unified.markers.parse_regions(src, get_backend('nagini')); spec_signature computed; same_spec(src,src)=True.\n\nWHAT I ATTACKED. Faithfulness-break = find an in-domain input where the modeled rename_schema_schedule disagrees with the real patched callee. The spec's STRONG (breakable) clauses are: (1) equal identifiers => EMPTY schedule (nothing requested at all, not even dependent work); (2) main move is the FIRST entry; (3) every later entry is a valid dependent code; (4) no code issued twice; (5) EXACT length 1+nc+2*nl (no shortfall AND no extra); (6) within one link relation, the link-table MOVE strictly precedes the rewrite of the column INSIDE that same link table. Any of these being too strong for the real method on an input the bundle does not carve out is UNFAITHFUL.\n\nMETHOD -- INDEPENDENT PROBE (not the bundle's generator). I wrote my own harness () that builds real ProjectStates from migrations.CreateModel/AddField, materializes tables with editor.create_model, runs the REAL patched database_forwards AND database_backwards under connection.schema_editor(collect_sql=True) with alter_db_table/alter_field wrapped on the live editor and a depth counter so only TOP-LEVEL requests count (the sqlite rebuild re-enters both), maps raw requests into the model's code scheme, and MECHANICALLY evaluates clauses (1)-(6) as code rather than by eye. Important correctness detail I had to fix in my own probe: labeling must be DIRECTION-AWARE (for backwards the old/new model roles swap) and must mirror :332-337, where the real method passes model=new_model for a SELF-referential relation. My first pass produced spurious UNKNOWN/duplicate 'violations' purely from my own mislabeling; after fixing the labeler every one of those disappeared. I record this because reporting that first pass would have been a false UNFAITHFUL.\n\nSHAPES PROBED -- ALL AGREE (0 clause violations), forwards AND backwards, on BOTH the equal-identifier and the differing-identifier branch, on shapes the bundle's own generator never builds:\nno-dependents [-1]; fk-only [-1,0]; self-FK [-1,0]; self-m2m symmetrical AND symmetrical=False (the `continue` at :353-354 -- correctly lands in related_objects as a COLUMN relation, nl=0) [-1,0]; own-m2m [-1,0,1]; two m2m to the SAME target (duplicate-code trap for clause 4) [-1,0,1,2,3] -- distinct link tables, no duplicate; two FKs from the SAME model (duplicate-label trap) [-1,0,1]; EXPLICIT through (auto_created False -> continue; its FK becomes a column relation instead) [-1,0]; m2m with EXPLICIT db_table on the link table -> the move request is STILL issued (alter_db_table's internal equal-names short-circuit at base/schema.py:470-473 sits BELOW the observable, exactly as mapping.md row 3 discloses) [-1,0,1]; incoming OneToOne [-1,0]; incoming m2m declared on ANOTHER model [-1,0]; hidden related_name='+' [-1,0,1]; wide 3fk+2m2m [-1,0..6] = 1+3+2*2=8 entries with each link move immediately followed by its OWN column rewrite (clause 6 pointwise); m2m+self-m2m+fk in both declaration orders [-1,0,1,2]; m2m / explicit-through / m2m interleaved [-1,0,1,2,3,4]; unmanaged DEPENDENT model (exclusion (a) covers only the RENAMED model, so this is IN domain) [-1,0]; dependent with required_db_vendor='postgresql' [-1,0]; m2m TARGET unmanaged [-1,0,1]; FK from a concrete model with a proxy subclass [-1,0]; FK with to_field to a non-pk unique column [-1,0]; cross-app m2m with DISTINCT model_name [-1,0,1]; renamed model as both m2m TARGET and m2m OWNER [-1,0,1,2].\nMTI with the renamed model as the PARENT is NOT a realizable input at all: Django raises InvalidBasesError('Cannot resolve bases for [Child]') from ProjectState.apps, so it cannot witness a divergence.\n\nRANDOMIZED FUZZ. 140 random feature combinations (drawn from fk/self-fk/o2o/own-m2m/self-m2m/incoming-m2m/explicit-through/cross-app-m2m/m2m-db_table/hidden-fk, 1-4 features each) x {equal, differing identifiers} x {forwards, backwards} = 560 runs, seed 20260816, clauses (1)-(6) checked mechanically on every run. CLAUSE VIOLATIONS: 0. I also specifically instrumented for zip-misalignment between old_model._meta.local_many_to_many and new_model._meta.local_many_to_many (the one way :350's zip could silently drop a link relation and make clause (5) too strong): 0 misaligned cases out of 560.\n\nSTRONGEST CLAUSE-(1) TEST (the one I most expected to break, and the bundle's own bridge realizes it). I DECOUPLED the two levels: forced the main tables equal by assigning _meta.db_table='SAME_MAIN' on both rendered classes while the auto-created LINK table's derived name genuinely DIFFERED ('dc1_rider_stables' -> 'dc1_runner_stables'), with a column relation present too. Clause (1) demands the schedule be EMPTY -- i.e. the spec forbids moving the link table even though that link table's name really does change. The real patched method requested NOTHING and collected 0 SQL, forwards and backwards. Same result for a pinned db_table on the renamed model with an own m2m (+fk). So clause (1) is not too strong even where its consequence is counter-intuitive; it is exactly the early return at :326-327.\n\nDISCLOSED EXCLUSIONS -- the ONLY inputs where I could make the real method depart from the spec, and both are carved out in the bundle's OWN text (model.py SCOPE bullets 1-2; mapping.md section 3 / G-CONF paragraphs on allow_migrate_model and on create_many_to_many_intermediary_model), with numbers my measurements REPRODUCE rather than contradict:\n(a) allow_migrate_model False (:321) -- unmanaged/proxy/swapped renamed model, or required_db_vendor/required_db_features unsatisfied (Options.can_migrate, options.py:343-357): real requests NOTHING even when identifiers differ.\n(b) a link relation whose inside column is not addressable under the renamed model's _meta.model_name on EITHER side. When the m2m target shares the owning model's model_name, create_many_to_many_intermediary_model (related.py:1112-1116) sets to='to_<n>'/from_='from_<n>', so :367/:368 raise FieldDoesNotExist. I reproduced BOTH sides: ta.Tag->Label with m2m to tb.Tag (OLD-name collision; pre-rename link fields ['id','from_tag','to_tag']) and ua.Foo->Tag with m2m to ub.Tag (NEW-name collision; post-rename link fields ['id','from_tag','to_tag']) -- both raise 'Tag_peers has no field named tag' after issuing 2 of 3 requests, forwards AND backwards. I found two FURTHER instances of this SAME family: renaming Rider->Runner in an app that already contains a model named Runner which the renamed model has an m2m to (to_state link fields become ['id','from_runner','to_runner']), and a 3-link shape with the colliding m2m in the MIDDLE (records 4 of 7 then raises) -- confirming the disclosed truncation-not-dropping behavior. Critically, on the colliding shape with EQUAL identifiers the real method still requests nothing, matching clause (1) -- so the carve-out does not leak into the inert branch. Both are restrictions on alpha's DOMAIN (which concrete configurations the bridge realizes), not hidden weakenings of Requires, which remains only Acc(list_pred(...),1/2) x2 plus MustTerminate(2) with no value constraint.\n\nGATE REPRODUCTION against MY worktree (not the bundle's, and with no patch applied by the scripts themselves):\n- PYTHONPATH=<my worktree> python3 axiom_check.py -> exit 0. Confirms noop=[] with 0 SQL and changed=[-1,0,1,2] in BOTH directions on the same built scenario with only identifier equality flipped (so the empty schedule is attributable to the comparison, not to absent dependents), and REJECTS both the main-move-last and swapped-link-pair mutants of the observed schedule -- the order clauses are non-vacuous.\n- PYTHONPATH=<my worktree> python3 conformance_check.py -> exit 0. 101194 inputs (18 boundary incl. the F2P assertNumQueries(0) shape + 1176 exhaustive sweep of the whole finite realizable space + 100000 fuzz, seed 14999), 0 disagreements, at the ORDERED PER-REQUEST granularity, with all five red-capability probes flagged (prepatch 2/2, main-move-last 2/2, double-rewrite 2/2, link-pair-swapped 4/4, link-drop-inner-rewrite 4/4). The harness is demonstrably able to go red on precisely the four properties I was attacking, and does not. assert_oracle_is_patched() and assert_named_exclusions() make the patched oracle and the two carve-outs machine-enforced rather than prose.\n\nDIRECTION COVERAGE. database_backwards (:371-378) swaps the names and delegates, so a one-sided spec would be direction-unstable; every probe above ran BOTH directions and agreed, including the two collision families, which raise symmetrically.\n\nNOT A FINDING (per host-saturation memory): I did not obtain a Nagini verdict on the bundle model.py within the timeout. Faithfulness does not rest on the verifier: the differential oracle CALLS the real method (not a transliteration), and G-AX plus my 560-run independent fuzz all agree. Also recorded per the 'retained attack labels' memory: the prior retained G-PANEL-2 verdict was FAITHFUL, and I re-derived that conclusion from my own worktree and my own probes rather than echoing it -- my probe set is disjoint from the prior one on several shapes (decoupled main-vs-link clause-1 test, rename-into-an-existing-target-name collision, colliding m2m mid-list, unmanaged/vendor-restricted DEPENDENT, m2m target unmanaged, proxy subclass, to_field non-pk, zip-misalignment instrumentation, 560-run randomized structural fuzz).\n\nCONCLUSION. I could not find any input inside the spec's disclosed domain on which the modeled function disagrees with the real patched callee. Every divergence I manufactured lands on one of the two exclusions the bundle itself states, quantifies and machine-asserts, and I found no THIRD divergence family (in particular none at the column-relation lookup :341-343, none from zip misalignment at :350, and none from the alter_db_table equal-names short-circuit, which is correctly below the observable). The spec is not too strong and does not drift from the repo: clauses (2), (4), (5) and (6) are each positively exhibited by the real method on shapes the bundle's generator never builds, and clause (1) survives the decoupled test where its consequence is least intuitive. Verdict FAITHFUL; no diverging input to cite.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE / WHAT I JUDGED. I regenerated the consumer spec view myself from the on-disk bytes rather than trusting any recorded hash: markers.spec_view(model.py, get_backend('nagini')) -> specview.txt, 212 lines = module docstring + imports + (empty) axioms region + pure region + rename_schema_schedule signature + pre/post-conditions. I diffed model.py against that projection: exactly lines 210-267 (the impl region, including its two nested Invariant blocks and the three closing Assert proof steps) collapse to the single placeholder '...  # implementation elided - supplied by the consumer'. Nothing else differs, so the impl is genuinely hidden. Solver-visible surface confirmed by reading eval/prompts.py::_spec_block/initial_user: problem_statement + hints_text + spec_view + modeled_functions. hints_text for this instance is EMPTY (repr ''), so there is no hint-baseline ambiguity - the public baseline is the problem_statement alone. refinement.md, mapping.md, verdict.md, properties.py, model_prepatch.py, axiom_check.py, conformance_check.py, meta.json are construction-side and never rendered to the solver, so refinement.md's verbatim reproduction of the gold hunk is out of scope here.\n\nNO RELAXATION IN PLAY - CHECKED, NOT ASSUMED. meta.json has NO 'relaxed_leakage' key (keys enumerated: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version), gates['G-LEAK'].status == 'pass' (not 'relaxed'), and no RELAXED_LEAKAGE.md exists anywhere under the instance directory (find -iname '*RELAX*' -> empty). So this is an ordinary leakage judgement with no inherited disposition, and leak.py's relaxation branch is not reachable for this bundle.\n\nNO FILE IN THE BUNDLE ADDRESSES ME. I ran leakage.reviewer_directed() over every .md/.json/.py file in the bundle (axiom_check.py, conformance_check.py, mapping.md, meta.json, model.py, model_prepatch.py, pbt_result.json, properties.py, refinement.md, verdict.md): all returned []. The 'G-PANEL' strings I found by grep are prior gate records and refinement.md narration of what earlier roles refuted - descriptive history, not instructions about which verdict to submit. Nothing steers this role.\n\nBASELINE. problem_statement in full: 'RenameModel with db_table should be a noop. / A RenameModel operation that already has db_table defined must be a noop. / In Postgres, it drops and recreates foreign key constraints. In sqlite it recreates the table (as expected for a table renaming).' Gold patch: inside RenameModel.database_forwards, bind old_db_table/new_db_table and 'if old_db_table == new_db_table: return' before alter_db_table, then reuse the two locals in the alter_db_table call.\n\nLOAD-BEARING TEST (the discriminator is the public sentence, measured not asserted). model_prepatch.py shares the spec exactly - markers.same_spec(model.py, model_prepatch.py, nagini) is True, and `python -m swebench_unified.adversary same-spec nagini django__django-14999 <prepatch>` exits 0 ('SAME - attack shares the bundle's exact specification'). (a) Full spec vs PRE-patch impl: `bash scripts/nagini_verify.sh prepatch.py` -> exit 1, 'Verification failed', single error at prepatch.py:161 'Postcondition ... Implies((before_table == after_table), (len(Result()) == 0)) might not hold' (18.4s). (b) I then deleted ONLY clause (1) (the three lines at model.py:159-161) and re-verified the same pre-patch impl: `nagini_verify.sh prepatch_no1.py` -> exit 0, 'Verification successful' (146.4s). So clause (1) is the sole load-bearing discriminator and clauses (2)-(6) plus the permission/accessibility framing all hold on the UNPATCHED implementation - they describe behaviour the gold edit does not touch, so they cannot be leaking it. Clause (1) itself is 'when the before- and after- table identifiers are the SAME ... the schedule is empty', which is a direct restatement of 'A RenameModel operation that already has db_table defined must be a noop'. Its one emphasis beyond bare emptiness - that 'crucially none of the requests belonging to the dependent column relations and link relations' are issued either - is likewise derivable from the public text's second sentence, 'In Postgres, it drops and recreates foreign key constraints', which is exactly the dependent FK-column work being wrongly issued in the inert case. Nothing in the spec view goes past that facet.\n\nVOCABULARY / IDENTIFIER SWEEP OF THE SPEC VIEW. Case-insensitive grep over specview.txt for db_table, alter_db_table, related_objects, database_forwards, RenameModel, schema_editor, _meta, old_model, new_model, through, m2m, bug, regression, fix/fixed, previously, patch, noop/no-op, 'return early'/'early return', postgres, sqlite, 'foreign key constraint' -> ZERO hits. The spec view never names the repo symbol, the file, the guarded field, the two locals the patch introduces, the early-return shape, or the two databases from the issue; it speaks only of 'table identifiers', 'column relations', 'link relations' and an abstract List[int] schedule. The mechanical screen agrees independently: leakage.screen(model.py, nagini, patch, problem_statement) -> passed=True, hard_failures=[]. Behaviour is stated as desired behaviour throughout ('Behaviour under specification (stated as desired behaviour, not as an edit)'), with no diff-shaped or before/after-the-fix narration; the docstring's convergence remarks (line-count cliff, MustTerminate measure) are proof-engineering notes about the elided proof, not about the edit.\n\nADJACENT SOLVER-VISIBLE CHANNEL, JUDGED AND CLEARED. modeled_functions IS rendered into the spec block for nagini, and its carrier_type does name db_table, related_objects and repo line numbers (:319, :329, :331, :351, :358-362, :365-369). I judged this and it is not a leak of the gold edit: repo_symbol/repo_location is the deliberately-granted edit-localization channel (prompts.py::_localization_block renders the same repo_symbol + changed_files in mode 0, described in-harness as 'the SAME information the spec modes get'), the line references point at the UNCHANGED dependent loops and the function head rather than the patch's insertion site, and the only behavioural claim it makes - 'empty iff the two table identifiers are equal' - is the same clause-(1) facet already public as 'must be a noop'. It does not state the edit shape (no compare-the-two-locals-and-return-early).\n\nINCIDENTAL RECORD DEFECT (does not change this verdict). meta.json's top-level region_hashes disagrees with the on-disk model.py for three entries: spec_view (meta df6191f1... vs recomputed 4b65124a...), impl, and invariants. Diagnosis: the spec_view TEXT is byte-stable - I recomputed it from model.py at HEAD (18e4a6e32), c0aafc53e and 9c1fa6bf3 and got spec_view hash 4b65124a in all three - so the spec has not drifted; the recorded df6191f1 is an older harness rendering, from when markers.ELISION_IMPL used an ASCII '--' instead of the current em dash (the earlier panel note quotes the '--' form of the placeholder). The impl/invariants deltas are the genuine, intended impl churn across those commits with the spec frozen. The G-LEAK stamp's sources digest for model.py (04e466e8...) equals the current file's sha256, so that gate record is fresh against the bytes I judged. Flagging the stale region_hashes block as a bookkeeping item for the record; it is not a leakage finding.\n\nCONCLUSION. The spec view's single discriminating clause is the problem_statement's own 'must be a noop' sentence, verified load-bearing by the strip-and-reverify measurement above; every other clause verifies against the pre-patch implementation and so encodes no information about the gold edit; and the view contains none of the patch's identifiers or shape. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 12 admissible attacks re-run of 12 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE SETUP. Fresh worktree of repos/django_django.git at base_commit a754b82dac511475b6276039471ccd17cc64aeb8 in /tmp (mktemp -d), with benchmark-verified/django__django-14999/patch.diff APPLIED via `git apply` -- the correct reference for the modeled function per the brief (base commit is the reference only for untouched callees, and the axioms region here is EMPTY, so there is no axiom to check against base). Confirmed by direct read that the patched guard `old_db_table = ...; new_db_table = ...; if old_db_table == new_db_table: return` is live in RenameModel.database_forwards (:322-327). Bundle NOT modified: `git status --porcelain benchmark-verified/django__django-14999/` is empty. Spec regions parse cleanly via swebench_unified.markers.parse_regions(src, get_backend('nagini')); spec_signature computed; same_spec(src,src)=True.\n\nWHAT I ATTACKED. Faithfulness-break = find an in-domain input where the modeled rename_schema_schedule disagrees with the real patched callee. The spec's STRONG (breakable) clauses are: (1) equal identifiers => EMPTY schedule (nothing requested at all, not even dependent work); (2) main move is the FIRST entry; (3) every later entry is a valid dependent code; (4) no code issued twice; (5) EXACT length 1+nc+2*nl (no shortfall AND no extra); (6) within one link relation, the link-table MOVE strictly precedes the rewrite of the column INSIDE that same link table. Any of these being too strong for the real method on an input the bundle does not carve out is UNFAITHFUL.\n\nMETHOD -- INDEPENDENT PROBE (not the bundle's generator). I wrote my own harness () that builds real ProjectStates from migrations.CreateModel/AddField, materializes tables with editor.create_model, runs the REAL patched database_forwards AND database_backwards under connection.schema_editor(collect_sql=True) with alter_db_table/alter_field wrapped on the live editor and a depth counter so only TOP-LEVEL requests count (the sqlite rebuild re-enters both), maps raw requests into the model's code scheme, and MECHANICALLY evaluates clauses (1)-(6) as code rather than by eye. Important correctness detail I had to fix in my own probe: labeling must be DIRECTION-AWARE (for backwards the old/new model roles swap) and must mirror :332-337, where the real method passes model=new_model for a SELF-referential relation. My first pass produced spurious UNKNOWN/duplicate 'violations' purely from my own mislabeling; after fixing the labeler every one of those disappeared. I record this because reporting that first pass would have been a false UNFAITHFUL.\n\nSHAPES PROBED -- ALL AGREE (0 clause violations), forwards AND backwards, on BOTH the equal-identifier and the differing-identifier branch, on shapes the bundle's own generator never builds:\nno-dependents [-1]; fk-only [-1,0]; self-FK [-1,0]; self-m2m symmetrical AND symmetrical=False (the `continue` at :353-354 -- correctly lands in related_objects as a COLUMN relation, nl=0) [-1,0]; own-m2m [-1,0,1]; two m2m to the SAME target (duplicate-code trap for clause 4) [-1,0,1,2,3] -- distinct link tables, no duplicate; two FKs from the SAME model (duplicate-label trap) [-1,0,1]; EXPLICIT through (auto_created False -> continue; its FK becomes a column relation instead) [-1,0]; m2m with EXPLICIT db_table on the link table -> the move request is STILL issued (alter_db_table's internal equal-names short-circuit at base/schema.py:470-473 sits BELOW the observable, exactly as mapping.md row 3 discloses) [-1,0,1]; incoming OneToOne [-1,0]; incoming m2m declared on ANOTHER model [-1,0]; hidden related_name='+' [-1,0,1]; wide 3fk+2m2m [-1,0..6] = 1+3+2*2=8 entries with each link move immediately followed by its OWN column rewrite (clause 6 pointwise); m2m+self-m2m+fk in both declaration orders [-1,0,1,2]; m2m / explicit-through / m2m interleaved [-1,0,1,2,3,4]; unmanaged DEPENDENT model (exclusion (a) covers only the RENAMED model, so this is IN domain) [-1,0]; dependent with required_db_vendor='postgresql' [-1,0]; m2m TARGET unmanaged [-1,0,1]; FK from a concrete model with a proxy subclass [-1,0]; FK with to_field to a non-pk unique column [-1,0]; cross-app m2m with DISTINCT model_name [-1,0,1]; renamed model as both m2m TARGET and m2m OWNER [-1,0,1,2].\nMTI with the renamed model as the PARENT is NOT a realizable input at all: Django raises InvalidBasesError('Cannot resolve bases for [Child]') from ProjectState.apps, so it cannot witness a divergence.\n\nRANDOMIZED FUZZ. 140 random feature combinations (drawn from fk/self-fk/o2o/own-m2m/self-m2m/incoming-m2m/explicit-through/cross-app-m2m/m2m-db_table/hidden-fk, 1-4 features each) x {equal, differing identifiers} x {forwards, backwards} = 560 runs, seed 20260816, clauses (1)-(6) checked mechanically on every run. CLAUSE VIOLATIONS: 0. I also specifically instrumented for zip-misalignment between old_model._meta.local_many_to_many and new_model._meta.local_many_to_many (the one way :350's zip could silently drop a link relation and make clause (5) too strong): 0 misaligned cases out of 560.\n\nSTRONGEST CLAUSE-(1) TEST (the one I most expected to break, and the bundle's own bridge realizes it). I DECOUPLED the two levels: forced the main tables equal by assigning _meta.db_table='SAME_MAIN' on both rendered classes while the auto-created LINK table's derived name genuinely DIFFERED ('dc1_rider_stables' -> 'dc1_runner_stables'), with a column relation present too. Clause (1) demands the schedule be EMPTY -- i.e. the spec forbids moving the link table even though that link table's name really does change. The real patched method requested NOTHING and collected 0 SQL, forwards and backwards. Same result for a pinned db_table on the renamed model with an own m2m (+fk). So clause (1) is not too strong even where its consequence is counter-intuitive; it is exactly the early return at :326-327.\n\nDISCLOSED EXCLUSIONS -- the ONLY inputs where I could make the real method depart from the spec, and both are carved out in the bundle's OWN text (model.py SCOPE bullets 1-2; mapping.md section 3 / G-CONF paragraphs on allow_migrate_model and on create_many_to_many_intermediary_model), with numbers my measurements REPRODUCE rather than contradict:\n(a) allow_migrate_model False (:321) -- unmanaged/proxy/swapped renamed model, or required_db_vendor/required_db_features unsatisfied (Options.can_migrate, options.py:343-357): real requests NOTHING even when identifiers differ.\n(b) a link relation whose inside column is not addressable under the renamed model's _meta.model_name on EITHER side. When the m2m target shares the owning model's model_name, create_many_to_many_intermediary_model (related.py:1112-1116) sets to='to_<n>'/from_='from_<n>', so :367/:368 raise FieldDoesNotExist. I reproduced BOTH sides: ta.Tag->Label with m2m to tb.Tag (OLD-name collision; pre-rename link fields ['id','from_tag','to_tag']) and ua.Foo->Tag with m2m to ub.Tag (NEW-name collision; post-rename link fields ['id','from_tag','to_tag']) -- both raise 'Tag_peers has no field named tag' after issuing 2 of 3 requests, forwards AND backwards. I found two FURTHER instances of this SAME family: renaming Rider->Runner in an app that already contains a model named Runner which the renamed model has an m2m to (to_state link fields become ['id','from_runner','to_runner']), and a 3-link shape with the colliding m2m in the MIDDLE (records 4 of 7 then raises) -- confirming the disclosed truncation-not-dropping behavior. Critically, on the colliding shape with EQUAL identifiers the real method still requests nothing, matching clause (1) -- so the carve-out does not leak into the inert branch. Both are restrictions on alpha's DOMAIN (which concrete configurations the bridge realizes), not hidden weakenings of Requires, which remains only Acc(list_pred(...),1/2) x2 plus MustTerminate(2) with no value constraint.\n\nGATE REPRODUCTION against MY worktree (not the bundle's, and with no patch applied by the scripts themselves):\n- PYTHONPATH=<my worktree> python3 axiom_check.py -> exit 0. Confirms noop=[] with 0 SQL and changed=[-1,0,1,2] in BOTH directions on the same built scenario with only identifier equality flipped (so the empty schedule is attributable to the comparison, not to absent dependents), and REJECTS both the main-move-last and swapped-link-pair mutants of the observed schedule -- the order clauses are non-vacuous.\n- PYTHONPATH=<my worktree> python3 conformance_check.py -> exit 0. 101194 inputs (18 boundary incl. the F2P assertNumQueries(0) shape + 1176 exhaustive sweep of the whole finite realizable space + 100000 fuzz, seed 14999), 0 disagreements, at the ORDERED PER-REQUEST granularity, with all five red-capability probes flagged (prepatch 2/2, main-move-last 2/2, double-rewrite 2/2, link-pair-swapped 4/4, link-drop-inner-rewrite 4/4). The harness is demonstrably able to go red on precisely the four properties I was attacking, and does not. assert_oracle_is_patched() and assert_named_exclusions() make the patched oracle and the two carve-outs machine-enforced rather than prose.\n\nDIRECTION COVERAGE. database_backwards (:371-378) swaps the names and delegates, so a one-sided spec would be direction-unstable; every probe above ran BOTH directions and agreed, including the two collision families, which raise symmetrically.\n\nNOT A FINDING (per host-saturation memory): I did not obtain a Nagini verdict on the bundle model.py within the timeout. Faithfulness does not rest on the verifier: the differential oracle CALLS the real method (not a transliteration), and G-AX plus my 560-run independent fuzz all agree. Also recorded per the 'retained attack labels' memory: the prior retained G-PANEL-2 verdict was FAITHFUL, and I re-derived that conclusion from my own worktree and my own probes rather than echoing it -- my probe set is disjoint from the prior one on several shapes (decoupled main-vs-link clause-1 test, rename-into-an-existing-target-name collision, colliding m2m mid-list, unmanaged/vendor-restricted DEPENDENT, m2m target unmanaged, proxy subclass, to_field non-pk, zip-misalignment instrumentation, 560-run randomized structural fuzz).\n\nCONCLUSION. I could not find any input inside the spec's disclosed domain on which the modeled function disagrees with the real patched callee. Every divergence I manufactured lands on one of the two exclusions the bundle itself states, quantifies and machine-asserts, and I found no THIRD divergence family (in particular none at the column-relation lookup :341-343, none from zip misalignment at :350, and none from the alter_db_table equal-names short-circuit, which is correctly below the observable). The spec is not too strong and does not drift from the repo: clauses (2), (4), (5) and (6) are each positively exhibited by the real method on shapes the bundle's generator never builds, and clause (1) survives the decoupled test where its consequence is least intuitive. Verdict FAITHFUL; no diverging input to cite.; G-PANEL-3 (leakage): pass \u2014 SCOPE / WHAT I JUDGED. I regenerated the consumer spec view myself from the on-disk bytes rather than trusting any recorded hash: markers.spec_view(model.py, get_backend('nagini')) -> specview.txt, 212 lines = module docstring + imports + (empty) axioms region + pure region + rename_schema_schedule signature + pre/post-conditions. I diffed model.py against that projection: exactly lines 210-267 (the impl region, including its two nested Invariant blocks and the three closing Assert proof steps) collapse to the single placeholder '...  # implementation elided - supplied by the consumer'. Nothing else differs, so the impl is genuinely hidden. Solver-visible surface confirmed by reading eval/prompts.py::_spec_block/initial_user: problem_statement + hints_text + spec_view + modeled_functions. hints_text for this instance is EMPTY (repr ''), so there is no hint-baseline ambiguity - the public baseline is the problem_statement alone. refinement.md, mapping.md, verdict.md, properties.py, model_prepatch.py, axiom_check.py, conformance_check.py, meta.json are construction-side and never rendered to the solver, so refinement.md's verbatim reproduction of the gold hunk is out of scope here.\n\nNO RELAXATION IN PLAY - CHECKED, NOT ASSUMED. meta.json has NO 'relaxed_leakage' key (keys enumerated: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version), gates['G-LEAK'].status == 'pass' (not 'relaxed'), and no RELAXED_LEAKAGE.md exists anywhere under the instance directory (find -iname '*RELAX*' -> empty). So this is an ordinary leakage judgement with no inherited disposition, and leak.py's relaxation branch is not reachable for this bundle.\n\nNO FILE IN THE BUNDLE ADDRESSES ME. I ran leakage.reviewer_directed() over every .md/.json/.py file in the bundle (axiom_check.py, conformance_check.py, mapping.md, meta.json, model.py, model_prepatch.py, pbt_result.json, properties.py, refinement.md, verdict.md): all returned []. The 'G-PANEL' strings I found by grep are prior gate records and refinement.md narration of what earlier roles refuted - descriptive history, not instructions about which verdict to submit. Nothing steers this role.\n\nBASELINE. problem_statement in full: 'RenameModel with db_table should be a noop. / A RenameModel operation that already has db_table defined must be a noop. / In Postgres, it drops and recreates foreign key constraints. In sqlite it recreates the table (as expected for a table renaming).' Gold patch: inside RenameModel.database_forwards, bind old_db_table/new_db_table and 'if old_db_table == new_db_table: return' before alter_db_table, then reuse the two locals in the alter_db_table call.\n\nLOAD-BEARING TEST (the discriminator is the public sentence, measured not asserted). model_prepatch.py shares the spec exactly - markers.same_spec(model.py, model_prepatch.py, nagini) is True, and `python -m swebench_unified.adversary same-spec nagini django__django-14999 <prepatch>` exits 0 ('SAME - attack shares the bundle's exact specification'). (a) Full spec vs PRE-patch impl: `bash scripts/nagini_verify.sh prepatch.py` -> exit 1, 'Verification failed', single error at prepatch.py:161 'Postcondition ... Implies((before_table == after_table), (len(Result()) == 0)) might not hold' (18.4s). (b) I then deleted ONLY clause (1) (the three lines at model.py:159-161) and re-verified the same pre-patch impl: `nagini_verify.sh prepatch_no1.py` -> exit 0, 'Verification successful' (146.4s). So clause (1) is the sole load-bearing discriminator and clauses (2)-(6) plus the permission/accessibility framing all hold on the UNPATCHED implementation - they describe behaviour the gold edit does not touch, so they cannot be leaking it. Clause (1) itself is 'when the before- and after- table identifiers are the SAME ... the schedule is empty', which is a direct restatement of 'A RenameModel operation that already has db_table defined must be a noop'. Its one emphasis beyond bare emptiness - that 'crucially none of the requests belonging to the dependent column relations and link relations' are issued either - is likewise derivable from the public text's second sentence, 'In Postgres, it drops and recreates foreign key constraints', which is exactly the dependent FK-column work being wrongly issued in the inert case. Nothing in the spec view goes past that facet.\n\nVOCABULARY / IDENTIFIER SWEEP OF THE SPEC VIEW. Case-insensitive grep over specview.txt for db_table, alter_db_table, related_objects, database_forwards, RenameModel, schema_editor, _meta, old_model, new_model, through, m2m, bug, regression, fix/fixed, previously, patch, noop/no-op, 'return early'/'early return', postgres, sqlite, 'foreign key constraint' -> ZERO hits. The spec view never names the repo symbol, the file, the guarded field, the two locals the patch introduces, the early-return shape, or the two databases from the issue; it speaks only of 'table identifiers', 'column relations', 'link relations' and an abstract List[int] schedule. The mechanical screen agrees independently: leakage.screen(model.py, nagini, patch, problem_statement) -> passed=True, hard_failures=[]. Behaviour is stated as desired behaviour throughout ('Behaviour under specification (stated as desired behaviour, not as an edit)'), with no diff-shaped or before/after-the-fix narration; the docstring's convergence remarks (line-count cliff, MustTerminate measure) are proof-engineering notes about the elided proof, not about the edit.\n\nADJACENT SOLVER-VISIBLE CHANNEL, JUDGED AND CLEARED. modeled_functions IS rendered into the spec block for nagini, and its carrier_type does name db_table, related_objects and repo line numbers (:319, :329, :331, :351, :358-362, :365-369). I judged this and it is not a leak of the gold edit: repo_symbol/repo_location is the deliberately-granted edit-localization channel (prompts.py::_localization_block renders the same repo_symbol + changed_files in mode 0, described in-harness as 'the SAME information the spec modes get'), the line references point at the UNCHANGED dependent loops and the function head rather than the patch's insertion site, and the only behavioural claim it makes - 'empty iff the two table identifiers are equal' - is the same clause-(1) facet already public as 'must be a noop'. It does not state the edit shape (no compare-the-two-locals-and-return-early).\n\nINCIDENTAL RECORD DEFECT (does not change this verdict). meta.json's top-level region_hashes disagrees with the on-disk model.py for three entries: spec_view (meta df6191f1... vs recomputed 4b65124a...), impl, and invariants. Diagnosis: the spec_view TEXT is byte-stable - I recomputed it from model.py at HEAD (18e4a6e32), c0aafc53e and 9c1fa6bf3 and got spec_view hash 4b65124a in all three - so the spec has not drifted; the recorded df6191f1 is an older harness rendering, from when markers.ELISION_IMPL used an ASCII '--' instead of the current em dash (the earlier panel note quotes the '--' form of the placeholder). The impl/invariants deltas are the genuine, intended impl churn across those commits with the spec frozen. The G-LEAK stamp's sources digest for model.py (04e466e8...) equals the current file's sha256, so that gate record is fresh against the bytes I judged. Flagging the stale region_hashes block as a bookkeeping item for the record; it is not a leakage finding.\n\nCONCLUSION. The spec view's single discriminating clause is the problem_statement's own 'must be a noop' sentence, verified load-bearing by the strip-and-reverify measurement above; every other clause verifies against the pre-patch implementation and so encodes no information about the gold edit; and the view contains none of the patch's identifiers or shape. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T20:31:51+00:00",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T20:31:49+00:00",
+      "code_version": "17d21390e-dirty",
+      "harness_digest": "d641aa3e48ac",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 12 admissible attacks re-run of 12 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 12 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c",
+        "properties.py": "2c0b1cbc366e4850f5102f84325ba965a489e777c5091ae873279d2c7df33c90"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T20:00:14+00:00",
+      "code_version": "3d6474c7f-dirty",
+      "harness_digest": "d641aa3e48ac",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE SETUP. Fresh worktree of repos/django_django.git at base_commit a754b82dac511475b6276039471ccd17cc64aeb8 in /tmp (mktemp -d), with benchmark-verified/django__django-14999/patch.diff APPLIED via `git apply` -- the correct reference for the modeled function per the brief (base commit is the reference only for untouched callees, and the axioms region here is EMPTY, so there is no axiom to check against base). Confirmed by direct read that the patched guard `old_db_table = ...; new_db_table = ...; if old_db_table == new_db_table: return` is live in RenameModel.database_forwards (:322-327). Bundle NOT modified: `git status --porcelain benchmark-verified/django__django-14999/` is empty. Spec regions parse cleanly via swebench_unified.markers.parse_regions(src, get_backend('nagini')); spec_signature computed; same_spec(src,src)=True.\n\nWHAT I ATTACKED. Faithfulness-break = find an in-domain input where the modeled rename_schema_schedule disagrees with the real patched callee. The spec's STRONG (breakable) clauses are: (1) equal identifiers => EMPTY schedule (nothing requested at all, not even dependent work); (2) main move is the FIRST entry; (3) every later entry is a valid dependent code; (4) no code issued twice; (5) EXACT length 1+nc+2*nl (no shortfall AND no extra); (6) within one link relation, the link-table MOVE strictly precedes the rewrite of the column INSIDE that same link table. Any of these being too strong for the real method on an input the bundle does not carve out is UNFAITHFUL.\n\nMETHOD -- INDEPENDENT PROBE (not the bundle's generator). I wrote my own harness () that builds real ProjectStates from migrations.CreateModel/AddField, materializes tables with editor.create_model, runs the REAL patched database_forwards AND database_backwards under connection.schema_editor(collect_sql=True) with alter_db_table/alter_field wrapped on the live editor and a depth counter so only TOP-LEVEL requests count (the sqlite rebuild re-enters both), maps raw requests into the model's code scheme, and MECHANICALLY evaluates clauses (1)-(6) as code rather than by eye. Important correctness detail I had to fix in my own probe: labeling must be DIRECTION-AWARE (for backwards the old/new model roles swap) and must mirror :332-337, where the real method passes model=new_model for a SELF-referential relation. My first pass produced spurious UNKNOWN/duplicate 'violations' purely from my own mislabeling; after fixing the labeler every one of those disappeared. I record this because reporting that first pass would have been a false UNFAITHFUL.\n\nSHAPES PROBED -- ALL AGREE (0 clause violations), forwards AND backwards, on BOTH the equal-identifier and the differing-identifier branch, on shapes the bundle's own generator never builds:\nno-dependents [-1]; fk-only [-1,0]; self-FK [-1,0]; self-m2m symmetrical AND symmetrical=False (the `continue` at :353-354 -- correctly lands in related_objects as a COLUMN relation, nl=0) [-1,0]; own-m2m [-1,0,1]; two m2m to the SAME target (duplicate-code trap for clause 4) [-1,0,1,2,3] -- distinct link tables, no duplicate; two FKs from the SAME model (duplicate-label trap) [-1,0,1]; EXPLICIT through (auto_created False -> continue; its FK becomes a column relation instead) [-1,0]; m2m with EXPLICIT db_table on the link table -> the move request is STILL issued (alter_db_table's internal equal-names short-circuit at base/schema.py:470-473 sits BELOW the observable, exactly as mapping.md row 3 discloses) [-1,0,1]; incoming OneToOne [-1,0]; incoming m2m declared on ANOTHER model [-1,0]; hidden related_name='+' [-1,0,1]; wide 3fk+2m2m [-1,0..6] = 1+3+2*2=8 entries with each link move immediately followed by its OWN column rewrite (clause 6 pointwise); m2m+self-m2m+fk in both declaration orders [-1,0,1,2]; m2m / explicit-through / m2m interleaved [-1,0,1,2,3,4]; unmanaged DEPENDENT model (exclusion (a) covers only the RENAMED model, so this is IN domain) [-1,0]; dependent with required_db_vendor='postgresql' [-1,0]; m2m TARGET unmanaged [-1,0,1]; FK from a concrete model with a proxy subclass [-1,0]; FK with to_field to a non-pk unique column [-1,0]; cross-app m2m with DISTINCT model_name [-1,0,1]; renamed model as both m2m TARGET and m2m OWNER [-1,0,1,2].\nMTI with the renamed model as the PARENT is NOT a realizable input at all: Django raises InvalidBasesError('Cannot resolve bases for [Child]') from ProjectState.apps, so it cannot witness a divergence.\n\nRANDOMIZED FUZZ. 140 random feature combinations (drawn from fk/self-fk/o2o/own-m2m/self-m2m/incoming-m2m/explicit-through/cross-app-m2m/m2m-db_table/hidden-fk, 1-4 features each) x {equal, differing identifiers} x {forwards, backwards} = 560 runs, seed 20260816, clauses (1)-(6) checked mechanically on every run. CLAUSE VIOLATIONS: 0. I also specifically instrumented for zip-misalignment between old_model._meta.local_many_to_many and new_model._meta.local_many_to_many (the one way :350's zip could silently drop a link relation and make clause (5) too strong): 0 misaligned cases out of 560.\n\nSTRONGEST CLAUSE-(1) TEST (the one I most expected to break, and the bundle's own bridge realizes it). I DECOUPLED the two levels: forced the main tables equal by assigning _meta.db_table='SAME_MAIN' on both rendered classes while the auto-created LINK table's derived name genuinely DIFFERED ('dc1_rider_stables' -> 'dc1_runner_stables'), with a column relation present too. Clause (1) demands the schedule be EMPTY -- i.e. the spec forbids moving the link table even though that link table's name really does change. The real patched method requested NOTHING and collected 0 SQL, forwards and backwards. Same result for a pinned db_table on the renamed model with an own m2m (+fk). So clause (1) is not too strong even where its consequence is counter-intuitive; it is exactly the early return at :326-327.\n\nDISCLOSED EXCLUSIONS -- the ONLY inputs where I could make the real method depart from the spec, and both are carved out in the bundle's OWN text (model.py SCOPE bullets 1-2; mapping.md section 3 / G-CONF paragraphs on allow_migrate_model and on create_many_to_many_intermediary_model), with numbers my measurements REPRODUCE rather than contradict:\n\n(a) allow_migrate_model False (:321) -- unmanaged/proxy/swapped renamed model, or required_db_vendor/required_db_features unsatisfied (Options.can_migrate, options.py:343-357): real requests NOTHING even when identifiers differ.\n\n(b) a link relation whose inside column is not addressable under the renamed model's _meta.model_name on EITHER side. When the m2m target shares the owning model's model_name, create_many_to_many_intermediary_model (related.py:1112-1116) sets to='to_<n>'/from_='from_<n>', so :367/:368 raise FieldDoesNotExist. I reproduced BOTH sides: ta.Tag->Label with m2m to tb.Tag (OLD-name collision; pre-rename link fields ['id','from_tag','to_tag']) and ua.Foo->Tag with m2m to ub.Tag (NEW-name collision; post-rename link fields ['id','from_tag','to_tag']) -- both raise 'Tag_peers has no field named tag' after issuing 2 of 3 requests, forwards AND backwards.\n\nI found two FURTHER instances of this SAME family: renaming Rider->Runner in an app that already contains a model named Runner which the renamed model has an m2m to (to_state link fields become ['id','from_runner','to_runner']), and a 3-link shape with the colliding m2m in the MIDDLE (records 4 of 7 then raises) -- confirming the disclosed truncation-not-dropping behavior. Critically, on the colliding shape with EQUAL identifiers the real method still requests nothing, matching clause (1) -- so the carve-out does not leak into the inert branch. Both are restrictions on alpha's DOMAIN (which concrete configurations the bridge realizes), not hidden weakenings of Requires, which remains only Acc(list_pred(...),1/2) x2 plus MustTerminate(2) with no value constraint.\n\nGATE REPRODUCTION against MY worktree (not the bundle's, and with no patch applied by the scripts themselves):\n- PYTHONPATH=<my worktree> python3 axiom_check.py -> exit 0. Confirms noop=[] with 0 SQL and changed=[-1,0,1,2] in BOTH directions on the same built scenario with only identifier equality flipped (so the empty schedule is attributable to the comparison, not to absent dependents), and REJECTS both the main-move-last and swapped-link-pair mutants of the observed schedule -- the order clauses are non-vacuous.\n- PYTHONPATH=<my worktree> python3 conformance_check.py -> exit 0. 101194 inputs (18 boundary incl. the F2P assertNumQueries(0) shape + 1176 exhaustive sweep of the whole finite realizable space + 100000 fuzz, seed 14999), 0 disagreements, at the ORDERED PER-REQUEST granularity, with all five red-capability probes flagged (prepatch 2/2, main-move-last 2/2, double-rewrite 2/2, link-pair-swapped 4/4, link-drop-inner-rewrite 4/4). The harness is demonstrably able to go red on precisely the four properties I was attacking, and does not. assert_oracle_is_patched() and assert_named_exclusions() make the patched oracle and the two carve-outs machine-enforced rather than prose.\n\nDIRECTION COVERAGE. database_backwards (:371-378) swaps the names and delegates, so a one-sided spec would be direction-unstable; every probe above ran BOTH directions and agreed, including the two collision families, which raise symmetrically.\n\nNOT A FINDING (per host-saturation memory): I did not obtain a Nagini verdict on the bundle model.py within the timeout. Faithfulness does not rest on the verifier: the differential oracle CALLS the real method (not a transliteration), and G-AX plus my 560-run independent fuzz all agree. Also recorded per the 'retained attack labels' memory: the prior retained G-PANEL-2 verdict was FAITHFUL, and I re-derived that conclusion from my own worktree and my own probes rather than echoing it -- my probe set is disjoint from the prior one on several shapes (decoupled main-vs-link clause-1 test, rename-into-an-existing-target-name collision, colliding m2m mid-list, unmanaged/vendor-restricted DEPENDENT, m2m target unmanaged, proxy subclass, to_field non-pk, zip-misalignment instrumentation, 560-run randomized structural fuzz).\n\nCONCLUSION. I could not find any input inside the spec's disclosed domain on which the modeled function disagrees with the real patched callee. Every divergence I manufactured lands on one of the two exclusions the bundle itself states, quantifies and machine-asserts, and I found no THIRD divergence family (in particular none at the column-relation lookup :341-343, none from zip misalignment at :350, and none from the alter_db_table equal-names short-circuit, which is correctly below the observable). The spec is not too strong and does not drift from the repo: clauses (2), (4), (5) and (6) are each positively exhibited by the real method on shapes the bundle's generator never builds, and clause (1) survives the decoupled test where its consequence is least intuitive. Verdict FAITHFUL; no diverging input to cite.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T19:32:18+00:00",
+      "code_version": "6702e69f9-dirty",
+      "harness_digest": "d641aa3e48ac",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE / WHAT I JUDGED. I regenerated the consumer spec view myself from the on-disk bytes rather than trusting any recorded hash: markers.spec_view(model.py, get_backend('nagini')) -> specview.txt, 212 lines = module docstring + imports + (empty) axioms region + pure region + rename_schema_schedule signature + pre/post-conditions. I diffed model.py against that projection: exactly lines 210-267 (the impl region, including its two nested Invariant blocks and the three closing Assert proof steps) collapse to the single placeholder '...  # implementation elided - supplied by the consumer'. Nothing else differs, so the impl is genuinely hidden. Solver-visible surface confirmed by reading eval/prompts.py::_spec_block/initial_user: problem_statement + hints_text + spec_view + modeled_functions. hints_text for this instance is EMPTY (repr ''), so there is no hint-baseline ambiguity - the public baseline is the problem_statement alone. refinement.md, mapping.md, verdict.md, properties.py, model_prepatch.py, axiom_check.py, conformance_check.py, meta.json are construction-side and never rendered to the solver, so refinement.md's verbatim reproduction of the gold hunk is out of scope here.\n\nNO RELAXATION IN PLAY - CHECKED, NOT ASSUMED. meta.json has NO 'relaxed_leakage' key (keys enumerated: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version), gates['G-LEAK'].status == 'pass' (not 'relaxed'), and no RELAXED_LEAKAGE.md exists anywhere under the instance directory (find -iname '*RELAX*' -> empty). So this is an ordinary leakage judgement with no inherited disposition, and leak.py's relaxation branch is not reachable for this bundle.\n\nNO FILE IN THE BUNDLE ADDRESSES ME. I ran leakage.reviewer_directed() over every .md/.json/.py file in the bundle (axiom_check.py, conformance_check.py, mapping.md, meta.json, model.py, model_prepatch.py, pbt_result.json, properties.py, refinement.md, verdict.md): all returned []. The 'G-PANEL' strings I found by grep are prior gate records and refinement.md narration of what earlier roles refuted - descriptive history, not instructions about which verdict to submit. Nothing steers this role.\n\nBASELINE. problem_statement in full: 'RenameModel with db_table should be a noop. / A RenameModel operation that already has db_table defined must be a noop. / In Postgres, it drops and recreates foreign key constraints. In sqlite it recreates the table (as expected for a table renaming).' Gold patch: inside RenameModel.database_forwards, bind old_db_table/new_db_table and 'if old_db_table == new_db_table: return' before alter_db_table, then reuse the two locals in the alter_db_table call.\n\nLOAD-BEARING TEST (the discriminator is the public sentence, measured not asserted). model_prepatch.py shares the spec exactly - markers.same_spec(model.py, model_prepatch.py, nagini) is True, and `python -m swebench_unified.adversary same-spec nagini django__django-14999 <prepatch>` exits 0 ('SAME - attack shares the bundle's exact specification'). (a) Full spec vs PRE-patch impl: `bash scripts/nagini_verify.sh prepatch.py` -> exit 1, 'Verification failed', single error at prepatch.py:161 'Postcondition ... Implies((before_table == after_table), (len(Result()) == 0)) might not hold' (18.4s). (b) I then deleted ONLY clause (1) (the three lines at model.py:159-161) and re-verified the same pre-patch impl: `nagini_verify.sh prepatch_no1.py` -> exit 0, 'Verification successful' (146.4s).\n\nSo clause (1) is the sole load-bearing discriminator and clauses (2)-(6) plus the permission/accessibility framing all hold on the UNPATCHED implementation - they describe behaviour the gold edit does not touch, so they cannot be leaking it. Clause (1) itself is 'when the before- and after- table identifiers are the SAME ... the schedule is empty', which is a direct restatement of 'A RenameModel operation that already has db_table defined must be a noop'.\n\nIts one emphasis beyond bare emptiness - that 'crucially none of the requests belonging to the dependent column relations and link relations' are issued either - is likewise derivable from the public text's second sentence, 'In Postgres, it drops and recreates foreign key constraints', which is exactly the dependent FK-column work being wrongly issued in the inert case. Nothing in the spec view goes past that facet.\n\nVOCABULARY / IDENTIFIER SWEEP OF THE SPEC VIEW. Case-insensitive grep over specview.txt for db_table, alter_db_table, related_objects, database_forwards, RenameModel, schema_editor, _meta, old_model, new_model, through, m2m, bug, regression, fix/fixed, previously, patch, noop/no-op, 'return early'/'early return', postgres, sqlite, 'foreign key constraint' -> ZERO hits. The spec view never names the repo symbol, the file, the guarded field, the two locals the patch introduces, the early-return shape, or the two databases from the issue; it speaks only of 'table identifiers', 'column relations', 'link relations' and an abstract List[int] schedule. The mechanical screen agrees independently: leakage.screen(model.py, nagini, patch, problem_statement) -> passed=True, hard_failures=[]. Behaviour is stated as desired behaviour throughout ('Behaviour under specification (stated as desired behaviour, not as an edit)'), with no diff-shaped or before/after-the-fix narration; the docstring's convergence remarks (line-count cliff, MustTerminate measure) are proof-engineering notes about the elided proof, not about the edit.\n\nADJACENT SOLVER-VISIBLE CHANNEL, JUDGED AND CLEARED. modeled_functions IS rendered into the spec block for nagini, and its carrier_type does name db_table, related_objects and repo line numbers (:319, :329, :331, :351, :358-362, :365-369). I judged this and it is not a leak of the gold edit: repo_symbol/repo_location is the deliberately-granted edit-localization channel (prompts.py::_localization_block renders the same repo_symbol + changed_files in mode 0, described in-harness as 'the SAME information the spec modes get'), the line references point at the UNCHANGED dependent loops and the function head rather than the patch's insertion site, and the only behavioural claim it makes - 'empty iff the two table identifiers are equal' - is the same clause-(1) facet already public as 'must be a noop'. It does not state the edit shape (no compare-the-two-locals-and-return-early).\n\nINCIDENTAL RECORD DEFECT (does not change this verdict). meta.json's top-level region_hashes disagrees with the on-disk model.py for three entries: spec_view (meta df6191f1... vs recomputed 4b65124a...), impl, and invariants. Diagnosis: the spec_view TEXT is byte-stable - I recomputed it from model.py at HEAD (18e4a6e32), c0aafc53e and 9c1fa6bf3 and got spec_view hash 4b65124a in all three - so the spec has not drifted; the recorded df6191f1 is an older harness rendering, from when markers.ELISION_IMPL used an ASCII '--' instead of the current em dash (the earlier panel note quotes the '--' form of the placeholder). The impl/invariants deltas are the genuine, intended impl churn across those commits with the spec frozen. The G-LEAK stamp's sources digest for model.py (04e466e8...) equals the current file's sha256, so that gate record is fresh against the bytes I judged. Flagging the stale region_hashes block as a bookkeeping item for the record; it is not a leakage finding.\n\nCONCLUSION. The spec view's single discriminating clause is the problem_statement's own 'must be a noop' sentence, verified load-bearing by the strip-and-reverify measurement above; every other clause verifies against the pre-patch implementation and so encodes no information about the gold edit; and the view contains none of the patch's identifiers or shape. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T18:00:17+00:00",
+      "code_version": "2afb2f9ba-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reverse-column-order",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 43.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-link-block-first",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 40.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-moves-then-inner-rewrites",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 189.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-links-descending",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 131.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-guard-inverted",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 69.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-noop-fk-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 115.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch-bug",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-link-pair-swapped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 78.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-all-rewrites-before-moves",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 91.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-link-pair-swapped-when-two",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 104.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-link-double-move",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-link-drop-inner-rewrite",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-main-move-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-double-rewrite",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 61.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-duplicate-first-skip-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 133.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-emit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-partial-domain",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-main-move-boundary-repaired",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-dependent-requests",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-move-as-filler",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-junk-entries",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-diverge-on-noop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "echo-selfcall",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.5
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-link-relations",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 5,
+          "uniqueness": 19
+        },
+        "manifest_sha256": "2c0b1cbc366e4850f5102f84325ba965a489e777c5091ae873279d2c7df33c90",
+        "n_cases": 25,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 25 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c",
+        "properties.py": "2c0b1cbc366e4850f5102f84325ba965a489e777c5091ae873279d2c7df33c90"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T13:06:38+00:00",
+      "code_version": "06cf0aadf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "eecabd776e3ed777efcc5e07cefeed5e166973e62b4741a080c2c895bc740f24",
+        "patch.diff": "fccaeb2cb82e0371ae3dad2714cbe18a630ea4508beafb3394932a0828437cf1"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T16:49:15+00:00",
+      "code_version": "8817c2a0d-dirty",
+      "data": {
+        "wall_time_s": 33.4
+      },
+      "detail": "verified in 33.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "note": "1800s: the closed-form loop invariants that keep the two-collection carrier tractable sit on a Nagini proof-time cliff. The shipped model verifies in 33.4s (G-VERIFY, host load ~135), so the cap carries ~54x margin on this file; it is sized for the battery and for the mutant sample, not for the gold. A properties.py variant that emits a PERMUTED link block needs a shifted / slope-2 / mod-2 closed form and clause (6)'s nested quantifier must then be discharged against it; six such variants were measured past 900s. They are now written as shape-guarded concrete schedules (gold elsewhere), which brings the battery's worst case to ~470s measured on a host at load ~110. G-PBT floors its per-case budget at this value (gates/pbt.py: max(SBU_PBT_VERIFY_TIMEOUT, bundle.verify_timeout())), and a cap hit there is a TIMED-OUT battery in which nothing is judged, so the cap is set with ~4x headroom over the measured worst case. gates/mut.py floors its per-mutant budget the same way, which is what the sample recorded below needs. A resource declaration only: no obligation depends on it.\n\nPROOF-TIME RECORD for the second loop, kept because the same cliff decided the mutant sample and not only the battery. Refuting an arithmetic mutant of `while m < 2 * nl` asks the solver for a model of a failing check while the untriggered quantified invariant over `result` (`result[t] == t - 1`, over a list that loop appends to) sits in the path condition; MBQI then does not return, and the mutant reads as no verdict rather than as a survivor. Ablations that identified it, each a diagnostic on a MODIFIED artifact and none of them shipped: with the loop's upper bound dropped, mutant \"line 242: '<' -> '<='\" failed in 42s; with postcondition clause (6) dropped it was refuted in 158s. Explicit Viper triggers on that invariant ([[result[t]]] and [[ToSeq(result)[t]]]) refuted all four hard mutants in ~32s, but the gold then failed \"Loop invariant might not be preserved\": a pattern over a heap-dependent term cannot match across the append that moves the heap snapshot, so triggers are not usable on this invariant.\n\nWhat ships instead is the SAME obligation stated on the other side of a neighbouring equality: the second loop carries its upper bound on len(result) (`len(result) <= 1 + nc + 2 * nl`) rather than on m (`m <= 2 * nl`). The two are equivalent given `len(result) == 1 + nc + m` one line below, and the ranking function is untouched; what changes is that the divergent arithmetic search is no longer the one carried under the quantified path condition. Measured on the shipped bytes: gold 33.4s, model_prepatch.py refuted in 28.6s, G-MUT 18 of 18 judged mutants refuted with 1 of the 19 sampled reaching no verdict inside its cap.\n\nThe three Assert()s after the second loop are load-bearing for proof time and not for behaviour: tautologies written at those same three lines verify in 28s, and deleting them at unchanged line count gave no verdict at 400s. Layout is load-bearing too -- 267 lines verified in 28-33s while a byte-identical AST reflowed to 271 lines reached no verdict at 400s. So re-measure model.py, model_prepatch.py AND the G-MUT sample after any reflow of this file, including one that only rewraps comment text.",
+      "sources": {
+        "model.py": "04e466e8b11e5e8804104549f89b6de30a5fe4c3367888c73b13142f323fd71c"
+      },
+      "status": "pass",
+      "timeout_seconds": 1800
+    }
+  },
+  "instance_id": "django__django-14999",
+  "modeled_functions": [
+    {
+      "carrier_type": "db_table name -> int identity (only equality observable); each COLUMN relation (a related_objects entry, models.py:331) -> one position of column_relations, worth ONE request; each LINK relation (an auto-created m2m link table the loop at :351 does not continue past) -> one position of link_relations, worth TWO requests and owning the two consecutive codes nc + 2*j (move the link table, :358-362) and nc + 2*j + 1 (rewrite the column inside it, :365-369) where nc = len(column_relations); the observable -> List[int], the ORDERED schedule of requests, ONE ENTRY PER REQUEST (OP_MAIN_MOVE = -1 for the move of the renamed model's own table, :329). Pinned: empty iff the two table identifiers are equal; otherwise the main move FIRST, every dependent request exactly once and nothing else (exact length 1 + nc + 2*nl), and within each link relation the move before that link table's own column rewrite. Deliberately NOT pinned: the order of the dependents among THEMSELVES (any column order, any link order, any interleaving).",
+      "model_symbol": "rename_schema_schedule",
+      "repo_location": "django/db/migrations/operations/models.py:319",
+      "repo_symbol": "django.db.migrations.operations.models.RenameModel.database_forwards",
+      "role": "modeled changed function (the ordered schedule of schema operations a model-rename REQUESTS of the schema layer); single contracted+implemented function (markers are module-level singletons). database_backwards (:371) delegates to it with swapped names and inherits both the inert case and the schedule shape."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(before_table == after_table, len(Result()) == 0): on equal table identifiers with any dependent present, the prepatch returns a schedule of length len(column_relations) + 2*len(link_relations) != 0",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "RenameModel.database_forwards inert-when-db_table-unchanged (noop)",
+      "reverted_to": "no top-level early-return guard; only the main move is gated on identifier inequality (mirroring the schema layer's own equality short-circuit), while BOTH dependent loops run unconditionally -- one rewrite per column relation and the move + inside-column rewrite per link relation"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "7b7750199bc8de9aad19dcae39a9f81077462cb83864b278216f5963398838e6",
+    "impl": "28b032852ac2db1376daad4c416a42119c9f0d38cc8a3bf90b29764c9e27f300",
+    "invariants": "b05a0d2aaf6a253d0e3aa7d15b5b02dc790de172af056a475e0d6d1d3d6e178a",
+    "post-conditions": "eaf8897b69fd99034005affecb1fed55a189306e5438bfb2221067b6dec91cf4",
+    "pre-conditions": "c7a9bd5481eee0abb8e646637e902bfc9d18348caeb809b03582bd83b76b6c63",
+    "pure": "20abd9c84dca588c67285e57c024bff3653136a9d2614cbca3110301b81664e7",
+    "spec_view": "df6191f1c504e699bb46212591cbfa3c13f29222d0d5941d981ab73b8d7fdf02"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none; db_table names abstracted to int identity (only equality is observed, at models.py:326). The observable is the ORDERED PER-REQUEST schedule: empty iff the two table identifiers are equal, otherwise the move of the model's own table first, then one request per column relation and TWO per link relation (its table's move, then the rewrite of the column inside it), each exactly once, with the within-link-relation order pinned and the order of the dependents among themselves free. model_prepatch.py reproduces the pre-patch method: no top-level identity guard, so both dependent loops run unconditionally and the equal-table branch returns a schedule of length len(column_relations) + 2*len(link_relations) instead of 0.",
+  "version": "4.1"
+}

@@ -1,0 +1,451 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "30613d6a748fce18919ff8b0da166d9fda2ed9bc",
+  "changed_files": [
+    "django/db/models/fields/__init__.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): self-contained numeric+None-raise over 64 boundary + 20000 fuzz pairs; Django-backed v.compare(a,b)==(a>b) over 2000 fuzz + MaxLengthValidator(None) raises TypeError",
+      "encoded_property": "compare_length(value_length, limit): Ensures(Result() == (value_length > limit)) and Ensures(limit is not None) and Exsures(LimitComparisonError, limit is None) -- the numeric exceeds-the-limit test, undefined on an absent limit (the TypeError is carried by a user-defined exception; builtin Exsures is banned)",
+      "kind": "A-reference",
+      "models": "django.core.validators.MaxLengthValidator.compare(a, b) == (a > b), via BaseValidator.__call__",
+      "name": "compare_length",
+      "provenance": "django/core/validators.py:383-394 (MaxLengthValidator.compare returns a > b; clean returns len(x)); :326-331 (BaseValidator.__call__ computes compare(len(value), limit_value)); a None limit_value makes len(value) > None raise TypeError",
+      "role": "deep model of the changed operation's consequence (the length comparison); NOT a consumed axiom -- there is no @ContractOnly"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real CharField().validators has no MaxLengthValidator; CharField(max_length=n).validators has exactly one with limit_value==n",
+      "encoded_property": "assembled length-validator slot is empty when max_length is None, else exactly one validator with limit == max_length; no assembled limit is None",
+      "kind": "A-reference",
+      "models": "gold-patched django.db.models.fields.CharField.__init__ validator-assembly",
+      "name": "build_char_validators",
+      "provenance": "django/db/models/fields/__init__.py:1010-1013 (post-patch: if self.max_length is not None: self.validators.append(validators.MaxLengthValidator(self.max_length))); precedent BinaryField.__init__ guards likewise",
+      "role": "deep model of the changed constructor decision; validated against the real CharField.validators"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real CharField().clean('...', model_instance=None) returns normally (pre-patch it raises TypeError)",
+      "encoded_property": "cleaning a candidate against a freshly constructed CharField completes normally for every max_length (including None)",
+      "kind": "A-reference",
+      "models": "django.db.models.fields.Field.clean end-to-end (run_validators only swallows ValidationError, not TypeError)",
+      "name": "clean_charfield",
+      "provenance": "django/db/models/fields/__init__.py:664-673 (clean), :617-631 (run_validators catches exceptions.ValidationError only)",
+      "role": "end-to-end consequence; validated by calling the real CharField(...).clean(value, model_instance=None)"
+    }
+  ],
+  "exception_modeling": "the TypeError from comparing a candidate's length against an absent (None) limit is carried by the user-defined exception LimitComparisonError (a builtin exception in an Exsures crashes the Nagini translator; SPEC_GUIDE \u00a72)",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:06:51+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK (Django-backed): MaxLengthValidator.compare == numeric test (+ None raises TypeError); CharField assembles the length-validator slot iff max_length is not None; CharField().clean(...) never raises.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "18cee01894fb1dd7202f2279b0f0301c61144c7c0ea8e730b6c088b97a9d2dbb",
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:06:56+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 120242,
+          "disagreements": 0,
+          "seed": 415277,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 120242, \"disagreements\": 0, \"seed\": 415277, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "40f50c875ab960e028e3bb6feaa791341b44876c8cbfa2bffce321a352ae4b54",
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:15:42+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de",
+        "model_prepatch.py": "99b4857135e9705a21834ba972b9b2bff3d71f01190f6444662139d23f0dfc77"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T12:28:36+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:16:41+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de",
+        "model_prepatch.py": "99b4857135e9705a21834ba972b9b2bff3d71f01190f6444662139d23f0dfc77"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:06:41+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "5e71efe7925ae6b6759e242fd34cfa7087e485df6ed7dd3c01c72d23b722d60a",
+          "impl": "31ccdf63cc98fccfdc1eaa806c919f4c6fc6dbbc3083790b2704c5c3cfb32a70",
+          "post-conditions": "fa5bc2097bb44a93a56c7f3063c5f32a22749d33cf59c4dc1feb83f6081d6f16",
+          "pre-conditions": "00abc856750304ae5f16dc5e10349aeecc5ac4987319213cc0f9335f501b3d90",
+          "pure": "ab24855b91ec63ac29bccce76174e801dd553b4321af6010660acd2eaca50614",
+          "spec_view": "238861047495c294606e7720651f3f4a14656325cdc684770e8455de290d48eb"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:06:42+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "34eb0bfbb918b2d3c1abc3d4a171f42315c566e62986794269a9bcdb506dc147",
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:06:43+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:26:50+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 9,
+        "killed": 8,
+        "survivors": [
+          "line 136: '0' -> '-1'"
+        ],
+        "threshold": 0.8,
+        "total": 9,
+        "unjudged": []
+      },
+      "detail": "killed 8/9 (89%); survivors: [\"line 136: '0' -> '-1'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T12:28:38+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "The modeled functions agree with the real repo callees across the entire modeled domain. Verified against a base-commit worktree with the gold patch applied.\n\nEvidence:\n- Spec region byte-identical: `same-spec nagini django__django-15277` -> exit 0 (SAME).\n- G-CONF (bundle conformance_check.py) against the REAL patched repo: 0 disagreements on 120,242 inputs (boundary grid + 100k fuzz over (max_length,value_length) + 20k compare fuzz, seed 415277).\n- G-AX (bundle axiom_check.py) against the REAL patched repo: OK \u2014 MaxLengthValidator.compare(a,b)==(a>b); MaxLengthValidator(None).compare raises TypeError; CharField() assembles no MaxLengthValidator, CharField(max_length=n) assembles exactly one with limit_value==n; CharField().clean(...) never raises.\n- Independent probes confirm build_char_validators == real assembled-limits slot (empty for None, [n] otherwise), compare_length == compare, and clean_charfield == run_validators for all max_length in {None} U positive ints.\n\nOne out-of-domain divergence found and dismissed (NOT a spec defect): at max_length=-1, value_length=0 the model returns flagged=True (0 > -1) whereas real run_validators(\"\") returns unflagged because the empty string short-circuits via Field.empty_values. This input is doubly outside the modeled domain: (1) negative max_length is an invalid CharField config rejected by system check fields.E121 and outside the mapping.md bijection (positive int <-> int); (2) value_length=0 (empty value) is the blank-rejection/empty_values path explicitly declared out-of-scope by mapping.md sec 2 and conformance_check.py. It does not touch the F2P behavior (the max_length=None bug), does not affect G-RESOLVE, and never occurs for any legitimate CharField. Within the specified domain the spec is not too strong and does not drift.\n\nConclusion: spec is faithful to real repo behavior; no legitimate diverging input exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = model.py (the only consumer-facing solution_src; refinement.md/mapping.md are audit docs explicitly 'not referenced from the consumer spec view'). Mechanical G-LEAK screen passes (leakage.screen: passed=True, no hard_failures).\n\nSemantic check: the public problem_statement already discloses the gold edit VERBATIM. It states 'Change the CharField.__init__ to: if self.max_length is not None: self.validators.append(validators.MaxLengthValidator(self.max_length))' and even cites 'the same process taken by BinaryField.__init__ for precedent'. The gold patch.diff is exactly this hunk. So the guard-on-None, the append of MaxLengthValidator(max_length), and the BinaryField precedent are all already public.\n\nmodel.py models precisely this behaviour (build_char_validators: empty list when max_length is None, else one validator with limit==max_length; clean_charfield never raises). Every fact the spec view encodes about the change is already in the problem_statement. There is no line in the spec view that reveals the gold edit beyond what the public problem_statement discloses. The BinaryField precedent parenthetical in mapping.md \u00a73.2 is itself attributed to 'the problem statement'. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 The modeled functions agree with the real repo callees across the entire modeled domain. Verified against a base-commit worktree with the gold patch applied.\n\nEvidence:\n- Spec region byte-identical: `same-spec nagini django__django-15277` -> exit 0 (SAME).\n- G-CONF (bundle conformance_check.py) against the REAL patched repo: 0 disagreements on 120,242 inputs (boundary grid + 100k fuzz over (max_length,value_length) + 20k compare fuzz, seed 415277).\n- G-AX (bundle axiom_check.py) against the REAL patched repo: OK \u2014 MaxLengthValidator.compare(a,b)==(a>b); MaxLengthValidator(None).compare raises TypeError; CharField() assembles no MaxLengthValidator, CharField(max_length=n) assembles exactly one with limit_value==n; CharField().clean(...) never raises.\n- Independent probes confirm build_char_validators == real assembled-limits slot (empty for None, [n] otherwise), compare_length == compare, and clean_charfield == run_validators for all max_length in {None} U positive ints.\n\nOne out-of-domain divergence found and dismissed (NOT a spec defect): at max_length=-1, value_length=0 the model returns flagged=True (0 > -1) whereas real run_validators(\"\") returns unflagged because the empty string short-circuits via Field.empty_values. This input is doubly outside the modeled domain: (1) negative max_length is an invalid CharField config rejected by system check fields.E121 and outside the mapping.md bijection (positive int <-> int); (2) value_length=0 (empty value) is the blank-rejection/empty_values path explicitly declared out-of-scope by mapping.md sec 2 and conformance_check.py. It does not touch the F2P behavior (the max_length=None bug), does not affect G-RESOLVE, and never occurs for any legitimate CharField. Within the specified domain the spec is not too strong and does not drift.\n\nConclusion: spec is faithful to real repo behavior; no legitimate diverging input exists.; G-PANEL-3 (leakage): pass \u2014 Spec view = model.py (the only consumer-facing solution_src; refinement.md/mapping.md are audit docs explicitly 'not referenced from the consumer spec view'). Mechanical G-LEAK screen passes (leakage.screen: passed=True, no hard_failures).\n\nSemantic check: the public problem_statement already discloses the gold edit VERBATIM. It states 'Change the CharField.__init__ to: if self.max_length is not None: self.validators.append(validators.MaxLengthValidator(self.max_length))' and even cites 'the same process taken by BinaryField.__init__ for precedent'. The gold patch.diff is exactly this hunk. So the guard-on-None, the append of MaxLengthValidator(max_length), and the BinaryField precedent are all already public.\n\nmodel.py models precisely this behaviour (build_char_validators: empty list when max_length is None, else one validator with limit==max_length; clean_charfield never raises). Every fact the spec view encodes about the change is already in the problem_statement. There is no line in the spec view that reveals the gold edit beyond what the public problem_statement discloses. The BinaryField precedent parenthetical in mapping.md \u00a73.2 is itself attributed to 'the problem statement'. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "The modeled functions agree with the real repo callees across the entire modeled domain. Verified against a base-commit worktree with the gold patch applied.\n\nEvidence:\n- Spec region byte-identical: `same-spec nagini django__django-15277` -> exit 0 (SAME).\n- G-CONF (bundle conformance_check.py) against the REAL patched repo: 0 disagreements on 120,242 inputs (boundary grid + 100k fuzz over (max_length,value_length) + 20k compare fuzz, seed 415277).\n- G-AX (bundle axiom_check.py) against the REAL patched repo: OK \u2014 MaxLengthValidator.compare(a,b)==(a>b); MaxLengthValidator(None).compare raises TypeError; CharField() assembles no MaxLengthValidator, CharField(max_length=n) assembles exactly one with limit_value==n; CharField().clean(...) never raises.\n- Independent probes confirm build_char_validators == real assembled-limits slot (empty for None, [n] otherwise), compare_length == compare, and clean_charfield == run_validators for all max_length in {None} U positive ints.\n\nOne out-of-domain divergence found and dismissed (NOT a spec defect): at max_length=-1, value_length=0 the model returns flagged=True (0 > -1) whereas real run_validators(\"\") returns unflagged because the empty string short-circuits via Field.empty_values. This input is doubly outside the modeled domain: (1) negative max_length is an invalid CharField config rejected by system check fields.E121 and outside the mapping.md bijection (positive int <-> int); (2) value_length=0 (empty value) is the blank-rejection/empty_values path explicitly declared out-of-scope by mapping.md sec 2 and conformance_check.py. It does not touch the F2P behavior (the max_length=None bug), does not affect G-RESOLVE, and never occurs for any legitimate CharField. Within the specified domain the spec is not too strong and does not drift.\n\nConclusion: spec is faithful to real repo behavior; no legitimate diverging input exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view = model.py (the only consumer-facing solution_src; refinement.md/mapping.md are audit docs explicitly 'not referenced from the consumer spec view'). Mechanical G-LEAK screen passes (leakage.screen: passed=True, no hard_failures).\n\nSemantic check: the public problem_statement already discloses the gold edit VERBATIM. It states 'Change the CharField.__init__ to: if self.max_length is not None: self.validators.append(validators.MaxLengthValidator(self.max_length))' and even cites 'the same process taken by BinaryField.__init__ for precedent'. The gold patch.diff is exactly this hunk. So the guard-on-None, the append of MaxLengthValidator(max_length), and the BinaryField precedent are all already public.\n\nmodel.py models precisely this behaviour (build_char_validators: empty list when max_length is None, else one validator with limit==max_length; clean_charfield never raises). Every fact the spec view encodes about the change is already in the problem_statement. There is no line in the spec view that reveals the gold edit beyond what the public problem_statement discloses. The BinaryField precedent parenthetical in mapping.md \u00a73.2 is itself attributed to 'the problem statement'. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:17:45+00:00",
+      "code_version": "63ba9d890-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-build-conditional-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-compare-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 25.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-clean-early-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-clean-selfexercise",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-clean-drop-none-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-clean-always-false",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-build-limit-plus-one",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-build-always-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-compare-ge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-compare-const-true",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "2f01c5b30d33d48a94e760c85145bf587ddfc368b570ff8610ae977d46815b25",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de",
+        "properties.py": "2f01c5b30d33d48a94e760c85145bf587ddfc368b570ff8610ae977d46815b25"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:17:48+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:27:08+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 17.3
+      },
+      "detail": "verified in 17.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c7d5400423509f0762972355d979bdb4e2317b04e1a02421c48739248204c8de"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15277",
+  "modeled_functions": [
+    {
+      "carrier_type": "max_length: int|None -> Optional[int]; assembled validator list -> List[Optional[int]] of MaxLengthValidator limits",
+      "model_symbol": "build_char_validators",
+      "repo_location": "django/db/models/fields/__init__.py:1010-1013",
+      "repo_symbol": "django.db.models.fields.CharField.__init__ (validator-assembly statement)",
+      "role": "modeled changed function: the constructor's decision whether to assemble a length validator (the guarded append)"
+    },
+    {
+      "carrier_type": "value_length: int; limit: Optional[int]",
+      "model_symbol": "compare_length",
+      "repo_location": "django/core/validators.py:390-391, 326-331",
+      "repo_symbol": "django.core.validators.MaxLengthValidator.compare (run via BaseValidator.__call__)",
+      "role": "deep model (A-reference) of the length comparison the assembled validator performs: value_length > limit, undefined (raises) on an absent limit"
+    },
+    {
+      "carrier_type": "max_length: Optional[int]; value_length: int",
+      "model_symbol": "clean_charfield",
+      "repo_location": "django/db/models/fields/__init__.py:664-673, 617-631; django/core/validators.py:326-331",
+      "repo_symbol": "django.db.models.fields.Field.clean -> run_validators -> MaxLengthValidator.__call__",
+      "role": "end-to-end observable: cleaning a candidate against a freshly constructed field always completes normally (the F2P behaviour); no Exsures => provably non-raising"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition of build_char_validators: Forall k. (0<=k<len(Result()) ==> Result()[k] is not None) -- when max_length is None a None limit is assembled; downstream this is the TypeError the F2P test observes",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "CharField.__init__ assembles a length validator unconditionally (no max_length-is-not-None guard)",
+      "reverted_to": "validators.append(max_length) unconditionally (the pre-patch append at fields/__init__.py:1013)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "5e71efe7925ae6b6759e242fd34cfa7087e485df6ed7dd3c01c72d23b722d60a",
+    "impl": "31ccdf63cc98fccfdc1eaa806c919f4c6fc6dbbc3083790b2704c5c3cfb32a70",
+    "post-conditions": "fa5bc2097bb44a93a56c7f3063c5f32a22749d33cf59c4dc1feb83f6081d6f16",
+    "pre-conditions": "ed659d528407b95ae77183eb7afe03e3020cbd522b02b5762c6749a50fa4695c",
+    "pure": "ab24855b91ec63ac29bccce76174e801dd553b4321af6010660acd2eaca50614",
+    "spec_view": "b9b5d628da9afa8087a7937c7623a26c6d4db584c3c29b4057bfca21d76375b7"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "4.1"
+}

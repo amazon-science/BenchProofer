@@ -1,0 +1,405 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): determinism + configuration-functionality (equal _set_parameters snapshots => equal labels) + standing equivalence (e-step argmax from held params == predict), on real GaussianMixture/BayesianGaussianMixture fits",
+      "encoded_property": "labels_of(config) is a pure function of the held configuration identifier alone: same config => same labels (weakest sufficient contract; no exact label value claimed)",
+      "models": "the label-assignment query primitive: _e_step(X) -> log_resp.argmax(axis=1), equivalently predict's _estimate_weighted_log_prob(X).argmax(axis=1)",
+      "name": "labels_of",
+      "provenance": "sklearn/mixture/base.py:278 (_e_step), 276 (argmax), 374 (predict); reads only the held parameters + fixed X; UNCHANGED by the patch",
+      "purity": "@Pure @ContractOnly (used inside Ensures; no Ensures body => purity is the only consumed guarantee)"
+    }
+  ],
+  "base_commit": "1c8668b0a021832386470ddf740d834e02c66f69",
+  "changed_files": [
+    "sklearn/mixture/base.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): after a full fit with n_init>1, the retained parameters give labels == predict (the selected-best is persisted), and the operation order is observable (final-trial labels differ from retained-best labels)",
+      "encoded_property": "best_config(config, score): the configuration of the highest-scoring trial, earliest-on-tie (>= at the front-recursion head); best_score(score): the maximum score; over a non-empty run of trials",
+      "kind": "A-reference",
+      "models": "the trial-selection loop in fit_predict (if lower_bound > max_lower_bound: best_params = self._get_parameters())",
+      "name": "best_config / best_score",
+      "provenance": "sklearn/mixture/base.py:255-258; strict '>' so the earliest largest-lower-bound trial is selected",
+      "role": "deep model (pure region) of the trial selection; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:39:10+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: labels_of axiom sound (label assignment is a deterministic pure function of the held configuration, == predict on those params); selection deep model sound (retained-best labels == predict) and the operation order is observable across 16 n_init>1 configurations.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "b4e35fd83d9ead6fbc4156d474f4647f45488acc111406c9da37b09dddcf88c6",
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:41:22+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100176,
+          "disagreements": 0,
+          "e2e_cases": 160,
+          "seed": 13142,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly labels_of -> real _set_parameters + _e_step argmax)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100176, \"disagreements\": 0, \"seed\": 13142, \"e2e_cases\": 160, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly labels_of -> real _set_parameters + _e_step argmax)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "b54f52d03093a23b37bc15cc61c337f21905fe91d38158fc421cb308196b57c9",
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:56:14+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6",
+        "model_prepatch.py": "3d7a74a15aa960bb71976b695c7c1aa0878a164dfa51fede0a73d73830853558"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T12:50:27+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_2_transient_return.py`, `atk_3_strict_gt_tie.py`, `atk_4_offbyone.py`, `atk_5_first_config.py`, `atk_6_wrong_label_source.py`, `atk_7_skip_persist.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_1_echo.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:57:05+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6",
+        "model_prepatch.py": "3d7a74a15aa960bb71976b695c7c1aa0878a164dfa51fede0a73d73830853558"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:38:32+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "0e16cf056cf9e2881468958648df181c8f034e72c6dd9b347213e008877a7c91",
+          "impl": "791923b127ed49e4e4395a604c3af23920778b50ddebe306dd5e0e880ae3f8c5",
+          "invariants": "b025216c4957c1613a29b485d82fbb16aa54f4c39c1e6362987c0058dcdbac71",
+          "post-conditions": "d5ffd6c282b29470575d0009cf07a8353fc39b5d41e46cc60149e63594600c08",
+          "pre-conditions": "f400f67c0be276434b98a19adceb063346c6a19a9a8fc631aad69d7c70b72210",
+          "pure": "379d9dbae3eae6ac7ffd764a39098dc80801d16c6c3d50f30a022cfb98c5828c",
+          "spec_view": "3bdaed0cfe82c89d4a7b0da32049305969cfdbda9e92f454c2e4006e156d4016"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:38:33+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "db5530625f3f7016d306ca65fbcccc5d4974f9f4ac7dde954bd916f7c648820c",
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:38:33+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T16:00:21+00:00",
+      "code_version": "1471e0937-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 19,
+        "survivors": [
+          "line 101: '1' -> '2'"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 19/20 (95%); survivors: [\"line 101: '1' -> '2'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T12:50:29+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-not-too-strong / no drift from real callee) verdict for scikit-learn__scikit-learn-13142 (nagini).\n\nSPEC INTEGRITY: same-spec toolkit exits 0 on model.py; the spec region (pre/post-conditions + pure best_config/best_score + labels_of axiom) is byte-identical to the bundle. model.py verifies non-vacuously (nagini_verify.sh: Verification successful, 13.65s). The byte-identical-spec prepatch (only A5/A6 order swapped) fails precisely on Ensures(Result()==labels_of(inst.config)), so the discriminating clause is real, not vacuous.\n\nCHECKED AGAINST THE REAL PATCHED CALLEE (BaseMixture.fit_predict, sklearn/mixture/base.py, base_commit 1c8668b...; worktree $SCRATCH created from $SCRATCH at the base commit and inspected):\n1. Tie-breaking: real loop uses strict '>' (base.py:255 `if lower_bound > max_lower_bound`), retaining the EARLIEST largest-lower-bound trial. Spec best_config uses '>=' at the front-recursion head, which yields exactly earliest-max. Verified agreement on [5,5], [3,5], [5,5,3], [3,5,5] \u2014 no divergence.\n2. labels_of is @Pure @ContractOnly with NO Ensures body: the proof consumes ONLY purity (same config => same labels). It does not claim any exact label value, so it cannot over-claim the real _e_step->argmax / predict primitive. This is the weakest sufficient contract, not too strong.\n3. Type abstraction is observationally faithful: score int is order-only (the loop uses only '>'); config int <-> parameter-set with equality iff labels agree; label modeled as one opaque deterministic value of the held config for fixed X. None of these strengthen the spec beyond real behavior.\n4. Postconditions match the PATCHED fit_predict: persist selected-best (base.py `_set_parameters(best_params)`) then derive labels from the persisted config (A5-before-A6). No postcondition asserts anything the real patched routine violates.\n\nCORROBORATION: recorded G-AX pass (16 n_init>1 configs, order observable) and G-CONF pass (100176 injected+e2e checks, 0 disagreements, seed 13142, direct shadow). The worktree is source-only (not compiled) so I could not re-execute axiom_check.py/conformance_check.py here; both were run in Docker at construction and recorded exit 0. I found no input where the modeled function disagrees with the real callee.\n\nVERDICT: FAITHFUL (no diverging input found; spec is neither too strong nor drifted from repo behavior).",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Gold edit: move the final label-deriving e-step (`_, log_resp = self._e_step(X)`) so it runs AFTER `self._set_parameters(best_params)`, so returned labels derive from the SELECTED-best params rather than the last-trial params (fixing fit_predict != predict when n_init>1).\n\nMechanical G-LEAK screen PASSES (leakage.screen over the nagini spec view: no hard failures). Verified independently.\n\nSpec-view assessment: the consumer-visible spec view ELIDES the impl region (`...  # implementation elided`), so the ordering-load-bearing statements/comments (`inst.config = selected` then `labels = labels_of(inst.config)`, and the 'Persist selected config THEN derive labels' comment) are NOT visible. The visible parts \u2014 module docstring, Estimator, labels_of axiom, best_score/best_config pure selection helpers, and the pre/post-conditions \u2014 only formalize the property ALREADY public in problem_statement: fit_predict labels must equal a subsequent predict/query on the fitted object, for every n_init. The postcondition `Result() == labels_of(inst.config)` + `inst.config == best_config(...)` restates 'returned labels = labels of the config the object ends up holding = what predict would give', which is exactly the publicly-stated bug/requirement ('predict and fit_predict disagree when n_init>1'), not a disclosure of the edit site or mechanism.\n\nNo patched file path (sklearn/mixture/base.py), no patched repo symbols (fit_predict, _e_step, _set_parameters, _get_parameters, log_resp, best_params), no diff markers, no bug/fix narration appear in the spec view. The spec expresses the correctness property (as any spec must) without revealing the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-not-too-strong / no drift from real callee) verdict for scikit-learn__scikit-learn-13142 (nagini).\n\nSPEC INTEGRITY: same-spec toolkit exits 0 on model.py; the spec region (pre/post-conditions + pure best_config/best_score + labels_of axiom) is byte-identical to the bundle. model.py verifies non-vacuously (nagini_verify.sh: Verification successful, 13.65s). The byte-identical-spec prepatch (only A5/A6 order swapped) fails precisely on Ensures(Result()==labels_of(inst.config)), so the discriminating clause is real, not vacuous.\n\nCHECKED AGAINST THE REAL PATCHED CALLEE (BaseMixture.fit_predict, sklearn/mixture/base.py, base_commit 1c8668b...; worktree $SCRATCH created from $SCRATCH at the base commit and inspected):\n1. Tie-breaking: real loop uses strict '>' (base.py:255 `if lower_bound > max_lower_bound`), retaining the EARLIEST largest-lower-bound trial. Spec best_config uses '>=' at the front-recursion head, which yields exactly earliest-max. Verified agreement on [5,5], [3,5], [5,5,3], [3,5,5] \u2014 no divergence.\n2. labels_of is @Pure @ContractOnly with NO Ensures body: the proof consumes ONLY purity (same config => same labels). It does not claim any exact label value, so it cannot over-claim the real _e_step->argmax / predict primitive. This is the weakest sufficient contract, not too strong.\n3. Type abstraction is observationally faithful: score int is order-only (the loop uses only '>'); config int <-> parameter-set with equality iff labels agree; label modeled as one opaque deterministic value of the held config for fixed X. None of these strengthen the spec beyond real behavior.\n4. Postconditions match the PATCHED fit_predict: persist selected-best (base.py `_set_parameters(best_params)`) then derive labels from the persisted config (A5-before-A6). No postcondition asserts anything the real patched routine violates.\n\nCORROBORATION: recorded G-AX pass (16 n_init>1 configs, order observable) and G-CONF pass (100176 injected+e2e checks, 0 disagreements, seed 13142, direct shadow). The worktree is source-only (not compiled) so I could not re-execute axiom_check.py/conformance_check.py here; both were run in Docker at construction and recorded exit 0. I found no input where the modeled function disagrees with the real callee.\n\nVERDICT: FAITHFUL (no diverging input found; spec is neither too strong nor drifted from repo behavior).; G-PANEL-3 (leakage): pass \u2014 Gold edit: move the final label-deriving e-step (`_, log_resp = self._e_step(X)`) so it runs AFTER `self._set_parameters(best_params)`, so returned labels derive from the SELECTED-best params rather than the last-trial params (fixing fit_predict != predict when n_init>1).\n\nMechanical G-LEAK screen PASSES (leakage.screen over the nagini spec view: no hard failures). Verified independently.\n\nSpec-view assessment: the consumer-visible spec view ELIDES the impl region (`...  # implementation elided`), so the ordering-load-bearing statements/comments (`inst.config = selected` then `labels = labels_of(inst.config)`, and the 'Persist selected config THEN derive labels' comment) are NOT visible. The visible parts \u2014 module docstring, Estimator, labels_of axiom, best_score/best_config pure selection helpers, and the pre/post-conditions \u2014 only formalize the property ALREADY public in problem_statement: fit_predict labels must equal a subsequent predict/query on the fitted object, for every n_init. The postcondition `Result() == labels_of(inst.config)` + `inst.config == best_config(...)` restates 'returned labels = labels of the config the object ends up holding = what predict would give', which is exactly the publicly-stated bug/requirement ('predict and fit_predict disagree when n_init>1'), not a disclosure of the edit site or mechanism.\n\nNo patched file path (sklearn/mixture/base.py), no patched repo symbols (fit_predict, _e_step, _set_parameters, _get_parameters, log_resp, best_params), no diff markers, no bug/fix narration appear in the spec view. The spec expresses the correctness property (as any spec must) without revealing the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_2_transient_return.py`, `atk_3_strict_gt_tie.py`, `atk_4_offbyone.py`, `atk_5_first_config.py`, `atk_6_wrong_label_source.py`, `atk_7_skip_persist.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_1_echo.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-not-too-strong / no drift from real callee) verdict for scikit-learn__scikit-learn-13142 (nagini).\n\nSPEC INTEGRITY: same-spec toolkit exits 0 on model.py; the spec region (pre/post-conditions + pure best_config/best_score + labels_of axiom) is byte-identical to the bundle. model.py verifies non-vacuously (nagini_verify.sh: Verification successful, 13.65s). The byte-identical-spec prepatch (only A5/A6 order swapped) fails precisely on Ensures(Result()==labels_of(inst.config)), so the discriminating clause is real, not vacuous.\n\nCHECKED AGAINST THE REAL PATCHED CALLEE (BaseMixture.fit_predict, sklearn/mixture/base.py, base_commit 1c8668b...; worktree $SCRATCH created from $SCRATCH at the base commit and inspected):\n1. Tie-breaking: real loop uses strict '>' (base.py:255 `if lower_bound > max_lower_bound`), retaining the EARLIEST largest-lower-bound trial. Spec best_config uses '>=' at the front-recursion head, which yields exactly earliest-max. Verified agreement on [5,5], [3,5], [5,5,3], [3,5,5] \u2014 no divergence.\n2. labels_of is @Pure @ContractOnly with NO Ensures body: the proof consumes ONLY purity (same config => same labels). It does not claim any exact label value, so it cannot over-claim the real _e_step->argmax / predict primitive. This is the weakest sufficient contract, not too strong.\n3. Type abstraction is observationally faithful: score int is order-only (the loop uses only '>'); config int <-> parameter-set with equality iff labels agree; label modeled as one opaque deterministic value of the held config for fixed X. None of these strengthen the spec beyond real behavior.\n4. Postconditions match the PATCHED fit_predict: persist selected-best (base.py `_set_parameters(best_params)`) then derive labels from the persisted config (A5-before-A6). No postcondition asserts anything the real patched routine violates.\n\nCORROBORATION: recorded G-AX pass (16 n_init>1 configs, order observable) and G-CONF pass (100176 injected+e2e checks, 0 disagreements, seed 13142, direct shadow). The worktree is source-only (not compiled) so I could not re-execute axiom_check.py/conformance_check.py here; both were run in Docker at construction and recorded exit 0. I found no input where the modeled function disagrees with the real callee.\n\nVERDICT: FAITHFUL (no diverging input found; spec is neither too strong nor drifted from repo behavior).\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Gold edit: move the final label-deriving e-step (`_, log_resp = self._e_step(X)`) so it runs AFTER `self._set_parameters(best_params)`, so returned labels derive from the SELECTED-best params rather than the last-trial params (fixing fit_predict != predict when n_init>1).\n\nMechanical G-LEAK screen PASSES (leakage.screen over the nagini spec view: no hard failures). Verified independently.\n\nSpec-view assessment: the consumer-visible spec view ELIDES the impl region (`...  # implementation elided`), so the ordering-load-bearing statements/comments (`inst.config = selected` then `labels = labels_of(inst.config)`, and the 'Persist selected config THEN derive labels' comment) are NOT visible. The visible parts \u2014 module docstring, Estimator, labels_of axiom, best_score/best_config pure selection helpers, and the pre/post-conditions \u2014 only formalize the property ALREADY public in problem_statement: fit_predict labels must equal a subsequent predict/query on the fitted object, for every n_init. The postcondition `Result() == labels_of(inst.config)` + `inst.config == best_config(...)` restates 'returned labels = labels of the config the object ends up holding = what predict would give', which is exactly the publicly-stated bug/requirement ('predict and fit_predict disagree when n_init>1'), not a disclosure of the edit site or mechanism.\n\nNo patched file path (sklearn/mixture/base.py), no patched repo symbols (fit_predict, _e_step, _set_parameters, _get_parameters, log_resp, best_params), no diff markers, no bug/fix narration appear in the spec view. The spec expresses the correctness property (as any spec must) without revealing the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:37:26+00:00",
+      "code_version": "86d931006-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-run_config",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "reject",
+            "id": "drop-selection-keep-final-trial",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-order-swap-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.2
+          },
+          {
+            "expect": "reject",
+            "id": "strict-tiebreak-wrong-earliest",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-tail-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-multitrial-self-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "8e7958e60f088dde6c9e32e2c0e8fdee4d3ca810154285fe17a4dadd0d55bcc4",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6",
+        "properties.py": "8e7958e60f088dde6c9e32e2c0e8fdee4d3ca810154285fe17a4dadd0d55bcc4"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:55:42+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:24:19+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "wall_time_s": 56.3
+      },
+      "detail": "verified in 56.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ef890298274da6e72898ff87b5c2a2caa4df1a409528f1e13182381bda397cc6"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-13142",
+  "modeled_functions": [
+    {
+      "carrier_type": "estimator parameter set -> int config id; per-trial converged lower_bound (float) -> int score (order-only); n_init trials -> non-empty List[int]; label array -> int (opaque deterministic assignment); specification selection over PSeq[int]",
+      "model_symbol": "fit_and_label",
+      "repo_location": "sklearn/mixture/base.py:194 (body 217-276)",
+      "repo_symbol": "sklearn.mixture.base.BaseMixture.fit_predict",
+      "role": "modeled changed function (fits n_init trials, persists the selected-best parameters, returns the labels derived from the persisted configuration); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; checked git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == labels_of(inst.config) (returned labels derived from final-trial config while inst.config ends as the selected-best config)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "fit_predict label/parameter consistency (the returned labels must be derived from the persisted selected-best configuration)",
+      "reverted_to": "derive labels from the transient final-trial configuration, THEN persist the selected-best (the pre-change position of the e-step relative to _set_parameters)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "0e16cf056cf9e2881468958648df181c8f034e72c6dd9b347213e008877a7c91",
+    "impl": "791923b127ed49e4e4395a604c3af23920778b50ddebe306dd5e0e880ae3f8c5",
+    "invariants": "b025216c4957c1613a29b485d82fbb16aa54f4c39c1e6362987c0058dcdbac71",
+    "post-conditions": "d5ffd6c282b29470575d0009cf07a8353fc39b5d41e46cc60149e63594600c08",
+    "pre-conditions": "f400f67c0be276434b98a19adceb063346c6a19a9a8fc631aad69d7c70b72210",
+    "pure": "379d9dbae3eae6ac7ffd764a39098dc80801d16c6c3d50f30a022cfb98c5828c",
+    "spec_view": "3bdaed0cfe82c89d4a7b0da32049305969cfdbda9e92f454c2e4006e156d4016"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "selection_modeling": "n_init trials as parallel List[int] (config ids, int scores); best-trial selection proven by a backward scan whose running selection equals the front-recursive best_config/best_score over the scanned suffix; the moved label-deriving query modeled as impl statement order (persist-then-derive) consuming the labels_of purity axiom",
+  "string_modeling": null,
+  "version": "0.21"
+}

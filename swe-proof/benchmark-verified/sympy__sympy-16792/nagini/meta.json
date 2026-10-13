@@ -1,0 +1,403 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "behaviour-preserving refactor (factors the identical [(S.Zero, dim-1) for dim in s.shape] comprehension into a helper); produces identical dimension lists, so no independently-observable fixed behaviour and no separate prepatch. Folded into the same deep model (dimensions / array_resolved).",
+      "repo_location": "sympy/utilities/codegen.py:698-700 (new helper), 706-712 (reuse)",
+      "repo_symbol": "CodeGen.routine: dimensions(s) helper extraction + reuse for expression-derived args"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "09786a173e7a0a488f46dd6000177c23e5d24eed",
+  "changed_files": [
+    "sympy/utilities/codegen.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): runs the real CCodeGen.routine + get_prototype + end-to-end codegen on the exact F2P scenario + 13 boundary + 400 fuzz argument sequences; asserts an emitted argument is a pointer iff want_pointer(kind, present); cross-checks the prototype '*' against arg.dimensions. Exit 0 iff sound.",
+      "encoded_property": "want_pointer(kind, present): a matrix (kind 1, intrinsic non-empty shape) is a pointer ALWAYS (present or absent); an indexed array (kind 2) is a pointer iff present in the expression; a scalar (kind 0) is never a pointer. The discriminating clause the fix establishes is the absent matrix -> pointer (the F2P scenario).",
+      "kind": "A-reference",
+      "models": "the real array-ness + dimension computation in CodeGen.routine (the dimensions(s) = [(S.Zero, dim-1) for dim in s.shape] helper + the isinstance(symbol,(IndexedBase,MatrixSymbol)) promotion) and the C pointer rendering in CCodeGen.get_prototype",
+      "name": "array_resolved / shape_is_intrinsic / arg_is_pointer / want_pointer",
+      "provenance": "sympy/utilities/codegen.py:698-700 (dimensions helper, post-patch), 741-746 (KeyError branch isinstance promotion, post-patch), 911-916 (get_prototype: emits '*name' iff arg.dimensions). IndexedBase is normalised to its scalar .label at lines 722-729 BEFORE the KeyError branch, so an absent indexed array is NOT promoted; only an absent MatrixSymbol is.",
+      "role": "deep model (pure region) of the changed array-ness decision and the prototype rendering; NOT a consumed axiom -- there is no @ContractOnly for the changed routine/get_prototype"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:14:30+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model (matrix => pointer always; indexed => pointer iff present; scalar => never) matches the real sympy CCodeGen on the F2P scenario + 13 boundary + 400 fuzz argument sequences.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "f2e49682d68c2f76f33c33891b26f33b3fe11591191d0c65dfff98ec18b667d8",
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:16:38+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100021,
+          "disagreements": 0,
+          "seed": 167920,
+          "shadow": "direct (contract-stripped impl region; no @ContractOnly callees)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100021, \"disagreements\": 0, \"seed\": 167920, \"shadow\": \"direct (contract-stripped impl region; no @ContractOnly callees)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d14b8a406eaa5c813ce1b7e13acbe1fb297ef9157e0ba1b8cdfb7ccdea339adb",
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:20:25+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd",
+        "model_prepatch.py": "5450bf6e2059fd6faa0c2730846679d68a669877c84369a0e6ddeeacd0ee5288"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T16:00:37+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_6.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:21:18+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd",
+        "model_prepatch.py": "5450bf6e2059fd6faa0c2730846679d68a669877c84369a0e6ddeeacd0ee5288"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:14:17+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "993d64fa6c4598ed8522f377154b9a0dcf5ffa02ea4e202ab5587e98683344f4",
+          "impl": "6f4767272ca43bac92287dec7ac3684d9da8c563cb18a1804cf265870247e574",
+          "invariants": "cef2b4e5dbc4f84d53f1562943e5dffe8b7217eae2ca580158eecd67184c312d",
+          "post-conditions": "dc49c46ff40fd7a81a035572cf67d9a496e8fd5133f43c71f5992b326dc47363",
+          "pre-conditions": "d893e13b3d8d3d8d2a353728f3ba67e4874013ccb0c19417bdbb907ed5745cb5",
+          "pure": "fd11dcfc80faea0ef3778d95d26836fcd39d8f2d43ae07b8a6f3e797f25165d9",
+          "spec_view": "a6072ecfcdad174a8d815f67fc42dbbcda21177336d17f4513a03bbb3055cf98"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:14:17+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "0ccd8e737274fb7fedbd96d074e2b43e47a9b2578cb5a30aacde5d38c5e4b111",
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:14:18+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:00:11+00:00",
+      "code_version": "7cbe2b8df-dirty",
+      "data": {
+        "judged": 14,
+        "killed": 14,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 15,
+        "unjudged": [
+          "line 161: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 14/14 (100%); no verdict on 1: [\"line 161: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T16:00:39+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "The modeled function pointer_flags / want_pointer(k, present) agrees with the real repo callee (CodeGen.routine + CCodeGen.get_prototype) on every realizable input. Verified in worktree $SCRATCH at base_commit 09786a1 (gold patch applied). Enumerated all 6 realizable (kind, present) combos plus a mixed 7-arg ordered sequence \u2014 0 mismatches:\n- scalar present  -> plain value (double x)         == want_pointer(0,T)=False\n- scalar absent   -> plain value (double w)         == want_pointer(0,F)=False\n- matrix present  -> pointer (double *A)            == want_pointer(1,T)=True\n- matrix absent   -> pointer (double *C)  [THE FIX] == want_pointer(1,F)=True\n- indexed present -> pointer (double *B)            == want_pointer(2,T)=True\n- indexed absent  -> plain value (double D)         == want_pointer(2,F)=False\n\nThe discriminating clause (absent matrix is a pointer; absent indexed is NOT) is correctly modeled and matches reality: an absent IndexedBase is normalized to its scalar .label at codegen.py:722-729, so isinstance(symbol,(IndexedBase,MatrixSymbol)) is False in the KeyError branch and it stays scalar \u2014 exactly the model's k==2&!present->False. The C renderer's rule arg.dimensions truthy iff pointer (get_prototype, codegen.py:913-914, InputArgument never a ResultBase) equals arg_is_pointer(has_dims)==has_dims. same-spec command returns exit 0. No spec drift, no too-strong behavior found; no diverging input exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = model.py projection (docstring + @Pure region shape_is_intrinsic/array_resolved/arg_is_pointer/want_pointer + pre/post-conditions of pointer_flags; impl elided). Mechanical G-LEAK screen (swebench_unified.leakage.screen with the nagini backend + frozen problem_statement/patch) returns passed=True, zero hard failures. Manual review confirms: (1) no diff markers, no patched file path (sympy/utilities/codegen.py) or module path; (2) no gold-patch lines reproduced (no 'dimensions(s)', 'InputArgument', 'isinstance(symbol,(IndexedBase,MatrixSymbol))', \"metadata={'dimensions':...}\"); (3) gold-changed repo symbols 'dimensions' and 'routine' appear neither as spec-view identifiers nor verbatim in comments (prose uses 'dimension list', not the symbol 'dimensions'); (4) no bug/fix narration \u2014 docstring explicitly frames content as 'desired behaviour, not as an edit'. The load-bearing observable the spec pins \u2014 an absent matrix argument is still rendered a pointer ('*name') \u2014 is already fully public in the problem_statement, which shows the MatrixSymbol('x',2,1)/expr=1.0 case stating 'x should be double *, not double' and that depending on the arg fixes it. The abstract three-kind taxonomy (scalar/matrix/indexed, indexed-iff-present) is a behavioral characterization of the function's domain, not a disclosure of the edit mechanics. refinement.md/mapping.md do quote gold lines + file:line anchors + 'dimensions', but those are auditor-only artifacts, NOT part of the consumer spec view, so out of G-LEAK scope. No leakage beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 The modeled function pointer_flags / want_pointer(k, present) agrees with the real repo callee (CodeGen.routine + CCodeGen.get_prototype) on every realizable input. Verified in worktree $SCRATCH at base_commit 09786a1 (gold patch applied). Enumerated all 6 realizable (kind, present) combos plus a mixed 7-arg ordered sequence \u2014 0 mismatches:\n- scalar present  -> plain value (double x)         == want_pointer(0,T)=False\n- scalar absent   -> plain value (double w)         == want_pointer(0,F)=False\n- matrix present  -> pointer (double *A)            == want_pointer(1,T)=True\n- matrix absent   -> pointer (double *C)  [THE FIX] == want_pointer(1,F)=True\n- indexed present -> pointer (double *B)            == want_pointer(2,T)=True\n- indexed absent  -> plain value (double D)         == want_pointer(2,F)=False\n\nThe discriminating clause (absent matrix is a pointer; absent indexed is NOT) is correctly modeled and matches reality: an absent IndexedBase is normalized to its scalar .label at codegen.py:722-729, so isinstance(symbol,(IndexedBase,MatrixSymbol)) is False in the KeyError branch and it stays scalar \u2014 exactly the model's k==2&!present->False. The C renderer's rule arg.dimensions truthy iff pointer (get_prototype, codegen.py:913-914, InputArgument never a ResultBase) equals arg_is_pointer(has_dims)==has_dims. same-spec command returns exit 0. No spec drift, no too-strong behavior found; no diverging input exists.; G-PANEL-3 (leakage): pass \u2014 Spec view = model.py projection (docstring + @Pure region shape_is_intrinsic/array_resolved/arg_is_pointer/want_pointer + pre/post-conditions of pointer_flags; impl elided). Mechanical G-LEAK screen (swebench_unified.leakage.screen with the nagini backend + frozen problem_statement/patch) returns passed=True, zero hard failures. Manual review confirms: (1) no diff markers, no patched file path (sympy/utilities/codegen.py) or module path; (2) no gold-patch lines reproduced (no 'dimensions(s)', 'InputArgument', 'isinstance(symbol,(IndexedBase,MatrixSymbol))', \"metadata={'dimensions':...}\"); (3) gold-changed repo symbols 'dimensions' and 'routine' appear neither as spec-view identifiers nor verbatim in comments (prose uses 'dimension list', not the symbol 'dimensions'); (4) no bug/fix narration \u2014 docstring explicitly frames content as 'desired behaviour, not as an edit'. The load-bearing observable the spec pins \u2014 an absent matrix argument is still rendered a pointer ('*name') \u2014 is already fully public in the problem_statement, which shows the MatrixSymbol('x',2,1)/expr=1.0 case stating 'x should be double *, not double' and that depending on the arg fixes it. The abstract three-kind taxonomy (scalar/matrix/indexed, indexed-iff-present) is a behavioral characterization of the function's domain, not a disclosure of the edit mechanics. refinement.md/mapping.md do quote gold lines + file:line anchors + 'dimensions', but those are auditor-only artifacts, NOT part of the consumer spec view, so out of G-LEAK scope. No leakage beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_6.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "The modeled function pointer_flags / want_pointer(k, present) agrees with the real repo callee (CodeGen.routine + CCodeGen.get_prototype) on every realizable input. Verified in worktree $SCRATCH at base_commit 09786a1 (gold patch applied). Enumerated all 6 realizable (kind, present) combos plus a mixed 7-arg ordered sequence \u2014 0 mismatches:\n- scalar present  -> plain value (double x)         == want_pointer(0,T)=False\n- scalar absent   -> plain value (double w)         == want_pointer(0,F)=False\n- matrix present  -> pointer (double *A)            == want_pointer(1,T)=True\n- matrix absent   -> pointer (double *C)  [THE FIX] == want_pointer(1,F)=True\n- indexed present -> pointer (double *B)            == want_pointer(2,T)=True\n- indexed absent  -> plain value (double D)         == want_pointer(2,F)=False\n\nThe discriminating clause (absent matrix is a pointer; absent indexed is NOT) is correctly modeled and matches reality: an absent IndexedBase is normalized to its scalar .label at codegen.py:722-729, so isinstance(symbol,(IndexedBase,MatrixSymbol)) is False in the KeyError branch and it stays scalar \u2014 exactly the model's k==2&!present->False. The C renderer's rule arg.dimensions truthy iff pointer (get_prototype, codegen.py:913-914, InputArgument never a ResultBase) equals arg_is_pointer(has_dims)==has_dims. same-spec command returns exit 0. No spec drift, no too-strong behavior found; no diverging input exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view = model.py projection (docstring + @Pure region shape_is_intrinsic/array_resolved/arg_is_pointer/want_pointer + pre/post-conditions of pointer_flags; impl elided). Mechanical G-LEAK screen (swebench_unified.leakage.screen with the nagini backend + frozen problem_statement/patch) returns passed=True, zero hard failures. Manual review confirms:\n\n(1) no diff markers, no patched file path (sympy/utilities/codegen.py) or module path;\n\n(2) no gold-patch lines reproduced (no 'dimensions(s)', 'InputArgument', 'isinstance(symbol,(IndexedBase,MatrixSymbol))', \"metadata={'dimensions':...}\");\n\n(3) gold-changed repo symbols 'dimensions' and 'routine' appear neither as spec-view identifiers nor verbatim in comments (prose uses 'dimension list', not the symbol 'dimensions');\n\n(4) no bug/fix narration \u2014 docstring explicitly frames content as 'desired behaviour, not as an edit'. The load-bearing observable the spec pins \u2014 an absent matrix argument is still rendered a pointer ('*name') \u2014 is already fully public in the problem_statement, which shows the MatrixSymbol('x',2,1)/expr=1.0 case stating 'x should be double *, not double' and that depending on the arg fixes it. The abstract three-kind taxonomy (scalar/matrix/indexed, indexed-iff-present) is a behavioral characterization of the function's domain, not a disclosure of the edit mechanics. refinement.md/mapping.md do quote gold lines + file:line anchors + 'dimensions', but those are auditor-only artifacts, NOT part of the consumer spec view, so out of G-LEAK scope. No leakage beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:46:38+00:00",
+      "code_version": "7df0fef9f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shape",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 21.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-absent-matrix-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.9
+          },
+          {
+            "expect": "reject",
+            "id": "partial-absent-indexed-overpromote",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-kinds",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-present",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "length-short-drop-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "6cb3c5bcb65a205ae73496157481f201ac863c5b2b53e1c59cef6b330c8686d8",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd",
+        "properties.py": "6cb3c5bcb65a205ae73496157481f201ac863c5b2b53e1c59cef6b330c8686d8"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:25:44+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:04:59+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 17.4
+      },
+      "detail": "verified in 17.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd63cf3da6a87e36c9715d49bf35b4bc03ccc396eca2409f526eabc8a1ca22dd"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-16792",
+  "modeled_functions": [
+    {
+      "carrier_type": "argument_sequence of sympy symbols -> kinds: List[int] (0 scalar Symbol, 1 MatrixSymbol, 2 IndexedBase); name_arg_dict membership -> present: List[bool]; per-argument C pointer decision -> List[bool]; specification carried element-wise via want_pointer",
+      "model_symbol": "pointer_flags",
+      "repo_location": "sympy/utilities/codegen.py:719-745 (the for symbol in argument_sequence loop, KeyError branch at 741-746)",
+      "repo_symbol": "CodeGen.routine (the argument_sequence handling loop)",
+      "role": "modeled changed function: builds the ordered argument list to match a caller-supplied argument_sequence and decides each argument's array-ness, which the C prototype renders as a pointer or a scalar. Single contracted+implemented function (markers are module-level singletons)."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "loop invariant / postcondition Result()[i] == want_pointer(kinds[i], present[i]) on an absent matrix argument (kind=1, present=False): required pointer, the bug yields scalar -- exactly the F2P test_ccode_unused_array_arg scenario",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "array-ness of a requested argument that does NOT occur in the wrapped expression",
+      "reverted_to": "the KeyError branch wraps the missing symbol as InputArgument(symbol) with no dimensions, so EVERY absent argument is rebuilt without dimensions (has_dims = False in the else branch)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "0bde86506b9ccb19e3e29861febaba85b3a3d94ad8df049f5af746edfe2dcfc5",
+    "impl": "ea874f3f1c087c47882bfbd3a1f7420ea3cb938d33911ff334b728397485171d",
+    "invariants": "68844bd1446131d2deaad90d883ebf888564932f39c79c7178eaacdd7dbe67a3",
+    "post-conditions": "f0366d39526b4518a519f2dd2b3fa9c406939b831eb8c6197b7505edf2a01ecf",
+    "pre-conditions": "f039edede4acaa92802ede3c219159117c51105055b9265887320cf63ae23594",
+    "pure": "5e28e9c8eb4d8dc8214bfe871e8b7b84424cee8ae0b262fd602720c66d82dc34",
+    "spec_view": "42f22b3f66ee1ebe2e9920736c7119d36f280506e0e441e0d3ee833a95b05078"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": null,
+  "type_modeling": "each requested argument abstracted by a kind tag (0 scalar / 1 matrix / 2 indexed-array) and a presence flag (does it occur in the wrapped expression); the per-argument C pointer decision abstracted as a bool. The concrete symbols, shapes, datatypes and names are irrelevant to the tested behaviour (the F2P test observes only whether the array argument renders as 'double *x' vs 'double x'). Specification pinned element-wise via the pure want_pointer (forward loop + element-wise invariant, the verified-clean sympy-13647 pattern).",
+  "version": "1.5"
+}

@@ -1,0 +1,428 @@
+{
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real datetime_to_numeric on NaT-free datetime arrays meets Result[k]==values[k]-0; raises on timedelta input (precondition honesty); AND check_sentinel_excluded confirms the callee returns nan (deviates from the subtraction) on the NaT sentinel -2**63 (so the domain exclusion is necessary). Fuzz now mixes int64 extremes / the NaT sentinel (was blind: old band [-10**15,10**15] could never reach -2**63).",
+      "encoded_property": "Requires(kind == TIME_POINT) [the measurement subtracts a reference INSTANT, undefined for durations] AND Requires(well_defined_magnitudes(values)) [no element is the not-a-value sentinel -2**63, on which datetime_to_numeric terminates in np.where(isnull(array), np.nan, ...) / NaT-division and returns nan, NOT the per-element subtraction]; Ensures len(Result)==len(values) and Result[k]==values[k]-reference (the per-element subtraction on the NaT-free domain; weakest contract the timestamp branch needs)",
+      "models": "xarray.core.duck_array_ops.datetime_to_numeric (unchanged callee), called by the timestamp branch with offset=np.datetime64('1970-01-01'), datetime_unit='ns'",
+      "name": "elapsed_since",
+      "provenance": "xarray/core/duck_array_ops.py:398-450 (array - offset; array / np.timedelta64(1, unit); astype(float)); the 1970-01-01 offset is the ns epoch so reference == 0",
+      "purity": "@Pure @ContractOnly (used inside Ensures); domain predicate well_defined_magnitudes is @Pure in the pure region, referenced as an atom by both the axiom Requires and the caller precondition (atom-level match avoids forall-to-forall instantiation)",
+      "soundness_critical": "two facts: (1) the precondition Requires(kind==TIME_POINT): in reality datetime_to_numeric with a datetime64 offset does timedelta64 - datetime64, which raises UFuncTypeError on a duration (the fact the pre-patch bug violates); (2) Requires(well_defined_magnitudes(values)) excludes the NaT sentinel -2**63, where the real callee returns nan rather than the per-element subtraction -- WITHOUT this exclusion the Ensures would be STRONGER than the real callee on an in-domain input (panel G-AX defect). The exclusion is honest, not gratuitous: axiom_check.check_sentinel_excluded asserts the real callee really deviates (nan) at the sentinel."
+    }
+  ],
+  "base_commit": "6bb2b855498b5c68d7cca8cceb710365d58e6048",
+  "changed_files": [
+    "xarray/core/computation.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts timedelta64[ns].astype(float) == raw ns magnitudes on boundary + 20000 fuzz inputs, now incl. int64 extremes AND the NaT sentinel -2**63 (sound there: the duration astype(float) reinterprets the magnitude, it does NOT special-case NaT -- unlike the timestamp measurement, so magnitude_read stays the identity on the full int64 range)",
+      "encoded_property": "magnitude_read(values) == values (the identity on base-resolution magnitudes): a duration is already a relative quantity, so its float value equals its ns magnitude",
+      "kind": "A-reference",
+      "models": "x.astype(float) on a timedelta64[ns] array (the NEW duration branch added by the patch)",
+      "name": "magnitude_read",
+      "provenance": "numpy timedelta64[ns].astype(float) reinterprets each duration as its integer nanosecond count, as a float; the identity on ns magnitudes",
+      "role": "deep model (pure region) of the changed/new duration conversion; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "float_modeling": "float64 conversion output modeled as int: the F2P timedelta magnitudes (1000,2000,3000 ns) and P2P datetime magnitudes (0,1e9,2e9 ns) are exact integers; the behaviour under test (which conversion per dtype kind; whether the timestamp measurement is applicable to a duration) is a type-applicability property, precision-independent (refinement.md D)",
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:14:43+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: elapsed_since axiom (== datetime_to_numeric, ref=0) sound on its NaT-free domain, the NaT sentinel -2**63 correctly EXCLUDED (real callee returns NaN there, so the exclusion is necessary), precondition honest (datetime_to_numeric raises on timedelta), and magnitude_read deep model (== timedelta astype(float)) sound on the full int64 range incl. the NaT sentinel; 7+3 boundary + 20000 fuzz inputs (now fuzzing int64 extremes / NaT sentinel)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "391270062079bbc43d079f2fe9d826db3544524c015e68f12813130c1d4a23af",
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:15:15+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100069,
+          "disagreements": 0,
+          "seed": 6599,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100069, \"disagreements\": 0, \"seed\": 6599, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e1b1dd8bb9476fedb8f3a1e0c31fd64181359322187193c46bc4a14095617c2c",
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:53:08+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb",
+        "model_prepatch.py": "a7308aa3c5e2e8619fd40c36700bc50f236171bf1e026afde1c5731c0633c040"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T07:12:03+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk1_span_through_measure.py`, `atk2_point_offbyone.py`, `atk3_span_plus1.py`, `atk4_span_empty.py`, `atk5_point_identity.py`, `atk6_other_double.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk7_span_via_magread_correct.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:54:12+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb",
+        "model_prepatch.py": "a7308aa3c5e2e8619fd40c36700bc50f236171bf1e026afde1c5731c0633c040"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:14:32+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "19efb43b8a984c1b98447c11d3b36cb69a9fd12c137ad875fb76de8957d65a17",
+          "impl": "ef919321b52d0ccef641e8bb19ef529116f611f506e422ce0b8b6f958f787a7d",
+          "invariants": "e8ac2abfa6fb717cb4de1d7b3072114691a3cca598361c752aa920227a365cd0",
+          "post-conditions": "32528936bdf211fdb2e88d6df8f828cac9c8ef333c2f4bf313acb89a5d356fbc",
+          "pre-conditions": "683892866c41e3985046036f741983c6fe1694b63dca0fd06878ad1a53ba2d43",
+          "pure": "77fb583a94fab20fef97f86bceef1aaf5725e3a8062266d67e4a9a862b07c071",
+          "spec_view": "1b52acada66221c40f7691118221232d651137e7cec96d80be929bb4f0a72011"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:14:33+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "0dcdd7a23126b4720c5ee80afb4206860091f76da53153089533582473bf7f2e",
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:14:33+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:30:55+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 19,
+        "survivors": [
+          "line 149: '==' -> '!='"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 19/20 (95%); survivors: [\"line 149: '==' -> '!='\"]",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T07:12:05+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Real base_commit 6bb2b855 verified in worktree $SCRATCH to_floatable dispatch checked branch-by-branch: (1) TIME_POINT models datetime_to_numeric(offset=1970-01-01,unit=ns) with reference==0 => result==values on the well_defined_magnitudes domain; -2**63 NaT sentinel correctly excluded (real callee returns nan there); precondition kind==TIME_POINT honest (real callee raises UFuncTypeError on timedelta). G-AX/axiom_check.py executes the real callee and confirms including check_sentinel_excluded (exclusion NECESSARY). (2) TIME_SPAN models x.astype(float) as ns-magnitude identity \u2014 faithful for exact-integer magnitudes. (3) OTHER passthrough == real `return x`. On every test-reachable input the model is byte-for-behavior faithful. Spec region confirmed byte-identical (same-spec exit 0). The only modeled/real disagreement is the |mag|>=2**53 precision band, which is disclosed, bounded, and out of test domain \u2014 a sanctioned refinement, not spec drift. Verdict FAITHFUL. (Separately: the recorded G-EQ fail on this cell is a verify-not-resolve equivalence break, a distinct gate, not a faithfulness/spec-too-strong issue.)",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Reconstructed the consumer spec view via swebench_unified.markers.spec_view(model.py, nagini backend); its sha256 (1b52acada66221c40f7691118221232d651137e7cec96d80be929bb4f0a72011) matches meta.region_hashes.spec_view exactly, so this is the genuine view and the impl region is elided ('... implementation elided \u2014 supplied by the consumer'). Compared against the public problem_statement ONLY (hints_text excluded).\n\n(1) Lexical scan: NONE of the gold-patch-specific tokens appear in the spec view \u2014 no 'mM', no '== \"M\"'/'== \"m\"' guard, no 'elif', no datetime_to_numeric, no astype, no x.copy, no '1970-01-01', no to_floatable/duck_array_ops/computation.py references, no UFuncTypeError, no polyval. The view is a fully abstracted MODEL (int kind-tags OTHER/TIME_POINT/TIME_SPAN, PSeq[int] magnitudes, an axiomatized callee elapsed_since + a deep model magnitude_read), not repo code and not the diff. No copy-pasteable fix.\n\n(2) The only repo-adjacent tokens are the numpy dtype.kind codes 'M'/'m' in the two tag comments (TIME_POINT: datetime64 dtype.kind 'M'; TIME_SPAN: timedelta64 dtype.kind 'm'). These are standard numpy category codes for datetime64/timedelta64, both of which are named verbatim in the public problem_statement \u2014 a type-mapping annotation, NOT disclosure of the 'in \"mM\"' -> '== \"M\"' / 'elif == \"m\": x.astype(float)' split. They do not reveal the edit structure.\n\n(3) The specified behavior (timedelta -> read numeric ns magnitude; datetime -> elapsed-since-reference measurement; other -> unchanged) is directly derivable from the public issue, which publishes the correct stable output (~4.4e6) vs the broken output (~1.6e30) for a timedelta64 coordinate and asserts both should match. Specifying correct behavior is required for verify=>resolve and is not leakage.\n\n(4) The mechanistic rationale ('an instant-relative subtraction is undefined for a duration') overlaps with hints_text, but hints are excluded from the baseline and a spec is entitled to its own correctness rationale; the view reproduces no gold guard or diff hunk.\n\nConclusion: the spec view does not leak the gold edit beyond the public problem_statement. Concurs with recorded G-PANEL-3 (pass).",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Real base_commit 6bb2b855 verified in worktree $SCRATCH to_floatable dispatch checked branch-by-branch: (1) TIME_POINT models datetime_to_numeric(offset=1970-01-01,unit=ns) with reference==0 => result==values on the well_defined_magnitudes domain; -2**63 NaT sentinel correctly excluded (real callee returns nan there); precondition kind==TIME_POINT honest (real callee raises UFuncTypeError on timedelta). G-AX/axiom_check.py executes the real callee and confirms including check_sentinel_excluded (exclusion NECESSARY). (2) TIME_SPAN models x.astype(float) as ns-magnitude identity \u2014 faithful for exact-integer magnitudes. (3) OTHER passthrough == real `return x`. On every test-reachable input the model is byte-for-behavior faithful. Spec region confirmed byte-identical (same-spec exit 0). The only modeled/real disagreement is the |mag|>=2**53 precision band, which is disclosed, bounded, and out of test domain \u2014 a sanctioned refinement, not spec drift. Verdict FAITHFUL. (Separately: the recorded G-EQ fail on this cell is a verify-not-resolve equivalence break, a distinct gate, not a faithfulness/spec-too-strong issue.); G-PANEL-3 (leakage): pass \u2014 Reconstructed the consumer spec view via swebench_unified.markers.spec_view(model.py, nagini backend); its sha256 (1b52acada66221c40f7691118221232d651137e7cec96d80be929bb4f0a72011) matches meta.region_hashes.spec_view exactly, so this is the genuine view and the impl region is elided ('... implementation elided \u2014 supplied by the consumer'). Compared against the public problem_statement ONLY (hints_text excluded).\n\n(1) Lexical scan: NONE of the gold-patch-specific tokens appear in the spec view \u2014 no 'mM', no '== \"M\"'/'== \"m\"' guard, no 'elif', no datetime_to_numeric, no astype, no x.copy, no '1970-01-01', no to_floatable/duck_array_ops/computation.py references, no UFuncTypeError, no polyval. The view is a fully abstracted MODEL (int kind-tags OTHER/TIME_POINT/TIME_SPAN, PSeq[int] magnitudes, an axiomatized callee elapsed_since + a deep model magnitude_read), not repo code and not the diff. No copy-pasteable fix.\n\n(2) The only repo-adjacent tokens are the numpy dtype.kind codes 'M'/'m' in the two tag comments (TIME_POINT: datetime64 dtype.kind 'M'; TIME_SPAN: timedelta64 dtype.kind 'm'). These are standard numpy category codes for datetime64/timedelta64, both of which are named verbatim in the public problem_statement \u2014 a type-mapping annotation, NOT disclosure of the 'in \"mM\"' -> '== \"M\"' / 'elif == \"m\": x.astype(float)' split. They do not reveal the edit structure.\n\n(3) The specified behavior (timedelta -> read numeric ns magnitude; datetime -> elapsed-since-reference measurement; other -> unchanged) is directly derivable from the public issue, which publishes the correct stable output (~4.4e6) vs the broken output (~1.6e30) for a timedelta64 coordinate and asserts both should match. Specifying correct behavior is required for verify=>resolve and is not leakage.\n\n(4) The mechanistic rationale ('an instant-relative subtraction is undefined for a duration') overlaps with hints_text, but hints are excluded from the baseline and a spec is entitled to its own correctness rationale; the view reproduces no gold guard or diff hunk.\n\nConclusion: the spec view does not leak the gold edit beyond the public problem_statement. Concurs with recorded G-PANEL-3 (pass).",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk1_span_through_measure.py`, `atk2_point_offbyone.py`, `atk3_span_plus1.py`, `atk4_span_empty.py`, `atk5_point_identity.py`, `atk6_other_double.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk7_span_via_magread_correct.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Real base_commit 6bb2b855 verified in worktree $SCRATCH to_floatable dispatch checked branch-by-branch: (1) TIME_POINT models datetime_to_numeric(offset=1970-01-01,unit=ns) with reference==0 => result==values on the well_defined_magnitudes domain; -2**63 NaT sentinel correctly excluded (real callee returns nan there); precondition kind==TIME_POINT honest (real callee raises UFuncTypeError on timedelta). G-AX/axiom_check.py executes the real callee and confirms including check_sentinel_excluded (exclusion NECESSARY). (2) TIME_SPAN models x.astype(float) as ns-magnitude identity \u2014 faithful for exact-integer magnitudes. (3) OTHER passthrough == real `return x`. On every test-reachable input the model is byte-for-behavior faithful. Spec region confirmed byte-identical (same-spec exit 0). The only modeled/real disagreement is the |mag|>=2**53 precision band, which is disclosed, bounded, and out of test domain \u2014 a sanctioned refinement, not spec drift. Verdict FAITHFUL. (Separately: the recorded G-EQ fail on this cell is a verify-not-resolve equivalence break, a distinct gate, not a faithfulness/spec-too-strong issue.)\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Reconstructed the consumer spec view via swebench_unified.markers.spec_view(model.py, nagini backend); its sha256 (1b52acada66221c40f7691118221232d651137e7cec96d80be929bb4f0a72011) matches meta.region_hashes.spec_view exactly, so this is the genuine view and the impl region is elided ('... implementation elided \u2014 supplied by the consumer'). Compared against the public problem_statement ONLY (hints_text excluded).\n\n(1) Lexical scan: NONE of the gold-patch-specific tokens appear in the spec view \u2014 no 'mM', no '== \"M\"'/'== \"m\"' guard, no 'elif', no datetime_to_numeric, no astype, no x.copy, no '1970-01-01', no to_floatable/duck_array_ops/computation.py references, no UFuncTypeError, no polyval. The view is a fully abstracted MODEL (int kind-tags OTHER/TIME_POINT/TIME_SPAN, PSeq[int] magnitudes, an axiomatized callee elapsed_since + a deep model magnitude_read), not repo code and not the diff. No copy-pasteable fix.\n\n(2) The only repo-adjacent tokens are the numpy dtype.kind codes 'M'/'m' in the two tag comments (TIME_POINT: datetime64 dtype.kind 'M'; TIME_SPAN: timedelta64 dtype.kind 'm'). These are standard numpy category codes for datetime64/timedelta64, both of which are named verbatim in the public problem_statement \u2014 a type-mapping annotation, NOT disclosure of the 'in \"mM\"' -> '== \"M\"' / 'elif == \"m\": x.astype(float)' split. They do not reveal the edit structure.\n\n(3) The specified behavior (timedelta -> read numeric ns magnitude; datetime -> elapsed-since-reference measurement; other -> unchanged) is directly derivable from the public issue, which publishes the correct stable output (~4.4e6) vs the broken output (~1.6e30) for a timedelta64 coordinate and asserts both should match. Specifying correct behavior is required for verify=>resolve and is not leakage.\n\n(4) The mechanistic rationale ('an instant-relative subtraction is undefined for a duration') overlaps with hints_text, but hints are excluded from the baseline and a spec is entitled to its own correctness rationale; the view reproduces no gold guard or diff hunk.\n\nConclusion: the spec view does not leak the gold edit beyond the public problem_statement. Concurs with recorded G-PANEL-3 (pass).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:32:09+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-span-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 49.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-point-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 45.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-timedelta",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 49.5
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-values-span",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-values-other",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-duration-via-measurement",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-duration-subtract-reference",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-duration-first-element-wrong",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-other-constant",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-duration-constant",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "80081fc9dfae0a340454b11cd678b0cf2eba192d8171b0a74733ae7e461a7bfd",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb",
+        "properties.py": "80081fc9dfae0a340454b11cd678b0cf2eba192d8171b0a74733ae7e461a7bfd"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:57:57+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:52:38+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "wall_time_s": 42.6
+      },
+      "detail": "verified in 42.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "62a9b081b3df26178e67ef29b07451f7e0cfe2891240bc5872030f46065f1cfb"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-6599",
+  "modeled_functions": [
+    {
+      "carrier_type": "numpy datetime64/timedelta64/numeric array -> List[int] of base-resolution magnitudes; dtype.kind -> int tag; float output modeled as int (precision-independent, refinement.md D); specification over PSeq[int]",
+      "model_symbol": "coerce_values_to_float",
+      "repo_location": "xarray/core/computation.py:1935",
+      "repo_symbol": "xarray.core.computation._ensure_numeric.<locals>.to_floatable",
+      "role": "modeled changed function: per-dtype-kind coercion of a variable's values to float; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; verified with git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "the precondition Requires(kind == TIME_POINT) of elapsed_since, which 'might not hold' when kind == TIME_SPAN (faithfully mirrors the real numpy UFuncTypeError on timedelta - datetime64)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "to_floatable dtype-kind dispatch: durations must NOT be routed through the timestamp measurement",
+      "reverted_to": "single guard 'if x.dtype.kind in \"mM\"' routing both timestamps and durations into datetime_to_numeric (modeled: branch 'if kind == TIME_POINT or kind == TIME_SPAN' calling elapsed_since)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "19efb43b8a984c1b98447c11d3b36cb69a9fd12c137ad875fb76de8957d65a17",
+    "impl": "ef919321b52d0ccef641e8bb19ef529116f611f506e422ce0b8b6f958f787a7d",
+    "invariants": "e8ac2abfa6fb717cb4de1d7b3072114691a3cca598361c752aa920227a365cd0",
+    "post-conditions": "32528936bdf211fdb2e88d6df8f828cac9c8ef333c2f4bf313acb89a5d356fbc",
+    "pre-conditions": "683892866c41e3985046036f741983c6fe1694b63dca0fd06878ad1a53ba2d43",
+    "pure": "77fb583a94fab20fef97f86bceef1aaf5725e3a8062266d67e4a9a862b07c071",
+    "spec_view": "1b52acada66221c40f7691118221232d651137e7cec96d80be929bb4f0a72011"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "2022.03"
+}

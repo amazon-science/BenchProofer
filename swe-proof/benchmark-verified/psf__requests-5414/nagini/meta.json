@@ -1,0 +1,416 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real _get_idna_encoded_host on 7 encodable + 5 not-encodable oracle hosts + 2000 non-ASCII fuzz hosts; total over {encodable->str, not-encodable->UnicodeError}; ran green locally against worktree requests+idna",
+      "encoded_property": "the only observable on the model's domain (non-ASCII hosts) is the verdict `encodable`: returns a str (normal completion) iff the label is encodable, raises UnicodeError (and nothing else, re-raised as InvalidURL) iff not encodable. Weakest sufficient contract; NOT a claim about which concrete hosts encode.",
+      "flag_dependency": "idna.encode(host, uts46=True); axiom sound only under uts46=True (fixed in _get_idna_encoded_host); axiom_check.py invokes the real method so it exercises this flag",
+      "kind": "A-consumed",
+      "models": "the UNCHANGED internationalised-label encoder PreparedRequest._get_idna_encoded_host (which calls idna.encode(host, uts46=True) and maps idna.IDNAError -> UnicodeError), the callee the non-ASCII branch defers to",
+      "name": "encode_label",
+      "provenance": "the IDNA branch the new code still sequences before the leading-code-point screen; not touched by the patch (the hunk edits only the sibling ASCII elif branch)",
+      "purity": "@ContractOnly (NOT @Pure: it is used by control flow / Exsures, not inside an Ensures expression)",
+      "repo_location": "requests/models.py:350-358 (_get_idna_encoded_host), called at requests/models.py:403 with UnicodeError->InvalidURL handling at :404-405"
+    }
+  ],
+  "base_commit": "39d0fdd9096f7dceccbc8f82e1eda7dd64717a8e",
+  "changed_files": [
+    "requests/models.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:04:23+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: real _get_idna_encoded_host on 7 encodable + 5 not-encodable oracle hosts and 2000 non-ASCII fuzz hosts is total over {encodable->str, not-encodable->UnicodeError}; encode_label axiom sound (uts46=True)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "c344e21269b0e9829c6d59861a487df4c5bde5a6fdd8c94e466c51aaa33a190e",
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:04:32+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100042,
+          "disagreements": 0,
+          "seed": 5414,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callee bound to the real unchanged encoder)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100042, \"disagreements\": 0, \"seed\": 5414, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callee bound to the real unchanged encoder)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "384c4175973b4282fc5bb4cdc9321b806dc859427bc12983623bdaf07b78c7f9",
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:41:24+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10",
+        "model_prepatch.py": "9f197d75a5c367cd2e99f1472bb835e951295984e2af9f128edf7297058f788c"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T11:20:00+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 10 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 10 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:42:22+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10",
+        "model_prepatch.py": "9f197d75a5c367cd2e99f1472bb835e951295984e2af9f128edf7297058f788c"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:04:16+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "c61e4672b66fb3cb56c4a6faf5286aeb0ee56a11d2fee7d4ab6b91d4bbbca471",
+          "impl": "bde1e97c4edbb88e626648262d002a1cd6448ec310f287a95c2df66c6531af98",
+          "post-conditions": "833d532dda7901a9e9c78c29e78a2ee6f20f3391f1f3649aa8d3da00c844ae3b",
+          "pre-conditions": "d3e6167c1231a45fdc87e16de9540fffea2f6b2543f59596ab06ee732d77f5dd",
+          "pure": "372e3c014c739d68636f47494b0495135e4d51743b3fd26b79fd221d330fbc5b",
+          "spec_view": "347ca59f2c22e3f5f11e8dc9bc064b51f5e72c7a140b089e38dbeb45fd5b9d01"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:04:16+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "94d6fc8975fb156705b043723fe88ef5eb7bef6ffc235f19ab76d82862ca351a",
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:04:17+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:38:30+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T11:20:02+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 10 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Spec faithfulness (G-PANEL-2) confirmed for psf__requests-5414 nagini. The modeled screen_host pins, for a non-empty host: (ASCII) reject iff host[0] in {42,46} (i.e. '*' or '.'); (non-ASCII) reject iff the label is not encodable (deferred to the real encoder). This matches the gold patch, which widens the ASCII leading-code-point rejection from host.startswith(u'*') to host.startswith((u'*', u'.')).\n\nEvidence the model does NOT drift from or over-strengthen the real repo behavior:\n1. Model verifies with pinned Nagini (13.3s, 'Verification successful').\n2. Differential conformance against the REAL PATCHED repo: applied gold hunk to a fresh testbed ($SCRATCH from base_commit worktree $SCRATCH @ 39d0fdd9), ran the bundle's conformance_check.py (shadow = verbatim impl region; oracle = real requests.models.PreparedRequest.prepare_url host slice; @ContractOnly encode_label bound to the real _get_idna_encoded_host). Result: 'G-CONF OK ... 100042 inputs (42 boundary + 100000 fuzz, seed 5414), 0 disagreements.'\n3. Independent hand-picked differential over the real patched prepare_url vs the model relation on 22 discriminating hosts (leading '.'/'*', empty labels '..'/'.a', mixed 'a*'/'*a', punycode 'xn--.de', and non-ASCII branch cases '.u\u0308','*u\u0308','u\u0308','stra\u00dfe.de','\u2603.net'): model verdict == real repo verdict on every case, including the issue scenario '.example.com' (both reject) and confirming the leading-code-point screen is NOT applied on the non-ASCII branch (verdict there comes from the encoder).\n\nAbstractions are legitimate: host_is_ascii is an R-refinement of unicode_is_ascii's verdict; encode_label is the A-consumed weakest contract of the UNCHANGED _get_idna_encoded_host (return-str/raise-UnicodeError), whose totality is checked by axiom_check.py. MustTerminate(2) is faithful (the real slice is bounded straight-line code that always answers), not an over-strengthening. No admissible input exists on which the modeled function disagrees with the real callee. Spec is not too strong.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Gold edit: `host.startswith(u'*')` -> `host.startswith((u'*', u'.'))` \u2014 additionally reject an ASCII host whose first character is '.' (code point 46) as InvalidURL. The discriminating datum of the edit (a leading-'.' host must be rejected as InvalidURL) is already FULLY PUBLIC in problem_statement: the issue title is 'Getting http://.example.com raises UnicodeError', it gives the repro requests.get('http://.example.com'), and states Expected Result: 'InvalidUrl: URL has an invalid label.' So the spec view's 'reject iff first code point is 42 or 46' discloses nothing about the edit beyond the public statement \u2014 code point 46 ('.') is exactly the public expected behavior, and code point 42 ('*') is the PRE-EXISTING, unchanged rejection (surrounding context, not the gold edit).\n\nLexical screen (leakage.screen) run directly with the nagini backend on the projected spec view: PASSED with zero hard failures. Confirmed by inspection: (1) no diff markers; (2) no gold-patch changed line reproduced (>=8 char normalized) in the view; (3) patched file path requests/models.py appears ONLY in auditor-only mapping.md/refinement.md, never in the spec_view projection; (4) no patched repo symbols (prepare_url, _get_idna_encoded_host, unicode_is_ascii, startswith, InvalidURL) in the spec view \u2014 it uses only abstract carrier names (screen_host, is_invalid_leading, encode_label, InvalidLocator); (5) comments describe behavior/termination abstractly with no bug/fix narration.\n\nmeta G-LEAK status = pass (not relaxed); no RELAXED_LEAKAGE.md, relaxed_leakage flag unset \u2014 so this is a genuine clean pass, not a relaxation deferral. Nothing in the spec view reconstructs the gold edit beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 10 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Spec faithfulness (G-PANEL-2) confirmed for psf__requests-5414 nagini. The modeled screen_host pins, for a non-empty host: (ASCII) reject iff host[0] in {42,46} (i.e. '*' or '.'); (non-ASCII) reject iff the label is not encodable (deferred to the real encoder). This matches the gold patch, which widens the ASCII leading-code-point rejection from host.startswith(u'*') to host.startswith((u'*', u'.')).\n\nEvidence the model does NOT drift from or over-strengthen the real repo behavior:\n1. Model verifies with pinned Nagini (13.3s, 'Verification successful').\n2. Differential conformance against the REAL PATCHED repo: applied gold hunk to a fresh testbed ($SCRATCH from base_commit worktree $SCRATCH @ 39d0fdd9), ran the bundle's conformance_check.py (shadow = verbatim impl region; oracle = real requests.models.PreparedRequest.prepare_url host slice; @ContractOnly encode_label bound to the real _get_idna_encoded_host). Result: 'G-CONF OK ... 100042 inputs (42 boundary + 100000 fuzz, seed 5414), 0 disagreements.'\n3. Independent hand-picked differential over the real patched prepare_url vs the model relation on 22 discriminating hosts (leading '.'/'*', empty labels '..'/'.a', mixed 'a*'/'*a', punycode 'xn--.de', and non-ASCII branch cases '.u\u0308','*u\u0308','u\u0308','stra\u00dfe.de','\u2603.net'): model verdict == real repo verdict on every case, including the issue scenario '.example.com' (both reject) and confirming the leading-code-point screen is NOT applied on the non-ASCII branch (verdict there comes from the encoder).\n\nAbstractions are legitimate: host_is_ascii is an R-refinement of unicode_is_ascii's verdict; encode_label is the A-consumed weakest contract of the UNCHANGED _get_idna_encoded_host (return-str/raise-UnicodeError), whose totality is checked by axiom_check.py. MustTerminate(2) is faithful (the real slice is bounded straight-line code that always answers), not an over-strengthening. No admissible input exists on which the modeled function disagrees with the real callee. Spec is not too strong.; G-PANEL-3 (leakage): pass \u2014 Gold edit: `host.startswith(u'*')` -> `host.startswith((u'*', u'.'))` \u2014 additionally reject an ASCII host whose first character is '.' (code point 46) as InvalidURL. The discriminating datum of the edit (a leading-'.' host must be rejected as InvalidURL) is already FULLY PUBLIC in problem_statement: the issue title is 'Getting http://.example.com raises UnicodeError', it gives the repro requests.get('http://.example.com'), and states Expected Result: 'InvalidUrl: URL has an invalid label.' So the spec view's 'reject iff first code point is 42 or 46' discloses nothing about the edit beyond the public statement \u2014 code point 46 ('.') is exactly the public expected behavior, and code point 42 ('*') is the PRE-EXISTING, unchanged rejection (surrounding context, not the gold edit).\n\nLexical screen (leakage.screen) run directly with the nagini backend on the projected spec view: PASSED with zero hard failures. Confirmed by inspection: (1) no diff markers; (2) no gold-patch changed line reproduced (>=8 char normalized) in the view; (3) patched file path requests/models.py appears ONLY in auditor-only mapping.md/refinement.md, never in the spec_view projection; (4) no patched repo symbols (prepare_url, _get_idna_encoded_host, unicode_is_ascii, startswith, InvalidURL) in the spec view \u2014 it uses only abstract carrier names (screen_host, is_invalid_leading, encode_label, InvalidLocator); (5) comments describe behavior/termination abstractly with no bug/fix narration.\n\nmeta G-LEAK status = pass (not relaxed); no RELAXED_LEAKAGE.md, relaxed_leakage flag unset \u2014 so this is a genuine clean pass, not a relaxation deferral. Nothing in the spec view reconstructs the gold edit beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 10 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec faithfulness (G-PANEL-2) confirmed for psf__requests-5414 nagini. The modeled screen_host pins, for a non-empty host: (ASCII) reject iff host[0] in {42,46} (i.e. '*' or '.'); (non-ASCII) reject iff the label is not encodable (deferred to the real encoder). This matches the gold patch, which widens the ASCII leading-code-point rejection from host.startswith(u'*') to host.startswith((u'*', u'.')).\n\nEvidence the model does NOT drift from or over-strengthen the real repo behavior:\n1. Model verifies with pinned Nagini (13.3s, 'Verification successful').\n2. Differential conformance against the REAL PATCHED repo: applied gold hunk to a fresh testbed ($SCRATCH from base_commit worktree $SCRATCH @ 39d0fdd9), ran the bundle's conformance_check.py (shadow = verbatim impl region; oracle = real requests.models.PreparedRequest.prepare_url host slice; @ContractOnly encode_label bound to the real _get_idna_encoded_host). Result: 'G-CONF OK ... 100042 inputs (42 boundary + 100000 fuzz, seed 5414), 0 disagreements.'\n3. Independent hand-picked differential over the real patched prepare_url vs the model relation on 22 discriminating hosts (leading '.'/'*', empty labels '..'/'.a', mixed 'a*'/'*a', punycode 'xn--.de', and non-ASCII branch cases '.u\u0308','*u\u0308','u\u0308','stra\u00dfe.de','\u2603.net'): model verdict == real repo verdict on every case, including the issue scenario '.example.com' (both reject) and confirming the leading-code-point screen is NOT applied on the non-ASCII branch (verdict there comes from the encoder).\n\nAbstractions are legitimate: host_is_ascii is an R-refinement of unicode_is_ascii's verdict; encode_label is the A-consumed weakest contract of the UNCHANGED _get_idna_encoded_host (return-str/raise-UnicodeError), whose totality is checked by axiom_check.py. MustTerminate(2) is faithful (the real slice is bounded straight-line code that always answers), not an over-strengthening. No admissible input exists on which the modeled function disagrees with the real callee. Spec is not too strong.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Gold edit: `host.startswith(u'*')` -> `host.startswith((u'*', u'.'))` \u2014 additionally reject an ASCII host whose first character is '.' (code point 46) as InvalidURL. The discriminating datum of the edit (a leading-'.' host must be rejected as InvalidURL) is already FULLY PUBLIC in problem_statement: the issue title is 'Getting http://.example.com raises UnicodeError', it gives the repro requests.get('http://.example.com'), and states Expected Result: 'InvalidUrl: URL has an invalid label.' So the spec view's 'reject iff first code point is 42 or 46' discloses nothing about the edit beyond the public statement \u2014 code point 46 ('.') is exactly the public expected behavior, and code point 42 ('*') is the PRE-EXISTING, unchanged rejection (surrounding context, not the gold edit).\n\nLexical screen (leakage.screen) run directly with the nagini backend on the projected spec view: PASSED with zero hard failures. Confirmed by inspection: (1) no diff markers; (2) no gold-patch changed line reproduced (>=8 char normalized) in the view; (3) patched file path requests/models.py appears ONLY in auditor-only mapping.md/refinement.md, never in the spec_view projection; (4) no patched repo symbols (prepare_url, _get_idna_encoded_host, unicode_is_ascii, startswith, InvalidURL) in the spec view \u2014 it uses only abstract carrier names (screen_host, is_invalid_leading, encode_label, InvalidLocator); (5) comments describe behavior/termination abstractly with no bug/fix narration.\n\nmeta G-LEAK status = pass (not relaxed); no RELAXED_LEAKAGE.md, relaxed_leakage flag unset \u2014 so this is a genuine clean pass, not a relaxation deferral. Nothing in the spec view reconstructs the gold edit beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:40:26+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 71.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-inline-oracle",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 69.5
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-readonly-host",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 69.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-host",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 68.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-star-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 71.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-dot-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 70.6
+          },
+          {
+            "expect": "reject",
+            "id": "control-flow-drop-encoder",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 78.2
+          },
+          {
+            "expect": "reject",
+            "id": "control-flow-always-raise-nonascii",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 74.0
+          },
+          {
+            "expect": "reject",
+            "id": "nonterm-self-recursion",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.0
+          },
+          {
+            "expect": "reject",
+            "id": "nonterm-endless-loop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "8a0a3a227e0b693e1e552d1ce01b49e2ed7397cefa77279516cc039c6c39f3f3",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10",
+        "properties.py": "8a0a3a227e0b693e1e552d1ce01b49e2ed7397cefa77279516cc039c6c39f3f3"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-06T03:35:10+00:00",
+      "code_version": "346d4db1-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:40:49+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "wall_time_s": 26.8
+      },
+      "detail": "verified in 26.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cf4530edd8a8cf12015af19797dbf2d3b711d3cc24d7f712e2b8e666f8099c10"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "psf__requests-5414",
+  "modeled_functions": [
+    {
+      "carrier_type": "host str -> List[int] of Unicode code points; leading test = first-code-point membership host[0] in {42('*'),46('.')}; the ASCII predicate verdict abstracted by the boolean host_is_ascii; the IDNA encoder verdict abstracted by the boolean encodable",
+      "model_symbol": "screen_host",
+      "repo_location": "requests/models.py:401-407 (the `if not unicode_is_ascii(host): ... elif host.startswith(u'*'): raise InvalidURL(...)` block); enclosing method prepare_url at requests/models.py:360",
+      "repo_symbol": "requests.models.PreparedRequest.prepare_url (host-validation slice)",
+      "role": "modeled changed function (the leading-code-point host screen whose ASCII branch the patch widens from '*' to ('*','.')); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "normal-completion postcondition Implies(host_is_ascii, not is_invalid_leading(host[0])) \u2014 an ASCII host beginning with '.' returns normally instead of being rejected (exactly the http://.example.com F2P case)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "ASCII-host leading-code-point rejection widened from '*' to ('*','.')",
+      "reverted_to": "pre-patch test: the ASCII branch rejects ONLY host[0]==42 ('*'), i.e. host.startswith(u'*'); a host beginning with '.' (46) returns normally"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "c61e4672b66fb3cb56c4a6faf5286aeb0ee56a11d2fee7d4ab6b91d4bbbca471",
+    "impl": "bde1e97c4edbb88e626648262d002a1cd6448ec310f287a95c2df66c6531af98",
+    "post-conditions": "833d532dda7901a9e9c78c29e78a2ee6f20f3391f1f3649aa8d3da00c844ae3b",
+    "pre-conditions": "d3e6167c1231a45fdc87e16de9540fffea2f6b2543f59596ab06ee732d77f5dd",
+    "pure": "e901a77ef403fa716ef8da7b3cc0a5b9e18521ae7d3b6faea717e74986fb8679",
+    "spec_view": "45e0bac13171dc21e8c79028bc285e812b2aa164b26826c19c55354962b324f5"
+  },
+  "repo": "psf/requests",
+  "schema_version": 1,
+  "string_modeling": "host modelled as List[int] of Unicode code points (str indexing banned); the changed leading-code-point test host.startswith((u'*', u'.')) refined to host[0] in {42,46}; the ASCII predicate unicode_is_ascii(host) refined to the branch-selector bit host_is_ascii (R, not an axiom); rejection raised as a user-defined InvalidLocator exception standing in for InvalidURL (builtin-exception Exsures crashes the translator)",
+  "version": "2.26"
+}

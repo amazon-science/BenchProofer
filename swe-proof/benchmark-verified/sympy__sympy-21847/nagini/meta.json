@@ -1,0 +1,416 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "d9b18c518d64d0ebe8e35a98c2fb519938b9b151",
+  "changed_files": [
+    "sympy/polys/monomials.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py: part 1 asserts deg_sum == sum over exhaustive small + 20000 fuzz exponent vectors (always, stdlib-only); part 2 asserts the gold-patched itermonomials retains exactly the terms with deg_sum >= min_degree \u2014 it GUARDS on the live source and runs only when the gold patch is applied (sum(powers.values()) present), skipping cleanly at base_commit",
+      "encoded_property": "deg_sum(p): arithmetic sum of the per-variable exponent vector; front-recursive @Pure fold (one unfold per loop step)",
+      "kind": "deep-model (no consumed axiom, no A-reference callee)",
+      "models": "sum(powers.values()) \u2014 the post-patch reduction (sympy/polys/monomials.py:130,142); the total degree of the candidate term",
+      "name": "deg_sum",
+      "provenance": "gold patch hunks change `max(powers.values())` to `sum(powers.values())`; documented contract `min_degree <= total_degree(monom)` (itermonomials docstring, monomials.py:21-26)",
+      "role": "deep model of the changed reduction, consumed directly by the postcondition and computed by the impl loop; NOT axiomatized (per SPEC_GUIDE directive 7: never axiomatize the changed operation)"
+    },
+    {
+      "checked_by": "axiom_check.py part 1: the reference deg_max == max over exhaustive small + 20000 fuzz vectors",
+      "encoded_property": "the largest single exponent (0 over empty), modeled INLINE in model_prepatch.py via the running-max loop with invariant `forall j in [i,len): powers[j] <= running` (no named @Pure helper, to keep it out of the consumer-visible spec view); reference fold `deg_max` lives only in axiom_check.py",
+      "kind": "deep-model (pre-patch reduction; modeled inline in model_prepatch.py)",
+      "models": "max(powers.values()) \u2014 the pre-patch reduction (sympy/polys/monomials.py:130,142); the largest single per-variable exponent",
+      "name": "deg_max (pre-patch reduction; not in model.py)",
+      "provenance": "the buggy pre-patch line `max(powers.values()) >= min_degree`",
+      "role": "expresses the buggy reduction in model_prepatch.py only; NOT present in model.py's spec view (removed in refinement to fix the fix-mechanism leak); witnesses in axiom_check that the change is observable (sum-vs-max discriminator)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:33:50+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep folds deg_sum/deg_max sound; no @ContractOnly axiom in this bundle (changed reduction modeled deeply, per refinement.md)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "4e64c27dd96d7c2d01195068b4b1a1cdd351a9460d5c191be5a0d0e23053f73b",
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:34:16+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 160464,
+          "disagreements": 0,
+          "seed": 21847,
+          "shadow": "direct (contract-stripped impl regions of keep_comm/keep_noncomm)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 160464, \"disagreements\": 0, \"seed\": 21847, \"shadow\": \"direct (contract-stripped impl regions of keep_comm/keep_noncomm)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "f08fcaea248c426efd6f9bd7ab46e6b319afa1a50945368b0f3215aa511e9a23",
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:25:56+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4",
+        "model_prepatch.py": "0554f6040c443e603b5fab6479a0c26e88ec8ebe3ade512acbb6fe310cd4a0c1"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T08:16:42+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:26:41+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4",
+        "model_prepatch.py": "0554f6040c443e603b5fab6479a0c26e88ec8ebe3ade512acbb6fe310cd4a0c1"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:33:45+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "00459f9be05fb984879ad407622a7ed05037e8b4373abeaed391af41132fa8b1",
+          "impl": "093f8507e777bfd01c9f53b9187d983d93685b2f8c3972bf963aa9b740841df2",
+          "invariants": "e423ebd0e2466d012ac2a4546cd25a6e0e0cedf12c49864158b185accbef2a33",
+          "post-conditions": "fd33873124244dfb389fd6dc72cb600c501fbd9dc429ccf3f09eaf37407aba8b",
+          "pre-conditions": "a5af21f22b2b51b18dce2da2b4597fe4d26a91d9606ef8e85a1f441c658e0dd5",
+          "pure": "63c1d52e722d8c278db98b5d3fd49db357211089b6028810f3e8a77aaf3a8650",
+          "spec_view": "c40efd79cbdbe086d507b528a19f0deaf9bb706e60acada3eee68f02282e7204"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:33:46+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "beb270d9cd14453ce4775e908d801ad2f6f27a240b0f7583c10e5d3a0ea64af2",
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:33:46+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:37:08+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T08:16:44+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong/drift) audit for sympy__sympy-21847 nagini bundle. No diverging input exists \u2014 model spec faithfully matches the gold-patched repo behavior.\n\nModeled callee: the changed retention predicate of itermonomials (commutative hunk monomials.py:130 + non-commutative hunk :142, textually identical). Gold-patched real behavior: `if sum(powers.values()) >= min_degree:`. Model postcondition (both keep_comm/keep_noncomm): `Result() == (deg_sum(ToSeq(powers)) >= min_degree)` where deg_sum is the arithmetic front-recursive fold = sum over the exponent vector.\n\nVerification (all in /tmp; bundle untouched):\n1. scripts/nagini_verify.sh model.py => 'Verification successful' RC=0 (19.9s).\n2. same-spec nagini => RC=0 (model shares bundle's exact spec).\n3. $SCRATCH at base_commit d9b18c518d... reads `max(powers.values()) >= min_degree`; $SCRATCH reads `sum(powers.values()) >= min_degree` (the gold patch) at both :130 and :142.\n4. Differential fuzz: model predicate deg_sum(powers)>=md vs real sum(powers.values())>=md over 300000 random inputs (n in 0..6, values 0..5, md 0..15, including empty vectors) => 0 mismatches. sum/max are order-independent so the dict-values <-> List[int] carrier is faithful.\n\nPrecondition faithfulness (spec not too strong): Requires(min_degree>=0) and Requires(all powers[i]>=0) are both GUARANTEED at the real call site \u2014 min_degree validated non-negative and <=max_degree upstream (monomials.py:104-115); each powers[v] is initialised to 0 and only incremented (+=1), so is always >=0. No reachable real input is excluded by the preconditions. The empty-vector case (deg_sum==0) is consistent with the documented min_degree<=total_degree contract.\n\nConclusion: the modeled function agrees with the real callee on all inputs in the callee's real domain. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Gold edit = max(powers.values()) >= min_degree -> sum(powers.values()) >= min_degree in the commutative and non-commutative retention tests of itermonomials (2 identical hunks). Reviewed the consumer spec view produced by markers.spec_view (docstring + deg_sum @Pure fold + pre/post-conditions of keep_comm/keep_noncomm; impl regions elided to '...'). Mechanical leakage.screen() PASSES (no hard failures): no diff markers, no gold-patch line reproduced, no patched file path/module (sympy/polys/monomials.py absent), no spec-view identifier or comment naming a patched repo symbol (itermonomials, monomials, powers.values all absent), no narration terms.\n\nSemantic check beyond the lexical screen: the spec view encodes ONLY the desired behavior \u2014 total degree = arithmetic SUM of per-variable exponents, and 'retain iff min_degree <= total_degree(term)'. This is fully public in problem_statement, which (a) states monomials like x1*x2**2 with total degree 3 SHOULD be returned, and (b) quotes the documented contract verbatim: 'min_degree <= total_degree(monom) <= max_degree'. The spec-view example [2,1] (total degree 3) retained at min_degree=3 is the same case as the problem statement's x1*x2**2. Critically, the spec view reveals NOTHING about the buggy mechanism: no 'max'/'maximum', no pre-patch reduction, no fix-narration. The pre-patch running-max reduction lives only in model_prepatch.py and the reference deg_max only in axiom_check.py \u2014 deliberately excluded from the consumer view (mapping.md documents this removal 'to fix the fix-mechanism leak'). The 'sum(' token in the view is the helper name deg_sum expressing the public total-degree contract, not the edit. No line discloses the max->sum edit or the pre-patch state beyond what the public problem_statement already provides. Recorded G-PANEL-3 agent_verdict NO-LEAKAGE and G-LEAK pass are consistent with this review.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong/drift) audit for sympy__sympy-21847 nagini bundle. No diverging input exists \u2014 model spec faithfully matches the gold-patched repo behavior.\n\nModeled callee: the changed retention predicate of itermonomials (commutative hunk monomials.py:130 + non-commutative hunk :142, textually identical). Gold-patched real behavior: `if sum(powers.values()) >= min_degree:`. Model postcondition (both keep_comm/keep_noncomm): `Result() == (deg_sum(ToSeq(powers)) >= min_degree)` where deg_sum is the arithmetic front-recursive fold = sum over the exponent vector.\n\nVerification (all in /tmp; bundle untouched):\n1. scripts/nagini_verify.sh model.py => 'Verification successful' RC=0 (19.9s).\n2. same-spec nagini => RC=0 (model shares bundle's exact spec).\n3. $SCRATCH at base_commit d9b18c518d... reads `max(powers.values()) >= min_degree`; $SCRATCH reads `sum(powers.values()) >= min_degree` (the gold patch) at both :130 and :142.\n4. Differential fuzz: model predicate deg_sum(powers)>=md vs real sum(powers.values())>=md over 300000 random inputs (n in 0..6, values 0..5, md 0..15, including empty vectors) => 0 mismatches. sum/max are order-independent so the dict-values <-> List[int] carrier is faithful.\n\nPrecondition faithfulness (spec not too strong): Requires(min_degree>=0) and Requires(all powers[i]>=0) are both GUARANTEED at the real call site \u2014 min_degree validated non-negative and <=max_degree upstream (monomials.py:104-115); each powers[v] is initialised to 0 and only incremented (+=1), so is always >=0. No reachable real input is excluded by the preconditions. The empty-vector case (deg_sum==0) is consistent with the documented min_degree<=total_degree contract.\n\nConclusion: the modeled function agrees with the real callee on all inputs in the callee's real domain. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Gold edit = max(powers.values()) >= min_degree -> sum(powers.values()) >= min_degree in the commutative and non-commutative retention tests of itermonomials (2 identical hunks). Reviewed the consumer spec view produced by markers.spec_view (docstring + deg_sum @Pure fold + pre/post-conditions of keep_comm/keep_noncomm; impl regions elided to '...'). Mechanical leakage.screen() PASSES (no hard failures): no diff markers, no gold-patch line reproduced, no patched file path/module (sympy/polys/monomials.py absent), no spec-view identifier or comment naming a patched repo symbol (itermonomials, monomials, powers.values all absent), no narration terms.\n\nSemantic check beyond the lexical screen: the spec view encodes ONLY the desired behavior \u2014 total degree = arithmetic SUM of per-variable exponents, and 'retain iff min_degree <= total_degree(term)'. This is fully public in problem_statement, which (a) states monomials like x1*x2**2 with total degree 3 SHOULD be returned, and (b) quotes the documented contract verbatim: 'min_degree <= total_degree(monom) <= max_degree'. The spec-view example [2,1] (total degree 3) retained at min_degree=3 is the same case as the problem statement's x1*x2**2. Critically, the spec view reveals NOTHING about the buggy mechanism: no 'max'/'maximum', no pre-patch reduction, no fix-narration. The pre-patch running-max reduction lives only in model_prepatch.py and the reference deg_max only in axiom_check.py \u2014 deliberately excluded from the consumer view (mapping.md documents this removal 'to fix the fix-mechanism leak'). The 'sum(' token in the view is the helper name deg_sum expressing the public total-degree contract, not the edit. No line discloses the max->sum edit or the pre-patch state beyond what the public problem_statement already provides. Recorded G-PANEL-3 agent_verdict NO-LEAKAGE and G-LEAK pass are consistent with this review.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong/drift) audit for sympy__sympy-21847 nagini bundle. No diverging input exists \u2014 model spec faithfully matches the gold-patched repo behavior.\n\nModeled callee: the changed retention predicate of itermonomials (commutative hunk monomials.py:130 + non-commutative hunk :142, textually identical). Gold-patched real behavior: `if sum(powers.values()) >= min_degree:`. Model postcondition (both keep_comm/keep_noncomm): `Result() == (deg_sum(ToSeq(powers)) >= min_degree)` where deg_sum is the arithmetic front-recursive fold = sum over the exponent vector.\n\nVerification (all in /tmp; bundle untouched):\n1. scripts/nagini_verify.sh model.py => 'Verification successful' RC=0 (19.9s).\n2. same-spec nagini => RC=0 (model shares bundle's exact spec).\n3. $SCRATCH at base_commit d9b18c518d... reads `max(powers.values()) >= min_degree`; $SCRATCH reads `sum(powers.values()) >= min_degree` (the gold patch) at both :130 and :142.\n4. Differential fuzz: model predicate deg_sum(powers)>=md vs real sum(powers.values())>=md over 300000 random inputs (n in 0..6, values 0..5, md 0..15, including empty vectors) => 0 mismatches. sum/max are order-independent so the dict-values <-> List[int] carrier is faithful.\n\nPrecondition faithfulness (spec not too strong): Requires(min_degree>=0) and Requires(all powers[i]>=0) are both GUARANTEED at the real call site \u2014 min_degree validated non-negative and <=max_degree upstream (monomials.py:104-115); each powers[v] is initialised to 0 and only incremented (+=1), so is always >=0. No reachable real input is excluded by the preconditions. The empty-vector case (deg_sum==0) is consistent with the documented min_degree<=total_degree contract.\n\nConclusion: the modeled function agrees with the real callee on all inputs in the callee's real domain. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Gold edit = max(powers.values()) >= min_degree -> sum(powers.values()) >= min_degree in the commutative and non-commutative retention tests of itermonomials (2 identical hunks). Reviewed the consumer spec view produced by markers.spec_view (docstring + deg_sum @Pure fold + pre/post-conditions of keep_comm/keep_noncomm; impl regions elided to '...'). Mechanical leakage.screen() PASSES (no hard failures): no diff markers, no gold-patch line reproduced, no patched file path/module (sympy/polys/monomials.py absent), no spec-view identifier or comment naming a patched repo symbol (itermonomials, monomials, powers.values all absent), no narration terms.\n\nSemantic check beyond the lexical screen: the spec view encodes ONLY the desired behavior \u2014 total degree = arithmetic SUM of per-variable exponents, and 'retain iff min_degree <= total_degree(term)'. This is fully public in problem_statement, which (a) states monomials like x1*x2**2 with total degree 3 SHOULD be returned, and (b) quotes the documented contract verbatim: 'min_degree <= total_degree(monom) <= max_degree'. The spec-view example [2,1] (total degree 3) retained at min_degree=3 is the same case as the problem statement's x1*x2**2. Critically, the spec view reveals NOTHING about the buggy mechanism: no 'max'/'maximum', no pre-patch reduction, no fix-narration.\n\nThe pre-patch running-max reduction lives only in model_prepatch.py and the reference deg_max only in axiom_check.py \u2014 deliberately excluded from the consumer view (mapping.md documents this removal 'to fix the fix-mechanism leak'). The 'sum(' token in the view is the helper name deg_sum expressing the public total-degree contract, not the edit. No line discloses the max->sum edit or the pre-patch state beyond what the public problem_statement already provides. Recorded G-PANEL-3 agent_verdict NO-LEAKAGE and G-LEAK pass are consistent with this review.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:58:56+00:00",
+      "code_version": "2afb2f9ba-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mut-comm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-noncomm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-max-comm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-max-noncomm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-first-comm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.2
+          },
+          {
+            "expect": "reject",
+            "id": "strict-boundary-comm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reshape-comm",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-comm-selfcall",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "dc3e516ab0434884b1063194569d5b375b1c87f327f127b74e734063391bf224",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4",
+        "properties.py": "dc3e516ab0434884b1063194569d5b375b1c87f327f127b74e734063391bf224"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:53:47+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T14:55:58+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "wall_time_s": 42.4
+      },
+      "detail": "verified in 42.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0f318dff672c2b321fb91b1aa44d8a4f8f4ec6aab853bbfb23f1cb7b7d5c34f4"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-21847",
+  "modeled_functions": [
+    {
+      "carrier_type": "powers dict -> List[int] of exponent values; specification over PSeq[int] via ToSeq",
+      "model_symbol": "keep_comm",
+      "repo_location": "sympy/polys/monomials.py:130",
+      "repo_symbol": "sympy.polys.monomials.itermonomials (commutative branch retention test)",
+      "role": "modeled changed predicate, site 1 (hunk 1): retain candidate term iff its total degree meets min_degree"
+    },
+    {
+      "carrier_type": "powers dict -> List[int] of exponent values; specification over PSeq[int] via ToSeq",
+      "model_symbol": "keep_noncomm",
+      "repo_location": "sympy/polys/monomials.py:142",
+      "repo_symbol": "sympy.polys.monomials.itermonomials (non-commutative branch retention test)",
+      "role": "modeled changed predicate, site 2 (hunk 2): identical fix in the non-commutative branch"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == (deg_sum(ToSeq(powers)) >= min_degree) at both keep_comm (line 64) and keep_noncomm (line 99): the max-reduction differs from the total-degree reduction on vectors like [2,1] with min_degree 3",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "itermonomials integer-degree retention test (both commutative and non-commutative branches)",
+      "reverted_to": "the lower bound compared against the largest single exponent, max(powers.values()) >= min_degree (modeled inline as a running-max loop with invariant `forall j in [i,len): powers[j] <= running`; no named pure helper)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "00459f9be05fb984879ad407622a7ed05037e8b4373abeaed391af41132fa8b1",
+    "impl": "093f8507e777bfd01c9f53b9187d983d93685b2f8c3972bf963aa9b740841df2",
+    "invariants": "e423ebd0e2466d012ac2a4546cd25a6e0e0cedf12c49864158b185accbef2a33",
+    "post-conditions": "fd33873124244dfb389fd6dc72cb600c501fbd9dc429ccf3f09eaf37407aba8b",
+    "pre-conditions": "a5af21f22b2b51b18dce2da2b4597fe4d26a91d9606ef8e85a1f441c658e0dd5",
+    "pure": "63c1d52e722d8c278db98b5d3fd49db357211089b6028810f3e8a77aaf3a8650",
+    "spec_view": "c40efd79cbdbe086d507b528a19f0deaf9bb706e60acada3eee68f02282e7204"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "n/a (integer arithmetic only). The exponent vector `powers.values()` is modeled as List[int]; the changed reduction is proven by the front-recursive integer fold deg_sum with a matching backward loop (one unfold per step). model_prepatch.py models the pre-patch max reduction inline via a running-max loop (no named pure helper).",
+  "version": "1.9"
+}

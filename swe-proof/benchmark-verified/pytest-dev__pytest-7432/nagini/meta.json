@@ -1,0 +1,828 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "axiom_check.py drives the REAL post-patch hook, so it must run against the gold tree; validated pass-with-gold (rc 0) / fail-at-base (rc 1: SKIPPED [1] ../../testbed/src/_pytest/skipping.py:239 under --runxfail) before opting in. Before this, the gate ran at base_commit and the script's broad exception guard turned that disagreement into a SKIP, so G-AX passed without ever observing the real hook; the guard is now narrowed to ImportError.",
+  "axiom_check": {
+    "exit": "0 iff the real patched behaviour matches the model on every observation",
+    "imports": "stdlib (re, sys, subprocess, tempfile, os) + the pytest package under test",
+    "kind": "behavioural correspondence (no axiom consumed)",
+    "mutation_checked": "exits 1 against the REAL unpatched container (the --runxfail location leg), and exits 1 with the strict arm's rep.longrepr write deleted from the installed repo (the strict-verdict leg)",
+    "what": "drives the REAL patched pytest_runtest_makereport end-to-end via pytest subprocesses. (1) The correction: a @pytest.mark.skip test with -rs and with -rs --runxfail; the reported skip location must be the test file AND the test-definition line (test_sample.py:3 = reportinfo()'s zero-based 2 plus one) in BOTH configs, never _pytest/skipping.py. (2) The classification, since the model pins it rather than modelling the branches as pass: a strict xfail that passes must report failed and STATE '[XPASS(strict)] <mark reason>' with no xpass annotation; the same test under --runxfail must report passed and state nothing (case (b) shields (d) but not the correction); a non-strict xpass must be summarised XPASS carrying the mark's reason and state nothing; an imperative pytest.xfail on an item that ALSO carries a differently-worded mark must annotate with the RAISED reason and never the mark's (case (c) over (d)); a unittest unexpected success must report failed and state 'Unexpected success'. Also reconstructs the pre-patch elif chain inline and confirms it reports the internal line under --runxfail (the discriminating clause). Only an ImportError downgrades to SKIP, so a disagreement always fails. (2b) The coupling: a report can carry a positional location triple AND a recorded unexpected success at once -- the skip is raised from a call-phase hookwrapper, i.e. outside unittest.TestCase.run, so it lands on the same CallInfo whose addUnexpectedSuccess wrote the store key (runner.py:255) -- and stating the verdict REPLACES the triple. Observed either side of skipping.py's own hook body (a trylast makereport wrapper for the pre state, pytest_runtest_logreport for the post state): skipped/tuple becomes failed/'Unexpected success'. A no-late-skip control shows the pre state carries no triple at all, so the transition is the verdict's doing and not the probe's."
+  },
+  "axioms": [],
+  "base_commit": "e6e300e729dd33956e5448d8be9a0b1540b4e53a",
+  "carrier_coupling": "rep.longrepr is ONE attribute in TWO roles -- a positional (file, line, reason) triple, or a rendered standard verdict string -- so the nine carrier fields are two VIEWS OF ONE SLOT, not two slots. The two cases that state a verdict (case (a), skipping.py:266-272, and the strict sub-case of case (d), :288-290) therefore ANNIHILATE any positional location standing there: the spec pins states_own_verdict(...) ==> not loc_is_triple and loc_file == loc_line == loc_reason == LOC_ABSENT, with LOC_ABSENT = -1 the designated 'no positional location' token, so the emptiness is observable rather than merely unconstrained. Correspondingly the correction's condition (C) is read on the account AS IT STANDS after the classification (the repo's guard type(rep.longrepr) is tuple at :297 executes after the chain), so the correction clause's antecedent carries not states_own_verdict(...). states_own_verdict is a @Pure function of the classification predicates already in scope -- it names the two verdict-stating cases and adds no input and no freedom. Not constrained: the ORDER of the two writes; an implementation that corrects before classifying performs a dead store and agrees with this one on all 16384 abstract inputs, while any version whose write survives (snapshotting the stale shape, or restoring loc_is_triple after a verdict) fails the annihilation clause. See refinement.md, 'The two steps meet in one place'.",
+  "changed_files": [
+    "src/_pytest/skipping.py"
+  ],
+  "control_flow_modeling": "the if/elif outcome-classification chain plus the (post-fix) independent location-correction if; the elif->if split is modelled directly (no axiom). The earlier branch bodies are NOT modelled as pass: each classification case reproduces every observable it writes -- the outcome code, the expected-failure annotation with the reason it carries, and the standard verdict it states with the reason that verdict carries (or, for a case that states none, that the run's own account in that slot is left standing). Modelling them as pass admits an implementation that resolves F2P while dropping the '[XPASS(strict)] ...' message two PASS_TO_PASS tests read. The two steps couple in exactly one place, and only there: both write rep.longrepr, which holds either shape but not both, so a case that states a verdict destroys a location standing in that slot and step (2) then finds nothing to correct. That is pinned (see carrier_coupling); an earlier revision instead asserted the location shape was preserved unconditionally, which is false on a reachable state.",
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T20:01:15+00:00",
+      "code_version": "3d99766c5-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK (the one-slot coupling): a report really can arrive carrying a positional location triple AND a recorded unexpected success, and stating the verdict REPLACES the triple, leaving no location to correct \u2014 (pre, post, no-late-skip control) = (('PRE', 'skipped', 'tuple'), ('POST', 'failed', 'str', \"'Unexpected success'\"), ('PRE', 'passed', 'NoneType'))",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "5586d2ef191145aaad9c53a8c5dc18f26e11fd0c301e39d3b7c418ec3ba463c2",
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T20:01:13+00:00",
+      "code_version": "3d99766c5-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "branch_hits": {
+            "annotation_carries_declared": 10704,
+            "annotation_carries_raised": 7668,
+            "correction_fired": 10401,
+            "correction_skipped": 89599,
+            "f2p_runxfail_and_corrected": 5158,
+            "suppress_xfail_reporting": 50015,
+            "unexpected_success": 22231,
+            "verdict_annihilated_a_location": 4496,
+            "verdict_reason_empty": 11291,
+            "verdict_strict_xpass_stated": 309,
+            "verdict_unexpected_success_stated": 22231,
+            "xfail_exception": 19754,
+            "xfail_on_failure_arm": 68349,
+            "xfail_raises_match": 36929,
+            "xfail_raises_mismatch": 14250,
+            "xpass_nonstrict": 3837,
+            "xpass_strict": 1882
+          },
+          "checked": 100000,
+          "disagreements": 0,
+          "observable": "loc_is_triple, (loc_file, loc_line, loc_reason), outcome, note_present, note_reason, explanation, explanation_reason, note_style",
+          "oracle": "_pytest.skipping.pytest_runtest_makereport (real, called)",
+          "seed": 7432,
+          "shadow": "model.py impl-start/impl-end verbatim, contracts stripped",
+          "status": "pass",
+          "structural_points_enumerated": 1890,
+          "unrealizable_excluded": 0
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"checked\": 100000, \"disagreements\": 0, \"seed\": 7432, \"oracle\": \"_pytest.skipping.pytest_runtest_makereport (real, called)\", \"shadow\": \"model.py impl-start/impl-end verbatim, contracts stripped\", \"observable\": \"loc_is_triple, (loc_file, loc_line, loc_reason), outcome, note_present, note_reason, explanation, explanation_reason, note_style\", \"structural_points_enumerated\": 1890, \"unrealizable_excluded\": 0, \"branch_hits\": {\"correction_fired\": 10401, \"correction_skipped\": 89599, \"f2p_runxfail_and_corrected\": 5158, \"unexpected_success\": 22231, \"suppress_xfail_reporting\": 50015, \"xfail_exception\": 19754, \"xfail_on_failure_arm\": 68349, \"xfail_raises_mismatch\": 14250, \"xfail_raises_match\": 36929, \"xpass_strict\": 1882, \"xpass_nonstrict\": 3837, \"verdict_unexpected_success_stated\": 22231, \"verdict_strict_xpass_stated\": 309, \"verdict_reason_empty\": 11291, \"verdict_annihilated_a_location\": 4496, \"annotation_carries_declared\": 10704, \"annotation_carries_raised\": 7668}}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "04b2aea13d9ff80b1e6ab0aedaf6ead8c6e69a961027aece22b728e96cb7dd69",
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:53:05+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e",
+        "model_prepatch.py": "f9c9fb01b34e4f1869c720a3604f5e072ac647ed6c1b2bf618fa0e2772c47a47"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T03:12:47+00:00",
+      "code_version": "a150d46df-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 10 admissible attacks re-run of 10 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 10 admissible attacks re-run of 10 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `control_gold.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e",
+        "properties.py": "9f4a31b6ddfb765f3dfce1e539af1609113a27f4b5c60cf0c247741048c31cc1"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:53:58+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e",
+        "model_prepatch.py": "f9c9fb01b34e4f1869c720a3604f5e072ac647ed6c1b2bf618fa0e2772c47a47"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T20:00:17+00:00",
+      "code_version": "a9c98bcd1-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "a382de54e339b6eb2418e7981638c368c7a0769a87bbd1695365c8db68964720",
+          "impl": "389050fc61c8d9141cdc7df08535bafa037ec87aa4433b2fbb9be21318e42895",
+          "post-conditions": "051d0738b41790ed5dfa85ca6d4933e6841fe440c244f23d2445113d2b785fa5",
+          "pre-conditions": "33dc43dca52aabdb8cb44fad2e9e034cc908dc06a594042d93987b9818f9c701",
+          "pure": "0040536a29730c3074e6c84f06defcde696776bbe0a5dd605761030eaba401ca",
+          "spec_view": "e30b19da750d246295fa0abd2e0326b023a6a8530e8746ab3df75cac37f8e817"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T20:00:17+00:00",
+      "code_version": "a9c98bcd1-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "0c07fb9331f73e40fa3bcc2e8849d6a0040760164d9de72e4aa5878340f4676d",
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T20:00:18+00:00",
+      "code_version": "a9c98bcd1-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T19:58:23+00:00",
+      "code_version": "a9c98bcd1-dirty",
+      "data": {
+        "judged": 11,
+        "killed": 11,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 11,
+        "unjudged": []
+      },
+      "detail": "killed 11/11 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T03:12:47+00:00",
+      "code_version": "a150d46df-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 10 admissible attacks re-run of 10 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK ANGLE: spec too strong / drifts from real repo behavior. Reference = base worktree e6e300e72 with patch.diff APPLIED (per instructions); base commit used only for untouched callees (axioms region is intentionally EMPTY here -- no @ContractOnly axiom is consumed, so there is no axiom leg to break).\n\nSETUP (all in /tmp, bundle untouched -- verified by `git -C .. status` on the bundle path and by only ever reading its files):\n  *  = fresh `git worktree add --detach` at base e6e300e72, `git diff --stat` empty.\n  *  = copy of that with patch.diff applied; `git diff --stat` shows exactly 1 file / +2 -1, and the hook tail is the independent `if` (the elif->if split). Confirmed at import time by an inspect.getsource assertion inside the harness, so a mis-pointed sys.path cannot silently score the base as the reference.\n\nINDEPENDENT HARNESS (faith.py -- written from scratch, does NOT import or reuse the bundle's conformance_check.py):\nFor each point: build (item, call, rep) via the REAL repo factory TestReport.from_item_and_call from a really-raised ExceptionInfo (so rep.outcome and the longrepr SHAPE are decided by repo code, not chosen); abstract the ENTRY state to the model's 10-field carrier per mapping.md \u00a71; drive the REAL PATCHED pytest_runtest_makereport as a generator (next/gen.send) -- the real function CALLED, not transliterated; abstract the EXIT state; then evaluate EVERY model Ensures clause as a Python predicate.\nDomain: exhaustive product of 6 exception kinds x 3 phases x 2 runxfail x 3 skipped_by_mark store states x 8 Xfail shapes (incl. empty declared reasons) x 3 unexpected-success states x 6 boundary definition lines, plus the exact F2P shape, plus 4000 seeded-fuzz points whose reason strings are adversarially chosen to be the projection's own templates (\"reason: sneaky\", \"Unexpected success: x\", \"[XPASS(strict)] y\") so a sloppy string inverse cannot score a wrong reason as agreeing.\nRESULT: checked=19266, pre-excluded=288, VIOLATIONS=0. Non-vacuity: every pinned case actually reached -- case_a=4102, case_b=7542, case_c=1297, d_mismatch=661, d_match=2735, d_strict=49, d_nonstrict=118, d_notcall=966, case_e=1796, correction_fired=1400, verdict_annihilated_a_live_triple=678, f2p_shape=2. So no clause is vacuously true.\n\nHARNESS IS DISCRIMINATING (11 mutations of the REAL repo source, each must be caught -- guards against a rubber-stamp):\n  base/unpatched hook -> REFUTED (the patch delta; correctly NOT reported as a finding); revert elif->if -> REFUTED (833); correction suppressed by runxfail -> REFUTED (833); correction off-by-one (line+2) -> REFUTED (1400); correction clobbers the skip reason -> REFUTED (1400); drop the strict [XPASS(strict)] verdict write while keeping outcome=failed -> REFUTED (49) [the P2P-breaking omission]; lead-in wrongly added on a mark arm -> REFUTED (2735); lead-in dropped on the imperative arm -> REFUTED (1297); imperative arm annotates an invented reason -> REFUTED (1297); unexpected-success states an invented reason -> REFUTED (2275); case (b) interferes (sets outcome=passed) -> REFUTED (6389). One earlier mutation silently failed to apply (indentation) and returned rc=0; I caught that and re-ran it correctly rather than banking the false green.\n\nPRECONDITION BOUNDARY (the likeliest too-strong spot, checked separately -- precheck.py): the model demands a definition line ONLY under the correction's own three conditions. Over 7776 points: model_demands=672; on all 224 of those where the line is absent the REAL REPO ITSELF raises AssertionError at skipping.py:305 -- so the precondition's PLACEMENT mirrors the repo's own assert exactly, and Q2 (model excludes an input the repo handles) = 0. Confirmed end-to-end too: a bare `pytest.Item` subclass carrying a skip mark (reportinfo -> line None) makes real pytest die with INTERNALERROR at that very assert, so the conditioned Requires is faithful, not a convenient dodge. Also verified Q1: `states_own_verdict AND rep_skipped` is unrealizable (0/7776), so the clause written without a `not sov` conjunct never demands a line on a point the repo's post-classification guard skips.\n\nE2E (real pytest, isolated dirs per config because a stale .pytest_cache/__pycache__ initially faked agreement -- I chased that down rather than accepting it): patched -rs -> `test_sample.py:2`, patched -rs --runxfail -> `test_sample.py:2` (correction independent of the toggle); base -rs --runxfail -> `.../src/_pytest/skipping.py:239` (the bug). Bundle axiom_check.py exits 0; `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (14.0s); `adversary same-spec` on a byte copy -> SAME (spec-region tooling sane).\n\nONE NARROWNESS NOTED, NOT A DEFECT: the precondition also demands definition_line >= 0, and getfslineno (code.py:1162,1179,1182) can return -1 when source is undeterminable. I made it reachable at the correction (a nose `compat_co_firstlineno = -1` on a skip-marked test really reports `SKIPPED [1] test_neg.py:0`). But this is a domain restriction on which the spec's FORMULA was already correct, not drift: I drove the real patched hook at defline=-1 and -5 and it returns exactly definition_line + 1 (0 and -4), i.e. the spec agrees with the repo there and merely declines to speak. It admits no wrong implementation (the postcondition still pins line == definition_line + 1 on the whole admitted domain) and excludes no input any F2P/P2P test exercises -- my attempt to reach a negative line without the contrived nose attribute failed (an exec-compiled function gives getfslineno -> ('<nowhere>', 0), i.e. 0, not negative). Reported for the record; it does not support UNFAITHFUL.\n\nCONCLUSION: no input found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every pinned observable (which verdict is stated and its reason; the annotation's presence, reason and RENDERING STYLE; the outcome; the recorded location in all three elements; and the one-slot coupling whereby a stated verdict annihilates a positional triple) matches the real hook on 19266 points, and the one restriction I found is sound-but-narrow rather than divergent.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LEAKAGE / GOLD-RECONSTRUCTION SCAN \u2014 pytest-dev__pytest-7432 (nagini). Verdict NO-LEAKAGE.\n\nNO RELAXATION IN PLAY (measured, not inherited). `ls .../nagini/RELAXED_LEAKAGE.md` -> ENOENT; `grep -ril relaxed` over the whole instance dir hits ONLY meta.json, and every hit is inside the *prose of a prior G-LEAK note* that itself says no such file exists \u2014 not a `relaxed_leakage` key. Confirmed programmatically: `json.load(meta.json)` top-level keys are [additional_change_sites, ax_apply_gold, ax_apply_gold_note, axiom_check, axioms, base_commit, carrier_coupling, changed_files, control_flow_modeling, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] \u2014 `'relaxed_leakage' in meta` is False. So there is no documented-relaxation argument to re-derive; this is an ordinary leakage review, judged against problem_statement only.\n\nTHE VIEW I JUDGED. Generated the real consumer projection myself: markers.spec_view(model.py, get_backend('nagini')) -> 566 lines, sha256 e30b19da750d246295fa0abd2e0326b023a6a8530e8746ab3df75cac37f8e817, written to spec_view.txt. `diff` against model.py confirms the projection's only difference is the impl region (lines 565-621) collapsed to the elision placeholder \u2014 i.e. the 57-line branch chain plus the trailing `if skipped_by_mark and rep_skipped and rep.loc_is_triple:` block, which IS the gold edit, is NOT in the view. Everything below is measured on that 566-line view, not on model.py.\n\nWHAT THE GOLD EDIT IS. patch.diff changed-line set is exactly three lines: `-    elif (`, `+`, `+    if (` in src/_pytest/skipping.py. The discriminator is the elif->independent-if split of the skip-location-correction block. model.py vs model_prepatch.py differ in exactly that one impl line (`if` vs `elif` on the correction guard) \u2014 so the twin pair localizes the edit to one token, and a leak here would have to be a spec-view line that names that token or reconstructs the chain structure.\n\nMECHANICAL SCREEN. leakage.screen(model.py, NaginiBackend, patch.diff, problem_statement, test_patch) -> hard_failures [], warnings [], passed True. Cross-checks I ran on top of it, because a passing screen is not by itself an argument:\n- Symbol collision: `_py_spec_view_identifiers(view) & {symbols on gold changed lines}` = EMPTY. No patched-file identifier is echoed: 'skipped_by_mark_key' in view -> False, 'longrepr' -> False, 'rep.skipped' -> False, and 'reportinfo'/'_store'/'wasxfail' likewise absent (the view's names are all carrier-local: rep_skipped, loc_is_triple, note_style, definition_line, states_own_verdict...).\n- Edit/narration vocabulary: grep -Ei over the view for elif|else if|chain|branch|runxfail|skipping\\.py|longrepr|wasxfail|reportinfo|_store|restructur|split|move|gold|pre-patch|prepatch|patch|bug|fix|broken|previously|incorrectly|wrong|regression|diff|hunk|line NN -> ZERO hits. Notably the view never says 'elif', never says 'chain', never says '--runxfail' (it says 'expected-failure reporting is toggled off'), and never names the patched file or line.\n- Pre-patch narration: grep for 'no longer|used to|formerly|hangs off|final elif|before the change|after the change' -> only two benign hits, both about the carrier rather than history: line 3 'stated as desired behaviour, not as an edit' and line 133 'there is no longer any file, line or reason to read' (describing the one-slot semantics of LOC_ABSENT within a single call). Neither is an edit reference.\n- Test-patch leakage: the five test names introduced by test_patch (test_skip_location, test_xfail_run_with_skip_mark, test_xfail_evalfalse_but_fails, test_func, test_func2) \u2014 NONE appear in the view.\n\nTHE ONE LINE THAT COULD BE ARGUED, AND WHY IT IS NOT A LEAK. View lines 113-115 say step (2) is 'INDEPENDENT of the expected-failure reporting toggle: the toggle governs step (1) only, and never suppresses the skip-location correction' (echoed at 384 and, positively, at 78 'governed solely by its own three conditions'). This is the discriminator stated as behaviour \u2014 so I checked whether it is derivable from the SOLVER-VISIBLE problem_statement alone, and it is, essentially verbatim: the statement shows the same test producing 'SKIPPED [1] test_it.py:3' without --runxfail and 'SKIPPED [1] src/_pytest/skipping.py:238' with it, then states outright 'The `--runxfail` is only about xfail and should not affect this at all', and even localizes the site ('the bug is in src/_pytest/skipping.py, the pytest_runtest_makereport hook'). 'The skip-location reporting must not be affected by --runxfail' IS the public requirement; a spec that omitted it would not be specifying this instance. Crucially the view stops there: it states the required BEHAVIOUR (correction fires on its own three conditions regardless of the toggle) and never states the MECHANISM (that the correction is currently the trailing arm of an if/elif chain, that the toggle's arm shields it via chain position, or that the repair is elif->if). A solver reading the view learns what must hold, not which token to change \u2014 it must still find the chain and decide how to decouple it.\n\nRELOAD-BEARING CHECK (that the clause is spec, not narration). Ran `python -m swebench_unified.adversary same-spec nagini pytest-dev__pytest-7432 atk_pre.py` on the pre-patch twin -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification', so the spec region is byte-identical between the twins. Then `bash scripts/nagini_verify.sh atk_pre.py` -> 'Verification failed' in 12.52s, on exactly one clause: atk_pre.py:395:9:407:10, the correction postcondition `Implies(skipped_by_mark and rep_skipped and Old(rep.loc_is_triple) and not states_own_verdict(...), rep.loc_is_triple and definition_line is not None and rep.loc_line == definition_line + 1 and ...)`. So the independence requirement is carried by a FORMAL Ensures clause that the pre-patch impl violates \u2014 it is load-bearing specification, not a prose hint pointing at the answer, and the prose at 113-115 is a restatement of a clause the consumer already sees formally.\n\nBUNDLE-ADDRESSES-REVIEWER AXIS. leakage.reviewer_directed() over model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, verdict.md -> [] for all six. My own grep for attacker|reviewer|auditor|panel|G-LEAK|G-PANEL|NO-LEAKAGE|submit_result|'honest verdict'|'do not submit' found exactly one hit in the whole bundle: conformance_check.py:1279, a comment 'the coupling the panel-2 repair pins; see the comment where this counter is incremented', naming a branch-hit counter. That is internal build provenance on a vacuity check, not an instruction to me and not a verdict suggestion. Nothing in the bundle tells me how to record or which verdict is honest. Reporting it here for completeness, as required, but it is not a finding.\n\nCORE-GATE CONTEXT (recorded, not inherited as a disposition). meta.json gate statuses: G-AX/G-CONF/G-DIFF/G-GOLD/G-HYGIENE/G-INTEGRITY/G-LEAK/G-MUT/G-PBT/G-RESOLVE/G-VERIFY pass; G-EQ fail and G-PANEL fail (via G-PANEL-1 spec-too-weak: an attack verifies but its patch fails PASS_TO_PASS test_xfail_item and test_mark_xfail_item \u2014 a definition-line-partiality hole). Those are weakness findings on a different axis and do not bear on leakage: a spec that is too weak is the opposite failure mode from one that leaks the answer. Since no relaxation is claimed here, no leakage disposition rests on those gates.\n\nCONCLUSION. The spec view elides the entire impl region containing the edit, echoes no patched-file symbol, contains no diff marker/path/line reference, contains no bug-or-fix narration, and its only discriminator-adjacent statement (step (2) is independent of the expected-failure reporting toggle) is a direct restatement of the public problem_statement's own conclusion, expressed as required behaviour and backed by a formal postcondition rather than as a mechanism hint. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 10 admissible attacks re-run of 10 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK ANGLE: spec too strong / drifts from real repo behavior. Reference = base worktree e6e300e72 with patch.diff APPLIED (per instructions); base commit used only for untouched callees (axioms region is intentionally EMPTY here -- no @ContractOnly axiom is consumed, so there is no axiom leg to break).\n\nSETUP (all in /tmp, bundle untouched -- verified by `git -C .. status` on the bundle path and by only ever reading its files):\n  *  = fresh `git worktree add --detach` at base e6e300e72, `git diff --stat` empty.\n  *  = copy of that with patch.diff applied; `git diff --stat` shows exactly 1 file / +2 -1, and the hook tail is the independent `if` (the elif->if split). Confirmed at import time by an inspect.getsource assertion inside the harness, so a mis-pointed sys.path cannot silently score the base as the reference.\n\nINDEPENDENT HARNESS (faith.py -- written from scratch, does NOT import or reuse the bundle's conformance_check.py):\nFor each point: build (item, call, rep) via the REAL repo factory TestReport.from_item_and_call from a really-raised ExceptionInfo (so rep.outcome and the longrepr SHAPE are decided by repo code, not chosen); abstract the ENTRY state to the model's 10-field carrier per mapping.md \u00a71; drive the REAL PATCHED pytest_runtest_makereport as a generator (next/gen.send) -- the real function CALLED, not transliterated; abstract the EXIT state; then evaluate EVERY model Ensures clause as a Python predicate.\nDomain: exhaustive product of 6 exception kinds x 3 phases x 2 runxfail x 3 skipped_by_mark store states x 8 Xfail shapes (incl. empty declared reasons) x 3 unexpected-success states x 6 boundary definition lines, plus the exact F2P shape, plus 4000 seeded-fuzz points whose reason strings are adversarially chosen to be the projection's own templates (\"reason: sneaky\", \"Unexpected success: x\", \"[XPASS(strict)] y\") so a sloppy string inverse cannot score a wrong reason as agreeing.\nRESULT: checked=19266, pre-excluded=288, VIOLATIONS=0. Non-vacuity: every pinned case actually reached -- case_a=4102, case_b=7542, case_c=1297, d_mismatch=661, d_match=2735, d_strict=49, d_nonstrict=118, d_notcall=966, case_e=1796, correction_fired=1400, verdict_annihilated_a_live_triple=678, f2p_shape=2. So no clause is vacuously true.\n\nHARNESS IS DISCRIMINATING (11 mutations of the REAL repo source, each must be caught -- guards against a rubber-stamp):\n  base/unpatched hook -> REFUTED (the patch delta; correctly NOT reported as a finding); revert elif->if -> REFUTED (833); correction suppressed by runxfail -> REFUTED (833); correction off-by-one (line+2) -> REFUTED (1400); correction clobbers the skip reason -> REFUTED (1400); drop the strict [XPASS(strict)] verdict write while keeping outcome=failed -> REFUTED (49) [the P2P-breaking omission]; lead-in wrongly added on a mark arm -> REFUTED (2735); lead-in dropped on the imperative arm -> REFUTED (1297); imperative arm annotates an invented reason -> REFUTED (1297); unexpected-success states an invented reason -> REFUTED (2275); case (b) interferes (sets outcome=passed) -> REFUTED (6389). One earlier mutation silently failed to apply (indentation) and returned rc=0; I caught that and re-ran it correctly rather than banking the false green.\n\nPRECONDITION BOUNDARY (the likeliest too-strong spot, checked separately -- precheck.py): the model demands a definition line ONLY under the correction's own three conditions. Over 7776 points: model_demands=672; on all 224 of those where the line is absent the REAL REPO ITSELF raises AssertionError at skipping.py:305 -- so the precondition's PLACEMENT mirrors the repo's own assert exactly, and Q2 (model excludes an input the repo handles) = 0. Confirmed end-to-end too: a bare `pytest.Item` subclass carrying a skip mark (reportinfo -> line None) makes real pytest die with INTERNALERROR at that very assert, so the conditioned Requires is faithful, not a convenient dodge. Also verified Q1: `states_own_verdict AND rep_skipped` is unrealizable (0/7776), so the clause written without a `not sov` conjunct never demands a line on a point the repo's post-classification guard skips.\n\nE2E (real pytest, isolated dirs per config because a stale .pytest_cache/__pycache__ initially faked agreement -- I chased that down rather than accepting it): patched -rs -> `test_sample.py:2`, patched -rs --runxfail -> `test_sample.py:2` (correction independent of the toggle); base -rs --runxfail -> `.../src/_pytest/skipping.py:239` (the bug). Bundle axiom_check.py exits 0; `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (14.0s); `adversary same-spec` on a byte copy -> SAME (spec-region tooling sane).\n\nONE NARROWNESS NOTED, NOT A DEFECT: the precondition also demands definition_line >= 0, and getfslineno (code.py:1162,1179,1182) can return -1 when source is undeterminable. I made it reachable at the correction (a nose `compat_co_firstlineno = -1` on a skip-marked test really reports `SKIPPED [1] test_neg.py:0`). But this is a domain restriction on which the spec's FORMULA was already correct, not drift: I drove the real patched hook at defline=-1 and -5 and it returns exactly definition_line + 1 (0 and -4), i.e. the spec agrees with the repo there and merely declines to speak. It admits no wrong implementation (the postcondition still pins line == definition_line + 1 on the whole admitted domain) and excludes no input any F2P/P2P test exercises -- my attempt to reach a negative line without the contrived nose attribute failed (an exec-compiled function gives getfslineno -> ('<nowhere>', 0), i.e. 0, not negative). Reported for the record; it does not support UNFAITHFUL.\n\nCONCLUSION: no input found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every pinned observable (which verdict is stated and its reason; the annotation's presence, reason and RENDERING STYLE; the outcome; the recorded location in all three elements; and the one-slot coupling whereby a stated verdict annihilates a positional triple) matches the real hook on 19266 points, and the one restriction I found is sound-but-narrow rather than divergent.; G-PANEL-3 (leakage): pass \u2014 LEAKAGE / GOLD-RECONSTRUCTION SCAN \u2014 pytest-dev__pytest-7432 (nagini). Verdict NO-LEAKAGE.\n\nNO RELAXATION IN PLAY (measured, not inherited). `ls .../nagini/RELAXED_LEAKAGE.md` -> ENOENT; `grep -ril relaxed` over the whole instance dir hits ONLY meta.json, and every hit is inside the *prose of a prior G-LEAK note* that itself says no such file exists \u2014 not a `relaxed_leakage` key. Confirmed programmatically: `json.load(meta.json)` top-level keys are [additional_change_sites, ax_apply_gold, ax_apply_gold_note, axiom_check, axioms, base_commit, carrier_coupling, changed_files, control_flow_modeling, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] \u2014 `'relaxed_leakage' in meta` is False. So there is no documented-relaxation argument to re-derive; this is an ordinary leakage review, judged against problem_statement only.\n\nTHE VIEW I JUDGED. Generated the real consumer projection myself: markers.spec_view(model.py, get_backend('nagini')) -> 566 lines, sha256 e30b19da750d246295fa0abd2e0326b023a6a8530e8746ab3df75cac37f8e817, written to spec_view.txt. `diff` against model.py confirms the projection's only difference is the impl region (lines 565-621) collapsed to the elision placeholder \u2014 i.e. the 57-line branch chain plus the trailing `if skipped_by_mark and rep_skipped and rep.loc_is_triple:` block, which IS the gold edit, is NOT in the view. Everything below is measured on that 566-line view, not on model.py.\n\nWHAT THE GOLD EDIT IS. patch.diff changed-line set is exactly three lines: `-    elif (`, `+`, `+    if (` in src/_pytest/skipping.py. The discriminator is the elif->independent-if split of the skip-location-correction block. model.py vs model_prepatch.py differ in exactly that one impl line (`if` vs `elif` on the correction guard) \u2014 so the twin pair localizes the edit to one token, and a leak here would have to be a spec-view line that names that token or reconstructs the chain structure.\n\nMECHANICAL SCREEN. leakage.screen(model.py, NaginiBackend, patch.diff, problem_statement, test_patch) -> hard_failures [], warnings [], passed True. Cross-checks I ran on top of it, because a passing screen is not by itself an argument:\n- Symbol collision: `_py_spec_view_identifiers(view) & {symbols on gold changed lines}` = EMPTY. No patched-file identifier is echoed: 'skipped_by_mark_key' in view -> False, 'longrepr' -> False, 'rep.skipped' -> False, and 'reportinfo'/'_store'/'wasxfail' likewise absent (the view's names are all carrier-local: rep_skipped, loc_is_triple, note_style, definition_line, states_own_verdict...).\n- Edit/narration vocabulary: grep -Ei over the view for elif|else if|chain|branch|runxfail|skipping\\.py|longrepr|wasxfail|reportinfo|_store|restructur|split|move|gold|pre-patch|prepatch|patch|bug|fix|broken|previously|incorrectly|wrong|regression|diff|hunk|line NN -> ZERO hits. Notably the view never says 'elif', never says 'chain', never says '--runxfail' (it says 'expected-failure reporting is toggled off'), and never names the patched file or line.\n- Pre-patch narration: grep for 'no longer|used to|formerly|hangs off|final elif|before the change|after the change' -> only two benign hits, both about the carrier rather than history: line 3 'stated as desired behaviour, not as an edit' and line 133 'there is no longer any file, line or reason to read' (describing the one-slot semantics of LOC_ABSENT within a single call). Neither is an edit reference.\n- Test-patch leakage: the five test names introduced by test_patch (test_skip_location, test_xfail_run_with_skip_mark, test_xfail_evalfalse_but_fails, test_func, test_func2) \u2014 NONE appear in the view.\n\nTHE ONE LINE THAT COULD BE ARGUED, AND WHY IT IS NOT A LEAK. View lines 113-115 say step (2) is 'INDEPENDENT of the expected-failure reporting toggle: the toggle governs step (1) only, and never suppresses the skip-location correction' (echoed at 384 and, positively, at 78 'governed solely by its own three conditions'). This is the discriminator stated as behaviour \u2014 so I checked whether it is derivable from the SOLVER-VISIBLE problem_statement alone, and it is, essentially verbatim: the statement shows the same test producing 'SKIPPED [1] test_it.py:3' without --runxfail and 'SKIPPED [1] src/_pytest/skipping.py:238' with it, then states outright 'The `--runxfail` is only about xfail and should not affect this at all', and even localizes the site ('the bug is in src/_pytest/skipping.py, the pytest_runtest_makereport hook'). 'The skip-location reporting must not be affected by --runxfail' IS the public requirement; a spec that omitted it would not be specifying this instance. Crucially the view stops there: it states the required BEHAVIOUR (correction fires on its own three conditions regardless of the toggle) and never states the MECHANISM (that the correction is currently the trailing arm of an if/elif chain, that the toggle's arm shields it via chain position, or that the repair is elif->if). A solver reading the view learns what must hold, not which token to change \u2014 it must still find the chain and decide how to decouple it.\n\nRELOAD-BEARING CHECK (that the clause is spec, not narration). Ran `python -m swebench_unified.adversary same-spec nagini pytest-dev__pytest-7432 atk_pre.py` on the pre-patch twin -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification', so the spec region is byte-identical between the twins. Then `bash scripts/nagini_verify.sh atk_pre.py` -> 'Verification failed' in 12.52s, on exactly one clause: atk_pre.py:395:9:407:10, the correction postcondition `Implies(skipped_by_mark and rep_skipped and Old(rep.loc_is_triple) and not states_own_verdict(...), rep.loc_is_triple and definition_line is not None and rep.loc_line == definition_line + 1 and ...)`. So the independence requirement is carried by a FORMAL Ensures clause that the pre-patch impl violates \u2014 it is load-bearing specification, not a prose hint pointing at the answer, and the prose at 113-115 is a restatement of a clause the consumer already sees formally.\n\nBUNDLE-ADDRESSES-REVIEWER AXIS. leakage.reviewer_directed() over model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, verdict.md -> [] for all six. My own grep for attacker|reviewer|auditor|panel|G-LEAK|G-PANEL|NO-LEAKAGE|submit_result|'honest verdict'|'do not submit' found exactly one hit in the whole bundle: conformance_check.py:1279, a comment 'the coupling the panel-2 repair pins; see the comment where this counter is incremented', naming a branch-hit counter. That is internal build provenance on a vacuity check, not an instruction to me and not a verdict suggestion. Nothing in the bundle tells me how to record or which verdict is honest. Reporting it here for completeness, as required, but it is not a finding.\n\nCORE-GATE CONTEXT (recorded, not inherited as a disposition). meta.json gate statuses: G-AX/G-CONF/G-DIFF/G-GOLD/G-HYGIENE/G-INTEGRITY/G-LEAK/G-MUT/G-PBT/G-RESOLVE/G-VERIFY pass; G-EQ fail and G-PANEL fail (via G-PANEL-1 spec-too-weak: an attack verifies but its patch fails PASS_TO_PASS test_xfail_item and test_mark_xfail_item \u2014 a definition-line-partiality hole). Those are weakness findings on a different axis and do not bear on leakage: a spec that is too weak is the opposite failure mode from one that leaks the answer. Since no relaxation is claimed here, no leakage disposition rests on those gates.\n\nCONCLUSION. The spec view elides the entire impl region containing the edit, echoes no patched-file symbol, contains no diff marker/path/line reference, contains no bug-or-fix narration, and its only discriminator-adjacent statement (step (2) is independent of the expected-failure reporting toggle) is a direct restatement of the public problem_statement's own conclusion, expressed as required behaviour and backed by a formal postcondition rather than as a mechanism hint. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e",
+        "properties.py": "9f4a31b6ddfb765f3dfce1e539af1609113a27f4b5c60cf0c247741048c31cc1"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T03:12:46+00:00",
+      "code_version": "a150d46df-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 10 admissible attacks re-run of 10 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `control_gold.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e",
+        "properties.py": "9f4a31b6ddfb765f3dfce1e539af1609113a27f4b5c60cf0c247741048c31cc1"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T01:34:27+00:00",
+      "code_version": "0147fa4ff-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK ANGLE: spec too strong / drifts from real repo behavior. Reference = base worktree e6e300e72 with patch.diff APPLIED (per instructions); base commit used only for untouched callees (axioms region is intentionally EMPTY here -- no @ContractOnly axiom is consumed, so there is no axiom leg to break).\n\nSETUP (all in /tmp, bundle untouched -- verified by `git -C .. status` on the bundle path and by only ever reading its files):\n  *  = fresh `git worktree add --detach` at base e6e300e72, `git diff --stat` empty.\n  *  = copy of that with patch.diff applied; `git diff --stat` shows exactly 1 file / +2 -1, and the hook tail is the independent `if` (the elif->if split). Confirmed at import time by an inspect.getsource assertion inside the harness, so a mis-pointed sys.path cannot silently score the base as the reference.\n\nINDEPENDENT HARNESS (faith.py -- written from scratch, does NOT import or reuse the bundle's conformance_check.py): For each point: build (item, call, rep) via the REAL repo factory TestReport.from_item_and_call from a really-raised ExceptionInfo (so rep.outcome and the longrepr SHAPE are decided by repo code, not chosen); abstract the ENTRY state to the model's 10-field carrier per mapping.md \u00a71; drive the REAL PATCHED pytest_runtest_makereport as a generator (next/gen.send) -- the real function CALLED, not transliterated; abstract the EXIT state; then evaluate EVERY model Ensures clause as a Python predicate.\n\nDomain: exhaustive product of 6 exception kinds x 3 phases x 2 runxfail x 3 skipped_by_mark store states x 8 Xfail shapes (incl. empty declared reasons) x 3 unexpected-success states x 6 boundary definition lines, plus the exact F2P shape, plus 4000 seeded-fuzz points whose reason strings are adversarially chosen to be the projection's own templates (\"reason: sneaky\", \"Unexpected success: x\", \"[XPASS(strict)] y\") so a sloppy string inverse cannot score a wrong reason as agreeing. RESULT: checked=19266, pre-excluded=288, VIOLATIONS=0. Non-vacuity: every pinned case actually reached -- case_a=4102, case_b=7542, case_c=1297, d_mismatch=661, d_match=2735, d_strict=49, d_nonstrict=118, d_notcall=966, case_e=1796, correction_fired=1400, verdict_annihilated_a_live_triple=678, f2p_shape=2. So no clause is vacuously true.\n\nHARNESS IS DISCRIMINATING (11 mutations of the REAL repo source, each must be caught -- guards against a rubber-stamp):\n  base/unpatched hook -> REFUTED (the patch delta; correctly NOT reported as a finding); revert elif->if -> REFUTED (833); correction suppressed by runxfail -> REFUTED (833); correction off-by-one (line+2) -> REFUTED (1400); correction clobbers the skip reason -> REFUTED (1400); drop the strict [XPASS(strict)] verdict write while keeping outcome=failed -> REFUTED (49) [the P2P-breaking omission]; lead-in wrongly added on a mark arm -> REFUTED (2735); lead-in dropped on the imperative arm -> REFUTED (1297); imperative arm annotates an invented reason -> REFUTED (1297); unexpected-success states an invented reason -> REFUTED (2275); case (b) interferes (sets outcome=passed) -> REFUTED (6389). One earlier mutation silently failed to apply (indentation) and returned rc=0; I caught that and re-ran it correctly rather than banking the false green.\n\nPRECONDITION BOUNDARY (the likeliest too-strong spot, checked separately -- precheck.py): the model demands a definition line ONLY under the correction's own three conditions. Over 7776 points: model_demands=672; on all 224 of those where the line is absent the REAL REPO ITSELF raises AssertionError at skipping.py:305 -- so the precondition's PLACEMENT mirrors the repo's own assert exactly, and Q2 (model excludes an input the repo handles) = 0. Confirmed end-to-end too: a bare `pytest.Item` subclass carrying a skip mark (reportinfo -> line None) makes real pytest die with INTERNALERROR at that very assert, so the conditioned Requires is faithful, not a convenient dodge. Also verified Q1: `states_own_verdict AND rep_skipped` is unrealizable (0/7776), so the clause written without a `not sov` conjunct never demands a line on a point the repo's post-classification guard skips.\n\nE2E (real pytest, isolated dirs per config because a stale .pytest_cache/__pycache__ initially faked agreement -- I chased that down rather than accepting it): patched -rs -> `test_sample.py:2`, patched -rs --runxfail -> `test_sample.py:2` (correction independent of the toggle); base -rs --runxfail -> `.../src/_pytest/skipping.py:239` (the bug). Bundle axiom_check.py exits 0; `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (14.0s); `adversary same-spec` on a byte copy -> SAME (spec-region tooling sane).\n\nONE NARROWNESS NOTED, NOT A DEFECT: the precondition also demands definition_line >= 0, and getfslineno (code.py:1162,1179,1182) can return -1 when source is undeterminable. I made it reachable at the correction (a nose `compat_co_firstlineno = -1` on a skip-marked test really reports `SKIPPED [1] test_neg.py:0`). But this is a domain restriction on which the spec's FORMULA was already correct, not drift: I drove the real patched hook at defline=-1 and -5 and it returns exactly definition_line + 1 (0 and -4), i.e. the spec agrees with the repo there and merely declines to speak. It admits no wrong implementation (the postcondition still pins line == definition_line + 1 on the whole admitted domain) and excludes no input any F2P/P2P test exercises -- my attempt to reach a negative line without the contrived nose attribute failed (an exec-compiled function gives getfslineno -> ('<nowhere>', 0), i.e. 0, not negative). Reported for the record; it does not support UNFAITHFUL.\n\nCONCLUSION: no input found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every pinned observable (which verdict is stated and its reason; the annotation's presence, reason and RENDERING STYLE; the outcome; the recorded location in all three elements; and the one-slot coupling whereby a stated verdict annihilates a positional triple) matches the real hook on 19266 points, and the one restriction I found is sound-but-narrow rather than divergent.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T01:19:40+00:00",
+      "code_version": "3c293f058-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LEAKAGE / GOLD-RECONSTRUCTION SCAN \u2014 pytest-dev__pytest-7432 (nagini). Verdict NO-LEAKAGE.\n\nNO RELAXATION IN PLAY (measured, not inherited). `ls .../nagini/RELAXED_LEAKAGE.md` -> ENOENT; `grep -ril relaxed` over the whole instance dir hits ONLY meta.json, and every hit is inside the *prose of a prior G-LEAK note* that itself says no such file exists \u2014 not a `relaxed_leakage` key. Confirmed programmatically: `json.load(meta.json)` top-level keys are [additional_change_sites, ax_apply_gold, ax_apply_gold_note, axiom_check, axioms, base_commit, carrier_coupling, changed_files, control_flow_modeling, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] \u2014 `'relaxed_leakage' in meta` is False. So there is no documented-relaxation argument to re-derive; this is an ordinary leakage review, judged against problem_statement only.\n\nTHE VIEW I JUDGED. Generated the real consumer projection myself: markers.spec_view(model.py, get_backend('nagini')) -> 566 lines, sha256 e30b19da750d246295fa0abd2e0326b023a6a8530e8746ab3df75cac37f8e817, written to spec_view.txt. `diff` against model.py confirms the projection's only difference is the impl region (lines 565-621) collapsed to the elision placeholder \u2014 i.e. the 57-line branch chain plus the trailing `if skipped_by_mark and rep_skipped and rep.loc_is_triple:` block, which IS the gold edit, is NOT in the view. Everything below is measured on that 566-line view, not on model.py.\n\nWHAT THE GOLD EDIT IS. patch.diff changed-line set is exactly three lines: `-    elif (`, `+`, `+    if (` in src/_pytest/skipping.py. The discriminator is the elif->independent-if split of the skip-location-correction block. model.py vs model_prepatch.py differ in exactly that one impl line (`if` vs `elif` on the correction guard) \u2014 so the twin pair localizes the edit to one token, and a leak here would have to be a spec-view line that names that token or reconstructs the chain structure.\n\nMECHANICAL SCREEN. leakage.screen(model.py, NaginiBackend, patch.diff, problem_statement, test_patch) -> hard_failures [], warnings [], passed True. Cross-checks I ran on top of it, because a passing screen is not by itself an argument:\n- Symbol collision: `_py_spec_view_identifiers(view) & {symbols on gold changed lines}` = EMPTY. No patched-file identifier is echoed: 'skipped_by_mark_key' in view -> False, 'longrepr' -> False, 'rep.skipped' -> False, and 'reportinfo'/'_store'/'wasxfail' likewise absent (the view's names are all carrier-local: rep_skipped, loc_is_triple, note_style, definition_line, states_own_verdict...).\n- Edit/narration vocabulary: grep -Ei over the view for elif|else if|chain|branch|runxfail|skipping\\.py|longrepr|wasxfail|reportinfo|_store|restructur|split|move|gold|pre-patch|prepatch|patch|bug|fix|broken|previously|incorrectly|wrong|regression|diff|hunk|line NN -> ZERO hits. Notably the view never says 'elif', never says 'chain', never says '--runxfail' (it says 'expected-failure reporting is toggled off'), and never names the patched file or line.\n- Pre-patch narration: grep for 'no longer|used to|formerly|hangs off|final elif|before the change|after the change' -> only two benign hits, both about the carrier rather than history: line 3 'stated as desired behaviour, not as an edit' and line 133 'there is no longer any file, line or reason to read' (describing the one-slot semantics of LOC_ABSENT within a single call). Neither is an edit reference.\n- Test-patch leakage: the five test names introduced by test_patch (test_skip_location, test_xfail_run_with_skip_mark, test_xfail_evalfalse_but_fails, test_func, test_func2) \u2014 NONE appear in the view.\n\nTHE ONE LINE THAT COULD BE ARGUED, AND WHY IT IS NOT A LEAK. View lines 113-115 say step (2) is 'INDEPENDENT of the expected-failure reporting toggle: the toggle governs step (1) only, and never suppresses the skip-location correction' (echoed at 384 and, positively, at 78 'governed solely by its own three conditions').\n\nThis is the discriminator stated as behaviour \u2014 so I checked whether it is derivable from the SOLVER-VISIBLE problem_statement alone, and it is, essentially verbatim: the statement shows the same test producing 'SKIPPED [1] test_it.py:3' without --runxfail and 'SKIPPED [1] src/_pytest/skipping.py:238' with it, then states outright 'The `--runxfail` is only about xfail and should not affect this at all', and even localizes the site ('the bug is in src/_pytest/skipping.py, the pytest_runtest_makereport hook'). 'The skip-location reporting must not be affected by --runxfail' IS the public requirement; a spec that omitted it would not be specifying this instance.\n\nCrucially the view stops there: it states the required BEHAVIOUR (correction fires on its own three conditions regardless of the toggle) and never states the MECHANISM (that the correction is currently the trailing arm of an if/elif chain, that the toggle's arm shields it via chain position, or that the repair is elif->if). A solver reading the view learns what must hold, not which token to change \u2014 it must still find the chain and decide how to decouple it.\n\nRELOAD-BEARING CHECK (that the clause is spec, not narration). Ran `python -m swebench_unified.adversary same-spec nagini pytest-dev__pytest-7432 atk_pre.py` on the pre-patch twin -> exit 0, 'SAME \u2014 attack shares the bundle's exact specification', so the spec region is byte-identical between the twins. Then `bash scripts/nagini_verify.sh atk_pre.py` -> 'Verification failed' in 12.52s, on exactly one clause: atk_pre.py:395:9:407:10, the correction postcondition `Implies(skipped_by_mark and rep_skipped and Old(rep.loc_is_triple) and not states_own_verdict(...), rep.loc_is_triple and definition_line is not None and rep.loc_line == definition_line + 1 and ...)`. So the independence requirement is carried by a FORMAL Ensures clause that the pre-patch impl violates \u2014 it is load-bearing specification, not a prose hint pointing at the answer, and the prose at 113-115 is a restatement of a clause the consumer already sees formally.\n\nBUNDLE-ADDRESSES-REVIEWER AXIS. leakage.reviewer_directed() over model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, verdict.md -> [] for all six. My own grep for attacker|reviewer|auditor|panel|G-LEAK|G-PANEL|NO-LEAKAGE|submit_result|'honest verdict'|'do not submit' found exactly one hit in the whole bundle: conformance_check.py:1279, a comment 'the coupling the panel-2 repair pins; see the comment where this counter is incremented', naming a branch-hit counter. That is internal build provenance on a vacuity check, not an instruction to me and not a verdict suggestion. Nothing in the bundle tells me how to record or which verdict is honest. Reporting it here for completeness, as required, but it is not a finding.\n\nCORE-GATE CONTEXT (recorded, not inherited as a disposition). meta.json gate statuses: G-AX/G-CONF/G-DIFF/G-GOLD/G-HYGIENE/G-INTEGRITY/G-LEAK/G-MUT/G-PBT/G-RESOLVE/G-VERIFY pass; G-EQ fail and G-PANEL fail (via G-PANEL-1 spec-too-weak: an attack verifies but its patch fails PASS_TO_PASS test_xfail_item and test_mark_xfail_item \u2014 a definition-line-partiality hole). Those are weakness findings on a different axis and do not bear on leakage: a spec that is too weak is the opposite failure mode from one that leaks the answer. Since no relaxation is claimed here, no leakage disposition rests on those gates.\n\nCONCLUSION. The spec view elides the entire impl region containing the edit, echoes no patched-file symbol, contains no diff marker/path/line reference, contains no bug-or-fix narration, and its only discriminator-adjacent statement (step (2) is independent of the expected-failure reporting toggle) is a direct restatement of the public problem_statement's own conclusion, expressed as required behaviour and backed by a formal postcondition rather than as a mechanism hint. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:35:05+00:00",
+      "code_version": "86d931006-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-flatguards",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 25.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-localshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reason-locals",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-absent-branch",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-preguard-hoist",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-budget-echo",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 38.5
+          },
+          {
+            "expect": "reject",
+            "id": "admiss-vacuity-control",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-absent",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 37.5
+          },
+          {
+            "expect": "reject",
+            "id": "admiss-absent-vacuity-control",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-hoist-unconditional",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-hoist-assert",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "rej-hoist-partial-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.7
+          },
+          {
+            "expect": "reject",
+            "id": "rej-underfire-budget",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.0
+          },
+          {
+            "expect": "reject",
+            "id": "rej-abandon-absent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.4
+          },
+          {
+            "expect": "reject",
+            "id": "rej-diverge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.7
+          },
+          {
+            "expect": "reject",
+            "id": "rej-prepatch-elif",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.3
+          },
+          {
+            "expect": "reject",
+            "id": "rej-runxfail-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-offbyone",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-frame-mutation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.5
+          },
+          {
+            "expect": "reject",
+            "id": "rej-verdict-keeps-loc",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "rej-strict-keeps-loc",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.3
+          },
+          {
+            "expect": "reject",
+            "id": "rej-nonverdict-destroys-loc",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-stale-shape",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "reject",
+            "id": "rej-partial-annihilation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-overfire",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-touch-else",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-noop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.5
+          },
+          {
+            "expect": "reject",
+            "id": "rej-loc-file-drop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.9
+          },
+          {
+            "expect": "reject",
+            "id": "rej-loc-reason-clobber",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-drop-xfailmark",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-dropall",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.4
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-drop-toggle",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.4
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-drop-unexpected",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.5
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-reorder",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.2
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-merge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-strict-flip",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.4
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-note-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.2
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-skipped-read",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-classify-phase-blind",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-strict-silent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-unexpected-silent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-verdict-swap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-strict-reason",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.0
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-note-reason-swap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-note-reason-drop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-note-style-swap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-note-style-merged",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.6
+          },
+          {
+            "expect": "reject",
+            "id": "rej-frame-note-style",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.7
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-overstate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-toggle-states",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-success-reason-drop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "rej-content-success-reason-swap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 7,
+          "uniqueness": 45
+        },
+        "manifest_sha256": "9f4a31b6ddfb765f3dfce1e539af1609113a27f4b5c60cf0c247741048c31cc1",
+        "n_cases": 54,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 54 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e",
+        "properties.py": "9f4a31b6ddfb765f3dfce1e539af1609113a27f4b5c60cf0c247741048c31cc1"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T20:01:08+00:00",
+      "code_version": "3d99766c5-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "0c07fb9331f73e40fa3bcc2e8849d6a0040760164d9de72e4aa5878340f4676d",
+        "patch.diff": "fe1bcec846085b964928724c5e75591b1e0280ef37dd9cdb7faf31a89cfcf062"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T19:57:09+00:00",
+      "code_version": "a9c98bcd1-dirty",
+      "data": {
+        "wall_time_s": 15.8
+      },
+      "detail": "verified in 15.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c1762be9968fe08f4a700dc739a7cd27830bdfd600cb2aa27f3a2ac8e113b68e"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pytest-dev__pytest-7432",
+  "modeled_functions": [
+    {
+      "carrier_type": "rep.longrepr in BOTH roles it plays -> RunReport(loc_is_triple: bool, loc_file: int, loc_line: int, loc_reason: int) for the positional location triple, and (explanation: int, explanation_reason: int) for the rendered standard verdict; rep.outcome -> outcome: int (3 codes); rep.wasxfail -> (xfail_note_present: bool, note_reason: int, note_style: int); branch predicates -> bool; item.reportinfo() -> (definition_file: int, definition_line: Optional[int]). The definition LINE is the one PARTIAL carrier here, because the repo's own answer is: `Item.reportinfo` (nodes.py:654-655 @ base) answers `line = None` for a run item it cannot locate in source, and `Item` is a public base class pytest's own suite subclasses. So `None` is that machinery answering that there is no definition line at all, and its availability is carried as a CONDITIONED precondition -- `Requires(Implies(skipped_by_mark and rep_skipped and rep.loc_is_triple, definition_line is not None and definition_line >= 0))` -- which is where the repo asks the question (inside the `type(rep.longrepr) is tuple` guard at :297) and where its `assert line is not None` at :304 therefore claims an answer. An unconditional `definition_line >= 0` would claim of every report what the repo claims only of the reports reaching the correction, and would admit an implementation that consumes the definition line before knowing the correction applies. The report's own recorded line is a different carrier and is total (LOC_ABSENT once the one account holds a stated verdict). Files and reasons are opaque int tokens: which reason reaches which slot is behaviour, its rendering is not.",
+      "model_symbol": "finalize_skip_location",
+      "repo_location": "src/_pytest/skipping.py:260 (changed hunk at line 294)",
+      "repo_symbol": "_pytest.skipping.pytest_runtest_makereport",
+      "role": "modeled changed function (the runtest-makereport hook); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(skipped_by_mark and rep_skipped and Old(rep.loc_is_triple), rep.loc_line == definition_line + 1) \u2014 the correction does not fire when an earlier branch is taken",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "skip-location correction gated behind the outcome-classification if/elif chain",
+      "reverted_to": "the location-correction block is the FINAL elif of the chain (so the --runxfail / suppress_xfail_reporting branch, when taken, suppresses it)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "46abbe37072572faf5c51cc2d403e11f12db19149174115f09702616f944fc21",
+    "impl": "9befabe5bdc392059ddb3b56ddff1c5ff44ce19a6673a0ccfb23b045a358faa4",
+    "post-conditions": "76972eb63516f37c5fc261fb103db2b5055f25f61390209722ca6a63a32eba0b",
+    "pre-conditions": "6bf0430ad46642fa01e191880ceb148a4001d67c53918d2e9228ce3ed0057a91",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "b5bdb7fac0faf919ff9abed8918c8507be970e041991acddae6c6db9cc5ad09f"
+  },
+  "repo": "pytest-dev/pytest",
+  "schema_version": 1,
+  "string_modeling": "no strings indexed. The report location is carried as an int line number, an int file token and an int reason token plus a boolean triple-shape flag; the outcome and the stated verdict are carried as int codes, and every reason as an opaque int token compared for identity with the reason in scope (Nagini bans string comparison in specifications). What is deliberately not carried is the WORDING of the two verdict templates and of the annotation prefix -- presentation, not behaviour. LOC_ABSENT = -1 is the designated 'there is no positional location' token for all three positional elements: a value no real line, file token or reason token takes, so 'the slot holds no location' is an observable state rather than an unconstrained one.",
+  "version": "5.4"
+}

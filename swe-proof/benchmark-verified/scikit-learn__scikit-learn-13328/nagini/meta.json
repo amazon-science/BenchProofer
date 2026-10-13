@@ -1,0 +1,472 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "contract": "Requires(supports_negation(rep)); Ensures(ToSeq(Result())==negated(ToSeq(row_values))); Ensures(negation_performed(input_rep))",
+      "kind": "A-consumed",
+      "models": "the unchanged downstream numpy unary `-` on the validated row-slice (`-axis0_safe_slice(X, ~outliers_mask, n_non_outliers)`, huber.py:93)",
+      "name": "negate_rows",
+      "provenance": "huber.py:93 numpy unary negation; precondition/value clauses grounded in the A-reference deep models supports_negation/negated (validated == numpy by axiom_check.py). Weakest contract sufficient: never claims a negation numpy `-` would refuse.",
+      "soundness_note": "axiomatizes an UNCHANGED callee, never the function under change (directive 7). The third clause is the capability token; see negation_performed."
+    },
+    {
+      "kind": "capability-token (@ContractOnly @Predicate, no body)",
+      "models": "the runtime SUCCESS of the negation step (control-flow effect) for an X originating from this dtype kind: gold returns; pre-patch bool raises TypeError",
+      "name": "negation_performed",
+      "provenance": "huber.py:93 \u2014 the negation either runs (gold, float X) or raises (pre-patch, bool X). The negated VALUES are identical either way, so this effect has no value-level witness; modeled as an unforgeable token (Nagini rejects Fold of a body-less abstract predicate).",
+      "soundness_note": "value-free; granted ONLY on negate_rows' success path (gated by supports_negation), so it cannot over-claim. Same idiom as combined_collection in pydata__xarray-4094. This is the soundness fix for the prior G-EQ hole: it makes the negation step mandatory in fit_robust_regressor's contract, closing the severable-guard bypass."
+    }
+  ],
+  "base_commit": "37b0e66c871e8fb032a9c7086b2a1d5419838154",
+  "changed_files": [
+    "sklearn/linear_model/huber.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts validated_rep == real check_array over 3 representations x {request, no-request}",
+      "encoded_property": "validated_rep(input_rep, request_floating): request_floating=True -> REP_FLOATING for every input; request_floating=False -> input_rep preserved",
+      "kind": "A-reference",
+      "models": "sklearn.utils.check_array dtype-selection logic (via check_X_y)",
+      "name": "validated_rep",
+      "provenance": "sklearn/utils/validation.py:439-466,496,535 \u2014 default dtype='numeric' leaves bool/int/float at their own dtype; a list dtype [np.float64, np.float32] not containing the input dtype selects np.float64 (line 466)",
+      "role": "deep model (pure region) of the changed validation argument; not itself axiomatized \u2014 grounds the A-consumed negate_rows axiom's precondition"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): attempts -X for each representation and asserts the match",
+      "encoded_property": "supports_negation(rep) := rep != REP_LOGICAL (negation undefined exactly for the logical/bool representation)",
+      "kind": "A-reference",
+      "models": "numpy unary `-` operator definedness on an ndarray (the `-` at huber.py:93)",
+      "name": "supports_negation",
+      "provenance": "numpy raises TypeError 'The numpy boolean negative, the - operator, is not supported' for bool arrays; returns element-wise negation for int/float arrays (numpy 1.16 through 2.x)",
+      "role": "deep model (pure region) of numpy negation definedness; the precondition of negate_rows"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): negated == numpy -X over 5000 fuzz inputs",
+      "encoded_property": "negated(vals): element-wise negation of the sequence (front-recursive over PSeq)",
+      "kind": "A-reference",
+      "models": "numpy element-wise unary negation of the validated float row-slice (-axis0_safe_slice(...))",
+      "name": "negated",
+      "provenance": "huber.py:93 numpy unary negation",
+      "role": "deep model (pure region) of the gradient negation result"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:39:17+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: validated_rep / supports_negation / negated deep models == real sklearn.utils.check_array + numpy negation over 6 representation x request combos, 5000 negation fuzz inputs, and the end-to-end patched/pre-patch contract.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "296cd37ccb6f122a2f30e8b46bdf1d67093675e3f2177e4ba34fa657cc8f776f",
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:39:44+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100018,
+          "disagreements": 0,
+          "end_to_end_fits": 24,
+          "seed": 13328,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callees call the real repo functions)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100018, \"end_to_end_fits\": 24, \"disagreements\": 0, \"seed\": 13328, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callees call the real repo functions)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "28ae089404463797393ed7c832c3c7e35330a2e5601ce5e316e7b46ca4439c19",
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:56:49+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b",
+        "model_prepatch.py": "4831213d21c53bd226d041f1e9c551eb222c576c7441ef3837ca4c4e2711dbe3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T15:03:24+00:00",
+      "code_version": "d2d1876f9-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 9 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1_prepatch.py`, `atk_2_boundary.py`, `atk_3_ctrlflow_branch.py`, `atk_4_novalidation_consttag.py`, `atk_5_const_inputrep.py`, `atk_6_prepatch_claimfloat.py`, `atk_7_unnegated.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_8_echo_branch.py`, `atk_9_float_only_logical.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:57:37+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b",
+        "model_prepatch.py": "4831213d21c53bd226d041f1e9c551eb222c576c7441ef3837ca4c4e2711dbe3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:39:13+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "a306f9c19b68dcf7be98bf57ddf87b3fa6bdc15bceadeaddccbf7a28cb3b4219",
+          "impl": "19f77c6036583f6e4955355db1a28ce6fcb02646a62ec20366b186b5d73bb92c",
+          "post-conditions": "9164da7d3ca53a52836eedf2585fc0d40114735a0e512207faf8d9d53633b008",
+          "pre-conditions": "57ef46320aaa4bb64989df3997bb80e64d6d211fd5f0fe361b339e9cc2e7aac3",
+          "pure": "e3d98bcfc8273c26f8b34ac2f14e1eaddaf9698eb2e49c42bd903e05049d8d6c",
+          "spec_view": "474bdeaccd512fc68ebc14b86548b5af9b0185b22f57685b25e40b093079e047"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:39:13+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "1da093449d80aaf21b147df6ca2d9f31b7592386fb7c1d339a47e533067b04b4",
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:39:14+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:04:25+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T15:03:26+00:00",
+      "code_version": "d2d1876f9-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-vs-real-callee) checked rigorously; no divergence found. Deep models validated against the real callees:\n\n1) validated_rep == sklearn.utils.check_array dtype-selection: verified over all 3 representations x {request_floating False/True}. Confirmed BOTH against host sklearn via axiom_check.py (G-AX exit 0) AND directly against base-commit source (sklearn/utils/validation.py:439-466,496,535 \u2014 default dtype='numeric' leaves bool/int/float unchanged; list dtype [float64,float32] not containing the input dtype selects float64) and via executable check with importable sklearn: all 6 combos OK (ir=0 rf=False->0, ir=0 rf=True->2, ir=1 rf=False->1, ir=1 rf=True->2, ir=2 either->2).\n2) supports_negation == numpy unary '-' definedness: rep=0 (bool) False/real False, rep=1/2 True/real True \u2014 matches numpy raising TypeError on bool negation, succeeding on int/float.\n3) negated == numpy element-wise negation: 5000-input fuzz, all match.\n\nEnd-to-end: the modeled contract (for EVERY input_rep in {0,1,2} incl. logical, validation yields a negation-supporting rep and the negation runs) is exactly the gold-patched real behavior (check_X_y(..., dtype=[np.float64,np.float32]) coerces bool->float64 so -axis0_safe_slice never raises). Pre-patch behavior (default dtype leaves bool as bool -> TypeError at huber.py:93) is faithfully reproduced by model_prepatch.py (validate_matrix(ir, False) -> supports_negation(0) unsatisfiable). The spec does not over-demand: it requires exactly what the gold-patched callee delivers.\n\nDomain: precondition 0<=input_rep<=2 restricts to the three modeled dtype kinds (bool/int/float) \u2014 a legitimate abstraction of the real fit's input domain, not a strengthening; within the modeled domain the modeled functions agree with the real callees on every input. The capability tokens (matrix_rep, negation_performed) are value-free @ContractOnly @Predicates whose only producers are the axiomatized callees; they add no claim the real callees don't support (soundness reduces to the A-reference deep models, all G-AX-validated). model.py verifies (Nagini, 14.1s). No input where the modeled function disagrees with the real repo callee exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "G-LEAK mechanical screen PASSES (status=pass, 'spec view clean'); I re-ran it and confirmed independently. Manual leakage review of the consumer spec view (model.py projection with impl elided):\n\nGold edit = adding `dtype=[np.float64, np.float32]` to the `check_X_y(...)` call in HuberRegressor.fit (sklearn/linear_model/huber.py), forcing bool->float coercion so `-axis0_safe_slice(X, ...)` no longer raises.\n\nWhat the PUBLIC problem_statement already discloses: the TypeError on numpy boolean negation of X in huber.py fit (full traceback pinning huber.py:93 gradient step), and the expected fix in plain words: 'Boolean array is expected to be converted to float by HuberRegressor.fit as it is done by LinearRegression.'\n\nSpec-view checks:\n- No gold-patch line, diff marker, patched file path, or patched module path appears in the spec view (mechanical L1/L2 clean).\n- No repo symbol tied to the edit is named: check_X_y/check_array, dtype, np.float64, np.float32 do NOT appear anywhere in the view. The identifiers validate_matrix, negate_rows, validated_rep, matrix_rep, supports_negation, negation_performed are the modeler's own abstractions, not repo identifiers, so they localize nothing.\n- No bug/fix narration in spec-view comments (L3 clean).\n- The abstract behavioral claim ('validation must coerce any input element representation -- including the logical/true-false one -- to a representation that supports negation, so the gradient negation runs rather than raises') is a faithful restatement of the publicly-expected behavior (convert bool to float so fit does not raise). It does NOT reveal the specific edit (which callee, which kwarg, which dtypes).\n\nThe heavy verbatim gold-patch quoting (the `check_X_y(..., dtype=[np.float64, np.float32])` hunk, huber.py line numbers) lives only in refinement.md and mapping.md, which are AUDIT documents, not the consumer spec view, and are not consumer-visible / not screened by G-LEAK.\n\nConclusion: the spec view leaks nothing about the gold edit beyond what the public problem_statement already states.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 9 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-vs-real-callee) checked rigorously; no divergence found. Deep models validated against the real callees:\n\n1) validated_rep == sklearn.utils.check_array dtype-selection: verified over all 3 representations x {request_floating False/True}. Confirmed BOTH against host sklearn via axiom_check.py (G-AX exit 0) AND directly against base-commit source (sklearn/utils/validation.py:439-466,496,535 \u2014 default dtype='numeric' leaves bool/int/float unchanged; list dtype [float64,float32] not containing the input dtype selects float64) and via executable check with importable sklearn: all 6 combos OK (ir=0 rf=False->0, ir=0 rf=True->2, ir=1 rf=False->1, ir=1 rf=True->2, ir=2 either->2).\n2) supports_negation == numpy unary '-' definedness: rep=0 (bool) False/real False, rep=1/2 True/real True \u2014 matches numpy raising TypeError on bool negation, succeeding on int/float.\n3) negated == numpy element-wise negation: 5000-input fuzz, all match.\n\nEnd-to-end: the modeled contract (for EVERY input_rep in {0,1,2} incl. logical, validation yields a negation-supporting rep and the negation runs) is exactly the gold-patched real behavior (check_X_y(..., dtype=[np.float64,np.float32]) coerces bool->float64 so -axis0_safe_slice never raises). Pre-patch behavior (default dtype leaves bool as bool -> TypeError at huber.py:93) is faithfully reproduced by model_prepatch.py (validate_matrix(ir, False) -> supports_negation(0) unsatisfiable). The spec does not over-demand: it requires exactly what the gold-patched callee delivers.\n\nDomain: precondition 0<=input_rep<=2 restricts to the three modeled dtype kinds (bool/int/float) \u2014 a legitimate abstraction of the real fit's input domain, not a strengthening; within the modeled domain the modeled functions agree with the real callees on every input. The capability tokens (matrix_rep, negation_performed) are value-free @ContractOnly @Predicates whose only producers are the axiomatized callees; they add no claim the real callees don't support (soundness reduces to the A-reference deep models, all G-AX-validated). model.py verifies (Nagini, 14.1s). No input where the modeled function disagrees with the real repo callee exists.; G-PANEL-3 (leakage): pass \u2014 G-LEAK mechanical screen PASSES (status=pass, 'spec view clean'); I re-ran it and confirmed independently. Manual leakage review of the consumer spec view (model.py projection with impl elided):\n\nGold edit = adding `dtype=[np.float64, np.float32]` to the `check_X_y(...)` call in HuberRegressor.fit (sklearn/linear_model/huber.py), forcing bool->float coercion so `-axis0_safe_slice(X, ...)` no longer raises.\n\nWhat the PUBLIC problem_statement already discloses: the TypeError on numpy boolean negation of X in huber.py fit (full traceback pinning huber.py:93 gradient step), and the expected fix in plain words: 'Boolean array is expected to be converted to float by HuberRegressor.fit as it is done by LinearRegression.'\n\nSpec-view checks:\n- No gold-patch line, diff marker, patched file path, or patched module path appears in the spec view (mechanical L1/L2 clean).\n- No repo symbol tied to the edit is named: check_X_y/check_array, dtype, np.float64, np.float32 do NOT appear anywhere in the view. The identifiers validate_matrix, negate_rows, validated_rep, matrix_rep, supports_negation, negation_performed are the modeler's own abstractions, not repo identifiers, so they localize nothing.\n- No bug/fix narration in spec-view comments (L3 clean).\n- The abstract behavioral claim ('validation must coerce any input element representation -- including the logical/true-false one -- to a representation that supports negation, so the gradient negation runs rather than raises') is a faithful restatement of the publicly-expected behavior (convert bool to float so fit does not raise). It does NOT reveal the specific edit (which callee, which kwarg, which dtypes).\n\nThe heavy verbatim gold-patch quoting (the `check_X_y(..., dtype=[np.float64, np.float32])` hunk, huber.py line numbers) lives only in refinement.md and mapping.md, which are AUDIT documents, not the consumer spec view, and are not consumer-visible / not screened by G-LEAK.\n\nConclusion: the spec view leaks nothing about the gold edit beyond what the public problem_statement already states.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1_prepatch.py`, `atk_2_boundary.py`, `atk_3_ctrlflow_branch.py`, `atk_4_novalidation_consttag.py`, `atk_5_const_inputrep.py`, `atk_6_prepatch_claimfloat.py`, `atk_7_unnegated.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_8_echo_branch.py`, `atk_9_float_only_logical.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-vs-real-callee) checked rigorously; no divergence found. Deep models validated against the real callees:\n\n1) validated_rep == sklearn.utils.check_array dtype-selection: verified over all 3 representations x {request_floating False/True}. Confirmed BOTH against host sklearn via axiom_check.py (G-AX exit 0) AND directly against base-commit source (sklearn/utils/validation.py:439-466,496,535 \u2014 default dtype='numeric' leaves bool/int/float unchanged; list dtype [float64,float32] not containing the input dtype selects float64) and via executable check with importable sklearn: all 6 combos OK (ir=0 rf=False->0, ir=0 rf=True->2, ir=1 rf=False->1, ir=1 rf=True->2, ir=2 either->2).\n2) supports_negation == numpy unary '-' definedness: rep=0 (bool) False/real False, rep=1/2 True/real True \u2014 matches numpy raising TypeError on bool negation, succeeding on int/float.\n3) negated == numpy element-wise negation: 5000-input fuzz, all match.\n\nEnd-to-end: the modeled contract (for EVERY input_rep in {0,1,2} incl. logical, validation yields a negation-supporting rep and the negation runs) is exactly the gold-patched real behavior (check_X_y(..., dtype=[np.float64,np.float32]) coerces bool->float64 so -axis0_safe_slice never raises). Pre-patch behavior (default dtype leaves bool as bool -> TypeError at huber.py:93) is faithfully reproduced by model_prepatch.py (validate_matrix(ir, False) -> supports_negation(0) unsatisfiable). The spec does not over-demand: it requires exactly what the gold-patched callee delivers.\n\nDomain: precondition 0<=input_rep<=2 restricts to the three modeled dtype kinds (bool/int/float) \u2014 a legitimate abstraction of the real fit's input domain, not a strengthening; within the modeled domain the modeled functions agree with the real callees on every input. The capability tokens (matrix_rep, negation_performed) are value-free @ContractOnly @Predicates whose only producers are the axiomatized callees; they add no claim the real callees don't support (soundness reduces to the A-reference deep models, all G-AX-validated). model.py verifies (Nagini, 14.1s). No input where the modeled function disagrees with the real repo callee exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "G-LEAK mechanical screen PASSES (status=pass, 'spec view clean'); I re-ran it and confirmed independently. Manual leakage review of the consumer spec view (model.py projection with impl elided):\n\nGold edit = adding `dtype=[np.float64, np.float32]` to the `check_X_y(...)` call in HuberRegressor.fit (sklearn/linear_model/huber.py), forcing bool->float coercion so `-axis0_safe_slice(X, ...)` no longer raises.\n\nWhat the PUBLIC problem_statement already discloses: the TypeError on numpy boolean negation of X in huber.py fit (full traceback pinning huber.py:93 gradient step), and the expected fix in plain words: 'Boolean array is expected to be converted to float by HuberRegressor.fit as it is done by LinearRegression.'\n\nSpec-view checks:\n- No gold-patch line, diff marker, patched file path, or patched module path appears in the spec view (mechanical L1/L2 clean).\n- No repo symbol tied to the edit is named: check_X_y/check_array, dtype, np.float64, np.float32 do NOT appear anywhere in the view. The identifiers validate_matrix, negate_rows, validated_rep, matrix_rep, supports_negation, negation_performed are the modeler's own abstractions, not repo identifiers, so they localize nothing.\n- No bug/fix narration in spec-view comments (L3 clean).\n- The abstract behavioral claim ('validation must coerce any input element representation -- including the logical/true-false one -- to a representation that supports negation, so the gradient negation runs rather than raises') is a faithful restatement of the publicly-expected behavior (convert bool to float so fit does not raise). It does NOT reveal the specific edit (which callee, which kwarg, which dtypes).\n\nThe heavy verbatim gold-patch quoting (the `check_X_y(..., dtype=[np.float64, np.float32])` hunk, huber.py line numbers) lives only in refinement.md and mapping.md, which are AUDIT documents, not the consumer spec view, and are not consumer-visible / not screened by G-LEAK.\n\nConclusion: the spec view leaks nothing about the gold edit beyond what the public problem_statement already states.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:38:42+00:00",
+      "code_version": "86d931006-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-branch",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-logical-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          },
+          {
+            "expect": "reject",
+            "id": "cfe-inline-no-token",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "reject",
+            "id": "prepatch-no-floating",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.5
+          },
+          {
+            "expect": "reject",
+            "id": "forge-token-const-rep",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-skip-logical",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          },
+          {
+            "expect": "reject",
+            "id": "identity-unnegated",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.0
+          },
+          {
+            "expect": "reject",
+            "id": "fabricated-const-floating-tag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.4
+          },
+          {
+            "expect": "reject",
+            "id": "stale-tag-after-no-floating",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.1
+          },
+          {
+            "expect": "reject",
+            "id": "launder-token-dummy-rows",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.7
+          },
+          {
+            "expect": "reject",
+            "id": "launder-token-copied-rows",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 10
+        },
+        "manifest_sha256": "a03a07ff5f3d26881e7b175fd977886721260e7ddc2e8e4cd003aaef29235a6b",
+        "n_cases": 12,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 12 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b",
+        "properties.py": "a03a07ff5f3d26881e7b175fd977886721260e7ddc2e8e4cd003aaef29235a6b"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-06T06:37:09+00:00",
+      "code_version": "346d4db1-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:03:20+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 11.5
+      },
+      "detail": "verified in 11.5s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "4ce983bb87d6b0d0481db8ad55f202d324fb72333d2f984d4eb3e933dabfce7b"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-13328",
+  "modeled_functions": [
+    {
+      "carrier_type": "input dtype kind -> int tag {0=logical,1=integral,2=floating}; negated rows -> List[int]",
+      "model_symbol": "fit_robust_regressor",
+      "repo_location": "sklearn/linear_model/huber.py:234 (validation call at 253-254)",
+      "repo_symbol": "sklearn.linear_model.huber.HuberRegressor.fit",
+      "role": "modeled changed function: validates the feature matrix then drives the gradient negation step"
+    },
+    {
+      "carrier_type": "List[int] of selected row element values; rep tag for negation-definedness; input_rep tag carried into the token",
+      "model_symbol": "negate_rows",
+      "repo_location": "sklearn/linear_model/huber.py:93 (in _huber_loss_and_gradient)",
+      "repo_symbol": "the squared-loss gradient step `-axis0_safe_slice(X, ~outliers_mask, n_non_outliers)`",
+      "role": "A-consumed axiom about the UNCHANGED downstream numpy negation callee: negates the validated feature rows (defined only when the validated dtype supports unary negation) AND grants the negation_performed capability token (evidence the negation ran rather than raised). Not the function under change."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "precondition of negate_rows (supports_negation(rep)) for the logical input (input_rep=0), at model_prepatch.py:160 \u2014 the verification-level image of the runtime TypeError on -axis0_safe_slice",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "feature-matrix validation dtype request in fit",
+      "reverted_to": "check_X_y called without dtype=[np.float64, np.float32] (default dtype='numeric' leaves a bool input as bool); modeled as validated_rep(input_rep, False); still routes through negate_rows"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "b7c84ecde7d263af427bf3c0fd8d7633af798d3974820acfce250d42e1a791c9",
+    "impl": "fbc642b09076d709c3ea8e1c09d9885f48423260f327cc9f632314dd0b3533b4",
+    "post-conditions": "8fb58292cb8f32541ec489f02803de889ec218f39ba4ccc28e8ae25af51e222b",
+    "pre-conditions": "6f4456e8979112b9755222196037de185d137d1a5c01a44d7a7b816ac160f31f",
+    "pure": "e3d98bcfc8273c26f8b34ac2f14e1eaddaf9698eb2e49c42bd903e05049d8d6c",
+    "spec_view": "7ca0629a868c777c2f037d28bcc83013da10c965427fcc162446b342bb1b1a43"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": "n/a \u2014 feature dtype kinds modeled as integer tags {0,1,2}; negated row slice modeled as List[int] with specification over PSeq[int] via ToSeq; negation proven by a backward per-element fold (front-recursive `negated`)",
+  "version": "0.21"
+}

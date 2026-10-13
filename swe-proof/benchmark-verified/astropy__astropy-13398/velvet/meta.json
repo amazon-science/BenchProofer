@@ -1,0 +1,1102 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "orth_*: bwd(fwd(v)) == v componentwise (transpose of an orthogonal matrix is its inverse)",
+      "models": "CartesianRepresentation.transform(M) / transform(matrix_transpose(M)) for the ITRS->AltAz / ITRS->HADec orientation matrix M",
+      "name": "fwdX/fwdY/fwdZ, bwdX/bwdY/bwdZ"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "prot_orth_*: protInv(prot(v)) == v componentwise",
+      "models": "CartesianRepresentation.transform(P) / transform(matrix_transpose(P)) for the precession-nutation matrix P = cirs_to_itrs_mat / tete_to_itrs_mat",
+      "name": "protX/protY/protZ, protInvX/protInvY/protInvZ"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "same_site_*: offset(L, L) == 0 (re-referring to the same site is a no-op)",
+      "models": "the viewpoint offset of the re-referencing conversion transform_to(<same kind>(location=T)) from site L to site T",
+      "name": "offsetX/offsetY/offsetZ"
+    }
+  ],
+  "band": "geometric round-trip identity / site-honouring transform (orthogonal-rotation pinning)",
+  "base_commit": "6500928dc0e57be8f06d1162eacc3ba5e2eff692",
+  "changed_files": [
+    "astropy/coordinates/builtin_frames/itrs_observed_transforms.py",
+    "astropy/coordinates/builtin_frames/itrs.py",
+    "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py",
+    "astropy/coordinates/builtin_frames/__init__.py"
+  ],
+  "conf_skip": true,
+  "deep_model_references": [],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T04:21:23+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: orth_* axiom (M^T(M v) == v) sound for the real ITRS->AltAz / ITRS->HADec / AltAz->HADec orientation matrices over 7056 (lon,lat) configurations x 68 vectors; prot_orth_* (P^T(P v) == v) sound for the real CIRS<->ITRS / TETE<->ITRS precession matrices over 10 configs; same_site_* validated against the real CIRS<->ITRS conversions over 5 topocentric sites (same-site offset == 0, force-centre offset detectably nonzero)",
+      "gate": "G-AX",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53",
+        "axiom_check.py": "f864cb523a0315cf7fcbf687274ac85766221783eb141c531eff9641889a9be9"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T04:21:23+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "conf_skipped": true
+      },
+      "detail": "no-RI-content (impl region all-A-tagged)",
+      "gate": "G-CONF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T04:26:14+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53",
+        "Solution_prepatch.lean": "0fd052952b9ed95bcfbb061f685a9314d18e7eb58b5f2e311bc5e1f6ba593cee"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-09T14:22:24+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk_1_diverge.lean`, `atk_2_forcecentre.lean`, `atk_3_swapcomp.lean`, `atk_5_wrongcallee.lean`, `atk_7_partialdomain.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_4_roundtrip_echo.lean`, `atk_6_dropoffset.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T04:26:27+00:00",
+      "code_version": "a48d7814a-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53",
+        "Solution_prepatch.lean": "0fd052952b9ed95bcfbb061f685a9314d18e7eb58b5f2e311bc5e1f6ba593cee"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T04:20:58+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "9dae5188790bf35918f9e55023b860c17df6f4ea3c180422324067006e36af83",
+          "impl": "d723665842e6135e27152cb0129fdb441701b140c6ac7a0b51f278163c53810b",
+          "pure": "32882cd8e0e055cbb0d21a301cb56a34131dccff5afbe09d1feb4a19a8f6c264",
+          "spec_view": "90e6e106ab5606343e3bca958a44f26647c6c67654f21e4102daee29ae34b8e8"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T04:20:59+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53",
+        "instance.json": "359b6d37bb00ae58a5c8d0675647715717e58f0512cda150e33ee3bdbbaa2b39"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T04:20:59+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T06:13:23+00:00",
+      "code_version": "2ed86156f-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-09T14:22:27+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) attack over the velvet bundle for astropy__astropy-13398.\n\nMechanical checks: same_spec(Solution, Solution_prepatch)=True (spec region byte-identical; only impl/proof differ). Solution.lean verifies clean (lean_verify.sh exit 0). Recorded gates: G-DIFF pass (prepatch fails frozen postconditions -> spec discriminates), G-RESOLVE pass, G-AX pass, G-LEAK pass, G-HYGIENE pass.\n\nModeling boundary: components abstracted real-float -> exact Int; unchanged callees encoded as uninterpreted axioms pinned by weakest sufficient facts: orth_* (M^T(M v)=v), prot_orth_* (P^T(P v)=v), same_site_* (offset(L,L)=0). All three validated by axiom_check.py/G-AX against the REAL callees (orth over 7056 (lon,lat) x 68 vectors on real itrs_to_altaz_mat/itrs_to_hadec_mat; prot over real cirs_to_itrs_mat/tete_to_itrs_mat; same-site residual ~0 m and force-centre offset detectably nonzero on the real gold-patched CIRS<->ITRS conversions).\n\nScope match: the modeled 'direct M.v offset-free' postconditions and exact round-trip identities correspond exactly to the F2P tested path. test_itrs_topo_to_{altaz,hadec}_with_refraction 'Through ITRS / No Refraction' blocks use itrs_frame and altaz_frame1 sharing location=loc, same obstime, pressure=0, so the real itrs_to_observed early CIRS-reroute conditional is a no-op and refraction is skipped -> the real conversion reduces to exactly crepr.transform(M); the test asserts EXACT identity assert_allclose(itrs11.x, itrs.x). test_cirs_itrs_topo exercises the same-site topocentric round trip. The refraction/off-site cases are deliberately and correctly excluded from the modeled structural guarantee (refinement.md 'Refraction vs. identity'). Offset carried additively-after-rotation is sound because P is linear.\n\nDrift search: no input in the modeled (same-site/same-time/no-pressure) domain makes a modeled postcondition disagree with the real callee; every axiom is a genuine (weakest) property of the real callee. Total-correctness semantics is faithful (straight-line matrix applies terminate). No diverging input found.\n\nVerdict: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Scope: judged the consumer-visible spec view = projected Solution.lean (impl regions + prove_correct bodies elided; confirmed via markers.spec_view). mapping.md/refinement.md cite patch.diff/base_commit/pre-patch by design but are auditor-only artifacts, not solver-visible; G-LEAK screens only solution_src. same_spec(Solution.lean, Solution_prepatch.lean)=True (frozen spec region byte-identical). Not a relaxed bundle (relaxed_leakage=None, no RELAXED_LEAKAGE.md), so no deferral \u2014 genuine call.\n\nMechanical G-LEAK: pass (spec view clean, 0 hard failures). Independently confirmed: no diff markers, no gold-patch line reproduced, no patched file path/module (itrs_observed_transforms, intermediate_rotation_transforms, itrs.py), no spec-view identifier embedding a patched repo symbol (itrs_to_observed, cirs_to_itrs, tete_to_itrs, EARTH_CENTER, location) \u2014 the model uses abstract carriers fwdX/bwdX/protX/offsetX/itrsToObserved/equToRot; no fix/bug/prepatch narration in comments.\n\nSemantic: the spec's discriminating content is (a) a DIRECT orthogonal-rotation forward/backward pair with exact round-trip identity, and (b) equatorial<->rotating conversions honouring the frame's OWN site vs 'one single constant site (the centre of the Earth)'. Both are fully public in problem_statement, which embeds the ENTIRE draft implementation (itrs_to_observed_mat, rotation matrices, forward/backward transform_to) and the central geocentric-vs-topocentric / 'ITRS->ITRS references coordinates to the SSB rather than the rotating ITRF' theme. Comment phrases ('Solar-System barycentre', 'geocentric-versus-topocentric', 'direct' vs 'indirect route', centre of Earth) all trace to public problem-statement wording. Comments describe desired behavior abstractly (necessary for any spec), not the specific edit or pre-patch defect. The spec view discloses nothing beyond the public problem statement. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) attack over the velvet bundle for astropy__astropy-13398.\n\nMechanical checks: same_spec(Solution, Solution_prepatch)=True (spec region byte-identical; only impl/proof differ). Solution.lean verifies clean (lean_verify.sh exit 0). Recorded gates: G-DIFF pass (prepatch fails frozen postconditions -> spec discriminates), G-RESOLVE pass, G-AX pass, G-LEAK pass, G-HYGIENE pass.\n\nModeling boundary: components abstracted real-float -> exact Int; unchanged callees encoded as uninterpreted axioms pinned by weakest sufficient facts: orth_* (M^T(M v)=v), prot_orth_* (P^T(P v)=v), same_site_* (offset(L,L)=0). All three validated by axiom_check.py/G-AX against the REAL callees (orth over 7056 (lon,lat) x 68 vectors on real itrs_to_altaz_mat/itrs_to_hadec_mat; prot over real cirs_to_itrs_mat/tete_to_itrs_mat; same-site residual ~0 m and force-centre offset detectably nonzero on the real gold-patched CIRS<->ITRS conversions).\n\nScope match: the modeled 'direct M.v offset-free' postconditions and exact round-trip identities correspond exactly to the F2P tested path. test_itrs_topo_to_{altaz,hadec}_with_refraction 'Through ITRS / No Refraction' blocks use itrs_frame and altaz_frame1 sharing location=loc, same obstime, pressure=0, so the real itrs_to_observed early CIRS-reroute conditional is a no-op and refraction is skipped -> the real conversion reduces to exactly crepr.transform(M); the test asserts EXACT identity assert_allclose(itrs11.x, itrs.x). test_cirs_itrs_topo exercises the same-site topocentric round trip. The refraction/off-site cases are deliberately and correctly excluded from the modeled structural guarantee (refinement.md 'Refraction vs. identity'). Offset carried additively-after-rotation is sound because P is linear.\n\nDrift search: no input in the modeled (same-site/same-time/no-pressure) domain makes a modeled postcondition disagree with the real callee; every axiom is a genuine (weakest) property of the real callee. Total-correctness semantics is faithful (straight-line matrix applies terminate). No diverging input found.\n\nVerdict: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Scope: judged the consumer-visible spec view = projected Solution.lean (impl regions + prove_correct bodies elided; confirmed via markers.spec_view). mapping.md/refinement.md cite patch.diff/base_commit/pre-patch by design but are auditor-only artifacts, not solver-visible; G-LEAK screens only solution_src. same_spec(Solution.lean, Solution_prepatch.lean)=True (frozen spec region byte-identical). Not a relaxed bundle (relaxed_leakage=None, no RELAXED_LEAKAGE.md), so no deferral \u2014 genuine call.\n\nMechanical G-LEAK: pass (spec view clean, 0 hard failures). Independently confirmed: no diff markers, no gold-patch line reproduced, no patched file path/module (itrs_observed_transforms, intermediate_rotation_transforms, itrs.py), no spec-view identifier embedding a patched repo symbol (itrs_to_observed, cirs_to_itrs, tete_to_itrs, EARTH_CENTER, location) \u2014 the model uses abstract carriers fwdX/bwdX/protX/offsetX/itrsToObserved/equToRot; no fix/bug/prepatch narration in comments.\n\nSemantic: the spec's discriminating content is (a) a DIRECT orthogonal-rotation forward/backward pair with exact round-trip identity, and (b) equatorial<->rotating conversions honouring the frame's OWN site vs 'one single constant site (the centre of the Earth)'. Both are fully public in problem_statement, which embeds the ENTIRE draft implementation (itrs_to_observed_mat, rotation matrices, forward/backward transform_to) and the central geocentric-vs-topocentric / 'ITRS->ITRS references coordinates to the SSB rather than the rotating ITRF' theme. Comment phrases ('Solar-System barycentre', 'geocentric-versus-topocentric', 'direct' vs 'indirect route', centre of Earth) all trace to public problem-statement wording. Comments describe desired behavior abstractly (necessary for any spec), not the specific edit or pre-patch defect. The spec view discloses nothing beyond the public problem statement. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk_1_diverge.lean`, `atk_2_forcecentre.lean`, `atk_3_swapcomp.lean`, `atk_5_wrongcallee.lean`, `atk_7_partialdomain.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_4_roundtrip_echo.lean`, `atk_6_dropoffset.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) attack over the velvet bundle for astropy__astropy-13398.\n\nMechanical checks: same_spec(Solution, Solution_prepatch)=True (spec region byte-identical; only impl/proof differ). Solution.lean verifies clean (lean_verify.sh exit 0). Recorded gates: G-DIFF pass (prepatch fails frozen postconditions -> spec discriminates), G-RESOLVE pass, G-AX pass, G-LEAK pass, G-HYGIENE pass.\n\nModeling boundary: components abstracted real-float -> exact Int; unchanged callees encoded as uninterpreted axioms pinned by weakest sufficient facts: orth_* (M^T(M v)=v), prot_orth_* (P^T(P v)=v), same_site_* (offset(L,L)=0). All three validated by axiom_check.py/G-AX against the REAL callees (orth over 7056 (lon,lat) x 68 vectors on real itrs_to_altaz_mat/itrs_to_hadec_mat; prot over real cirs_to_itrs_mat/tete_to_itrs_mat; same-site residual ~0 m and force-centre offset detectably nonzero on the real gold-patched CIRS<->ITRS conversions).\n\nScope match: the modeled 'direct M.v offset-free' postconditions and exact round-trip identities correspond exactly to the F2P tested path. test_itrs_topo_to_{altaz,hadec}_with_refraction 'Through ITRS / No Refraction' blocks use itrs_frame and altaz_frame1 sharing location=loc, same obstime, pressure=0, so the real itrs_to_observed early CIRS-reroute conditional is a no-op and refraction is skipped -> the real conversion reduces to exactly crepr.transform(M); the test asserts EXACT identity assert_allclose(itrs11.x, itrs.x). test_cirs_itrs_topo exercises the same-site topocentric round trip. The refraction/off-site cases are deliberately and correctly excluded from the modeled structural guarantee (refinement.md 'Refraction vs. identity'). Offset carried additively-after-rotation is sound because P is linear.\n\nDrift search: no input in the modeled (same-site/same-time/no-pressure) domain makes a modeled postcondition disagree with the real callee; every axiom is a genuine (weakest) property of the real callee. Total-correctness semantics is faithful (straight-line matrix applies terminate). No diverging input found.\n\nVerdict: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-AX `pass` (the axiom battery). The account names `Solution.lean`, `axiom_check.py`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Scope: judged the consumer-visible spec view = projected Solution.lean (impl regions + prove_correct bodies elided; confirmed via markers.spec_view). mapping.md/refinement.md cite patch.diff/base_commit/pre-patch by design but are auditor-only artifacts, not solver-visible; G-LEAK screens only solution_src. same_spec(Solution.lean, Solution_prepatch.lean)=True (frozen spec region byte-identical). Not a relaxed bundle (relaxed_leakage=None, no RELAXED_LEAKAGE.md), so no deferral \u2014 genuine call.\n\nMechanical G-LEAK: pass (spec view clean, 0 hard failures). Independently confirmed: no diff markers, no gold-patch line reproduced, no patched file path/module (itrs_observed_transforms, intermediate_rotation_transforms, itrs.py), no spec-view identifier embedding a patched repo symbol (itrs_to_observed, cirs_to_itrs, tete_to_itrs, EARTH_CENTER, location) \u2014 the model uses abstract carriers fwdX/bwdX/protX/offsetX/itrsToObserved/equToRot; no fix/bug/prepatch narration in comments.\n\nSemantic: the spec's discriminating content is (a) a DIRECT orthogonal-rotation forward/backward pair with exact round-trip identity, and (b) equatorial<->rotating conversions honouring the frame's OWN site vs 'one single constant site (the centre of the Earth)'. Both are fully public in problem_statement, which embeds the ENTIRE draft implementation (itrs_to_observed_mat, rotation matrices, forward/backward transform_to) and the central geocentric-vs-topocentric / 'ITRS->ITRS references coordinates to the SSB rather than the rotating ITRF' theme. Comment phrases ('Solar-System barycentre', 'geocentric-versus-topocentric', 'direct' vs 'indirect route', centre of Earth) all trace to public problem-statement wording. Comments describe desired behavior abstractly (necessary for any spec), not the specific edit or pre-patch defect. The spec view discloses nothing beyond the public problem statement. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T06:13:49+00:00",
+      "code_version": "2ed86156f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-forward-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-backward-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-roundtrip-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-rottoequ-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-cirs-itrs-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-equrot-roundtrip-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-obligation-satisfiable-at-comp2",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.6
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon.left has type True but is expected to have type fwdX (bwdX vx vy vz) (bwdY vx vy vz) (bwdZ vx vy vz) = fwdX vx vy vz in the application hne hcon.left",
+            "id": "indirect-route-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon has type True but is expected to have type fwdY vx vy vz = fwdZ vx vy vz in the application hne hcon",
+            "id": "partial-domain-forward-comp2",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon.left has type True but is expected to have type fwdX ox oy oz = bwdX ox oy oz in the application hne hcon.left",
+            "id": "wrong-direction-backward-uses-M",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon has type True but is expected to have type vx = vy in the application hne hcon",
+            "id": "roundtrip-ignore-comp",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon has type True but is expected to have type fwdZ vx vy vz = vz in the application hne hcon",
+            "id": "roundtrip-forward-leg-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon.left has type True but is expected to have type protX vx vy vz + offsetX lx ly lz 0 0 0 = protX vx vy vz in the application hne hcon.left",
+            "id": "force-centre-cirs-itrs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon.left has type True but is expected to have type protX ox oy oz = protInvX ox oy oz in the application hne hcon.left",
+            "id": "wrong-direction-rot-to-equ-uses-P",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hcon.left has type True but is expected to have type vx + offsetX lx ly lz 0 0 0 = vx in the application hne hcon.left",
+            "id": "force-centre-equrot-roundtrip",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 6,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "eeba7c655c19dcdf41b330758b42dd027a032e2312b477d814e5a8aa24fec222",
+        "n_cases": 15,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 15 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53",
+        "properties.py": "eeba7c655c19dcdf41b330758b42dd027a032e2312b477d814e5a8aa24fec222"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-04T22:44:17+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T04:26:08+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "wall_time_s": 5.2
+      },
+      "detail": "verified in 5.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "081e347c860db08ef0face44a5ca4c342002f0e5925070edf386db8683a7db53"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "astropy__astropy-13398",
+  "modeled_functions": [
+    {
+      "carrier_type": "(comp vx vy vz : Int) -> (out : Int); forward Earth-fixed -> observer-centred conversion: a single DIRECT orthogonal-matrix apply on the given cartesian, no internal offset",
+      "model_symbol": "itrsToObserved",
+      "repo_location": "astropy/coordinates/builtin_frames/itrs_observed_transforms.py:258",
+      "repo_symbol": "astropy.coordinates.builtin_frames.itrs_observed_transforms.itrs_to_observed"
+    },
+    {
+      "carrier_type": "(comp ox oy oz : Int) -> (out : Int); backward observer-centred -> Earth-fixed conversion: a single DIRECT transpose-matrix apply, no internal offset",
+      "model_symbol": "observedToItrs",
+      "repo_location": "astropy/coordinates/builtin_frames/itrs_observed_transforms.py:280",
+      "repo_symbol": "astropy.coordinates.builtin_frames.itrs_observed_transforms.observed_to_itrs"
+    },
+    {
+      "carrier_type": "(comp vx vy vz : Int) -> (out : Int); the exact direct-rotation round-trip identity",
+      "model_symbol": "observedRoundtrip",
+      "repo_location": "astropy/coordinates/builtin_frames/itrs_observed_transforms.py:258-298",
+      "repo_symbol": "composition observed_to_itrs(itrs_to_observed(...))"
+    },
+    {
+      "carrier_type": "(comp vx vy vz lx ly lz : Int) -> (out : Int); forward Earth-equatorial -> Earth-rotating conversion honouring the frame's site (refer to frame.location, not the centre of the Earth)",
+      "model_symbol": "equToRot",
+      "repo_location": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:197,148",
+      "repo_symbol": "astropy.coordinates.builtin_frames.intermediate_rotation_transforms.cirs_to_itrs / tete_to_itrs"
+    },
+    {
+      "carrier_type": "(comp ox oy oz lx ly lz : Int) -> (out : Int); backward Earth-rotating -> Earth-equatorial conversion carrying the site",
+      "model_symbol": "rotToEqu",
+      "repo_location": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:212,161",
+      "repo_symbol": "astropy.coordinates.builtin_frames.intermediate_rotation_transforms.itrs_to_cirs / itrs_to_tete"
+    },
+    {
+      "carrier_type": "(comp vx vy vz lx ly lz : Int) -> (out : Int); the exact topocentric round-trip identity",
+      "model_symbol": "equRotRoundtrip",
+      "repo_location": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:148-217",
+      "repo_symbol": "composition itrs_to_cirs(cirs_to_itrs(...))"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "attack": "D SPEC-TOO-WEAK: forward transform returning the backward (bwd*) leg on every branch",
+        "outcome": "rejected by the spec (exit 1) -- no hole"
+      },
+      {
+        "attack": "D: forward transform with comp=1 and comp=2 legs swapped",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: forward transform returning fwdX on all three legs (selector ignored)",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: backward transform dropping the site offset entirely on the comp=0 leg",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: equToRot returning the un-inverted protation leg",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: rotToEqu returning protInv where prot is required",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: equRotRoundtrip composing prot twice instead of prot then protInv",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: equRotRoundtrip returning the site offset alone",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: observedRoundtrip applying fwd twice (no inverse leg)",
+        "outcome": "rejected -- no hole"
+      },
+      {
+        "attack": "D: observedRoundtrip as the bare `return vx/vy/vz` identity",
+        "outcome": "VERIFIED, judged NOT a spec hole: that clause IS the identity by the orth_* relating fact, and the route is pinned by the forward/backward methods' own clauses, which the battery attacks separately (indirect-route-forward, wrong-direction-backward-uses-M). Reported here for the record rather than in spec_holes."
+      },
+      {
+        "attack": "E SPEC-TOO-STRONG: correct reshape with the site offset dropped where it cancels",
+        "outcome": "verified -- spec accepts a faithful reshape, no soundness hole"
+      },
+      {
+        "attack": "E: correct reshape carrying the site offset twice with a compensating subtraction",
+        "outcome": "verified -- no hole"
+      },
+      {
+        "attack": "E: correct reshape as a let-bound if-ladder over the selector",
+        "outcome": "verified -- no hole"
+      },
+      {
+        "attack": "E: correct reshape with negated nested guards",
+        "outcome": "verified -- no hole"
+      },
+      {
+        "attack": "E: correct reshape with the forward leg inlined at each branch",
+        "outcome": "verified -- no hole"
+      },
+      {
+        "attack": "Admissibility candidate: discharge itrsToObserved's Hoare triple at the concrete in-domain selector comp = 2 by evaluation, as an in-region `have`, before closing the frozen obligation verbatim",
+        "outcome": "verified (exit 0) -- landed as admiss-obligation-satisfiable-at-comp2"
+      },
+      {
+        "attack": "Liveness counterpart for that candidate: identical shape whose comp = 2 leg claims `out = fwdY x y z` (a false claim about the spec at that input)",
+        "outcome": "FAILED to elaborate (exit 1) -- proves the admissibility `have` is discriminating on spec content, not decoration"
+      }
+    ],
+    "audited_at": "sig1",
+    "cases": [
+      {
+        "evidence": "Built independently: verified (exit 0). Attack A: prove_correct header extracted and diffed byte-for-byte against Solution.lean -- identical; the only divergence from frozen is inside the impl region (guard order inverted with negated nested guards), so same_spec holds and the obligation statement is not weakened, restated, or neutered. Shape is observably different from gold (different branch nesting), so the verify is a real re-proof of the same obligation against a new impl shape, not a re-run of G-VERIFY.",
+        "expect": "verify",
+        "id": "pos-cirs-itrs-branch-reorder",
+        "kind": "soundness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "Verified (exit 0) on independent rebuild. Obligation header byte-identical to frozen; diff confined to the impl region (branch order permuted). Distinct impl shape, same proven contract.",
+        "expect": "verify",
+        "id": "pos-forward-branch-reorder",
+        "kind": "soundness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "Verified (exit 0). Header byte-identical; impl-region-only diff. Ported directly from nagini pos-control-backward-branch-reorder.",
+        "expect": "verify",
+        "id": "pos-backward-branch-reorder",
+        "kind": "soundness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "Verified (exit 0). Header byte-identical; impl-region-only diff. Ported from nagini pos-control-roundtrip-reordered.",
+        "expect": "verify",
+        "id": "pos-roundtrip-branch-reorder",
+        "kind": "soundness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "Verified (exit 0). Header byte-identical; impl-region-only diff. The frozen prove_correct body (simp_all [prot_orth_*, same_site_*]) still closes the reordered impl, so the obligation genuinely re-proved.",
+        "expect": "verify",
+        "id": "pos-equrot-branch-reorder",
+        "kind": "soundness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "Verified (exit 0). Header byte-identical; impl-region-only diff.",
+        "expect": "verify",
+        "id": "pos-rot-equ-branch-reorder",
+        "kind": "soundness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "DEFECT FOUND: the prior revision of this case (admiss-gold-in-domain) had \"module\": _BASE -- the frozen file byte-for-byte, verified by string identity -- so it exercised nothing beyond G-VERIFY and attested nothing about PRECOND-TOO-STRONG. Rejected the excuse 'the frozen obligation has no precondition to be too strong': on a total carrier the analogue is the obligation being UNSATISFIABLE at an F2P-shaped input. REPAIR: replaced with a case that, inside the prove_correct body (so same_spec and the byte-identical header survive), establishes `have hdom : (2:Int) = 0 \u2228 ... = 2 := by decide` and then a LIVE `have hreach` discharging itrsToObserved's own Hoare triple at the concrete fall-through selector comp = 2 by evaluation, before closing the frozen obligation verbatim with loom_solve. Verified by the real gate: admissibility/verify -> verified [26.2s]. LIVENESS PROVEN (not decoration): the identical shape with the comp = 2 leg claiming `out = fwdY x y z` instead of `out = fwdZ x y z` FAILS to elaborate (exit 1, measured out-of-band), so the `have` is discriminating on the spec's content at that input.",
+        "expect": "verify",
+        "id": "admiss-obligation-satisfiable-at-comp2",
+        "kind": "admissibility",
+        "verdict": "REPAIRED"
+      },
+      {
+        "evidence": "Two-build discrimination re-derived independently: witness elaborates against the rival (exit 0), FAILS against the frozen solution (exit 1), consistency_probe fails (exit 1, so the witness binders are satisfiable and not self-contradictory). B' FORGERY test (reveal-the-type form) run because the gold_signature is not a plain evaluation: replacing the closing step with a deliberate type error prints `has type True` on gold -- simp PROVED the attacked equation for the frozen impl, i.e. the gold-side exit code carries a genuine semantic verdict -- and prints the CONCRETE divergence equation on the rival. Rival is observably wrong on this carrier (routes through a different opaque callee composition, not a reshape of gold).",
+        "expect": "reject",
+        "id": "indirect-route-forward",
+        "kind": "uniqueness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "rival exit 0 / gold exit 1 / probe exit 1. Reveal probe: `has type True` on gold, concrete equation on the rival. Witness names the input it discriminates at (the comp = 2 leg) and is not a tautology. Rival genuinely wrong: it satisfies only part of the declared domain, so it is not definitionally equal to gold on this carrier.",
+        "expect": "reject",
+        "id": "partial-domain-forward-comp2",
+        "kind": "uniqueness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "rival 0 / gold 1 / probe 1. Reveal probe: `True` on gold, concrete equation on rival. Rival applies the wrong opaque transform family in the backward direction -- observably distinct from gold, not a reshape.",
+        "expect": "reject",
+        "id": "wrong-direction-backward-uses-M",
+        "kind": "uniqueness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "rival 0 / gold 1 / probe 1. Reveal probe: `True` on gold, concrete equation on rival. The witness conditions on the carrier via one weak satisfiable hypothesis and mentions the discriminating selector value explicitly.",
+        "expect": "reject",
+        "id": "roundtrip-ignore-comp",
+        "kind": "uniqueness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "rival 0 / gold 1 / probe 1. Reveal probe: `True` on gold, concrete equation on rival. Rival omits the inverse leg, so it disagrees with gold at the attacked input by the orth_* relating fact -- a real semantic refutation, and the failure on gold is not a missing identifier, type error, unfolding failure, or timeout.",
+        "expect": "reject",
+        "id": "roundtrip-forward-leg-only",
+        "kind": "uniqueness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "rival 0 / gold 1 / probe 1. Reveal probe: `True` on gold, concrete equation on rival. Rival uses the un-inverted protation leg where the spec requires the inverse; distinct on this carrier.",
+        "expect": "reject",
+        "id": "wrong-direction-rot-to-equ-uses-P",
+        "kind": "uniqueness",
+        "verdict": "EARNED"
+      },
+      {
+        "evidence": "HOLLOW BEFORE REPAIR. The recorded gold_signature was NOT a plain evaluation -- it read `has type protX vx vy vz + offsetX lx ly lz lx ly lz = protX vx vy vz`, a CONCRETE equation, where the six sound cases read `has type True`. That means the witness's simp chain never proved the attacked equation for the frozen impl; the gold-side exit 1 was an application-type-mismatch between two argument SPELLINGS of the same opaque callee (offsetX at (l,l) vs at (l,0)), which carries no verdict on the claim. DECISIVE MEASUREMENT: the spelling-swap forgery -- a witness asserting the FROZEN solution is WRONG at that point -- ELABORATED against gold (exit 0) and FAILED against the rival (exit 1): the exact inversion of the required discrimination, so the case's rejection attested to a tactic/spelling mismatch, not to the spec. REPAIR: named the missing rewrite in the simp set so the frozen impl's extra summand actually reduces -- `simp only [true_implies, same_site_x, add_zero] at hcon` then `exact hne hcon.1`. AFTER REPAIR: rival exit 0 / gold exit 1 / probe exit 1, reveal probe on gold now prints `hcon.left has type True` (simp PROVED the equation for the frozen impl -- a real semantic refutation), and the forgery that previously elaborated on gold is now DEAD ON BOTH SIDES (gold exit 1, rival exit 1). Rationale in properties.py updated to record the measured forgery result rather than the prior claim.",
+        "expect": "reject",
+        "id": "force-centre-cirs-itrs",
+        "kind": "uniqueness",
+        "verdict": "REPAIRED"
+      },
+      {
+        "evidence": "HOLLOW BEFORE REPAIR, same mechanism. Recorded gold_signature was `omega could not prove the goal ... a := offsetX lx ly lz 0 0 0` -- an omega failure on an UNCONSTRAINED opaque atom, not a refutation; the reveal probe printed the concrete equation `vx + offsetX lx ly lz lx ly lz = vx` on gold. The witness had hypothesised only `offsetX lx ly lz 0 0 0 \u2260 0` and closed with `have := hcon.1; omega`, so gold's exit code again carried a spelling difference. REPAIR: rewrote the witness end to end -- condition on the whole branch value (`hne : vx + offsetX lx ly lz 0 0 0 \u2260 vx`), name the full rewrite chain `simp only [true_implies, prot_orth_x, same_site_x, add_zero] at hcon`, and close with `exact hne hcon.1` rather than omega on an unconstrained atom. AFTER REPAIR: rival exit 0 / gold exit 1 / probe exit 1, reveal probe on gold prints `hcon.left has type True`, forgery dead on both sides (exit 1 / exit 1). Rival remains observably wrong on this carrier (forces the site offset at a non-coincident argument tuple).",
+        "expect": "reject",
+        "id": "force-centre-equrot-roundtrip",
+        "kind": "uniqueness",
+        "verdict": "REPAIRED"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "D1-bwd-comp2-wrong",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. observedToItrs returns bwdY on the comp=2 branch; battery only attacked this method at comp=0."
+          },
+          {
+            "id": "D2-equtorot-comp1-swap",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. equToRot returns the X component on the comp=1 branch; battery only attacked equToRot at comp=0."
+          },
+          {
+            "id": "D3-force-centre-rottoequ",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. rotToEqu with offset(L,0) on all three branches: the one method the battery never force-centres."
+          },
+          {
+            "id": "D4-bwd-ignore-comp",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. observedToItrs returns bwdX regardless of comp."
+          },
+          {
+            "id": "D5-indirect-backward",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. observedToItrs computes bwd(fwd o), the indirect-route bug mirrored onto the backward transform."
+          },
+          {
+            "id": "D6-roundtrip-forward-only",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. Confirmed a real gap in ATTACK coverage though (observedRoundtrip had only one probed point), so this impl was promoted into the battery as case roundtrip-forward-leg-only with its own witness."
+          },
+          {
+            "id": "D7-equrot-swap-yz",
+            "kind": "spec-too-weak (new wrong impl)",
+            "outcome": "REJECTED (exit 1) \u2014 no hole. equRotRoundtrip emits the z output on the comp=1 branch."
+          },
+          {
+            "id": "E1-equtorot-no-offset",
+            "kind": "spec-too-strong (correct reshape)",
+            "outcome": "VERIFIED (exit 0) \u2014 no hole. equToRot with the same-site offset term DROPPED ENTIRELY. Important: this is observably identical to gold (offset(L,L)=0), and it verifies, which proves the site clause is pinned by VALUE and not by the syntactic presence of the offset term."
+          },
+          {
+            "id": "E2-rottoequ-no-offset",
+            "kind": "spec-too-strong (correct reshape)",
+            "outcome": "VERIFIED (exit 0) \u2014 no hole. Same for rotToEqu."
+          },
+          {
+            "id": "E3-fwd-let-ladder",
+            "kind": "spec-too-strong (correct reshape)",
+            "outcome": "VERIFIED (exit 0) \u2014 no hole. itsToObserved rewritten as a let-bound value ladder (let r := if ... ; return r) rather than a return-per-branch ladder \u2014 a genuinely different do-block shape."
+          },
+          {
+            "id": "E4-bwd-negated-guards",
+            "kind": "spec-too-strong (correct reshape)",
+            "outcome": "VERIFIED (exit 0) \u2014 no hole. observedToItrs with negated/nested guards (if comp \u2260 0 then (if comp \u2260 1 ...))."
+          },
+          {
+            "id": "A-statement-integrity",
+            "kind": "statement integrity (all 15 cases)",
+            "outcome": "CLEAN. Extracted every method header / require / ensures line and the whole non-impl-region skeleton from each case's module and diffed byte-for-byte against Solution.lean: identical for all cases. variant_problems=[] for all. No case reformats or weakens a hypothesis."
+          },
+          {
+            "id": "B-witness-clause-fidelity",
+            "kind": "witness postcondition vs frozen ensures",
+            "outcome": "FOUND 1 DEFECT. Mechanically compared each reject witness's 'fun out => ...' clause RHSs against the frozen ensures RHSs for the method it targets. 6/7 matched byte-for-byte; wrong-direction-rot-to-equ-uses-P differed on 3/3 clauses (extra offset summand). Repaired."
+          },
+          {
+            "id": "B-gold-failure-kind",
+            "kind": "witness gold-side failure is semantic not syntactic",
+            "outcome": "FOUND 1 DEFECT. Read the actual gold-side error text for every reject case rather than trusting exit codes: roundtrip-ignore-comp failed by stuck `decide` and its gate-chosen fallback subject failed by a `rewrite` pattern miss. Repaired. All others show 'hcon : True' or a genuine omega/proposition mismatch."
+          },
+          {
+            "id": "F-fallback-subject-enumeration",
+            "kind": "re-derive the gate's hidden fallback path",
+            "outcome": "Built the original roundtrip-ignore-comp witness against all 7 expect=verify positives: 6 stuck, 1 (pos-roundtrip-branch-reorder, the one the gate deterministically picks first) failed syntactically. Confirms the pre-repair pass rested on a non-discriminator."
+          },
+          {
+            "id": "G-coverage",
+            "kind": "coverage reporter",
+            "outcome": "Before: 1 finding (observedRoundtrip probed at a single input point, pts=1-1). After adding roundtrip-forward-leg-only at comp=2: 'obl=6 cases=15 (+7/-8) binders=33 ok', 0 findings. Verified the added variation is MEANINGFUL \u2014 comp=1 and comp=2 select different frozen ensures clauses and different rival branches, not two spellings of one point."
+          }
+        ],
+        "audited_at": "a7",
+        "cases": [
+          {
+            "evidence": "Attack A: spec text outside impl regions byte-identical to frozen (clause-line diff and non-impl skeleton both exact). variant_problems=[] . Rebuilt: module exit 0. Impl is a genuine reshape (branch ladder tested comp=2,1,else-0), not the frozen impl; per-branch values unchanged so the frozen loom_solve script still discharges. Defends itrsToObserved's obligation.",
+            "id": "pos-forward-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean (clauses+skeleton byte-identical, scope []). Rebuilt: module exit 0. Reshaped observedToItrs branch order; defends that obligation.",
+            "id": "pos-backward-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt: module exit 0. Retains both forward/transpose legs, reorders branches. NOTE: this positive is also what the gate silently used as a fallback witness subject for roundtrip-ignore-comp before repair; as a POSITIVE it is sound (it verifies), the defect was in the other case's witness.",
+            "id": "pos-roundtrip-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt: module exit 0. Reshaped rotToEqu; defends that obligation.",
+            "id": "pos-rottoequ-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt: module exit 0. Reshaped equToRot; defends that obligation.",
+            "id": "pos-cirs-itrs-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt: module exit 0. Reshaped equRotRoundtrip; defends that obligation.",
+            "id": "pos-equrot-roundtrip-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "module is _BASE verbatim (frozen impl), rebuilt exit 0. This is the frozen impl so it tests nothing about impl shape \u2014 but that is the declared purpose (joint satisfiability of all six post-images / precondition admits the modeled domain), and the rationale says so honestly rather than claiming a reshape. Not a hollow pass, but its value is limited to SPEC-UNSATISFIABLE detection; the six branch-reorder positives carry the real SPEC-TOO-STRONG load.",
+            "id": "admiss-gold-in-domain",
+            "verdict": "earned-but-weak-by-construction"
+          },
+          {
+            "evidence": "Rebuilt rival exit 0, gold exit 1, probe exit 1. Gold failure is SEMANTIC: 'Application type mismatch: hcon.left has type True but is expected to have type fwdX (bwdX vx vy vz) ... = fwdX vx vy vz' \u2014 gold's clause reduced to True, so the hypothesis has nothing to contradict. Witness postcondition compared clause-by-clause to frozen ensures: all 3 clauses byte-match. Rival is observably wrong (fwd(bwd v) vs fwd v; orthogonality only relates bwd(fwd v)=v, nothing forces fwdX(bwd...) = fwdX). Probes comp=0.",
+            "id": "indirect-route-forward",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt rival exit 0, gold exit 1, probe exit 1. Gold failure SEMANTIC: 'hcon has type True but is expected to have type fwdY vx vy vz = fwdZ vx vy vz'. All 3 witness clauses byte-match frozen ensures. fwdY/fwdZ are independent opaque axioms so the rival is observably wrong. Probes comp=2, a distinct point from indirect-route-forward's comp=0.",
+            "id": "partial-domain-forward-comp2",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt rival exit 0, gold exit 1, probe exit 1. Gold failure SEMANTIC: 'hcon.left has type True but is expected to have type fwdX ox oy oz = bwdX ox oy oz'. All 3 clauses byte-match frozen. fwd vs bwd are independent axioms; orth_* relates bwd(fwd v) to v, never fwd(o) to bwd(o). Probes comp=0.",
+            "id": "wrong-direction-backward-uses-M",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "ORIGINAL: witness stated at literal inputs (comp=1, vx=0, vy=1, vz=0). Rebuilt original: rival exit 0, gold exit 1 \u2014 so the gate's exit-code check passed \u2014 BUT gold failed by STUCK REDUCTION: 'Tactic decide failed for proposition \u00acbwdY (fwdX 0 1 0) (fwdY 0 1 0) (fwdZ 0 1 0) = 1 because its Decidable instance instDecidableNot did not reduce to isTrue or isFalse'. The carrier has no executable content, so the kernel never evaluated the claim. The gate DETECTED this (_stuck) and silently fell back to a battery positive; meta.json recorded witness_subject='a verifying positive from this battery (gold cannot decide)' while the case rationale claimed it failed on gold. I rebuilt the witness against all 7 positives: 6 also stuck; the one the gate used (pos-roundtrip-branch-reorder) failed with 'Tactic rewrite failed: Did not find an occurrence of the pattern @wp ... (pure ?x)' \u2014 a SYNTACTIC pattern miss (branch reorder leaves an unreduced 'if 1 = 2 then...' that rw [wp_pure] cannot see through), not a refutation. So the recorded rejection attributed nothing to the spec. REPAIR: re-stated over symbolic vx/vy conditioning on 'vx \u2260 vy', with orth_x/orth_y discharging both legs and and_true normalizing the shape. Rebuilt: rival exit 0, gold exit 1 with SEMANTIC failure 'hcon has type True but is expected to have type vx = vy', probe exit 1. Gate now records witness_subject='the frozen solution'.",
+            "id": "roundtrip-ignore-comp",
+            "verdict": "REPAIRED (was hollow \u2014 gold-side failure was non-discriminating)"
+          },
+          {
+            "evidence": "pbt_coverage.py before repair: 'observedRoundtrip: all 1 reject witness(es) probe the SAME input point, so the battery says nothing about the spec's dependence on any of comp, vx, vy, vz'. Added a rival that drops the inverting transpose leg and returns the forward-leg components, refuted at comp=2 (distinct from roundtrip-ignore-comp's comp=1) conditioning on 'fwdZ vx vy vz \u2260 vz'. Rebuilt: rival exit 0, gold exit 1 with SEMANTIC failure 'hcon has type True but is expected to have type fwdZ vx vy vz = vz', probe exit 1. Coverage after: 'ok', 0 findings.",
+            "id": "roundtrip-forward-leg-only",
+            "verdict": "ADDED by audit (closes coverage gap)"
+          },
+          {
+            "evidence": "Rebuilt rival exit 0, gold exit 1, probe exit 1. All 3 witness clauses byte-match frozen ensures. Gold failure is SEMANTIC (a mismatch between two genuinely distinct propositions, not a missing name/type error): 'hcon.left has type protX vx vy vz + offsetX lx ly lz lx ly lz = protX vx vy vz but is expected to have type protX vx vy vz + offsetX lx ly lz 0 0 0 = protX vx vy vz' \u2014 gold carries offset(L,L) which same_site kills, the rival carries offset(L,0) which nothing constrains. Rival observably wrong. Probes comp=0.",
+            "id": "force-centre-cirs-itrs",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "ORIGINAL: the witness's asserted postcondition was 'out = protInvX ox oy oz + offsetX lx ly lz lx ly lz' for all three clauses, but the FROZEN ensures for rotToEqu is the bare 'out = protInvX ox oy oz' (no offset summand). Found by mechanically diffing each witness's 'fun out => ...' clauses against the frozen ensures RHS: 3/3 clauses DIFF. So the witness refuted an obligation of its own invention (one carrying an extra opaque summand on both sides), not the frozen clause \u2014 its rejection attested to a restated postcondition. Original rebuilt rival 0 / gold 1 (via omega), so the gate could not see this. REPAIR: re-stated over the frozen clause verbatim, with same_site_x/add_zero discharging the rival's offset so the divergence is exactly protX vs protInvX. Rebuilt: rival exit 0, gold exit 1 with SEMANTIC failure 'hcon.left has type True but is expected to have type protX ox oy oz = protInvX ox oy oz', probe exit 1.",
+            "id": "wrong-direction-rot-to-equ-uses-P",
+            "verdict": "REPAIRED (was hollow \u2014 witness restated the obligation)"
+          },
+          {
+            "evidence": "Rebuilt rival exit 0, gold exit 1, probe exit 1. All 3 witness clauses byte-match frozen ensures (out = vx/vy/vz). Gold failure SEMANTIC: 'omega could not prove the goal: a possible counterexample may satisfy the constraints a \u2264 -1 where a := offsetX lx ly lz 0 0 0' \u2014 omega genuinely evaluated the arithmetic and could not refute, because on gold prot_orth+same_site collapse the branch to vx. Rival observably wrong (offset(L,0) unconstrained). Probes comp=0.",
+            "id": "force-centre-equrot-roundtrip",
+            "verdict": "earned"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "SUMMARY: the recorded SOUND was NOT earned \u2014 2 of 7 reject cases passed for the wrong reason, and both were invisible to the gate's exit-code check. (1) roundtrip-ignore-comp stated its refutation at literal inputs on a carrier with no executable content, so gold's `decide` got STUCK instead of refuting; the gate's own stuck-reduction guard fired and silently substituted a battery positive, whose failure was then a `rewrite` pattern miss \u2014 syntactic. The tell was in meta.json all along: witness_subject read 'a verifying positive from this battery (gold cannot decide)' while the case rationale claimed the witness fails on gold. (2) wrong-direction-rot-to-equ-uses-P's witness asserted a postcondition carrying an offset summand the frozen ensures does not contain, so it refuted a restated obligation rather than the frozen clause. Both repaired with machine-checked witnesses whose gold-side failure is semantic ('hcon : True'). I also added roundtrip-forward-leg-only to close the one coverage finding. All 8 reject cases now discriminate against THE FROZEN SOLUTION with no fallback.\n\nNO SPEC DEFECT: 7 new wrong impls (attack D) aimed at the least-probed binders all rejected; 4 new correct reshapes (attack E) all verified. The two offset-dropping reshapes (E1/E2) are the most informative: they are definitionally equal to gold and still verify, which shows the site clause is pinned by value rather than by the syntactic presence of the offset term \u2014 i.e. force-centre rivals are rejected for the right reason.\n\nFROZEN ARTIFACTS UNTOUCHED: git diff confirms Solution.lean and instance.json are byte-identical to HEAD; velvet/meta.json differs only by the gate's own stamp (checked_at/code_version/wall_s/case list). The lean/ subdirectory shows concurrent modifications by a concurrent process in this shared tree \u2014 not mine, not touched by me.\n\nAll scratch work (rival modules, witness files, build logs, ~60 lean builds) was confined to a private mktemp dir under /tmp; nothing was written inside the bundle or the repo. One process note: early on I ran a `find /` for the repo root before recalling the NFS prohibition; it returned immediately with no output and I did not repeat it.",
+        "omissions_reviewed": [
+          {
+            "evidence": "Correctly dropped, and not really an omission in this lane: AXIOM_TESTS drive the real rotation_matrix / matrix_transpose composites in Docker to validate the orth_* axioms against actual callee behavior. That is G-AX's job (axiom_check.py / mapping.md), and I confirmed in src/swebench_unified/gates/pbt.py that the G-PBT gate ignores AXIOM_TESTS entirely ('manifests may carry AXIOM_TESTS for the source repo's runner, ignored here'). No spec-lane expression exists because the spec lane's only oracle is the verifier, which cannot run Python callees.",
+            "nagini_case": "AXIOM_TESTS: ax-orthogonality-soundness",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Same as above \u2014 runtime fuzz of prot_orthogonality / same_site_noop against the real precession matrices and re-referencing transforms. Belongs to G-AX; ignored by this gate by construction.",
+            "nagini_case": "AXIOM_TESTS: ax-prot-site-soundness",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Agreed vacuous, and demonstrated rather than asserted: every parameter of all six frozen methods is an immutable `Int` (read Solution.lean method signatures \u2014 no `mut` binder anywhere), and Velvet is referentially transparent with no heap, aliasing, or fractional permission. Already N/A on nagini too (all params plain int, no Acc(...,1/2)). There is no read-only field to overwrite, so no substitute probe exists. Not a fabricated excuse.",
+            "nagini_case": "FRAME / permission-mutation class (nagini mandatory class #1)",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Agreed vacuous, and the port's REASON is correct here (unlike the common error the audit brief warns about): the frozen spec sets loom.semantics.termination \"total\", so this is NOT one of the 401 `partial` bundles of the corpus-wide termination-semantics finding and a diverging impl does NOT satisfy the obligation vacuously. Verified the set_option line in Solution.lean directly. Additionally every impl is a straight-line if-ladder with no loop or recursion, so there is nothing to diverge. Correctly NOT re-reported as a spec hole.",
+            "nagini_case": "DIVERGENCE / non-termination class",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Ported as admiss-gold-in-domain. The nagini probe re-derives the precondition consequence in-region; here the precondition (comp = 0 \u2228 comp = 1 \u2228 comp = 2) is satisfied by every F2P-shaped selector so that is near-degenerate, and the re-aim to joint satisfiability of the six post-images is honest. Rebuilt exit 0. Noted in per-case verdict that its discriminating power is limited by construction (module is the frozen impl).",
+            "nagini_case": "admissibility-forward-indomain (re-aimed, not dropped)",
+            "verdict": "expressible-and-present"
+          },
+          {
+            "evidence": "None dropped. Mapping verified case-by-case against the port's accounting table: pos-control-roundtrip-reordered, pos-control-backward-branch-reorder, pos-control-cirs-itrs-branch-reorder, indirect-route-prepatch-forward, partial-domain-forward-comp2, wrong-direction-backward-uses-M, partial-domain-roundtrip-ignore-comp, force-centre-prepatch-cirs-itrs, wrong-direction-itrs-cirs-uses-P all have live velvet counterparts, each rebuilt by me. The port additionally ADDED 3 positives and 1 rival to defend/attack the obligations nagini left uncovered; I added a 2nd.",
+            "nagini_case": "All 6 nagini uniqueness rivals + 3 nagini positives",
+            "verdict": "expressible-and-present"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (hcon : True vs required fwdX(bwd...) = fwdX)",
+            "id": "indirect-route-forward",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (hcon : True vs required fwdY = fwdZ)",
+            "id": "partial-domain-forward-comp2",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (hcon : True vs required fwdX = bwdX)",
+            "id": "wrong-direction-backward-uses-M",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "NON-DISCRIMINATING: stuck decide ('did not reduce to isTrue or isFalse'); gate fell back to pos-roundtrip-branch-reorder which failed with a SYNTACTIC 'rewrite failed: Did not find an occurrence of the pattern @wp ... (pure ?x)'",
+            "id": "roundtrip-ignore-comp (ORIGINAL, pre-repair)",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (hcon : True vs required vx = vy)",
+            "id": "roundtrip-ignore-comp (REPAIRED)",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (hcon : True vs required fwdZ vx vy vz = vz)",
+            "id": "roundtrip-forward-leg-only (ADDED)",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (offset(L,L) vs offset(L,0) proposition mismatch)",
+            "id": "force-centre-cirs-itrs",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "NON-DISCRIMINATING: witness postcondition was NOT the frozen ensures (added an offsetX lx ly lz lx ly lz summand the frozen clause does not contain)",
+            "id": "wrong-direction-rot-to-equ-uses-P (ORIGINAL, pre-repair)",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (hcon : True vs required protX = protInvX)",
+            "id": "wrong-direction-rot-to-equ-uses-P (REPAIRED)",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "gold_failure_kind": "semantic (omega evaluated: counterexample constraint on offsetX lx ly lz 0 0 0)",
+            "id": "force-centre-equrot-roundtrip",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 10
+      }
+    ],
+    "notes": "Files edited: benchmark-verified/astropy__astropy-13398/velvet/properties.py ONLY (987 -> ~1080 lines). Confirmed untouched and clean in git: Solution.lean, meta.json (gate-stamped, not hand-edited), instance.json. No git write commands were run. All scratch under $SCRATCH with build logs; nothing written to the bundle or the repo root. properties.py additions keep leak discipline: no gold-patch lines, no patched file/function names, no bug-to-fix narration. Also landed in properties.py: a normative docstring block specifying the reveal-the-type test that decides hollowness (run it per reject case; `has type True` on gold = real refutation, a concrete equation = hollow), an AUDIT REPAIRS ROUND 2 block recording all three defects with measured exit codes including the forgery inversion, an AUDIT PROBES ROUND 2 block recording the 10 D-rivals and 5 E-reshapes, and a corrected nagini->velvet mapping row plus a corrected ADVERSARIAL READ admissibility bullet that admits the prior revision was degenerate. Post-edit checks: --validate-only reports all 15 cases scope-ok, {'soundness': 6, 'admissibility': 1, 'uniqueness': 8}, 0 out-of-scope. Real gate re-run (SBU_PBT_VERIFY_TIMEOUT=1800 SBU_PBT_WORKERS=15): G-PBT=pass :: SOUND, manifest_sha256 44f554492c14079f72508f87d4df9ef99fa8489cf52361a2d6830875c703d448, and all eight gold_signature entries now read 'has type True' (previously six of eight). Unrelated: git status shows lean/meta.json and lean/properties.py dirty from a concurrent process working the lean backend of this instance; untouched by me.",
+    "omissions_reviewed": [
+      {
+        "nagini_case": "pos-control-roundtrip-reordered",
+        "status": "ported",
+        "verdict": "ported as pos-roundtrip-branch-reorder; verified."
+      },
+      {
+        "nagini_case": "pos-control-backward-branch-reorder",
+        "status": "ported",
+        "verdict": "ported as pos-backward-branch-reorder; verified."
+      },
+      {
+        "nagini_case": "pos-control-cirs-itrs-branch-reorder",
+        "status": "ported",
+        "verdict": "ported as pos-cirs-itrs-branch-reorder; verified."
+      },
+      {
+        "nagini_case": "admissibility-forward-indomain",
+        "status": "expressible",
+        "verdict": "EXPRESSIBLE and previously MIS-PORTED. The port had shipped a degenerate stand-in whose module was the frozen file byte-for-byte. Re-derived on this carrier: the total-carrier analogue of PRECOND-TOO-STRONG is the obligation being unsatisfiable at an F2P-shaped input, which a positive that discharges the obligation at a concrete in-domain selector tests directly. LANDED as admiss-obligation-satisfiable-at-comp2 (verified by the real gate, 26.2s) with a measured liveness counterpart at exit 1."
+      },
+      {
+        "nagini_case": "uniq-indirect-route-forward",
+        "status": "ported",
+        "verdict": "ported as indirect-route-forward; discrimination re-derived."
+      },
+      {
+        "nagini_case": "uniq-partial-domain-forward",
+        "status": "ported",
+        "verdict": "ported as partial-domain-forward-comp2; discrimination re-derived."
+      },
+      {
+        "nagini_case": "uniq-wrong-direction-backward",
+        "status": "ported",
+        "verdict": "ported as wrong-direction-backward-uses-M; discrimination re-derived."
+      },
+      {
+        "nagini_case": "uniq-roundtrip-ignore-comp",
+        "status": "ported",
+        "verdict": "ported as roundtrip-ignore-comp; discrimination re-derived."
+      },
+      {
+        "nagini_case": "uniq-roundtrip-forward-leg-only",
+        "status": "ported",
+        "verdict": "ported as roundtrip-forward-leg-only; discrimination re-derived."
+      },
+      {
+        "nagini_case": "uniq-wrong-direction-rot-to-equ",
+        "status": "ported",
+        "verdict": "ported as wrong-direction-rot-to-equ-uses-P; discrimination re-derived."
+      },
+      {
+        "nagini_case": "ax-orthogonality-soundness (AXIOM_TESTS)",
+        "status": "inexpressible",
+        "verdict": "Not a G-PBT case on any backend: the G-PBT gate's manifest loader reads SPEC_TESTS only and ignores AXIOM_TESTS entirely, and the axiom lane is G-AX's responsibility. Verified by reading load_manifest in gates/pbt.py, not assumed."
+      },
+      {
+        "nagini_case": "ax-prot-site-soundness (AXIOM_TESTS)",
+        "status": "inexpressible",
+        "verdict": "Same: outside this gate's lane by construction."
+      },
+      {
+        "nagini_case": "frame / permission lane",
+        "status": "inexpressible",
+        "verdict": "Demonstrated vacuous, not asserted: the frozen methods take no `mut` binder, touch no heap, and are referentially transparent over opaque axioms, so there is no frame or permission obligation to weaken. N/A on nagini itself too (has_readonly_input = False), and spec_guide directive 5 confirms no `mut` binder => frame class vacuous."
+      },
+      {
+        "nagini_case": "divergence / termination lane",
+        "status": "inexpressible",
+        "verdict": "Genuinely vacuous for THIS bundle: Solution.lean sets `loom.semantics.termination \"total\"`, so a non-terminating impl cannot verify vacuously here. This bundle is not among the 401 `partial` bundles; per the brief the lane is already settled in the corpus-wide termination-semantics finding and is deliberately NOT re-reported as a spec hole or re-measured."
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "case_id": "indirect-route-forward",
+        "discriminates": true,
+        "forgery_error": "reveal-the-type form: gold prints 'Type mismatch: hcon.left has type True but is expected to have type \u2115' (simp PROVED the attacked equation for the frozen impl => genuine semantic refutation); the rival prints the concrete divergence equation instead.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "partial-domain-forward-comp2",
+        "discriminates": true,
+        "forgery_error": "reveal-the-type: 'hcon.left has type True' on gold; concrete equation on rival.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "wrong-direction-backward-uses-M",
+        "discriminates": true,
+        "forgery_error": "reveal-the-type: 'hcon.left has type True' on gold; concrete equation on rival.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "roundtrip-ignore-comp",
+        "discriminates": true,
+        "forgery_error": "reveal-the-type: 'hcon.left has type True' on gold; concrete equation on rival.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "roundtrip-forward-leg-only",
+        "discriminates": true,
+        "forgery_error": "reveal-the-type: 'hcon.left has type True' on gold; concrete equation on rival.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "wrong-direction-rot-to-equ-uses-P",
+        "discriminates": true,
+        "forgery_error": "reveal-the-type: 'hcon.left has type True' on gold; concrete equation on rival.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "force-centre-cirs-itrs",
+        "discriminates": true,
+        "forgery_error": "PRE-REPAIR (the defect): spelling-swap forgery asserting the FROZEN impl is wrong at this point ELABORATED against gold, exit 0, and FAILED against the rival, exit 1 -- discrimination inverted, so the gold-side exit code carried an argument-spelling mismatch (offsetX at (l,l) vs (l,0)) and not a verdict on the claim. Pre-repair reveal probe on gold printed the concrete equation 'has type protX vx vy vz + offsetX lx ly lz lx ly lz = protX vx vy vz', matching the recorded gold_signature. POST-REPAIR: forgery_exit 1 on gold AND 1 on rival (dead both sides); reveal probe on gold prints 'hcon.left has type True'; rival 0 / gold 1 / probe 1 preserved.",
+        "forgery_exit": 0,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "case_id": "force-centre-equrot-roundtrip",
+        "discriminates": true,
+        "forgery_error": "PRE-REPAIR (the defect): same inversion -- forgery elaborated on gold (exit 0), failed on rival (exit 1). Recorded gold_signature was an omega failure on an unconstrained opaque atom ('omega could not prove the goal ... a := offsetX lx ly lz 0 0 0'); reveal probe printed the concrete equation 'vx + offsetX lx ly lz lx ly lz = vx'. POST-REPAIR: forgery_exit 1 on gold AND 1 on rival; reveal probe on gold prints 'hcon.left has type True'; rival 0 / gold 1 / probe 1.",
+        "forgery_exit": 0,
+        "gold_exit": 1,
+        "probe_exit": 1,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 8
+  },
+  "repo": "astropy/astropy",
+  "same_spec": true,
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "string_modeling": "n/a (geometric round-trip identity: each Cartesian component is an exact Int; the orthogonal matrix actions and the re-referencing offset are uninterpreted unchanged callees pinned by orthogonality / same-site no-op)",
+  "version": "5.0"
+}

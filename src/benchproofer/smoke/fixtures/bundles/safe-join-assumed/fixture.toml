@@ -1,0 +1,138 @@
+# A formalization that models an unchanged callee in its axioms region.
+#
+# The specification needs a path normalizer and the checker cannot import one, so the
+# `axioms` region contains a model of `posixpath.normpath` and declares that the model
+# represents the real callee. That declaration is the interesting part: `axioms.py`
+# checks it against the callee where the benchmark's own tests run, and a reviewer's
+# fuzzer attacks the same model from inputs the bundle's own axioms.py never draws.
+
+task_id = "safe-join"
+backend = "falsifier"
+summary = "A modeled callee, grounded against the real one by the bundle and by a review."
+
+[expect]
+static = "certified"
+oracle = "certified"
+
+# Gates that must reach an unfavorable judgment, per level. Empty means every
+# required gate has to pass, including the one that grounds the assumption.
+[unfavorable]
+static = []
+oracle = []
+
+# What a reviewer shown these artifacts concludes. Three questions no program can
+# decide, so a case that reviews this bundle offline takes them from here; the
+# implementations a review submits come from the battery above, and the gates re-run
+# those.
+[review.faithfulness]
+verdict = "sound"
+summary = "The three obligations about an accepted path and the one about a refused request together say what the task asks for, and the assumption they rest on is named rather than hidden."
+
+[[review.faithfulness.coverage]]
+behavior = "a request that stays under the root is joined and normalized"
+tested_by = "the task's test program"
+covered_by = "assert result == resolve(root, relative)"
+
+[[review.faithfulness.coverage]]
+behavior = "a request that escapes the root, or is absolute, is refused with None"
+tested_by = "the task's test program"
+covered_by = "assert (impl(root, relative) is None) == escapes"
+
+[review.equivalence]
+verdict = "sound"
+summary = "It makes the same two decisions as the golden patch, in the same order, over the same normalizer."
+
+# One correspondence per operation, each of a kind that leaves behavior alone.
+[[review.equivalence.operations]]
+kind = "identical"
+detail = "An absolute request is refused before anything is joined, as in the golden patch."
+
+[[review.equivalence.operations]]
+kind = "modeled"
+detail = "The normalizer is `posixpath.normpath` in the golden patch and a model of it in the specification, declared in the axioms region and grounded against the callee by axioms.py."
+
+[[review.equivalence.operations]]
+kind = "identical"
+detail = "A join is accepted when it is the root itself or begins with the root and a separator, the same two comparisons in the same order."
+
+[review.disclosure]
+verdict = "sound"
+summary = "The specification says where an accepted request has to land and leaves the solver to work out how to decide it."
+
+# The programs an independent review writes against what the specification assumes.
+# One per unchanged callee, and each is run by `audit.axiom_soundness` rather than
+# believed: a reviewer who claims a callee behaves as assumed has claimed nothing.
+[[fuzzer]]
+id = "fuzz-1"
+callee = "posixpath.normpath"
+claim = "The assumed model and the real normalizer agree on every relative path I could build out of near misses of `.` and `..`, runs of separators, and four segments of nesting."
+program = '''
+"""Attack the assumption that the model in the axioms region is `posixpath.normpath`.
+
+The bundle's own axioms.py enumerates tidy segments. This one goes after where a path
+normalizer usually breaks instead: runs of separators, segments that are near misses of
+`.` and `..`, names that end in a dot, and paths nested deep enough that the `..`
+bookkeeping has to unwind more than once.
+"""
+
+import posixpath
+from itertools import product
+
+
+# The model the specification assumes stands for the callee, copied from its axioms
+# region so that what is attacked here is what the checker was given.
+def normpath(path):
+    parts = []
+    for segment in path.split("/"):
+        if segment in ("", "."):
+            continue
+        if segment == ".." and parts and parts[-1] != "..":
+            parts.pop()
+            continue
+        parts.append(segment)
+    return "/".join(parts) or "."
+
+
+SEGMENTS = ("", ".", "..", "...", "....", ".a", "a.", "a..", "..a", "a", "a b", "-")
+SEPARATORS = ("/", "//", "///")
+
+
+def paths():
+    """Awkward segments, awkward separators between them, and deeper nesting."""
+    for parts in product(SEGMENTS, repeat=3):
+        for separator in SEPARATORS:
+            joined = separator.join(parts)
+            yield joined
+            yield joined + separator
+    for parts in product(SEGMENTS, repeat=4):
+        yield "/".join(parts)
+
+
+def main():
+    """Compare the model against the callee, and report every disagreement."""
+    disagreements = []
+    checked = 0
+    for path in paths():
+        if path.startswith("/"):
+            continue
+        checked += 1
+        mine, theirs = normpath(path), posixpath.normpath(path)
+        if mine != theirs:
+            disagreements.append((path, theirs, mine))
+
+    for path, theirs, mine in disagreements[:20]:
+        print(
+            f"benchproofer:refuted posixpath.normpath normpath({path!r}) is {theirs!r}, "
+            f"the model says {mine!r}"
+        )
+    if disagreements:
+        return 1
+    print(
+        f"benchproofer:grounded posixpath.normpath {checked} paths over runs of "
+        "separators, near misses of . and .., and four segments of nesting"
+    )
+    return 0
+
+
+raise SystemExit(main())
+'''

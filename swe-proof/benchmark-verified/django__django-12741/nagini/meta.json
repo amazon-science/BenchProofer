@@ -1,0 +1,418 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the one in-tree caller; refined identically by the same gold patch (execute_sql_flush(database, sql_list) -> execute_sql_flush(sql_list)). database == connection.alias there (connection = connections[database]), so dropping the redundant first positional argument is observationally the identity; no separate model construct needed.",
+      "repo_location": "django/core/management/commands/flush.py:63",
+      "repo_symbol": "django.core.management.commands.flush.Command.handle"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "537d422942b53bc0a2b6a51968f379c0de07793c",
+  "changed_files": [
+    "django/db/backends/base/operations.py",
+    "django/core/management/commands/flush.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): drives the REAL execute_sql_flush with a recording transaction.atomic and asserts the block is always scoped to connection.alias over 5072 boundary + 5000 fuzz observations; also asserts the signature takes the single parameter 'sql_list'",
+      "encoded_property": "the atomic block the routine opens is scoped to the connection's OWN identifier: scoped_alias == self.connection.alias (derived internally, never taken from a separately-supplied argument)",
+      "kind": "A-reference",
+      "models": "django.db.transaction.atomic(using=...) scope of the opened atomic block",
+      "name": "scoped_alias recorded effect (clause 1)",
+      "provenance": "django/db/transaction.py; the patch changes only the value passed for using= from the dropped 'using' parameter to self.connection.alias (operations.py:404-405); transaction.atomic itself is unchanged",
+      "role": "deep model (recorded effect) of the changed argument; NOT a consumed @ContractOnly axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the savepoint flag equals features.can_rollback_ddl over all observations",
+      "encoded_property": "scoped_savepoint == supports_rollback (the renamed twin of features.can_rollback_ddl)",
+      "kind": "A-reference",
+      "models": "the savepoint= argument of transaction.atomic",
+      "name": "scoped_savepoint recorded effect (clause 2)",
+      "provenance": "operations.py:404-405; savepoint=self.connection.features.can_rollback_ddl, unchanged across the patch",
+      "role": "deep model (recorded effect) of an unchanged callee argument; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the executed statement sequence equals the input batch over all observations",
+      "encoded_property": "ToSeq(executed) == ToSeq(sql_list): exactly the supplied statements run, in order (none dropped, reordered, or invented)",
+      "kind": "A-reference",
+      "models": "the cursor execution loop: with self.connection.cursor() as cursor: for sql in sql_list: cursor.execute(sql)",
+      "name": "executed recorded effect (clause 3)",
+      "provenance": "operations.py:406-408, unchanged across the patch",
+      "role": "deep model (recorded effect) of an unchanged callee; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:19:11+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: execute_sql_flush recorded-effect references sound over 5072 observations: the atomic block is always scoped to the connection's own alias (never a caller-supplied value), the savepoint flag equals features.can_rollback_ddl, and exactly the supplied statements run in order; the signature takes the single parameter 'sql_list'.",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "4b97782cd7c2981ec608f6c35d1df678b5fddb2e7952e2b8b219bbee855175bf",
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:19:17+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: shadow == patched repo routine over 100192 inputs (scope of the atomic block, savepoint flag, and executed statement sequence all agree; seed=12741)",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "97f777e09f9042cb1a2c76d63549bb2f1fb5c1aedd5092e4fe6d10640a6daf90",
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:48:38+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d",
+        "model_prepatch.py": "37d31d44da928ea9041f1c2dd0d02d9c8050daf3d1ba9e96711b3765313ad239"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T10:10:24+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:49:24+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d",
+        "model_prepatch.py": "37d31d44da928ea9041f1c2dd0d02d9c8050daf3d1ba9e96711b3765313ad239"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:18:57+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "deed91aa6f55cb45277686ca300aec0ef493be8fa27b741cd2794cd55b3269d4",
+          "impl": "79a1174eab3788bf85e2bb6ab9b84646593e9c2a0015d558068a4a38c3fbc863",
+          "invariants": "f88d8aa49ad0d904283d5e76926ce3fa5324ef092f6a388e614ec473f439a236",
+          "post-conditions": "12205ae5f39dd4e60fb63bbab69ebb0af4ad9532131d67e6eb45f75ea12963c6",
+          "pre-conditions": "29f13fd924d941247057b29f214908398e20446c69e26cdf4c7d057b2614b62e",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "f5f5a167ffa54302234cac3364a45ee76ee0b2e1f664bdb052c801eabdbcd524"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:18:57+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bb54c0ea5dc9ac1b4e21b22bff68aba3bb35d1dd33ac48aee24f67fef0c34977",
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:18:58+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T07:07:27+00:00",
+      "code_version": "eaa136963-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ca075d093bcf",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T10:10:26+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Spec region is byte-identical with the bundle (swebench_unified.adversary same-spec exit 0). The modeled function execute_statement_batch pins exactly three facets of the real routine BaseDatabaseOperations.execute_sql_flush (django/db/backends/base/operations.py:403, post-patch): (1) scoped_alias == connection.alias, (2) scoped_savepoint == supports_rollback (features.can_rollback_ddl), (3) ToSeq(executed) == ToSeq(sql_list). I ran conformance_check.py against the REAL patched repo routine (worktree $SCRATCH @ base_commit 537d422942..., PYTHONPATH=$SCRATCH, asgiref available in swebench-lean venv): G-CONF OK over 100,192 inputs (192 boundary + 100k fuzz, seed 12741) \u2014 shadow == real routine on all three facets, zero disagreements. I also directly drove the real execute_sql_flush with recording stand-ins for transaction.atomic/cursor across edge cases (empty batch, duplicates, multiple aliases, both savepoint values) \u2014 all three clauses hold exactly. Signature refinement is faithful: real routine takes exactly one non-self param 'sql_list' and no 'using' (verified via inspect.signature). The spec is NOT too strong: it constrains only what the real routine actually determines. The caller_alias field is modeled but unconstrained/unused by the post-patch impl (it exists only for the prepatch differential witness), so it introduces no over-specification. No diverging input exists between the modeled function and the real callee. Verdict: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (leakage.screen -> passed=True, zero hard failures): no diff markers, no gold-patch line reproduced (>=8 chars normalized), no patched file/module path in spec view, no changed-symbol echo, no bug/fix narration. Changed symbols {execute_sql_flush, sql_flush, handle} do not appear in the spec view; the repo names are all renamed to behavioural twins (execute_statement_batch, DatabaseOperations, Connection.scoped_alias/caller_alias/supports_rollback).\n\nSemantic judgment: the spec view leaks NOTHING beyond the public problem_statement, which is itself already fully explicit about the gold edit. The public problem_statement states verbatim: old signature `def execute_sql_flush(self, using, sql_list)`, the fix 'The using argument can be dropped and inferred by the calling instance: self.connection.alias', and new signature `def execute_sql_flush(self, sql_list)`. The spec view merely restates this behaviourally: clause (1) scoped_alias==alias (block scoped to the connection's own identifier, derived internally, not the caller-threaded value), plus unchanged behaviour clauses (2) savepoint==supports_rollback and (3) executed==sql_list. The caller_alias recorder models the old `using` value \u2014 also fully public via the stated old signature. No pre/post-patch narration, no reference to the F2P test in the spec view, no hints_text echo. The refinement.md/mapping.md docs are NOT part of the spec view and are auditor-facing.\n\nVerified spec region is the byte-identical frozen spec (spec_view rendered from model.py; markers intact). Verdict: NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Spec region is byte-identical with the bundle (swebench_unified.adversary same-spec exit 0). The modeled function execute_statement_batch pins exactly three facets of the real routine BaseDatabaseOperations.execute_sql_flush (django/db/backends/base/operations.py:403, post-patch): (1) scoped_alias == connection.alias, (2) scoped_savepoint == supports_rollback (features.can_rollback_ddl), (3) ToSeq(executed) == ToSeq(sql_list). I ran conformance_check.py against the REAL patched repo routine (worktree $SCRATCH @ base_commit 537d422942..., PYTHONPATH=$SCRATCH, asgiref available in swebench-lean venv): G-CONF OK over 100,192 inputs (192 boundary + 100k fuzz, seed 12741) \u2014 shadow == real routine on all three facets, zero disagreements. I also directly drove the real execute_sql_flush with recording stand-ins for transaction.atomic/cursor across edge cases (empty batch, duplicates, multiple aliases, both savepoint values) \u2014 all three clauses hold exactly. Signature refinement is faithful: real routine takes exactly one non-self param 'sql_list' and no 'using' (verified via inspect.signature). The spec is NOT too strong: it constrains only what the real routine actually determines. The caller_alias field is modeled but unconstrained/unused by the post-patch impl (it exists only for the prepatch differential witness), so it introduces no over-specification. No diverging input exists between the modeled function and the real callee. Verdict: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (leakage.screen -> passed=True, zero hard failures): no diff markers, no gold-patch line reproduced (>=8 chars normalized), no patched file/module path in spec view, no changed-symbol echo, no bug/fix narration. Changed symbols {execute_sql_flush, sql_flush, handle} do not appear in the spec view; the repo names are all renamed to behavioural twins (execute_statement_batch, DatabaseOperations, Connection.scoped_alias/caller_alias/supports_rollback).\n\nSemantic judgment: the spec view leaks NOTHING beyond the public problem_statement, which is itself already fully explicit about the gold edit. The public problem_statement states verbatim: old signature `def execute_sql_flush(self, using, sql_list)`, the fix 'The using argument can be dropped and inferred by the calling instance: self.connection.alias', and new signature `def execute_sql_flush(self, sql_list)`. The spec view merely restates this behaviourally: clause (1) scoped_alias==alias (block scoped to the connection's own identifier, derived internally, not the caller-threaded value), plus unchanged behaviour clauses (2) savepoint==supports_rollback and (3) executed==sql_list. The caller_alias recorder models the old `using` value \u2014 also fully public via the stated old signature. No pre/post-patch narration, no reference to the F2P test in the spec view, no hints_text echo. The refinement.md/mapping.md docs are NOT part of the spec view and are auditor-facing.\n\nVerified spec region is the byte-identical frozen spec (spec_view rendered from model.py; markers intact). Verdict: NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec region is byte-identical with the bundle (swebench_unified.adversary same-spec exit 0). The modeled function execute_statement_batch pins exactly three facets of the real routine BaseDatabaseOperations.execute_sql_flush (django/db/backends/base/operations.py:403, post-patch):\n\n(1) scoped_alias == connection.alias,\n\n(2) scoped_savepoint == supports_rollback (features.can_rollback_ddl),\n\n(3) ToSeq(executed) == ToSeq(sql_list). I ran conformance_check.py against the REAL patched repo routine (worktree $SCRATCH @ base_commit 537d422942..., PYTHONPATH=$SCRATCH, asgiref available in swebench-lean venv): G-CONF OK over 100,192 inputs (192 boundary + 100k fuzz, seed 12741) \u2014 shadow == real routine on all three facets, zero disagreements. I also directly drove the real execute_sql_flush with recording stand-ins for transaction.atomic/cursor across edge cases (empty batch, duplicates, multiple aliases, both savepoint values) \u2014 all three clauses hold exactly. Signature refinement is faithful: real routine takes exactly one non-self param 'sql_list' and no 'using' (verified via inspect.signature). The spec is NOT too strong: it constrains only what the real routine actually determines. The caller_alias field is modeled but unconstrained/unused by the post-patch impl (it exists only for the prepatch differential witness), so it introduces no over-specification. No diverging input exists between the modeled function and the real callee. Verdict: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (leakage.screen -> passed=True, zero hard failures): no diff markers, no gold-patch line reproduced (>=8 chars normalized), no patched file/module path in spec view, no changed-symbol echo, no bug/fix narration. Changed symbols {execute_sql_flush, sql_flush, handle} do not appear in the spec view; the repo names are all renamed to behavioural twins (execute_statement_batch, DatabaseOperations, Connection.scoped_alias/caller_alias/supports_rollback).\n\nSemantic judgment: the spec view leaks NOTHING beyond the public problem_statement, which is itself already fully explicit about the gold edit. The public problem_statement states verbatim: old signature `def execute_sql_flush(self, using, sql_list)`, the fix 'The using argument can be dropped and inferred by the calling instance: self.connection.alias', and new signature `def execute_sql_flush(self, sql_list)`. The spec view merely restates this behaviourally: clause (1) scoped_alias==alias (block scoped to the connection's own identifier, derived internally, not the caller-threaded value), plus unchanged behaviour clauses (2) savepoint==supports_rollback and (3) executed==sql_list. The caller_alias recorder models the old `using` value \u2014 also fully public via the stated old signature. No pre/post-patch narration, no reference to the F2P test in the spec view, no hints_text echo. The refinement.md/mapping.md docs are NOT part of the spec view and are auditor-facing.\n\nVerified spec region is the byte-identical frozen spec (spec_view rendered from model.py; markers intact). Verdict: NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:56:10+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 52.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fshaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 52.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-alias",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-sqllist",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.0
+          },
+          {
+            "expect": "reject",
+            "id": "rebind-connection",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.7
+          },
+          {
+            "expect": "reject",
+            "id": "savepoint-flip",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "fe15f74874e8a319b8873a6bf0002d9440403004766bc8088cde9a94d568c4e9",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d",
+        "properties.py": "fe15f74874e8a319b8873a6bf0002d9440403004766bc8088cde9a94d568c4e9"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T11:08:57+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:01:00+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 17.2
+      },
+      "detail": "verified in 17.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "f8d43362ea48aefc3f2cabb2b3552ed52f333baf2271d241b7d0d89338fbdb9d"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-12741",
+  "modeled_functions": [
+    {
+      "carrier_type": "BaseDatabaseOperations -> DatabaseOperations (only the touched field 'connection'); BaseDatabaseWrapper -> Connection (touched facets only); str alias -> int identity; list[str] of SQL statements -> List[int] opaque tokens; specification over PSeq[int] via ToSeq",
+      "model_symbol": "execute_statement_batch",
+      "repo_location": "django/db/backends/base/operations.py:403",
+      "repo_symbol": "django.db.backends.base.operations.BaseDatabaseOperations.execute_sql_flush",
+      "role": "modeled changed routine: run a prepared batch of flush statements scoped to the helper's own connection (the 'using' parameter is dropped and the atomic block is scoped to self.connection.alias)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; touches operations.py + flush.py)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition self.connection.scoped_alias == self.connection.alias (clause 1) at model_prepatch.py:100",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the database the atomic block is scoped to",
+      "reverted_to": "pre-patch signature execute_sql_flush(self, using, sql_list) scoped the block to a separately-supplied alias (modeled as self.connection.caller_alias, not provably equal to self.connection.alias)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "deed91aa6f55cb45277686ca300aec0ef493be8fa27b741cd2794cd55b3269d4",
+    "impl": "8a8c42d922dd0d70ac0f881be708210046e39a0f35e27b12429a3c2379eecc42",
+    "invariants": "0c0a09debf313398b8f46f0e8cfe79010001085a1dedb23e806c8375179ca163",
+    "post-conditions": "12205ae5f39dd4e60fb63bbab69ebb0af4ad9532131d67e6eb45f75ea12963c6",
+    "pre-conditions": "18a75bfb4cbdfd58ed3ca51427ee69646921faa4c745089658ea1763c38d0097",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "db54aac4a12e1510ebcae50e188170c5a77f7ac09543a52f460231f06becb4a2"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "SQL statements modelled as List[int] of opaque statement identifiers (the routine observes each statement only by executing it in order; its text is opaque to this routine). Database aliases modelled as int by identity (an alias is observed only by which database the atomic block scopes to). Specification carried by PSeq[int] (statements) via ToSeq and integer equality (alias).",
+  "version": "3.1"
+}

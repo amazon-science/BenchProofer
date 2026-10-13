@@ -1,0 +1,537 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "fbacaa58ffc5a62456ee68b90efa13957f761ce4",
+  "changed_files": [
+    "django/core/serializers/base.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real ConnectionRouter.db_for_read(instance=rec) == query_store on all associations + 20000 fuzz",
+      "encoded_property": "query_store(routed, default): routed==UNROUTED (_state.db None/falsy) -> default; else routed",
+      "kind": "A-reference",
+      "models": "django.db.utils.ConnectionRouter._route_db (no custom routers)",
+      "name": "query_store",
+      "provenance": "django/db/utils.py:222-238: returns instance._state.db if set else DEFAULT_DB_ALIAS; the forward FK descriptor routes its related-object queryset via db_manager(hints={'instance': obj}) (django/db/models/fields/related_descriptors.py:121-122)",
+      "role": "deep model (pure region) of the UNCHANGED store-routing mechanism the fix relies on; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): success criterion vs real router routing over all store combinations + 20000 fuzz",
+      "encoded_property": "dereference_succeeds(routed, default, record_store): query_store(routed, default) == record_store",
+      "kind": "A-reference",
+      "models": "the forward FK descriptor lookup get_object -> qs.get(...) on the routed queryset",
+      "name": "dereference_succeeds",
+      "provenance": "django/db/models/fields/related_descriptors.py:165-168,204-205: the related row is found iff present in the queried store, else DoesNotExist",
+      "role": "deep model (pure region) of the related-record lookup success criterion; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T11:50:55+00:00",
+      "code_version": "5c6dc6b98-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: routing deep model (query_store / dereference_succeeds) == real ConnectionRouter routing on all boundary store combinations and 20000 fuzz cases; no consumed axiom.",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "109eeaded13a883123da7786e88b847bd698c35ec568b1af1ede166734344ba0",
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T11:50:53+00:00",
+      "code_version": "5c6dc6b98-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "backend": "nagini",
+          "disagreements": 0,
+          "discrimination_self_test": "pass (pre-patch shape disagrees)",
+          "distinct_default_store_ids": 5,
+          "domain": "finite: target_store in ids(ALL aliases, the ambient default one included -- the spec leaves default_store free), world.record_store == target_store, world.default_store == id(default); enumerated exhaustively then fuzzed",
+          "enumerated_exhaustive": 3602,
+          "fuzzed": 96398,
+          "gate": "G-CONF",
+          "inner_lookup_success_cases": 25826,
+          "instance": "django__django-15525",
+          "n": 100000,
+          "observables": [
+            "routed (_state.db at natural_key)",
+            "queried_store (store the real FK deref read)",
+            "deref_ok (intended related record found)"
+          ],
+          "oracle": "CALLED django.core.serializers.base.build_instance (patched, django/core/serializers/base.py:325) against 5 real sqlite databases",
+          "seed": 15525,
+          "shadow": "model.py impl-start/impl-end region verbatim (contracts stripped) + ModelInstance/KeyedRecord + pure query_store/dereference_succeeds",
+          "status": "pass",
+          "target_aliases": [
+            "default",
+            "other",
+            "replica",
+            "shard_a",
+            "shard_b"
+          ]
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"gate\": \"G-CONF\", \"instance\": \"django__django-15525\", \"backend\": \"nagini\", \"status\": \"pass\", \"shadow\": \"model.py impl-start/impl-end region verbatim (contracts stripped) + ModelInstance/KeyedRecord + pure query_store/dereference_succeeds\", \"oracle\": \"CALLED django.core.serializers.base.build_instance (patched, django/core/serializers/base.py:325) against 5 real sqlite databases\", \"observables\": [\"routed (_state.db at natural_key)\", \"queried_store (store the real FK deref read)\", \"deref_ok (intended related record found)\"], \"n\": 100000, \"enumerated_exhaustive\": 3602, \"fuzzed\": 96398, \"seed\": 15525, \"domain\": \"finite: target_store in ids(ALL aliases, the ambient default one included -- the spec leaves default_store free), world.record_store == target_store, world.default_store == id(default); enumerated exhaustively then fuzzed\", \"target_aliases\": [\"default\", \"other\", \"replica\", \"shard_a\", \"shard_b\"], \"distinct_default_store_ids\": 5, \"inner_lookup_success_cases\": 25826, \"discrimination_self_test\": \"pass (pre-patch shape disagrees)\", \"disagreements\": 0}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d0b6b10320e936bc4aa755ec0844b560dd97dd6b6662e6aa10808a1319f26bb0",
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:18:11+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3",
+        "model_prepatch.py": "9fd881879fe77e9ad754644a6f334f1f56bf979414d4b5ac3644a884277e166d"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T13:10:05+00:00",
+      "code_version": "2a2572a74-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 27 admissible attacks re-run of 27 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 27 admissible attacks re-run of 27 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 27 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 19 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_19.py`, `atk_20.py`, `atk_21.py`, `atk_23.py`, `atk_25.py`, `atk_26.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 8 | `atk_4.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_22.py`, `atk_24.py`, `atk_27.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3",
+        "properties.py": "d12a956718181772d43e6b091c1a92a50f73887632c085581118589f2568c2e6"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:18:46+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3",
+        "model_prepatch.py": "9fd881879fe77e9ad754644a6f334f1f56bf979414d4b5ac3644a884277e166d"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T11:48:31+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "5eed1d01b834c3f068be8d18a558fbe81ed2f3558d5c3921a5552ddaa58d924b",
+          "impl": "c90feb13cb097918be3f7722d27b9748644df6d68f02b8969fa51a0d08913dcd",
+          "post-conditions": "c9a172e4db8cfc6fa6dbd0e7c8cc03076b2fc7b7adb1e01cc9eef600ddafead7",
+          "pre-conditions": "0da4519a82cae8164d194a8db9033de2887d13454f3603e1d3bf461d966a8b27",
+          "pure": "559760bb3978c35637fa0c9370c1ca3f73b5aafbc5e0fe5419bbc7d9fed1e121",
+          "spec_view": "61cc57743ea1cb6cf3c4f8f77a1721517a22ffa93a5dab7ddaf70cb3f03de671"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T11:48:30+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8f18033761abf1045ef7f9c4d742dd124275dd7e83088f8277fdcb51a3571319",
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T11:48:31+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T11:47:49+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T13:10:05+00:00",
+      "code_version": "2a2572a74-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 27 admissible attacks re-run of 27 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK GOAL: show the modeled function build_with_natural_key disagrees with the real callee django.core.serializers.base.build_instance on some Requires-satisfying, bridge-realizable input. Reference = base_commit worktree WITH patch.diff APPLIED (per instructions); base commit used only for the unchanged callees the A-references model. Result: could not break it. All work in /tmp; bundle verified untouched (git status --porcelain on benchmark-verified/django__django-15525/ empty at end; only /tmp copies of model.py / axiom_check.py / conformance_check.py were executed).\n\nSETUP (fresh, independent of prior runs). Two new worktrees from repos/django_django.git at fbacaa58ffc5a62456ee68b90efa13957f761ce4:  (gold applied) and  (unpatched). The bundle's meta.json patch_diff is the literal string 'gold patch verbatim (applies cleanly at base_commit)' -- NOT the diff text -- so I took the gold patch from data/swe_bench_verified/test.jsonl instead and confirmed it is byte-identical to gold_15525.diff and applies clean. Patched body confirmed to be obj = Model(**data); obj._state.db = db; natural_key = obj.natural_key().\n\nORACLE DIRECTION CONFIRMED END-TO-END with the REAL F2P test. Applied the dataset test_patch to both worktrees and ran fixtures_regress.tests.NaturalKeyFixtureOnOtherDatabaseTests.test_natural_key_dependencies via tests/runtests.py with a TEST DEPENDENCIES:[] settings shim: PATCHED = 'Ran 1 test ... OK'; BASE = 'FAILED (errors=1)' with DeserializationError installing nk_with_foreign_key.json. So the patched tree is the correct faithfulness reference and the delta is real.\n\nINDEPENDENT PROBE (written from scratch; does NOT import the bundle's conformance_check.py). Real Django, 5 sqlite :memory: stores (default/other/shard_a/shard_b/replica), real schema_editor tables, DATABASE_ROUTERS=[]. F2P model shape reproduced (Person + Book, Book.natural_key() == (name,) + self.author.natural_key()) with two PURE observation hooks (record self._state.db at key-computation time; record which author row the FK deref actually read). Every store holds a Person at every pk under a STORE-STAMPED name, so the resolved name identifies WHICH store the deref read -- this discriminates every misroute, not just default-vs-target. Diffed all three Ensures (routed, queried_store, deref_ok).\n  - EXHAUSTIVE over the realizable Requires-domain: all 120 alias->id bijections x 5 target aliases x 3 author pks x {book pre-exists, not} = 3600 cases -> 0 disagreements. Covers all 5 distinct default_store ids and 720 cases with target_store == default_store (the coinciding sub-domain the bundle's own G-CONF-declared domain used to exclude; model.py leaves default_store FREE and claims the Ensures there, and it holds against real Django).\n  - Plus 12000 randomized fuzz over the same domain -> 15600 total, 0 disagreements.\n  - DISCRIMINATION SELF-TEST of my own harness: repointed at the UNPATCHED worktree (provenance guard bypassed deliberately) -> 15600/15600 disagreements (real routed=UNROUTED vs spec routed=target_store). My harness can go red, so the green is meaningful.\n  - Exact F2P shape (db='other', author 'J.R.R. Tolkien'): real routed='other', deref read 'J.R.R. Tolkien', no exception -- all three Ensures agree.\n  - EXTRA model shape not in the bundle's G-CONF: a NULLABLE-FK Book variant (author null=True, so no RelatedObjectDoesNotExist short-circuit), 6000 fuzz cases -> 0 disagreements.\n\nCANDIDATE DIVERGENCES I CONSTRUCTED, AND WHY EACH FAILS TO BE ONE:\n  1) PRE-CACHED FK -- the sharpest one, and it is genuinely a real divergence in raw behaviour. If `data` carries the related OBJECT (data={'name':..,'author':<Person instance>}) rather than author_id, Django caches it and NO store-routed query is issued at all: at target='other' with the cached author fetched from 'default', the real key is computed from 'auth::default::1' while the spec claims queried_store==target and the target's row was found. REFUTED on two independent grounds, both measured. (a) NOT REACHABLE: I intercepted build_instance and drove every repo caller (python, json, jsonl, yaml/pyyaml and xml Deserializers -- json/jsonl/yaml all delegate to PythonDeserializer, so python+xml is the complete set of call sites, confirmed by grep: only xml_serializer.py:276 and python.py:174 call it). Both build `data` with data[field.attname] = value from deserialize_fk_value, which returns a scalar pk, never an instance -- measured: every intercepted data dict had only int/str/NoneType values, 'Any data value that is a MODEL INSTANCE: False'. (b) OUTSIDE THE REQUIRES: when the cached related record is the target store's own row (the only case where Requires(record_store == target_store) is satisfied FOR THAT RECORD) the observables AGREE; the divergence appears only when the cached row resides in 'default'/'shard_a', i.e. exactly when record_store != target_store, which the precondition excludes. (c) OUTSIDE THE DELTA: patched and base produce the identical key here ('auth::default::1' both), so the patch is a no-op on this input -- it is not the modeled changed behaviour.\n  2) UNBRIDGED `data` ARGUMENT variants. pk PRESENT in data -> the real function skips the whole natural-key branch (deref_attempted=False, no key computed, no exception): the model has no outcome to compare, and mapping.md scopes the model to the branch's interior; base and patched behave identically, so it is outside the delta. Null FK (author_id=None) -> RelatedObjectDoesNotExist, and dangling FK (pk=99) -> DoesNotExist; BOTH raise identically on base and patched, so again no delta, and both violate Requires(record_store == target_store) since no related record resides in the target.\n  3) FALSY-BUT-NOT-NONE ALIAS ''. The real router is `if instance is not None and instance._state.db:` so '' is treated as no-association, whereas UNROUTED maps to None only. Measured with file-backed sqlite: Person.objects.using('').create() lands with _state.db=='default' -- the '' store is degenerate/unaddressable, so no related record can ever RESIDE in it, making Requires(record_store == target_store) unsatisfiable at target_store == id(''). Not a diverging input of the modeled function.\n  4) UNCONFIGURED alias as db: real call raises ConnectionDoesNotExist; nothing can reside there either, so record_store == target_store is unsatisfiable.\n  5) MULTI-HOP natural_key chain, testing 'the dereference is performed here, and nowhere else'. Built a 3-level Bk2 -> Author2 -> Country chain with a DIFFERENT Country row in each store. Patched: every hop routed to the target and read the target's rows ('Tolkien-other' then 'Shire-other'), no exception -- because hop 1's fetched row carries the _state.db it was read from, so hop 2 inherits it. Base: raised at hop 1. The one-deref abstraction is not too strong.\n  6) CUSTOM DATABASE_ROUTERS is the one configuration where queried_store != target is achievable, but it is explicitly SCOPED OUT up front by mapping.md 3.1 / refinement.md ('no custom routers configured'), which is the framework default (global_settings DATABASE_ROUTERS = []) and the F2P configuration; the gold patch itself does not fix that case. Declared scoping of an unchanged framework mechanism is not spec drift.\n\nCORROBORATING RE-RUNS (from /tmp copies, independently): model.py verifies (scripts/nagini_verify.sh, 'Verification successful', 8.28s). NON-VACUITY CONTROL: injecting Assert(False) at the top of the impl region FAILS ('Assertion False might not hold'), so the verification is not vacuous and the Requires are satisfiable. model_prepatch.py fails exactly at the claimed point ('The precondition of method KeyedRecord might not hold. Assertion dereference_succeeds(record.routed, world.default_store, world.record_store) might not hold'), so the spec senses the delta. G-AX re-run: 'G-AX OK: routing deep model == real ConnectionRouter routing on all boundary store combinations and 20000 fuzz cases; no consumed axiom.' G-CONF re-run against my own patched worktree: status pass, n=100000, 3602 enumerated exhaustively, 0 disagreements, discrimination self-test pass. I also hand-verified the two A-references against source: db/utils.py:222-238 _route_db matches query_store clause for clause, and related_descriptors.py get_queryset(121-122)/get_object(165-168) confirm the hints={'instance': obj} routing and the qs.get success criterion. meta.json axioms == [], so there is no consumed-axiom trust point.\n\nBOOKKEEPING DEFECT NOTED, NOT A FAITHFULNESS FINDING (flagging for the release gate, outside this gate's verdict): (a) meta.json['patch_diff'] holds the placeholder prose 'gold patch verbatim (applies cleanly at base_commit)' rather than the diff text; (b) meta.json['region_hashes'] does NOT match markers.region_hashes(model.py, nagini) -- post-conditions, pre-conditions, impl and spec_view all differ, i.e. the recorded hashes are stale relative to the current model.py (the pre-conditions hash matches an older old_15525_model.py and the post/impl hash matches a different older copy, consistent with a spec edit that did not refresh meta). This is systemic rather than instance-specific -- 425 of 500 nagini bundles mismatch on the same computation -- so it most likely reflects a hashing/serialization convention change in markers.py rather than tampering with this bundle. Neither affects the spec-vs-repo comparison this gate makes: I compared model.py's spec region as it actually reads against real patched Django.\n\nCONCLUSION: on every input the spec's Requires admit and that real Django can realize, the modeled function's three Ensures agree with the real patched build_instance -- 15600 independent exhaustive+fuzz cases including the target==default sub-domain, 6000 additional nullable-FK cases, plus the bundle's own 100000 re-run, all 0 disagreements, with a harness proven able to go red. The candidate divergences I built are either unreachable through every repo call site, outside the precondition, or no-ops of the patch (hence outside the modeled delta). No diverging input: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE. No relaxation in this bundle: meta.json has no `relaxed_leakage` key (checked by json load -> False/None) and no RELAXED_LEAKAGE.md exists anywhere under benchmark-verified/django__django-15525/ (find -iname '*RELAX*' empty). So this is a straight leakage review, judged against problem_statement only, never hints_text.\n\nWHAT THE SOLVER ACTUALLY SEES. Traced the exposure path rather than assuming it: eval/dataset.py:285 sets task.spec_view = adapter.spec_view(model); as_dict emits only spec_view + modeled_functions + float_encoding in spec modes. refinement.md and mapping.md are NOT in the solver's file set (no reference to them in eval/prompts.py or adapter.py) -- which matters, because refinement.md section A reproduces the gold hunk verbatim (`obj._state.db = db`). That is auditor-only and outside this gate. Reproduced the projection myself: spec_view sha256 61cc57743ea1cb6cf3c4f8f77a1721517a22ffa93a5dab7ddaf70cb3f03de671, idempotent (spec_view(spec_view(x))==spec_view(x)), ELISION_IMPL present, and the fix-carrying line `obj.routed = target_store` is absent from the view (grep -> False). Also checked meta.modeled_functions, which IS solver-visible: eval/prompts.py:58-62 renders ONLY `model_symbol (<-> repo_symbol)` for nagini, so the `role` field's giveaway text ('The delta is an ORDERING - the association must exist BEFORE the key is computed') and `carrier_type`/`repo_location` never reach the prompt. The rendered repo_symbol `django.core.serializers.base.build_instance` is deliberate mode-1/2 localization and appears verbatim in the public traceback (base.py line 332, inside build_instance) anyway.\n\nMECHANICAL SCREEN, RERUN BY ME. leakage.screen(model.py, nagini.language, patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. Independently re-ran _NARRATION_RE over the spec view: zero hits (no bug/fix/patch/wrong/previously/regression). Grepped my own fix-ordering vocabulary; the only two hits are innocuous English -- 'rather than' in a scope sentence at line 48 and a substring false positive where 'the fix' matches 'the fixture' at line 199.\n\nVOCABULARY CROSS-CHECK (my own, beyond the screen). Extracted every >=4-char identifier from the spec view and intersected with the gold patch text: the only overlaps are 'data', 'default', 'instance', 'model', 'name', 'natural', 'state' -- and I confirmed each of those seven also appears in the problem_statement, so none is a term the solver could not already see. Separately probed for patched repo symbols: `_state`, `state.db`, `build_instance`, `serializers`, `base.py`, `db_manager`, `get_by_natural_key`, `DEFAULT_DB_ALIAS`, `alias` -- ALL zero occurrences in the spec view, while most appear in the problem_statement. The spec view's whole vocabulary is deliberately re-abstracted (store/record/dereference/association), never Django's.\n\nDISCRIMINATOR IS PUBLIC. The gold edit is 'set the store association before computing the natural key'. Every ingredient is in the public problem_statement: the title states loaddata fails on a non-default database when natural keys use foreign keys; the traceback walks natural_key() -> self.author.natural_key() -> related_descriptors.get_object -> qs.get -> 'Author matching query does not exist'; the reporter notes it works on the default DB and that the problem disappears if the data is already present in the default DB -- which is precisely 'the dereference was routed to the ambient default store'. The spec view narrates that same routing story at the abstract level and pins three observables (association at key-computation time, store queried, dereference succeeds) without naming _state.db or the ordering edit.\n\nLOAD-BEARING (spec is not decorative narration). Ran the standard strip test via the shipped prepatch twin: same_spec(model.py, model_prepatch.py)=True (byte-identical spec signature; the diff is confined to the impl region), and `bash scripts/nagini_verify.sh` gives model.py 'Verification successful' (9.97s, exit 0) while model_prepatch.py FAILS with exactly the discriminating obligation -- pre.py:238 'The precondition of method KeyedRecord might not hold. Assertion dereference_succeeds(record.routed, world.default_store, world.record_store) might not hold' (exit 1). Also `adversary same-spec nagini django__django-15525` -> exit 0, 'SAME'. So the spec discriminates gold from pre-patch on the routing facet, which is the facet the public statement already describes.\n\nINCIDENTAL FINDING (not leakage, flagged for the record). meta.json's frozen `region_hashes` is STALE relative to the live model.py: pre-conditions, post-conditions, impl and spec_view all mismatch what region_hashes() computes on the current file. I bisected the git history of model.py and the stamp matches revision 71649c6d0, two content revisions back. I diffed spec_view@71649c6d0 vs spec_view@live: the change is a strict STRENGTHENING (the old view required `default_store != record_store`, pinning the spec to the non-default case only; the live view drops that and leaves the ambient default free, adds the Deployment given-world carrier with an unsatisfiable constructor so the loader cannot mint favourable routing facts). Nothing leaky was introduced -- the added prose is all scope/permission reasoning in abstract vocabulary -- so this does not change my verdict, but the stamp should be re-frozen since a G-LEAK/G-HYGIENE stamp checked against region_hashes would be describing an artifact that no longer exists.\n\nNo file in this bundle addresses the reviewer or suggests a verdict: ran leakage.reviewer_directed() over all ten bundle .md/.py/.json files -> [] for every one.\n\nVERDICT: NO-LEAKAGE. The spec view elides the fix-carrying assignment, uses no Django symbol touched by the patch, carries no narration vocabulary, reproduces no gold-diff line, and every gold-patch-overlapping word it does use is present in the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 27 admissible attacks re-run of 27 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK GOAL: show the modeled function build_with_natural_key disagrees with the real callee django.core.serializers.base.build_instance on some Requires-satisfying, bridge-realizable input. Reference = base_commit worktree WITH patch.diff APPLIED (per instructions); base commit used only for the unchanged callees the A-references model. Result: could not break it. All work in /tmp; bundle verified untouched (git status --porcelain on benchmark-verified/django__django-15525/ empty at end; only /tmp copies of model.py / axiom_check.py / conformance_check.py were executed).\n\nSETUP (fresh, independent of prior runs). Two new worktrees from repos/django_django.git at fbacaa58ffc5a62456ee68b90efa13957f761ce4:  (gold applied) and  (unpatched). The bundle's meta.json patch_diff is the literal string 'gold patch verbatim (applies cleanly at base_commit)' -- NOT the diff text -- so I took the gold patch from data/swe_bench_verified/test.jsonl instead and confirmed it is byte-identical to gold_15525.diff and applies clean. Patched body confirmed to be obj = Model(**data); obj._state.db = db; natural_key = obj.natural_key().\n\nORACLE DIRECTION CONFIRMED END-TO-END with the REAL F2P test. Applied the dataset test_patch to both worktrees and ran fixtures_regress.tests.NaturalKeyFixtureOnOtherDatabaseTests.test_natural_key_dependencies via tests/runtests.py with a TEST DEPENDENCIES:[] settings shim: PATCHED = 'Ran 1 test ... OK'; BASE = 'FAILED (errors=1)' with DeserializationError installing nk_with_foreign_key.json. So the patched tree is the correct faithfulness reference and the delta is real.\n\nINDEPENDENT PROBE (written from scratch; does NOT import the bundle's conformance_check.py). Real Django, 5 sqlite :memory: stores (default/other/shard_a/shard_b/replica), real schema_editor tables, DATABASE_ROUTERS=[]. F2P model shape reproduced (Person + Book, Book.natural_key() == (name,) + self.author.natural_key()) with two PURE observation hooks (record self._state.db at key-computation time; record which author row the FK deref actually read). Every store holds a Person at every pk under a STORE-STAMPED name, so the resolved name identifies WHICH store the deref read -- this discriminates every misroute, not just default-vs-target. Diffed all three Ensures (routed, queried_store, deref_ok).\n  - EXHAUSTIVE over the realizable Requires-domain: all 120 alias->id bijections x 5 target aliases x 3 author pks x {book pre-exists, not} = 3600 cases -> 0 disagreements. Covers all 5 distinct default_store ids and 720 cases with target_store == default_store (the coinciding sub-domain the bundle's own G-CONF-declared domain used to exclude; model.py leaves default_store FREE and claims the Ensures there, and it holds against real Django).\n  - Plus 12000 randomized fuzz over the same domain -> 15600 total, 0 disagreements.\n  - DISCRIMINATION SELF-TEST of my own harness: repointed at the UNPATCHED worktree (provenance guard bypassed deliberately) -> 15600/15600 disagreements (real routed=UNROUTED vs spec routed=target_store). My harness can go red, so the green is meaningful.\n  - Exact F2P shape (db='other', author 'J.R.R. Tolkien'): real routed='other', deref read 'J.R.R. Tolkien', no exception -- all three Ensures agree.\n  - EXTRA model shape not in the bundle's G-CONF: a NULLABLE-FK Book variant (author null=True, so no RelatedObjectDoesNotExist short-circuit), 6000 fuzz cases -> 0 disagreements.\n\nCANDIDATE DIVERGENCES I CONSTRUCTED, AND WHY EACH FAILS TO BE ONE:\n  1) PRE-CACHED FK -- the sharpest one, and it is genuinely a real divergence in raw behaviour. If `data` carries the related OBJECT (data={'name':..,'author':<Person instance>}) rather than author_id, Django caches it and NO store-routed query is issued at all: at target='other' with the cached author fetched from 'default', the real key is computed from 'auth::default::1' while the spec claims queried_store==target and the target's row was found. REFUTED on two independent grounds, both measured. (a) NOT REACHABLE: I intercepted build_instance and drove every repo caller (python, json, jsonl, yaml/pyyaml and xml Deserializers -- json/jsonl/yaml all delegate to PythonDeserializer, so python+xml is the complete set of call sites, confirmed by grep: only xml_serializer.py:276 and python.py:174 call it). Both build `data` with data[field.attname] = value from deserialize_fk_value, which returns a scalar pk, never an instance -- measured: every intercepted data dict had only int/str/NoneType values, 'Any data value that is a MODEL INSTANCE: False'. (b) OUTSIDE THE REQUIRES: when the cached related record is the target store's own row (the only case where Requires(record_store == target_store) is satisfied FOR THAT RECORD) the observables AGREE; the divergence appears only when the cached row resides in 'default'/'shard_a', i.e. exactly when record_store != target_store, which the precondition excludes. (c) OUTSIDE THE DELTA: patched and base produce the identical key here ('auth::default::1' both), so the patch is a no-op on this input -- it is not the modeled changed behaviour.\n  2) UNBRIDGED `data` ARGUMENT variants. pk PRESENT in data -> the real function skips the whole natural-key branch (deref_attempted=False, no key computed, no exception): the model has no outcome to compare, and mapping.md scopes the model to the branch's interior; base and patched behave identically, so it is outside the delta. Null FK (author_id=None) -> RelatedObjectDoesNotExist, and dangling FK (pk=99) -> DoesNotExist; BOTH raise identically on base and patched, so again no delta, and both violate Requires(record_store == target_store) since no related record resides in the target.\n  3) FALSY-BUT-NOT-NONE ALIAS ''. The real router is `if instance is not None and instance._state.db:` so '' is treated as no-association, whereas UNROUTED maps to None only. Measured with file-backed sqlite: Person.objects.using('').create() lands with _state.db=='default' -- the '' store is degenerate/unaddressable, so no related record can ever RESIDE in it, making Requires(record_store == target_store) unsatisfiable at target_store == id(''). Not a diverging input of the modeled function.\n  4) UNCONFIGURED alias as db: real call raises ConnectionDoesNotExist; nothing can reside there either, so record_store == target_store is unsatisfiable.\n  5) MULTI-HOP natural_key chain, testing 'the dereference is performed here, and nowhere else'. Built a 3-level Bk2 -> Author2 -> Country chain with a DIFFERENT Country row in each store. Patched: every hop routed to the target and read the target's rows ('Tolkien-other' then 'Shire-other'), no exception -- because hop 1's fetched row carries the _state.db it was read from, so hop 2 inherits it. Base: raised at hop 1. The one-deref abstraction is not too strong.\n  6) CUSTOM DATABASE_ROUTERS is the one configuration where queried_store != target is achievable, but it is explicitly SCOPED OUT up front by mapping.md 3.1 / refinement.md ('no custom routers configured'), which is the framework default (global_settings DATABASE_ROUTERS = []) and the F2P configuration; the gold patch itself does not fix that case. Declared scoping of an unchanged framework mechanism is not spec drift.\n\nCORROBORATING RE-RUNS (from /tmp copies, independently): model.py verifies (scripts/nagini_verify.sh, 'Verification successful', 8.28s). NON-VACUITY CONTROL: injecting Assert(False) at the top of the impl region FAILS ('Assertion False might not hold'), so the verification is not vacuous and the Requires are satisfiable. model_prepatch.py fails exactly at the claimed point ('The precondition of method KeyedRecord might not hold. Assertion dereference_succeeds(record.routed, world.default_store, world.record_store) might not hold'), so the spec senses the delta. G-AX re-run: 'G-AX OK: routing deep model == real ConnectionRouter routing on all boundary store combinations and 20000 fuzz cases; no consumed axiom.' G-CONF re-run against my own patched worktree: status pass, n=100000, 3602 enumerated exhaustively, 0 disagreements, discrimination self-test pass. I also hand-verified the two A-references against source: db/utils.py:222-238 _route_db matches query_store clause for clause, and related_descriptors.py get_queryset(121-122)/get_object(165-168) confirm the hints={'instance': obj} routing and the qs.get success criterion. meta.json axioms == [], so there is no consumed-axiom trust point.\n\nBOOKKEEPING DEFECT NOTED, NOT A FAITHFULNESS FINDING (flagging for the release gate, outside this gate's verdict): (a) meta.json['patch_diff'] holds the placeholder prose 'gold patch verbatim (applies cleanly at base_commit)' rather than the diff text; (b) meta.json['region_hashes'] does NOT match markers.region_hashes(model.py, nagini) -- post-conditions, pre-conditions, impl and spec_view all differ, i.e. the recorded hashes are stale relative to the current model.py (the pre-conditions hash matches an older old_15525_model.py and the post/impl hash matches a different older copy, consistent with a spec edit that did not refresh meta). This is systemic rather than instance-specific -- 425 of 500 nagini bundles mismatch on the same computation -- so it most likely reflects a hashing/serialization convention change in markers.py rather than tampering with this bundle. Neither affects the spec-vs-repo comparison this gate makes: I compared model.py's spec region as it actually reads against real patched Django.\n\nCONCLUSION: on every input the spec's Requires admit and that real Django can realize, the modeled function's three Ensures agree with the real patched build_instance -- 15600 independent exhaustive+fuzz cases including the target==default sub-domain, 6000 additional nullable-FK cases, plus the bundle's own 100000 re-run, all 0 disagreements, with a harness proven able to go red. The candidate divergences I built are either unreachable through every repo call site, outside the precondition, or no-ops of the patch (hence outside the modeled delta). No diverging input: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 SCOPE. No relaxation in this bundle: meta.json has no `relaxed_leakage` key (checked by json load -> False/None) and no RELAXED_LEAKAGE.md exists anywhere under benchmark-verified/django__django-15525/ (find -iname '*RELAX*' empty). So this is a straight leakage review, judged against problem_statement only, never hints_text.\n\nWHAT THE SOLVER ACTUALLY SEES. Traced the exposure path rather than assuming it: eval/dataset.py:285 sets task.spec_view = adapter.spec_view(model); as_dict emits only spec_view + modeled_functions + float_encoding in spec modes. refinement.md and mapping.md are NOT in the solver's file set (no reference to them in eval/prompts.py or adapter.py) -- which matters, because refinement.md section A reproduces the gold hunk verbatim (`obj._state.db = db`). That is auditor-only and outside this gate. Reproduced the projection myself: spec_view sha256 61cc57743ea1cb6cf3c4f8f77a1721517a22ffa93a5dab7ddaf70cb3f03de671, idempotent (spec_view(spec_view(x))==spec_view(x)), ELISION_IMPL present, and the fix-carrying line `obj.routed = target_store` is absent from the view (grep -> False). Also checked meta.modeled_functions, which IS solver-visible: eval/prompts.py:58-62 renders ONLY `model_symbol (<-> repo_symbol)` for nagini, so the `role` field's giveaway text ('The delta is an ORDERING - the association must exist BEFORE the key is computed') and `carrier_type`/`repo_location` never reach the prompt. The rendered repo_symbol `django.core.serializers.base.build_instance` is deliberate mode-1/2 localization and appears verbatim in the public traceback (base.py line 332, inside build_instance) anyway.\n\nMECHANICAL SCREEN, RERUN BY ME. leakage.screen(model.py, nagini.language, patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. Independently re-ran _NARRATION_RE over the spec view: zero hits (no bug/fix/patch/wrong/previously/regression). Grepped my own fix-ordering vocabulary; the only two hits are innocuous English -- 'rather than' in a scope sentence at line 48 and a substring false positive where 'the fix' matches 'the fixture' at line 199.\n\nVOCABULARY CROSS-CHECK (my own, beyond the screen). Extracted every >=4-char identifier from the spec view and intersected with the gold patch text: the only overlaps are 'data', 'default', 'instance', 'model', 'name', 'natural', 'state' -- and I confirmed each of those seven also appears in the problem_statement, so none is a term the solver could not already see. Separately probed for patched repo symbols: `_state`, `state.db`, `build_instance`, `serializers`, `base.py`, `db_manager`, `get_by_natural_key`, `DEFAULT_DB_ALIAS`, `alias` -- ALL zero occurrences in the spec view, while most appear in the problem_statement. The spec view's whole vocabulary is deliberately re-abstracted (store/record/dereference/association), never Django's.\n\nDISCRIMINATOR IS PUBLIC. The gold edit is 'set the store association before computing the natural key'. Every ingredient is in the public problem_statement: the title states loaddata fails on a non-default database when natural keys use foreign keys; the traceback walks natural_key() -> self.author.natural_key() -> related_descriptors.get_object -> qs.get -> 'Author matching query does not exist'; the reporter notes it works on the default DB and that the problem disappears if the data is already present in the default DB -- which is precisely 'the dereference was routed to the ambient default store'. The spec view narrates that same routing story at the abstract level and pins three observables (association at key-computation time, store queried, dereference succeeds) without naming _state.db or the ordering edit.\n\nLOAD-BEARING (spec is not decorative narration). Ran the standard strip test via the shipped prepatch twin: same_spec(model.py, model_prepatch.py)=True (byte-identical spec signature; the diff is confined to the impl region), and `bash scripts/nagini_verify.sh` gives model.py 'Verification successful' (9.97s, exit 0) while model_prepatch.py FAILS with exactly the discriminating obligation -- pre.py:238 'The precondition of method KeyedRecord might not hold. Assertion dereference_succeeds(record.routed, world.default_store, world.record_store) might not hold' (exit 1). Also `adversary same-spec nagini django__django-15525` -> exit 0, 'SAME'. So the spec discriminates gold from pre-patch on the routing facet, which is the facet the public statement already describes.\n\nINCIDENTAL FINDING (not leakage, flagged for the record). meta.json's frozen `region_hashes` is STALE relative to the live model.py: pre-conditions, post-conditions, impl and spec_view all mismatch what region_hashes() computes on the current file. I bisected the git history of model.py and the stamp matches revision 71649c6d0, two content revisions back. I diffed spec_view@71649c6d0 vs spec_view@live: the change is a strict STRENGTHENING (the old view required `default_store != record_store`, pinning the spec to the non-default case only; the live view drops that and leaves the ambient default free, adds the Deployment given-world carrier with an unsatisfiable constructor so the loader cannot mint favourable routing facts). Nothing leaky was introduced -- the added prose is all scope/permission reasoning in abstract vocabulary -- so this does not change my verdict, but the stamp should be re-frozen since a G-LEAK/G-HYGIENE stamp checked against region_hashes would be describing an artifact that no longer exists.\n\nNo file in this bundle addresses the reviewer or suggests a verdict: ran leakage.reviewer_directed() over all ten bundle .md/.py/.json files -> [] for every one.\n\nVERDICT: NO-LEAKAGE. The spec view elides the fix-carrying assignment, uses no Django symbol touched by the patch, carries no narration vocabulary, reproduces no gold-diff line, and every gold-patch-overlapping word it does use is present in the public problem_statement.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3",
+        "properties.py": "d12a956718181772d43e6b091c1a92a50f73887632c085581118589f2568c2e6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T13:10:04+00:00",
+      "code_version": "2a2572a74-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 27 admissible attacks re-run of 27 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 27 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 19 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_19.py`, `atk_20.py`, `atk_21.py`, `atk_23.py`, `atk_25.py`, `atk_26.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 8 | `atk_4.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_22.py`, `atk_24.py`, `atk_27.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3",
+        "properties.py": "d12a956718181772d43e6b091c1a92a50f73887632c085581118589f2568c2e6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T12:36:25+00:00",
+      "code_version": "91a8df224-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK GOAL: show the modeled function build_with_natural_key disagrees with the real callee django.core.serializers.base.build_instance on some Requires-satisfying, bridge-realizable input. Reference = base_commit worktree WITH patch.diff APPLIED (per instructions); base commit used only for the unchanged callees the A-references model. Result: could not break it. All work in /tmp; bundle verified untouched (git status --porcelain on benchmark-verified/django__django-15525/ empty at end; only /tmp copies of model.py / axiom_check.py / conformance_check.py were executed).\n\nSETUP (fresh, independent of prior runs). Two new worktrees from repos/django_django.git at fbacaa58ffc5a62456ee68b90efa13957f761ce4:  (gold applied) and  (unpatched). The bundle's meta.json patch_diff is the literal string 'gold patch verbatim (applies cleanly at base_commit)' -- NOT the diff text -- so I took the gold patch from data/swe_bench_verified/test.jsonl instead and confirmed it is byte-identical to gold_15525.diff and applies clean. Patched body confirmed to be obj = Model(**data); obj._state.db = db; natural_key = obj.natural_key().\n\nORACLE DIRECTION CONFIRMED END-TO-END with the REAL F2P test. Applied the dataset test_patch to both worktrees and ran fixtures_regress.tests.NaturalKeyFixtureOnOtherDatabaseTests.test_natural_key_dependencies via tests/runtests.py with a TEST DEPENDENCIES:[] settings shim: PATCHED = 'Ran 1 test ... OK'; BASE = 'FAILED (errors=1)' with DeserializationError installing nk_with_foreign_key.json. So the patched tree is the correct faithfulness reference and the delta is real.\n\nINDEPENDENT PROBE (written from scratch; does NOT import the bundle's conformance_check.py). Real Django, 5 sqlite :memory: stores (default/other/shard_a/shard_b/replica), real schema_editor tables, DATABASE_ROUTERS=[]. F2P model shape reproduced (Person + Book, Book.natural_key() == (name,) + self.author.natural_key()) with two PURE observation hooks (record self._state.db at key-computation time; record which author row the FK deref actually read). Every store holds a Person at every pk under a STORE-STAMPED name, so the resolved name identifies WHICH store the deref read -- this discriminates every misroute, not just default-vs-target. Diffed all three Ensures (routed, queried_store, deref_ok).\n  - EXHAUSTIVE over the realizable Requires-domain: all 120 alias->id bijections x 5 target aliases x 3 author pks x {book pre-exists, not} = 3600 cases -> 0 disagreements. Covers all 5 distinct default_store ids and 720 cases with target_store == default_store (the coinciding sub-domain the bundle's own G-CONF-declared domain used to exclude; model.py leaves default_store FREE and claims the Ensures there, and it holds against real Django).\n  - Plus 12000 randomized fuzz over the same domain -> 15600 total, 0 disagreements.\n  - DISCRIMINATION SELF-TEST of my own harness: repointed at the UNPATCHED worktree (provenance guard bypassed deliberately) -> 15600/15600 disagreements (real routed=UNROUTED vs spec routed=target_store). My harness can go red, so the green is meaningful.\n  - Exact F2P shape (db='other', author 'J.R.R. Tolkien'): real routed='other', deref read 'J.R.R. Tolkien', no exception -- all three Ensures agree.\n  - EXTRA model shape not in the bundle's G-CONF: a NULLABLE-FK Book variant (author null=True, so no RelatedObjectDoesNotExist short-circuit), 6000 fuzz cases -> 0 disagreements.\n\nCANDIDATE DIVERGENCES I CONSTRUCTED, AND WHY EACH FAILS TO BE ONE:\n  1) PRE-CACHED FK -- the sharpest one, and it is genuinely a real divergence in raw behaviour. If `data` carries the related OBJECT (data={'name':..,'author':<Person instance>}) rather than author_id, Django caches it and NO store-routed query is issued at all: at target='other' with the cached author fetched from 'default', the real key is computed from 'auth::default::1' while the spec claims queried_store==target and the target's row was found. REFUTED on two independent grounds, both measured. (a) NOT REACHABLE: I intercepted build_instance and drove every repo caller (python, json, jsonl, yaml/pyyaml and xml Deserializers -- json/jsonl/yaml all delegate to PythonDeserializer, so python+xml is the complete set of call sites, confirmed by grep: only xml_serializer.py:276 and python.py:174 call it). Both build `data` with data[field.attname] = value from deserialize_fk_value, which returns a scalar pk, never an instance -- measured: every intercepted data dict had only int/str/NoneType values, 'Any data value that is a MODEL INSTANCE: False'. (b) OUTSIDE THE REQUIRES: when the cached related record is the target store's own row (the only case where Requires(record_store == target_store) is satisfied FOR THAT RECORD) the observables AGREE; the divergence appears only when the cached row resides in 'default'/'shard_a', i.e. exactly when record_store != target_store, which the precondition excludes. (c) OUTSIDE THE DELTA: patched and base produce the identical key here ('auth::default::1' both), so the patch is a no-op on this input -- it is not the modeled changed behaviour.\n  2) UNBRIDGED `data` ARGUMENT variants. pk PRESENT in data -> the real function skips the whole natural-key branch (deref_attempted=False, no key computed, no exception): the model has no outcome to compare, and mapping.md scopes the model to the branch's interior; base and patched behave identically, so it is outside the delta. Null FK (author_id=None) -> RelatedObjectDoesNotExist, and dangling FK (pk=99) -> DoesNotExist; BOTH raise identically on base and patched, so again no delta, and both violate Requires(record_store == target_store) since no related record resides in the target.\n  3) FALSY-BUT-NOT-NONE ALIAS ''. The real router is `if instance is not None and instance._state.db:` so '' is treated as no-association, whereas UNROUTED maps to None only. Measured with file-backed sqlite: Person.objects.using('').create() lands with _state.db=='default' -- the '' store is degenerate/unaddressable, so no related record can ever RESIDE in it, making Requires(record_store == target_store) unsatisfiable at target_store == id(''). Not a diverging input of the modeled function.\n  4) UNCONFIGURED alias as db: real call raises ConnectionDoesNotExist; nothing can reside there either, so record_store == target_store is unsatisfiable.\n  5) MULTI-HOP natural_key chain, testing 'the dereference is performed here, and nowhere else'. Built a 3-level Bk2 -> Author2 -> Country chain with a DIFFERENT Country row in each store. Patched: every hop routed to the target and read the target's rows ('Tolkien-other' then 'Shire-other'), no exception -- because hop 1's fetched row carries the _state.db it was read from, so hop 2 inherits it. Base: raised at hop 1. The one-deref abstraction is not too strong.\n  6) CUSTOM DATABASE_ROUTERS is the one configuration where queried_store != target is achievable, but it is explicitly SCOPED OUT up front by mapping.md 3.1 / refinement.md ('no custom routers configured'), which is the framework default (global_settings DATABASE_ROUTERS = []) and the F2P configuration; the gold patch itself does not fix that case. Declared scoping of an unchanged framework mechanism is not spec drift.\n\nCORROBORATING RE-RUNS (from /tmp copies, independently): model.py verifies (scripts/nagini_verify.sh, 'Verification successful', 8.28s). NON-VACUITY CONTROL: injecting Assert(False) at the top of the impl region FAILS ('Assertion False might not hold'), so the verification is not vacuous and the Requires are satisfiable. model_prepatch.py fails exactly at the claimed point ('The precondition of method KeyedRecord might not hold. Assertion dereference_succeeds(record.routed, world.default_store, world.record_store) might not hold'), so the spec senses the delta.\n\nG-AX re-run: 'G-AX OK: routing deep model == real ConnectionRouter routing on all boundary store combinations and 20000 fuzz cases; no consumed axiom.' G-CONF re-run against my own patched worktree: status pass, n=100000, 3602 enumerated exhaustively, 0 disagreements, discrimination self-test pass. I also hand-verified the two A-references against source: db/utils.py:222-238 _route_db matches query_store clause for clause, and related_descriptors.py get_queryset(121-122)/get_object(165-168) confirm the hints={'instance': obj} routing and the qs.get success criterion. meta.json axioms == [], so there is no consumed-axiom trust point.\n\nBOOKKEEPING DEFECT NOTED, NOT A FAITHFULNESS FINDING (flagging for the release gate, outside this gate's verdict): (a) meta.json['patch_diff'] holds the placeholder prose 'gold patch verbatim (applies cleanly at base_commit)' rather than the diff text; (b) meta.json['region_hashes'] does NOT match markers.region_hashes(model.py, nagini) -- post-conditions, pre-conditions, impl and spec_view all differ, i.e. the recorded hashes are stale relative to the current model.py (the pre-conditions hash matches an older old_15525_model.py and the post/impl hash matches a different older copy, consistent with a spec edit that did not refresh meta). This is systemic rather than instance-specific -- 425 of 500 nagini bundles mismatch on the same computation -- so it most likely reflects a hashing/serialization convention change in markers.py rather than tampering with this bundle. Neither affects the spec-vs-repo comparison this gate makes: I compared model.py's spec region as it actually reads against real patched Django.\n\nCONCLUSION: on every input the spec's Requires admit and that real Django can realize, the modeled function's three Ensures agree with the real patched build_instance -- 15600 independent exhaustive+fuzz cases including the target==default sub-domain, 6000 additional nullable-FK cases, plus the bundle's own 100000 re-run, all 0 disagreements, with a harness proven able to go red. The candidate divergences I built are either unreachable through every repo call site, outside the precondition, or no-ops of the patch (hence outside the modeled delta). No diverging input: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T12:39:59+00:00",
+      "code_version": "4659783d2-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE. No relaxation in this bundle: meta.json has no `relaxed_leakage` key (checked by json load -> False/None) and no RELAXED_LEAKAGE.md exists anywhere under benchmark-verified/django__django-15525/ (find -iname '*RELAX*' empty). So this is a straight leakage review, judged against problem_statement only, never hints_text.\n\nWHAT THE SOLVER ACTUALLY SEES. Traced the exposure path rather than assuming it: eval/dataset.py:285 sets task.spec_view = adapter.spec_view(model); as_dict emits only spec_view + modeled_functions + float_encoding in spec modes. refinement.md and mapping.md are NOT in the solver's file set (no reference to them in eval/prompts.py or adapter.py) -- which matters, because refinement.md section A reproduces the gold hunk verbatim (`obj._state.db = db`). That is auditor-only and outside this gate. Reproduced the projection myself: spec_view sha256 61cc57743ea1cb6cf3c4f8f77a1721517a22ffa93a5dab7ddaf70cb3f03de671, idempotent (spec_view(spec_view(x))==spec_view(x)), ELISION_IMPL present, and the fix-carrying line `obj.routed = target_store` is absent from the view (grep -> False).\n\nAlso checked meta.modeled_functions, which IS solver-visible: eval/prompts.py:58-62 renders ONLY `model_symbol (<-> repo_symbol)` for nagini, so the `role` field's giveaway text ('The delta is an ORDERING - the association must exist BEFORE the key is computed') and `carrier_type`/`repo_location` never reach the prompt. The rendered repo_symbol `django.core.serializers.base.build_instance` is deliberate mode-1/2 localization and appears verbatim in the public traceback (base.py line 332, inside build_instance) anyway.\n\nMECHANICAL SCREEN, RERUN BY ME. leakage.screen(model.py, nagini.language, patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. Independently re-ran _NARRATION_RE over the spec view: zero hits (no bug/fix/patch/wrong/previously/regression). Grepped my own fix-ordering vocabulary; the only two hits are innocuous English -- 'rather than' in a scope sentence at line 48 and a substring false positive where 'the fix' matches 'the fixture' at line 199.\n\nVOCABULARY CROSS-CHECK (my own, beyond the screen). Extracted every >=4-char identifier from the spec view and intersected with the gold patch text: the only overlaps are 'data', 'default', 'instance', 'model', 'name', 'natural', 'state' -- and I confirmed each of those seven also appears in the problem_statement, so none is a term the solver could not already see. Separately probed for patched repo symbols: `_state`, `state.db`, `build_instance`, `serializers`, `base.py`, `db_manager`, `get_by_natural_key`, `DEFAULT_DB_ALIAS`, `alias` -- ALL zero occurrences in the spec view, while most appear in the problem_statement. The spec view's whole vocabulary is deliberately re-abstracted (store/record/dereference/association), never Django's.\n\nDISCRIMINATOR IS PUBLIC. The gold edit is 'set the store association before computing the natural key'. Every ingredient is in the public problem_statement: the title states loaddata fails on a non-default database when natural keys use foreign keys; the traceback walks natural_key() -> self.author.natural_key() -> related_descriptors.get_object -> qs.get -> 'Author matching query does not exist'; the reporter notes it works on the default DB and that the problem disappears if the data is already present in the default DB -- which is precisely 'the dereference was routed to the ambient default store'. The spec view narrates that same routing story at the abstract level and pins three observables (association at key-computation time, store queried, dereference succeeds) without naming _state.db or the ordering edit.\n\nLOAD-BEARING (spec is not decorative narration). Ran the standard strip test via the shipped prepatch twin: same_spec(model.py, model_prepatch.py)=True (byte-identical spec signature; the diff is confined to the impl region), and `bash scripts/nagini_verify.sh` gives model.py 'Verification successful' (9.97s, exit 0) while model_prepatch.py FAILS with exactly the discriminating obligation -- pre.py:238 'The precondition of method KeyedRecord might not hold. Assertion dereference_succeeds(record.routed, world.default_store, world.record_store) might not hold' (exit 1). Also `adversary same-spec nagini django__django-15525` -> exit 0, 'SAME'. So the spec discriminates gold from pre-patch on the routing facet, which is the facet the public statement already describes.\n\nINCIDENTAL FINDING (not leakage, flagged for the record). meta.json's frozen `region_hashes` is STALE relative to the live model.py: pre-conditions, post-conditions, impl and spec_view all mismatch what region_hashes() computes on the current file. I bisected the git history of model.py and the stamp matches revision 71649c6d0, two content revisions back. I diffed spec_view@71649c6d0 vs spec_view@live: the change is a strict STRENGTHENING (the old view required `default_store != record_store`, pinning the spec to the non-default case only; the live view drops that and leaves the ambient default free, adds the Deployment given-world carrier with an unsatisfiable constructor so the loader cannot mint favourable routing facts). Nothing leaky was introduced -- the added prose is all scope/permission reasoning in abstract vocabulary -- so this does not change my verdict, but the stamp should be re-frozen since a G-LEAK/G-HYGIENE stamp checked against region_hashes would be describing an artifact that no longer exists.\n\nNo file in this bundle addresses the reviewer or suggests a verdict: ran leakage.reviewer_directed() over all ten bundle .md/.py/.json files -> [] for every one.\n\nVERDICT: NO-LEAKAGE. The spec view elides the fix-carrying assignment, uses no Django symbol touched by the patch, carries no narration vocabulary, reproduces no gold-diff line, and every gold-patch-overlapping word it does use is present in the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:28:34+00:00",
+      "code_version": "d061dd586-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-direct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-via-record-store",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-release-after",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-two-associated-keys",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-unrouted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-key-before-assoc",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-restate-observables",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-move-record",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-forge-world",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-discarded-unrouted-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-default-store",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-partial-positive-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-off-by-routing",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.9
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-infeasible-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.4
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-assoc-only-when-not-default",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.6
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-skip-assoc-keep-assert",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-twin-record",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 4,
+          "uniqueness": 13
+        },
+        "manifest_sha256": "d12a956718181772d43e6b091c1a92a50f73887632c085581118589f2568c2e6",
+        "n_cases": 18,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 18 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3",
+        "properties.py": "d12a956718181772d43e6b091c1a92a50f73887632c085581118589f2568c2e6"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T11:49:23+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8f18033761abf1045ef7f9c4d742dd124275dd7e83088f8277fdcb51a3571319",
+        "patch.diff": "5682a1d4b556208fceb5d526d6b5452e01ec803bf6c58e2909abe8da5cb9bb8c"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T11:47:18+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "wall_time_s": 9.9
+      },
+      "detail": "verified in 9.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "febbdea9830e258fe0b01f5de136392bb7c79024c7229989113fd84078e42fa3"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15525",
+  "modeled_functions": [
+    {
+      "carrier_type": "model instance -> ModelInstance with a single touched field routed:int; data store alias / _state.db (None) -> int with UNROUTED=-1 sentinel; the computed natural key -> KeyedRecord, a value producible only FROM a record already associated with the store holding the related record, carrying the two observables of that one computation (routed, queried_store) as read-only half shares",
+      "model_symbol": "build_with_natural_key",
+      "repo_location": "django/core/serializers/base.py:325 (changed hunk at body lines 339-342)",
+      "repo_symbol": "django.core.serializers.base.build_instance",
+      "role": "modeled changed function: builds a record, associates it with the target data store, then computes its natural key (whose computation performs a store-routed dereference of a related record). The delta is an ORDERING - the association must exist BEFORE the key is computed - so the key computation is modeled as a producer whose precondition is the dereference's success; see refinement.md sections A/B"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "the precondition of the natural-key computation (KeyedRecord): dereference_succeeds(record.routed, default_store, record_store) might not hold - the unassociated record (UNROUTED) routes its dereference to default_store, which on a non-default target is not record_store, so no natural key exists and no outcome can be produced",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "build_instance store-routing before natural-key computation",
+      "reverted_to": "old `natural_key = Model(**data).natural_key()` with no store association (obj.routed left UNROUTED, i.e. _state.db None)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "5eed1d01b834c3f068be8d18a558fbe81ed2f3558d5c3921a5552ddaa58d924b",
+    "impl": "2a18ba47ac18be250d1a6bdad1defacc524b82f2294dfac6663cd436ea569e3d",
+    "post-conditions": "0ad51277bb39bd6c90e0563bf9cc7045fb1c998a013ccabffb94d30c92c411ab",
+    "pre-conditions": "907becde8105e89b4d4525b898bbad126e019debc78e0f50d6e8739e9c5695cd",
+    "pure": "559760bb3978c35637fa0c9370c1ca3f73b5aafbc5e0fe5419bbc7d9fed1e121",
+    "spec_view": "3559c02f597904d54c266bbd1b11b4762a47a9bf2527841323e07bd8f4b1b511"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "n/a (the modeled behaviour is store-routing of a record's natural-key dereference; data stores and the instance routing state are modeled as ints, instance as a minimal class with the single touched field)",
+  "version": "4.1"
+}

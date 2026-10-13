@@ -1,0 +1,574 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "c0a24c1dc957a3b565294213f435fefb2ec99714",
+  "changed_files": [
+    "astropy/io/fits/diff.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX A-ref 1): asserts is_vla_descriptor == ('P' in fmt or 'Q' in fmt) on 25 boundary FITS formats + 20000 fuzz format strings",
+      "encoded_property": "is_vla_descriptor(fmt): the code-point sequence contains 80 ('P') or 81 ('Q')",
+      "kind": "A-reference",
+      "models": "the layout-string test '\"P\" in col.format or \"Q\" in col.format' (astropy/io/fits/diff.py:1452, post-patch)",
+      "name": "is_vla_descriptor",
+      "provenance": "FITS variable-length-array descriptors: _FormatP code 'P' (32-bit, column.py:429-437), _FormatQ code 'Q' (64-bit, column.py:474-479); column-format regex [LXBIJKAEDCMPQ] (column.py:201); descriptor letters are uppercase in the materialised format string; case-sensitive substring 'in'",
+      "role": "deep model (pure region) of the changed branch predicate; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX A-ref 2a): == real row-aware np.allclose path on F2P data + 20000 fuzz integer VLA columns with independently drawn per-side widths and FULL-RANGE 64-bit magnitudes (the >=2**53 regime is asserted non-vacuous); (A-ref 2b): == real element-wise np.where path on multi-element fixed-width columns (non-vacuous: requires a column where an element sum diverges from the row count)",
+      "encoded_property": "row_granular_count(row_mismatches): number of rows with at least one differing element (a row contributes 1 iff row_mismatches[i] > 0)",
+      "kind": "A-reference",
+      "models": "the per-column accumulation self.diff_total += len(set(diffs[0])) (diff.py:1465), which is row-granular on BOTH branches (the elif np.allclose row path and the else np.where path) \u2014 there is no element-sum discipline in the real code",
+      "name": "row_granular_count",
+      "provenance": "TableDataDiff._diff; len(set(diffs[0])) counts distinct differing rows; total_values = rows*cols (diff.py); np.allclose at default tolerances rtol=atol=0.0 (TableDataDiff.__init__, diff.py:221-222) reduces to its per-position isclose verdict, which is evaluated in float64 and is therefore strictly COARSER than exact equality on int64 magnitudes at/above 2**53; row_mismatches is grounded in that verdict, branch-relatively (the element-wise branch uses its own plain != verdict)",
+      "role": "deep model (pure region) \u2014 the SINGLE counting discipline both comparators yield; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX A-ref 2c): asserts the real element-wise np.where path RAISES on multi-element VLA object-array columns (F2P QJ(2) identical+differing, issue ragged QD)",
+      "encoded_property": "Requires(not is_vla_descriptor(fmt)) on compare_elementwise: the element-wise comparator is applicable only to a non-VLA (regular ndarray) column; routing a VLA column there is the pre-patch bug (raise/miscount)",
+      "kind": "A-reference",
+      "models": "compare_row_aware = the elif np.allclose row-by-row body; compare_elementwise = the else np.where body (diff.py:1453-1465). Both return row_granular_count when applicable. compare_elementwise carries Requires(not is_vla_descriptor) modelling the comparator's applicability.",
+      "name": "compare_row_aware / compare_elementwise",
+      "provenance": "the else-path np.where(arra != arrb) RAISES ValueError ('truth value of an array ... is ambiguous') when arra/arrb are object arrays of multi-element sub-arrays (a genuine VLA column); confirmed in the pinned container",
+      "role": "comparator helpers (impl regions); the applicability precondition is the unforgeable control-flow discriminator for G-DIFF (a raise-vs-return effect, no value-level discriminator since both branches are row-granular)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T10:59:49+00:00",
+      "code_version": "6204d33a2-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: is_vla_descriptor (A-ref 1) == real ('P' in fmt or 'Q' in fmt) on 25 boundary + 20000 fuzz formats; row_granular_count == real row-aware np.allclose path (A-ref 2a) on 20 boundary + 20000 fuzz VLA columns with INDEPENDENTLY drawn per-side widths and FULL-RANGE 64-bit magnitudes (2609 unequal-length but aligning rows agreed; 9243 outside the alignment domain, where the real comparator and the grounded summary raise together; 45995 wide magnitudes at/beyond the per-position verdict's resolution limit agreed); == real element-wise np.where path (A-ref 2b) on multi-element fixed-width columns (2150 distinguishing partial-row diffs seen); the element-wise path RAISES on multi-element variable-length columns (A-ref 2c, applicability); and the row-aware path RAISES on non-numeric fixed-width columns (A-ref 2d, symmetric applicability).",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "5f68b548fb7ccf0204839933fa79a16a5921e1ef283e18905792633f6e402fa2",
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T10:59:42+00:00",
+      "code_version": "6204d33a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "backend": "nagini",
+          "coverage": {
+            "elementwise_diff_row": 23432,
+            "elementwise_empty": 5123,
+            "elementwise_same_row": 25507,
+            "nonvla_element_sum_diverges": 5140,
+            "nonvla_route": 35452,
+            "p_only": 29808,
+            "q_only": 34740,
+            "row_aware_diff_row": 40122,
+            "row_aware_empty": 10739,
+            "row_aware_same_row": 46967,
+            "unequal_length_aligning": 8530,
+            "vla_element_sum_diverges": 17835,
+            "vla_route": 69823,
+            "wide_magnitude": 7781,
+            "wide_magnitude_unresolved": 50
+          },
+          "instance": "astropy__astropy-14539",
+          "mismatches": 0,
+          "n_boundary": 46,
+          "n_checked": 100000,
+          "n_generated": 110879,
+          "n_skipped_float_branch": 0,
+          "n_skipped_ragged": 5604,
+          "n_skipped_unbuildable": 5275,
+          "seed": 14539,
+          "status": "pass",
+          "unbuildable_examples": [
+            "OverflowError on fmt='QD': cannot convert float infinity to integer",
+            "OverflowError on fmt='QE(4)': cannot convert float infinity to integer",
+            "OverflowError on fmt='QD': cannot convert float infinity to integer",
+            "OverflowError on fmt='QD(4)': cannot convert float infinity to integer",
+            "OverflowError on fmt='QD(4)': cannot convert float infinity to integer"
+          ]
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"instance\": \"astropy__astropy-14539\", \"backend\": \"nagini\", \"seed\": 14539, \"n_boundary\": 46, \"n_generated\": 110879, \"n_checked\": 100000, \"n_skipped_ragged\": 5604, \"n_skipped_float_branch\": 0, \"n_skipped_unbuildable\": 5275, \"coverage\": {\"vla_route\": 69823, \"nonvla_route\": 35452, \"row_aware_diff_row\": 40122, \"row_aware_same_row\": 46967, \"row_aware_empty\": 10739, \"elementwise_diff_row\": 23432, \"elementwise_same_row\": 25507, \"elementwise_empty\": 5123, \"vla_element_sum_diverges\": 17835, \"nonvla_element_sum_diverges\": 5140, \"q_only\": 34740, \"p_only\": 29808, \"unequal_length_aligning\": 8530, \"wide_magnitude\": 7781, \"wide_magnitude_unresolved\": 50}, \"mismatches\": 0, \"unbuildable_examples\": [\"OverflowError on fmt='QD': cannot convert float infinity to integer\", \"OverflowError on fmt='QE(4)': cannot convert float infinity to integer\", \"OverflowError on fmt='QD': cannot convert float infinity to integer\", \"OverflowError on fmt='QD(4)': cannot convert float infinity to integer\", \"OverflowError on fmt='QD(4)': cannot convert float infinity to integer\"], \"status\": \"pass\"}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "5a893bf80732e11e2b7e6a574b83eef38288eb9300993cd0d0ca2998ba91da68",
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:25:09+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af",
+        "model_prepatch.py": "6ea5c8715c263a5bd90edb3f67d68f5a877593aec5c2e100ab5c668d4684d4f3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T11:41:05+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af",
+        "properties.py": "79f98480374646a482e8e3e558aad8d58cda5c98102015db80dfff8d9a118433"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:26:06+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af",
+        "model_prepatch.py": "6ea5c8715c263a5bd90edb3f67d68f5a877593aec5c2e100ab5c668d4684d4f3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T10:51:55+00:00",
+      "code_version": "6204d33a2-dirty",
+      "data": {
+        "region_hashes": {
+          "impl": "d3c66540ea20e9b0a039f240ad7cf1c84b48d18395655aa824cbad207c2f1959",
+          "invariants": "89c35b8e24b76204fc47909271371d5d5013689b31e298266ef7028a9c053f83",
+          "post-conditions": "c171ab2ff36931f06d914117d8990186fb2ce2c60537370b4ade6145acfd668a",
+          "pre-conditions": "08bde10c4eeffbf946f88c14c5eec5ba7150b840a6113d042bf4b3c4c072f3ed",
+          "pure": "3b353825e637c1d82ca33e989d637f047a8f055d1b2af7fda0c8d5c2707472af",
+          "spec_view": "a73bde3cdf9006c50ad9d6f568344b1b76eb91181ac1682dde7a30b3782ac4ba"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T10:51:55+00:00",
+      "code_version": "6204d33a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8df2393b9ac95fdbcfec62e73bdedef8d6c56801248364540fd5167bee6f6397",
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T10:51:55+00:00",
+      "code_version": "6204d33a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T10:50:31+00:00",
+      "code_version": "417db24ee-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T11:41:05+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SPEC INTEGRITY: `python -m swebench_unified.adversary same-spec nagini astropy__astropy-14539 atk.py` -> 'SAME -- attack shares the bundle's exact specification', exit 0 (atk.py was a byte copy of shipped model.py). I read the pre-conditions and post-conditions regions verbatim and transcribed the postcondition exactly (rows_hold_subarrays -> close_mismatches fold; else -> unequal_mismatches fold). Bundle NOT modified; all work, reusing the pre-built real worktrees (patched, guard confirmed via inspect.getsource to contain 'or \"Q\" in col.format') and  (unpatched), venvs venvwt/venvpre, numpy 1.24.4.\n\nMETHOD -- oracle is the repo's own code, CALLED not transliterated: TableDataDiff(ta.data, tb.data, numdiffs=0).diff_total on real one-column BinTableHDUs, so diff_total IS the modelled per-column figure. Groundings taken straight from the shipped docstring: rows_hold_subarrays = (arra.dtype==object or arrb.dtype==object) read off the MATERIALISED pair; close_mismatches[i] = count_nonzero(~np.isclose(a[i],b[i],rtol=0,atol=0)); unequal_mismatches[i] = number of positions np.where(arra!=arrb)[0] attributes to LEADING-AXIS slot i (with the 0-d scalar case treated as one slot, per 'attributes every reported position to a leading-axis slot').\n\nWHAT I CHECKED AND FOUND SOUND:\n1. TDIM / shape-mismatch (the prior finding's class), saturated: 10,500 element-wise pairs with dim drawn INDEPENDENTLY per side from 37 TDIM variants x 36 fixed formats -- 0 divergences across seeds 5/15/25, with 3,030 dim-mismatched, 2,491 shape-mismatched, 2,805 multi-dimensional and 1,153 non-broadcastable (0-d scalar `!=`) pairs per seed. Control with dim forced equal also 0. The leading-axis reading is faithful in BOTH the broadcast case ((2,2) vs (2,1,2) -> ne (2,2,2), SPEC 2 == REAL 2) and the non-broadcastable case ((3,6) vs (3,6,1) -> ne 0-d True, SPEC 1 == REAL 1).\n2. Broad mixed fuzz, 12,000 pairs (seeds 11/21/33), 0 divergences: 3,400 VLA + 570 element-wise per seed, ~3,080 DISCRIMINATING per seed (the non-governing summary would give a different figure, so the spec is picking the right verdict, not coasting on coincidence); includes 2,811 ragged (per-side VLA widths drawn independently), 2,155 empty-sub-array, 690 VLA-with-dim, 108 TDIM-mismatched, 48 scalar-ne.\n3. ROUTING BY STORAGE vs BY LABEL -- the spec's strongest claim (routing is decided by storage 'and by nothing else', NOT read off any name/spelling). Swept all 308 constructible columns (letters LXBIJKAEDCM x repeats x 7 TDIMs, plus P/Q x all letters x options x dims): label_PQ and object-storage COINCIDE in every case; the disagreeing combos (True,False) and (False,True) are never observed. TDEF_RE admits P/Q only as the descriptor letter, and _FormatP/_FormatQ always materialise object dtype. Also confirmed the two sides of a common column can never disagree on storage kind: Column.__eq__/__hash__ (column.py:736-753) key on (name.lower(), format), so QJ-vs-PJ, QJ-vs-6J and QJ-vs-QK yield common_columns == [] and never reach the modelled body. So the storage-based spec and the label-based real code are extensionally equal on every reachable input -- the abstraction is sound, not a strengthening.\n4. DOMAIN SYMMETRY (the usual laundering vector): cross-tabbed grounding-definedness against oracle-definedness over 6,000 VLA trials incl. PA/QA character VLAs and independently drawn widths -> only (True,True) 3059 and (False,False) 2941. Zero (True,False) [spec claims a figure the real code cannot produce] and zero (False,True) [real code defined but spec silently out of domain]. So the 'row with no alignment lies outside the domain' exclusion is exact, not a convenient escape hatch.\n5. The two-summary design is NECESSARY and correctly wired -- verified on discriminating inputs where the summaries disagree: QK/PK with 2**53 vs 2**53+1 -> close=[0], uneq=[1], REAL=0 (float64 significand cannot separate them, exactly as the docstring says); fixed K with the same values -> REAL=1 (governed by !=). QD/PD/QM with a NaN component against ITSELF -> close rejects it, REAL=1. Neither verdict refines the other; the docstring's incomparability claim is accurate in both directions.\n6. Documented exclusions are real branches, not laundering: non-VLA FLOATING dtype takes the UNCHANGED where_not_allclose branch at diff.py:1447-1451, upstream of the patched elif in BOTH pre- and post-patch code, where np.ma.fix_invalid makes NaN==NaN -- I confirmed it diverges there (2D NaN-vs-NaN identical: SPEC 1 vs REAL 0; inf vs -inf: SPEC 1 vs REAL 0), which is precisely why the exclusion is correct rather than convenient. Equal-row-count matches the early diff_rows return at 1409-1411; 0-row tables give REAL 0 == SPEC 0.\n\nMEMORY DISCIPLINE: verdict.md records a PRIOR G-PANEL-2 fail (UNFAITHFUL, TDIM class). Per 'retained attack labels carry the oracle verdict' I did NOT inherit that label, and I did not inherit the older FAITHFUL note either -- I re-derived from the current shipped bytes and specifically re-ran the prior witnesses. They now pass, and I demonstrated (control 1) that my harness still catches them under the superseded grounding, so this is a genuine repair of the spec, not my failure to reproduce. All numbers are live measurements on a built worktree; no verifier/agent cap or host-saturation artifact was involved (the one verifier run I made returned cleanly in 17.9s).\n\nSEPARATE PRE-EXISTING DEFECT, recorded but explicitly NOT the basis of my verdict (it is a G-EQ/provenance matter for a doc gate, not a spec-too-strong divergence): conformance_check.py, axiom_check.py, mapping.md and refinement.md are all written against an EARLIER model -- they reference count_differing_rows(fmt, row_mismatches), is_vla_descriptor, compare_row_aware and compare_elementwise with applicability preconditions, none of which exist in the shipped model.py (signature is (fmt, close_mismatches, unequal_mismatches, rows_hold_subarrays); grep counts: is_vla_descriptor 13x in axiom_check.py / 0x in model.py; rows_hold_subarrays 0x in both checkers / 5x in model.py). So the recorded G-CONF=pass over 100000 pairs and G-AX=pass do not textually attest the shipped spec, and the docs' 'discriminating clause' argument (B) describes preconditions the frozen model no longer has. My FAITHFUL verdict rests solely on my own executed differential against the real worktree, which is why I ran ~30,500 pairs myself rather than leaning on the stale G-CONF number.\n\nCONCLUSION: on the modelled routes the spec is neither too strong nor drifted -- every divergence I could produce lay either in an explicitly documented exclusion (non-VLA floating), outside the reachable input set (mixed-format common columns), or in the patch delta itself measured against the base commit, which the brief directs me not to count. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "ATTACKER 3 (leakage / gold-reconstruction), astropy__astropy-14539 nagini. Verdict NO-LEAKAGE.\n\nRELAXATION STATUS: none claimed, and I measured that rather than assuming it. `meta.get('relaxed_leakage')` -> None (keys are exactly additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, migrated_from, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version), and `ls -R` over the whole instance dir (ears/lean/nagini/velvet) shows no RELAXED_LEAKAGE.md. So this is an ordinary strict-mode leakage review; I inherited no disposition. I also ran leakage.reviewer_directed() over every .py/.md/.json in the nagini bundle: zero hits, i.e. no artifact addresses or instructs this panel.\n\nI DID NOT INHERIT THE STALE RECORDED NOTE. meta.json's gates['G-PANEL-3'] is status=pass with a NO-LEAKAGE note, but its sources.model.py is d85f37c1b6445c5056abcc362b25a29e81abc2d3c6889fbbda7ed5f68751e95b while the bundle's actual model.py is 1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af -- that note was computed against a DIFFERENT, older model. The stale note describes a spec that routed on `is_vla_descriptor(fmt)` (code points 80/81); the current model routes on a `rows_hold_subarrays: bool` parameter and mentions no descriptor letter at all. Everything below is my own measurement on the current file. (Same staleness affects G-EQ/G-PANEL/G-PANEL-1/G-PANEL-2, all recorded fail against d85f37c1; G-AX, G-CONF, G-DIFF, G-GOLD, G-HYGIENE, G-INTEGRITY, G-LEAK, G-MUT, G-PBT, G-VERIFY all carry the current 1eb020a1 hash and pass. Not my gate to rule on, but flagging that the recorded G-PANEL verdicts do not describe the shipped artifact.)\n\nSPEC VIEW, derived not read: markers.spec_view(model.py, nagini backend) = 226 lines, single impl region (src lines 224-284) collapsed to `...  # implementation elided`; parse_regions reports no errors; invariants nested inside impl are elided with it. Confirmed elision completeness through the adapter guard (adapter.spec_view, which refuses an unelided view): no `Invariant(`, no `total = `, no `return total` survive. The three residual grep hits for `while `/`close_mismatches[i`/`rows_hold_subarrays:` are all prose (lines 68/75/84/96) or the function SIGNATURE (line 151), not impl residue.\n\nWHAT ACTUALLY REACHES THE SOLVER. I rendered the real prompts rather than reasoning about them: prompts.initial_user(get_adapter('nagini'), build_task(a, 'astropy__astropy-14539', mode)) for both spec modes (MODES_WITH_SPEC = {1,2}). The spec block adds exactly one line beyond the view: `Modeled function(s): count_differing_rows (\u2194 astropy.io.fits.diff.TableDataDiff._diff (per-column comparison body))` -- model_symbol \u2194 repo_symbol only. Full-prompt token scan: '1429-1465' False, '1452' False, 'col.format' False, 'or \"Q\" in' False, '_FormatQ' False, 'where_not_allclose' False. Note meta.json's modeled_functions[0].repo_location reads \"astropy/io/fits/diff.py:1429-1465 (changed elif at line 1452)\" and deep_model_references openly states `is_vla_descriptor == ('P' in fmt or 'Q' in fmt)` -- that WOULD be edit-localization plus the discriminator, but prompts._spec_block's modeled_functions_from_meta branch emits only model_symbol/repo_symbol, so repo_location and deep_model_references never render. Verified empirically above, not just by reading the branch. float_encoding is None so no hint travels. Function-level repo_symbol is the same localization mode 0 gets by documented policy, so it is not a leak beyond policy.\n\nrefinement.md / mapping.md DO carry the gold edit openly (refinement.md:17 names diff.py:1452, :21-22 quote both sides of the hunk; mapping.md:15 spells `\"P\" in col.format or \"Q\" in col.format`), and model_prepatch.py carries the buggy witness. All correctly OUTSIDE the solver view: neither .md is referenced anywhere in eval/dataset.py|prompts.py|adapter.py, and gold_prepatch_src is consumed only at grade.py:316 (grading time), never in prompt assembly.\n\nTHE DISCRIMINATOR IS NOT NAMED IN THE VIEW. The gold edit is `elif \"P\" in col.format:` -> `elif \"P\" in col.format or \"Q\" in col.format:`. Letter-level scan of the 226-line view: no 'P'/'Q' as a standalone token, no code points 80/81, no 'VLA', 'variable-length', 'TFORM', '64-bit', '32-bit', 'letter', 'format' (except the word 'format' once at line 103 in a generic phrase). The view's routing predicate is the parameter `rows_hold_subarrays: bool`, i.e. a STORAGE observation of the materialised column pair, deliberately not the descriptor string; lines 21-31 and 57-65 go out of their way to say the routing is NOT read off any name/spelling/declaration and that the descriptor carrier `fmt` is 'carried only'. That is strictly WEAKER localization than the problem_statement, which hands the solver `format='QD'` verbatim plus 'improper handling of VLAs (variable-length arrays)' and 'couldn't reproduce the bug without using at least one VLA column'.\n\nPROBLEM-STATEMENT-ONLY DERIVATION (so the discriminator is public, not spec-supplied). On a fresh worktree of the real base_commit c0a24c1dc957a3b565294213f435fefb2ec99714 (mktemp -d, git worktree add --detach): the PS names format 'QD' and VLAs; `grep -n 'VLA\\|\"P\"' astropy/io/fits/diff.py` returns exactly ONE line -- 1452, `elif \"P\" in col.format:` -- and `grep -n _format_code astropy/io/fits/column.py` gives `_format_code = \"P\"` (437) and `_format_code = \"Q\"` (478). So P/Q as the two FITS VLA descriptor letters and line 1452 as the single site are reachable from the public statement in two greps, with no spec view at all. Nothing in the view narrows that further.\n\nLOAD-BEARING CHECK (the usual test: is the prose carrying the spec, or the contract?). Stripped the module docstring and the count_differing_rows docstring from both models -- every word of narration, 284 -> 171 lines, zero P/Q tokens remaining -- and re-ran the pinned verifier:\n  - scripts/nagini_verify.sh model.py            -> exit 0, 'Verification successful' (25.6s)\n  - scripts/nagini_verify.sh model_prepatch.py   -> exit 1, 'Postcondition of count_differing_rows might not hold. Assertion Implies((not rows_hold_subarrays), (Result() == row_granular_count(ToSeq(unequal_mismatches)))) might not hold.'\n  - prose-STRIPPED model.py                      -> exit 0 (19.1s)\n  - prose-STRIPPED model_prepatch.py             -> exit 1, SAME postcondition error at the same contract line\nSo the discrimination lives entirely in the Ensures pair (lines 205-206 / 221-222 of the view), and the removed narration was NOT load-bearing -- the reject lane still rejects with all prose gone. The prose is redundant commentary on a contract that discriminates on its own, which is the opposite of a prose leak. markers.same_spec(model.py, model_prepatch.py) = True (spec signature c76255c86b042d14 both sides), so the pre/post pair differs only in the impl region.\n\nGATES I LEANED ON, re-measured fresh on the current 1eb020a1 model.py rather than trusting the stamp: leakage.screen(model.py, nagini, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[] (the mechanical half of G-LEAK, re-run live); markers.region_hashes matches gates['G-HYGIENE'].data.region_hashes exactly (so hygiene's stamp does describe this artifact -- note the TOP-LEVEL meta['region_hashes'] block is stale against all 7 regions, another d85f37c1-era leftover); G-VERIFY reproduced by hand (exit 0) and G-DIFF reproduced by hand (prepatch exit 1).\n\nFACET RE-CONFIRMED: the spec view names no descriptor letter, no code point, no line number and no repo identifier; it routes on a storage observation that is strictly less specific than the 'QD'/VLA wording the public issue already supplies; and the reject lane survives total removal of the narration. Nothing in the solver-visible package lets a solver reconstruct `or \"Q\" in col.format` that the problem_statement did not already hand them.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SPEC INTEGRITY: `python -m swebench_unified.adversary same-spec nagini astropy__astropy-14539 atk.py` -> 'SAME -- attack shares the bundle's exact specification', exit 0 (atk.py was a byte copy of shipped model.py). I read the pre-conditions and post-conditions regions verbatim and transcribed the postcondition exactly (rows_hold_subarrays -> close_mismatches fold; else -> unequal_mismatches fold). Bundle NOT modified; all work, reusing the pre-built real worktrees (patched, guard confirmed via inspect.getsource to contain 'or \"Q\" in col.format') and  (unpatched), venvs venvwt/venvpre, numpy 1.24.4.\n\nMETHOD -- oracle is the repo's own code, CALLED not transliterated: TableDataDiff(ta.data, tb.data, numdiffs=0).diff_total on real one-column BinTableHDUs, so diff_total IS the modelled per-column figure. Groundings taken straight from the shipped docstring: rows_hold_subarrays = (arra.dtype==object or arrb.dtype==object) read off the MATERIALISED pair; close_mismatches[i] = count_nonzero(~np.isclose(a[i],b[i],rtol=0,atol=0)); unequal_mismatches[i] = number of positions np.where(arra!=arrb)[0] attributes to LEADING-AXIS slot i (with the 0-d scalar case treated as one slot, per 'attributes every reported position to a leading-axis slot').\n\nWHAT I CHECKED AND FOUND SOUND:\n1. TDIM / shape-mismatch (the prior finding's class), saturated: 10,500 element-wise pairs with dim drawn INDEPENDENTLY per side from 37 TDIM variants x 36 fixed formats -- 0 divergences across seeds 5/15/25, with 3,030 dim-mismatched, 2,491 shape-mismatched, 2,805 multi-dimensional and 1,153 non-broadcastable (0-d scalar `!=`) pairs per seed. Control with dim forced equal also 0. The leading-axis reading is faithful in BOTH the broadcast case ((2,2) vs (2,1,2) -> ne (2,2,2), SPEC 2 == REAL 2) and the non-broadcastable case ((3,6) vs (3,6,1) -> ne 0-d True, SPEC 1 == REAL 1).\n2. Broad mixed fuzz, 12,000 pairs (seeds 11/21/33), 0 divergences: 3,400 VLA + 570 element-wise per seed, ~3,080 DISCRIMINATING per seed (the non-governing summary would give a different figure, so the spec is picking the right verdict, not coasting on coincidence); includes 2,811 ragged (per-side VLA widths drawn independently), 2,155 empty-sub-array, 690 VLA-with-dim, 108 TDIM-mismatched, 48 scalar-ne.\n3. ROUTING BY STORAGE vs BY LABEL -- the spec's strongest claim (routing is decided by storage 'and by nothing else', NOT read off any name/spelling). Swept all 308 constructible columns (letters LXBIJKAEDCM x repeats x 7 TDIMs, plus P/Q x all letters x options x dims): label_PQ and object-storage COINCIDE in every case; the disagreeing combos (True,False) and (False,True) are never observed. TDEF_RE admits P/Q only as the descriptor letter, and _FormatP/_FormatQ always materialise object dtype. Also confirmed the two sides of a common column can never disagree on storage kind: Column.__eq__/__hash__ (column.py:736-753) key on (name.lower(), format), so QJ-vs-PJ, QJ-vs-6J and QJ-vs-QK yield common_columns == [] and never reach the modelled body. So the storage-based spec and the label-based real code are extensionally equal on every reachable input -- the abstraction is sound, not a strengthening.\n4. DOMAIN SYMMETRY (the usual laundering vector): cross-tabbed grounding-definedness against oracle-definedness over 6,000 VLA trials incl. PA/QA character VLAs and independently drawn widths -> only (True,True) 3059 and (False,False) 2941. Zero (True,False) [spec claims a figure the real code cannot produce] and zero (False,True) [real code defined but spec silently out of domain]. So the 'row with no alignment lies outside the domain' exclusion is exact, not a convenient escape hatch.\n5. The two-summary design is NECESSARY and correctly wired -- verified on discriminating inputs where the summaries disagree: QK/PK with 2**53 vs 2**53+1 -> close=[0], uneq=[1], REAL=0 (float64 significand cannot separate them, exactly as the docstring says); fixed K with the same values -> REAL=1 (governed by !=). QD/PD/QM with a NaN component against ITSELF -> close rejects it, REAL=1. Neither verdict refines the other; the docstring's incomparability claim is accurate in both directions.\n6. Documented exclusions are real branches, not laundering: non-VLA FLOATING dtype takes the UNCHANGED where_not_allclose branch at diff.py:1447-1451, upstream of the patched elif in BOTH pre- and post-patch code, where np.ma.fix_invalid makes NaN==NaN -- I confirmed it diverges there (2D NaN-vs-NaN identical: SPEC 1 vs REAL 0; inf vs -inf: SPEC 1 vs REAL 0), which is precisely why the exclusion is correct rather than convenient. Equal-row-count matches the early diff_rows return at 1409-1411; 0-row tables give REAL 0 == SPEC 0.\n\nMEMORY DISCIPLINE: verdict.md records a PRIOR G-PANEL-2 fail (UNFAITHFUL, TDIM class). Per 'retained attack labels carry the oracle verdict' I did NOT inherit that label, and I did not inherit the older FAITHFUL note either -- I re-derived from the current shipped bytes and specifically re-ran the prior witnesses. They now pass, and I demonstrated (control 1) that my harness still catches them under the superseded grounding, so this is a genuine repair of the spec, not my failure to reproduce. All numbers are live measurements on a built worktree; no verifier/agent cap or host-saturation artifact was involved (the one verifier run I made returned cleanly in 17.9s).\n\nSEPARATE PRE-EXISTING DEFECT, recorded but explicitly NOT the basis of my verdict (it is a G-EQ/provenance matter for a doc gate, not a spec-too-strong divergence): conformance_check.py, axiom_check.py, mapping.md and refinement.md are all written against an EARLIER model -- they reference count_differing_rows(fmt, row_mismatches), is_vla_descriptor, compare_row_aware and compare_elementwise with applicability preconditions, none of which exist in the shipped model.py (signature is (fmt, close_mismatches, unequal_mismatches, rows_hold_subarrays); grep counts: is_vla_descriptor 13x in axiom_check.py / 0x in model.py; rows_hold_subarrays 0x in both checkers / 5x in model.py). So the recorded G-CONF=pass over 100000 pairs and G-AX=pass do not textually attest the shipped spec, and the docs' 'discriminating clause' argument (B) describes preconditions the frozen model no longer has. My FAITHFUL verdict rests solely on my own executed differential against the real worktree, which is why I ran ~30,500 pairs myself rather than leaning on the stale G-CONF number.\n\nCONCLUSION: on the modelled routes the spec is neither too strong nor drifted -- every divergence I could produce lay either in an explicitly documented exclusion (non-VLA floating), outside the reachable input set (mixed-format common columns), or in the patch delta itself measured against the base commit, which the brief directs me not to count. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 ATTACKER 3 (leakage / gold-reconstruction), astropy__astropy-14539 nagini. Verdict NO-LEAKAGE.\n\nRELAXATION STATUS: none claimed, and I measured that rather than assuming it. `meta.get('relaxed_leakage')` -> None (keys are exactly additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, migrated_from, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version), and `ls -R` over the whole instance dir (ears/lean/nagini/velvet) shows no RELAXED_LEAKAGE.md. So this is an ordinary strict-mode leakage review; I inherited no disposition. I also ran leakage.reviewer_directed() over every .py/.md/.json in the nagini bundle: zero hits, i.e. no artifact addresses or instructs this panel.\n\nI DID NOT INHERIT THE STALE RECORDED NOTE. meta.json's gates['G-PANEL-3'] is status=pass with a NO-LEAKAGE note, but its sources.model.py is d85f37c1b6445c5056abcc362b25a29e81abc2d3c6889fbbda7ed5f68751e95b while the bundle's actual model.py is 1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af -- that note was computed against a DIFFERENT, older model. The stale note describes a spec that routed on `is_vla_descriptor(fmt)` (code points 80/81); the current model routes on a `rows_hold_subarrays: bool` parameter and mentions no descriptor letter at all. Everything below is my own measurement on the current file. (Same staleness affects G-EQ/G-PANEL/G-PANEL-1/G-PANEL-2, all recorded fail against d85f37c1; G-AX, G-CONF, G-DIFF, G-GOLD, G-HYGIENE, G-INTEGRITY, G-LEAK, G-MUT, G-PBT, G-VERIFY all carry the current 1eb020a1 hash and pass. Not my gate to rule on, but flagging that the recorded G-PANEL verdicts do not describe the shipped artifact.)\n\nSPEC VIEW, derived not read: markers.spec_view(model.py, nagini backend) = 226 lines, single impl region (src lines 224-284) collapsed to `...  # implementation elided`; parse_regions reports no errors; invariants nested inside impl are elided with it. Confirmed elision completeness through the adapter guard (adapter.spec_view, which refuses an unelided view): no `Invariant(`, no `total = `, no `return total` survive. The three residual grep hits for `while `/`close_mismatches[i`/`rows_hold_subarrays:` are all prose (lines 68/75/84/96) or the function SIGNATURE (line 151), not impl residue.\n\nWHAT ACTUALLY REACHES THE SOLVER. I rendered the real prompts rather than reasoning about them: prompts.initial_user(get_adapter('nagini'), build_task(a, 'astropy__astropy-14539', mode)) for both spec modes (MODES_WITH_SPEC = {1,2}). The spec block adds exactly one line beyond the view: `Modeled function(s): count_differing_rows (\u2194 astropy.io.fits.diff.TableDataDiff._diff (per-column comparison body))` -- model_symbol \u2194 repo_symbol only. Full-prompt token scan: '1429-1465' False, '1452' False, 'col.format' False, 'or \"Q\" in' False, '_FormatQ' False, 'where_not_allclose' False. Note meta.json's modeled_functions[0].repo_location reads \"astropy/io/fits/diff.py:1429-1465 (changed elif at line 1452)\" and deep_model_references openly states `is_vla_descriptor == ('P' in fmt or 'Q' in fmt)` -- that WOULD be edit-localization plus the discriminator, but prompts._spec_block's modeled_functions_from_meta branch emits only model_symbol/repo_symbol, so repo_location and deep_model_references never render. Verified empirically above, not just by reading the branch. float_encoding is None so no hint travels. Function-level repo_symbol is the same localization mode 0 gets by documented policy, so it is not a leak beyond policy.\n\nrefinement.md / mapping.md DO carry the gold edit openly (refinement.md:17 names diff.py:1452, :21-22 quote both sides of the hunk; mapping.md:15 spells `\"P\" in col.format or \"Q\" in col.format`), and model_prepatch.py carries the buggy witness. All correctly OUTSIDE the solver view: neither .md is referenced anywhere in eval/dataset.py|prompts.py|adapter.py, and gold_prepatch_src is consumed only at grade.py:316 (grading time), never in prompt assembly.\n\nTHE DISCRIMINATOR IS NOT NAMED IN THE VIEW. The gold edit is `elif \"P\" in col.format:` -> `elif \"P\" in col.format or \"Q\" in col.format:`. Letter-level scan of the 226-line view: no 'P'/'Q' as a standalone token, no code points 80/81, no 'VLA', 'variable-length', 'TFORM', '64-bit', '32-bit', 'letter', 'format' (except the word 'format' once at line 103 in a generic phrase). The view's routing predicate is the parameter `rows_hold_subarrays: bool`, i.e. a STORAGE observation of the materialised column pair, deliberately not the descriptor string; lines 21-31 and 57-65 go out of their way to say the routing is NOT read off any name/spelling/declaration and that the descriptor carrier `fmt` is 'carried only'. That is strictly WEAKER localization than the problem_statement, which hands the solver `format='QD'` verbatim plus 'improper handling of VLAs (variable-length arrays)' and 'couldn't reproduce the bug without using at least one VLA column'.\n\nPROBLEM-STATEMENT-ONLY DERIVATION (so the discriminator is public, not spec-supplied). On a fresh worktree of the real base_commit c0a24c1dc957a3b565294213f435fefb2ec99714 (mktemp -d, git worktree add --detach): the PS names format 'QD' and VLAs; `grep -n 'VLA\\|\"P\"' astropy/io/fits/diff.py` returns exactly ONE line -- 1452, `elif \"P\" in col.format:` -- and `grep -n _format_code astropy/io/fits/column.py` gives `_format_code = \"P\"` (437) and `_format_code = \"Q\"` (478). So P/Q as the two FITS VLA descriptor letters and line 1452 as the single site are reachable from the public statement in two greps, with no spec view at all. Nothing in the view narrows that further.\n\nLOAD-BEARING CHECK (the usual test: is the prose carrying the spec, or the contract?). Stripped the module docstring and the count_differing_rows docstring from both models -- every word of narration, 284 -> 171 lines, zero P/Q tokens remaining -- and re-ran the pinned verifier:\n  - scripts/nagini_verify.sh model.py            -> exit 0, 'Verification successful' (25.6s)\n  - scripts/nagini_verify.sh model_prepatch.py   -> exit 1, 'Postcondition of count_differing_rows might not hold. Assertion Implies((not rows_hold_subarrays), (Result() == row_granular_count(ToSeq(unequal_mismatches)))) might not hold.'\n  - prose-STRIPPED model.py                      -> exit 0 (19.1s)\n  - prose-STRIPPED model_prepatch.py             -> exit 1, SAME postcondition error at the same contract line\nSo the discrimination lives entirely in the Ensures pair (lines 205-206 / 221-222 of the view), and the removed narration was NOT load-bearing -- the reject lane still rejects with all prose gone. The prose is redundant commentary on a contract that discriminates on its own, which is the opposite of a prose leak. markers.same_spec(model.py, model_prepatch.py) = True (spec signature c76255c86b042d14 both sides), so the pre/post pair differs only in the impl region.\n\nGATES I LEANED ON, re-measured fresh on the current 1eb020a1 model.py rather than trusting the stamp: leakage.screen(model.py, nagini, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[] (the mechanical half of G-LEAK, re-run live); markers.region_hashes matches gates['G-HYGIENE'].data.region_hashes exactly (so hygiene's stamp does describe this artifact -- note the TOP-LEVEL meta['region_hashes'] block is stale against all 7 regions, another d85f37c1-era leftover); G-VERIFY reproduced by hand (exit 0) and G-DIFF reproduced by hand (prepatch exit 1).\n\nFACET RE-CONFIRMED: the spec view names no descriptor letter, no code point, no line number and no repo identifier; it routes on a storage observation that is strictly less specific than the 'QD'/VLA wording the public issue already supplies; and the reject lane survives total removal of the narration. Nothing in the solver-visible package lets a solver reconstruct `or \"Q\" in col.format` that the problem_statement did not already hand them.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af",
+        "properties.py": "79f98480374646a482e8e3e558aad8d58cda5c98102015db80dfff8d9a118433"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "BROKEN",
+      "checked_at": "2026-08-15T11:41:04+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af",
+        "properties.py": "79f98480374646a482e8e3e558aad8d58cda5c98102015db80dfff8d9a118433"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T11:40:24+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SPEC INTEGRITY: `python -m swebench_unified.adversary same-spec nagini astropy__astropy-14539 atk.py` -> 'SAME -- attack shares the bundle's exact specification', exit 0 (atk.py was a byte copy of shipped model.py). I read the pre-conditions and post-conditions regions verbatim and transcribed the postcondition exactly (rows_hold_subarrays -> close_mismatches fold; else -> unequal_mismatches fold). Bundle NOT modified; all work, reusing the pre-built real worktrees (patched, guard confirmed via inspect.getsource to contain 'or \"Q\" in col.format') and  (unpatched), venvs venvwt/venvpre, numpy 1.24.4.\n\nMETHOD -- oracle is the repo's own code, CALLED not transliterated: TableDataDiff(ta.data, tb.data, numdiffs=0).diff_total on real one-column BinTableHDUs, so diff_total IS the modelled per-column figure. Groundings taken straight from the shipped docstring: rows_hold_subarrays = (arra.dtype==object or arrb.dtype==object) read off the MATERIALISED pair; close_mismatches[i] = count_nonzero(~np.isclose(a[i],b[i],rtol=0,atol=0)); unequal_mismatches[i] = number of positions np.where(arra!=arrb)[0] attributes to LEADING-AXIS slot i (with the 0-d scalar case treated as one slot, per 'attributes every reported position to a leading-axis slot').\n\nWHAT I CHECKED AND FOUND SOUND:\n1. TDIM / shape-mismatch (the prior finding's class), saturated: 10,500 element-wise pairs with dim drawn INDEPENDENTLY per side from 37 TDIM variants x 36 fixed formats -- 0 divergences across seeds 5/15/25, with 3,030 dim-mismatched, 2,491 shape-mismatched, 2,805 multi-dimensional and 1,153 non-broadcastable (0-d scalar `!=`) pairs per seed. Control with dim forced equal also 0. The leading-axis reading is faithful in BOTH the broadcast case ((2,2) vs (2,1,2) -> ne (2,2,2), SPEC 2 == REAL 2) and the non-broadcastable case ((3,6) vs (3,6,1) -> ne 0-d True, SPEC 1 == REAL 1).\n2. Broad mixed fuzz, 12,000 pairs (seeds 11/21/33), 0 divergences: 3,400 VLA + 570 element-wise per seed, ~3,080 DISCRIMINATING per seed (the non-governing summary would give a different figure, so the spec is picking the right verdict, not coasting on coincidence); includes 2,811 ragged (per-side VLA widths drawn independently), 2,155 empty-sub-array, 690 VLA-with-dim, 108 TDIM-mismatched, 48 scalar-ne.\n3. ROUTING BY STORAGE vs BY LABEL -- the spec's strongest claim (routing is decided by storage 'and by nothing else', NOT read off any name/spelling). Swept all 308 constructible columns (letters LXBIJKAEDCM x repeats x 7 TDIMs, plus P/Q x all letters x options x dims): label_PQ and object-storage COINCIDE in every case; the disagreeing combos (True,False) and (False,True) are never observed. TDEF_RE admits P/Q only as the descriptor letter, and _FormatP/_FormatQ always materialise object dtype. Also confirmed the two sides of a common column can never disagree on storage kind: Column.__eq__/__hash__ (column.py:736-753) key on (name.lower(), format), so QJ-vs-PJ, QJ-vs-6J and QJ-vs-QK yield common_columns == [] and never reach the modelled body. So the storage-based spec and the label-based real code are extensionally equal on every reachable input -- the abstraction is sound, not a strengthening.\n4. DOMAIN SYMMETRY (the usual laundering vector): cross-tabbed grounding-definedness against oracle-definedness over 6,000 VLA trials incl. PA/QA character VLAs and independently drawn widths -> only (True,True) 3059 and (False,False) 2941. Zero (True,False) [spec claims a figure the real code cannot produce] and zero (False,True) [real code defined but spec silently out of domain]. So the 'row with no alignment lies outside the domain' exclusion is exact, not a convenient escape hatch.\n5. The two-summary design is NECESSARY and correctly wired -- verified on discriminating inputs where the summaries disagree: QK/PK with 2**53 vs 2**53+1 -> close=[0], uneq=[1], REAL=0 (float64 significand cannot separate them, exactly as the docstring says); fixed K with the same values -> REAL=1 (governed by !=). QD/PD/QM with a NaN component against ITSELF -> close rejects it, REAL=1. Neither verdict refines the other; the docstring's incomparability claim is accurate in both directions.\n6. Documented exclusions are real branches, not laundering: non-VLA FLOATING dtype takes the UNCHANGED where_not_allclose branch at diff.py:1447-1451, upstream of the patched elif in BOTH pre- and post-patch code, where np.ma.fix_invalid makes NaN==NaN -- I confirmed it diverges there (2D NaN-vs-NaN identical: SPEC 1 vs REAL 0; inf vs -inf: SPEC 1 vs REAL 0), which is precisely why the exclusion is correct rather than convenient. Equal-row-count matches the early diff_rows return at 1409-1411; 0-row tables give REAL 0 == SPEC 0.\n\nMEMORY DISCIPLINE: verdict.md records a PRIOR G-PANEL-2 fail (UNFAITHFUL, TDIM class). Per 'retained attack labels carry the oracle verdict' I did NOT inherit that label, and I did not inherit the older FAITHFUL note either -- I re-derived from the current shipped bytes and specifically re-ran the prior witnesses. They now pass, and I demonstrated (control 1) that my harness still catches them under the superseded grounding, so this is a genuine repair of the spec, not my failure to reproduce. All numbers are live measurements on a built worktree; no verifier/agent cap or host-saturation artifact was involved (the one verifier run I made returned cleanly in 17.9s).\n\nSEPARATE PRE-EXISTING DEFECT, recorded but explicitly NOT the basis of my verdict (it is a G-EQ/provenance matter for a doc gate, not a spec-too-strong divergence): conformance_check.py, axiom_check.py, mapping.md and refinement.md are all written against an EARLIER model -- they reference count_differing_rows(fmt, row_mismatches), is_vla_descriptor, compare_row_aware and compare_elementwise with applicability preconditions, none of which exist in the shipped model.py (signature is (fmt, close_mismatches, unequal_mismatches, rows_hold_subarrays); grep counts: is_vla_descriptor 13x in axiom_check.py / 0x in model.py; rows_hold_subarrays 0x in both checkers / 5x in model.py). So the recorded G-CONF=pass over 100000 pairs and G-AX=pass do not textually attest the shipped spec, and the docs' 'discriminating clause' argument (B) describes preconditions the frozen model no longer has. My FAITHFUL verdict rests solely on my own executed differential against the real worktree, which is why I ran ~30,500 pairs myself rather than leaning on the stale G-CONF number.\n\nCONCLUSION: on the modelled routes the spec is neither too strong nor drifted -- every divergence I could produce lay either in an explicitly documented exclusion (non-VLA floating), outside the reachable input set (mixed-format common columns), or in the patch delta itself measured against the base commit, which the brief directs me not to count. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T11:25:13+00:00",
+      "code_version": "906c0e709-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACKER 3 (leakage / gold-reconstruction), astropy__astropy-14539 nagini. Verdict NO-LEAKAGE.\n\nRELAXATION STATUS: none claimed, and I measured that rather than assuming it. `meta.get('relaxed_leakage')` -> None (keys are exactly additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, migrated_from, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version), and `ls -R` over the whole instance dir (ears/lean/nagini/velvet) shows no RELAXED_LEAKAGE.md. So this is an ordinary strict-mode leakage review; I inherited no disposition. I also ran leakage.reviewer_directed() over every .py/.md/.json in the nagini bundle: zero hits, i.e. no artifact addresses or instructs this panel.\n\nI DID NOT INHERIT THE STALE RECORDED NOTE. meta.json's gates['G-PANEL-3'] is status=pass with a NO-LEAKAGE note, but its sources.model.py is d85f37c1b6445c5056abcc362b25a29e81abc2d3c6889fbbda7ed5f68751e95b while the bundle's actual model.py is 1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af -- that note was computed against a DIFFERENT, older model. The stale note describes a spec that routed on `is_vla_descriptor(fmt)` (code points 80/81); the current model routes on a `rows_hold_subarrays: bool` parameter and mentions no descriptor letter at all. Everything below is my own measurement on the current file. (Same staleness affects G-EQ/G-PANEL/G-PANEL-1/G-PANEL-2, all recorded fail against d85f37c1; G-AX, G-CONF, G-DIFF, G-GOLD, G-HYGIENE, G-INTEGRITY, G-LEAK, G-MUT, G-PBT, G-VERIFY all carry the current 1eb020a1 hash and pass. Not my gate to rule on, but flagging that the recorded G-PANEL verdicts do not describe the shipped artifact.)\n\nSPEC VIEW, derived not read: markers.spec_view(model.py, nagini backend) = 226 lines, single impl region (src lines 224-284) collapsed to `...  # implementation elided`; parse_regions reports no errors; invariants nested inside impl are elided with it. Confirmed elision completeness through the adapter guard (adapter.spec_view, which refuses an unelided view): no `Invariant(`, no `total = `, no `return total` survive. The three residual grep hits for `while `/`close_mismatches[i`/`rows_hold_subarrays:` are all prose (lines 68/75/84/96) or the function SIGNATURE (line 151), not impl residue.\n\nWHAT ACTUALLY REACHES THE SOLVER. I rendered the real prompts rather than reasoning about them: prompts.initial_user(get_adapter('nagini'), build_task(a, 'astropy__astropy-14539', mode)) for both spec modes (MODES_WITH_SPEC = {1,2}). The spec block adds exactly one line beyond the view: `Modeled function(s): count_differing_rows (\u2194 astropy.io.fits.diff.TableDataDiff._diff (per-column comparison body))` -- model_symbol \u2194 repo_symbol only. Full-prompt token scan: '1429-1465' False, '1452' False, 'col.format' False, 'or \"Q\" in' False, '_FormatQ' False, 'where_not_allclose' False.\n\nNote meta.json's modeled_functions[0].repo_location reads \"astropy/io/fits/diff.py:1429-1465 (changed elif at line 1452)\" and deep_model_references openly states `is_vla_descriptor == ('P' in fmt or 'Q' in fmt)` -- that WOULD be edit-localization plus the discriminator, but prompts._spec_block's modeled_functions_from_meta branch emits only model_symbol/repo_symbol, so repo_location and deep_model_references never render. Verified empirically above, not just by reading the branch. float_encoding is None so no hint travels. Function-level repo_symbol is the same localization mode 0 gets by documented policy, so it is not a leak beyond policy.\n\nrefinement.md / mapping.md DO carry the gold edit openly (refinement.md:17 names diff.py:1452, :21-22 quote both sides of the hunk; mapping.md:15 spells `\"P\" in col.format or \"Q\" in col.format`), and model_prepatch.py carries the buggy witness. All correctly OUTSIDE the solver view: neither .md is referenced anywhere in eval/dataset.py|prompts.py|adapter.py, and gold_prepatch_src is consumed only at grade.py:316 (grading time), never in prompt assembly.\n\nTHE DISCRIMINATOR IS NOT NAMED IN THE VIEW. The gold edit is `elif \"P\" in col.format:` -> `elif \"P\" in col.format or \"Q\" in col.format:`. Letter-level scan of the 226-line view: no 'P'/'Q' as a standalone token, no code points 80/81, no 'VLA', 'variable-length', 'TFORM', '64-bit', '32-bit', 'letter', 'format' (except the word 'format' once at line 103 in a generic phrase). The view's routing predicate is the parameter `rows_hold_subarrays: bool`, i.e. a STORAGE observation of the materialised column pair, deliberately not the descriptor string; lines 21-31 and 57-65 go out of their way to say the routing is NOT read off any name/spelling/declaration and that the descriptor carrier `fmt` is 'carried only'. That is strictly WEAKER localization than the problem_statement, which hands the solver `format='QD'` verbatim plus 'improper handling of VLAs (variable-length arrays)' and 'couldn't reproduce the bug without using at least one VLA column'.\n\nPROBLEM-STATEMENT-ONLY DERIVATION (so the discriminator is public, not spec-supplied). On a fresh worktree of the real base_commit c0a24c1dc957a3b565294213f435fefb2ec99714 (mktemp -d, git worktree add --detach): the PS names format 'QD' and VLAs; `grep -n 'VLA\\|\"P\"' astropy/io/fits/diff.py` returns exactly ONE line -- 1452, `elif \"P\" in col.format:` -- and `grep -n _format_code astropy/io/fits/column.py` gives `_format_code = \"P\"` (437) and `_format_code = \"Q\"` (478). So P/Q as the two FITS VLA descriptor letters and line 1452 as the single site are reachable from the public statement in two greps, with no spec view at all. Nothing in the view narrows that further.\n\nLOAD-BEARING CHECK (the usual test: is the prose carrying the spec, or the contract?). Stripped the module docstring and the count_differing_rows docstring from both models -- every word of narration, 284 -> 171 lines, zero P/Q tokens remaining -- and re-ran the pinned verifier:\n  - scripts/nagini_verify.sh model.py            -> exit 0, 'Verification successful' (25.6s)\n  - scripts/nagini_verify.sh model_prepatch.py   -> exit 1, 'Postcondition of count_differing_rows might not hold. Assertion Implies((not rows_hold_subarrays), (Result() == row_granular_count(ToSeq(unequal_mismatches)))) might not hold.'\n  - prose-STRIPPED model.py                      -> exit 0 (19.1s)\n  - prose-STRIPPED model_prepatch.py             -> exit 1, SAME postcondition error at the same contract line\nSo the discrimination lives entirely in the Ensures pair (lines 205-206 / 221-222 of the view), and the removed narration was NOT load-bearing -- the reject lane still rejects with all prose gone. The prose is redundant commentary on a contract that discriminates on its own, which is the opposite of a prose leak. markers.same_spec(model.py, model_prepatch.py) = True (spec signature c76255c86b042d14 both sides), so the pre/post pair differs only in the impl region.\n\nGATES I LEANED ON, re-measured fresh on the current 1eb020a1 model.py rather than trusting the stamp: leakage.screen(model.py, nagini, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[] (the mechanical half of G-LEAK, re-run live); markers.region_hashes matches gates['G-HYGIENE'].data.region_hashes exactly (so hygiene's stamp does describe this artifact -- note the TOP-LEVEL meta['region_hashes'] block is stale against all 7 regions, another d85f37c1-era leftover); G-VERIFY reproduced by hand (exit 0) and G-DIFF reproduced by hand (prepatch exit 1).\n\nFACET RE-CONFIRMED: the spec view names no descriptor letter, no code point, no line number and no repo identifier; it routes on a storage observation that is strictly less specific than the 'QD'/VLA wording the public issue already supplies; and the reject lane survives total removal of the narration. Nothing in the solver-visible package lets a solver reconstruct `or \"Q\" in col.format` that the problem_statement did not already hand them.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:31:44+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-local-reshape-admiss",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-fold-both-then-select",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-fold-without-loop",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.0
+          },
+          {
+            "expect": "reject",
+            "id": "carve-out-when-frames-differ",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.4
+          },
+          {
+            "expect": "reject",
+            "id": "route-by-descriptor-carrier-both",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.6
+          },
+          {
+            "expect": "reject",
+            "id": "misroute-always-plain-inequality",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.0
+          },
+          {
+            "expect": "reject",
+            "id": "misroute-always-closeness",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.7
+          },
+          {
+            "expect": "reject",
+            "id": "route-by-descriptor-carrier-32bit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "reject",
+            "id": "route-by-descriptor-carrier-64bit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-row0-other-verdict",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.6
+          },
+          {
+            "expect": "reject",
+            "id": "boundary-empty-and-single-row",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.6
+          },
+          {
+            "expect": "reject",
+            "id": "route-inverted-both-branches",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.9
+          },
+          {
+            "expect": "reject",
+            "id": "saturation-clamp-figure",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-readonly",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.6
+          },
+          {
+            "expect": "reject",
+            "id": "non-termination-before-the-figure",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.2
+          },
+          {
+            "expect": "reject",
+            "id": "granularity-positions-not-rows",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.3
+          },
+          {
+            "expect": "reject",
+            "id": "echo-wrong-summary-no-work",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "echo-sum-of-both-summaries",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 15
+        },
+        "manifest_sha256": "79f98480374646a482e8e3e558aad8d58cda5c98102015db80dfff8d9a118433",
+        "n_cases": 19,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 19 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af",
+        "properties.py": "79f98480374646a482e8e3e558aad8d58cda5c98102015db80dfff8d9a118433"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T10:53:33+00:00",
+      "code_version": "6204d33a2-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8df2393b9ac95fdbcfec62e73bdedef8d6c56801248364540fd5167bee6f6397",
+        "patch.diff": "6df2a31458ccb6444253ea103006830eeb96f9a89eb9db2959f46060a28fe691"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T10:47:54+00:00",
+      "code_version": "428d7d93c-dirty",
+      "data": {
+        "wall_time_s": 19.3
+      },
+      "detail": "verified in 19.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1eb020a1e8582fce8e42796d556bc9ab7f1199b16367b835b0ced569ebba13af"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "astropy__astropy-14539",
+  "migrated_from": "/home/ubuntu/branches/swe-bench-verified-nagini/tasks/astropy__astropy-14539",
+  "modeled_functions": [
+    {
+      "carrier_type": "col.format str -> List[int] of code points; per-column two-array comparison -> row_mismatches: List[int] (per-row element-mismatch counts); specification over PSeq[int]",
+      "model_symbol": "count_differing_rows",
+      "repo_location": "astropy/io/fits/diff.py:1429-1465 (changed elif at line 1452)",
+      "repo_symbol": "astropy.io.fits.diff.TableDataDiff._diff (per-column comparison body)",
+      "role": "modeled changed behaviour: how many rows of one column differ between the two tables; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "the applicability precondition of compare_elementwise, Requires(not is_vla_descriptor(ToSeq(fmt))) \u2014 a Q-only column is wrongly routed to the element-wise comparator that is not applicable to a variable-length column (mirrors the real np.where ValueError on the QJ(2) object array). Error: 'The precondition of method compare_elementwise might not hold. Assertion (not is_vla_descriptor(ToSeq(fmt))) might not hold.'",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "VLA-descriptor recognition in the per-column comparator selection",
+      "reverted_to": "if contains_cp(ToSeq(fmt), 80) \u2014 only the 32-bit 'P' descriptor recognised (pre-patch 'P' in col.format), omitting the 64-bit 'Q' (81)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "739fdd2bed8d60588d06d53cdf044c4b4fd1f8c177e0eeab16a0a129277fad13",
+    "impl": "251903a5f82bccaf09c0e5716940a0235381ae8baad04cf3dc88c07ceb84e897",
+    "invariants": "124a819fb0ed35af4db6e02aa3f58e9119dae7d31823f3bb0645d4f95ebe1242",
+    "post-conditions": "99ec385310ce395fe4fbfac35f254b48fcdbc6ea8cfbe94fc8e04b697f37cbc2",
+    "pre-conditions": "6942ea8069170f17ff05fdf9674abb62a689924a90680641f727699f1d563a4e",
+    "pure": "d002d5347d570cd82fa5d9128acbc1145534b31ebff117804ea2dc37c73b37da",
+    "spec_view": "a4cc82c4589d5b0e9db13fad4c2411791bb06278720f80deab4a185bcceb3139"
+  },
+  "repo": "astropy/astropy",
+  "schema_version": 1,
+  "string_modeling": "col.format str -> List[int] of code points; specification carried by PSeq[int] via ToSeq; the column comparison summarised by a flat List[int] of per-row element-mismatch counts; the single row-granular discipline proven by a front-recursive fold (single unfold per loop step) in each comparator helper; the changed routing modelled by selecting compare_row_aware vs compare_elementwise, the latter guarded by an applicability precondition Requires(not is_vla_descriptor)",
+  "version": "5.1"
+}

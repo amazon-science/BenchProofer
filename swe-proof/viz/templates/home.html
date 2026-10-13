@@ -1,0 +1,225 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{# The site's front page: what the corpus claims, and how to read it.
+
+   Written as a research overview rather than a dashboard. Every figure on it is
+   measured from the corpus being served (`app.home`), and every figure links to
+   the board that counts it, so a reader can check any number by clicking it.
+   Nothing here restates a definition that lives in the code: the gate taxonomy
+   comes from `data.GATE_FAMILIES` and the per-gate wording from `GATE_DEFS`. #}
+{% extends "base.html" %}
+{% block title %}{{ site_title }} · overview{% endblock %}
+{% block content %}
+<div class="wrap paper">
+
+  <header class="masthead">
+    <h1>{{ site_title }}</h1>
+    <p class="lede">{{ tagline }}</p>
+    <p class="sig">A formally verified twin of real software-engineering tasks,
+      and the pipeline that constructs one.</p>
+  </header>
+
+  <section class="doc">
+    <h2>Summary</h2>
+    <p>Coding agents are judged almost entirely by held-out tests. Tests are
+      finite, so a patch that passes them can still be wrong on inputs nobody
+      wrote a case for, and an agent optimising against them can satisfy the
+      cases without fixing the defect. Formal verification answers the whole
+      specified domain instead of a sample of it, but the verified-code-generation
+      literature has largely stayed with self-contained exercises whose
+      specification is given as part of the problem.</p>
+    <p>SWE-Proof attaches a machine-checked correctness oracle to real repository
+      issues. For every instance it publishes a formal specification of the
+      required change, axioms summarising the unchanged callees the fix depends
+      on, a reference implementation that verifies against that specification,
+      the equivalent repository patch, and the recorded outcome of every gate that
+      admitted the instance. Scaling verification to a real repository rests on
+      two ideas: model only the code the fix introduces, and summarise its
+      interaction with everything it calls as axioms that are fuzzed against the
+      real callees; then admit an instance only when a stack of mechanical checks
+      and adversarial auditors has failed to refute it.</p>
+  </section>
+
+  <section class="doc">
+    <h2>The claim a bundle makes</h2>
+    <p class="claim">If an implementation satisfies an instance's formal
+      specification and verifies under that instance's backend, then the
+      corresponding repository patch resolves the instance under the official
+      harness.</p>
+    <p>The property has two directions, and they fail differently. A
+      specification that admits a wrong implementation makes a verified answer
+      not a correct one. A specification that rejects a correct implementation
+      makes the instance unsolvable by a faithful patch of a different shape.
+      Every gate below attacks one of those directions, or protects an input the
+      attacks depend on. Nothing is established by the party that produced it:
+      each recorded outcome comes from a re-check performed afterwards by code
+      that did not write the bundle.</p>
+  </section>
+
+  <section class="doc">
+    <h2>Corpora</h2>
+    <p>Two corpora are served here. A figure is the number of bundles that pass
+      every gate that applies to them; it links to the board it counts, where the
+      per-gate verdict for each instance is recorded.</p>
+    <table class="facts">
+      <thead>
+        <tr>
+          <th>Corpus</th><th class="num">Instances</th>
+          {% for b in backends %}<th class="num">{{ b }}</th>{% endfor %}
+          <th class="num">Bundles</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in corpus_rows %}
+        <tr>
+          <td><a href="/{{ r.key }}/{{ default_backend }}/">{{ r.label }}</a></td>
+          <td class="num">{{ r.instances }}</td>
+          {% for b in backends %}
+          <td class="num"><a href="/{{ r.key }}/{{ b }}/?flagged=green"
+             title="{{ r.label }} · {{ backend_labels.get(b, b) }}: {{ r.green[b] }} fully green">{{ r.green[b] }}</a></td>
+          {% endfor %}
+          <td class="num">{{ r.bundles }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="note">The two corpora differ in how far the gate suite has been run
+      over them, and the difference matters to what may be assumed. SWE-bench
+      Verified passes it in full. SWE-bench Pro does not yet, and a bundle it does
+      not report as green should be read as a specification awaiting a gate rather
+      than a certified one.</p>
+  </section>
+
+  <section class="doc">
+    <h2>Verification backends</h2>
+    <p>Each instance is built independently under four backends. The spread is
+      deliberate: it covers an imperative contract language, a proof assistant
+      with automatic discharge, one with hand-written proofs, and a specification
+      form with no prover at all, which is what forces the rest of the system to
+      be written against an interface rather than against a single verifier.</p>
+    <table class="facts">
+      <thead><tr><th>Backend</th><th>Specification language</th><th>How obligations are discharged</th></tr></thead>
+      <tbody>
+        <tr><td><a href="/{{ default_benchmark }}/nagini/">nagini</a></td>
+            <td>statically typed Python with Nagini contracts</td>
+            <td>automatic, through Viper to an SMT solver</td></tr>
+        <tr><td><a href="/{{ default_benchmark }}/velvet/">velvet</a></td>
+            <td>Velvet, an imperative DSL embedded in Lean&nbsp;4</td>
+            <td>automatic, SMT-backed, checked by the Lean kernel</td></tr>
+        <tr><td><a href="/{{ default_benchmark }}/lean/">lean</a></td>
+            <td>Lean 4 definitions with Mathlib</td>
+            <td>proofs written by an agent, accepted only by the Lean kernel</td></tr>
+        <tr><td><a href="/{{ default_benchmark }}/ears/">ears</a></td>
+            <td>structured natural-language EARS requirements</td>
+            <td>no prover: structural lint plus an adversarial probe audit</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc">
+    <h2>What an instance contains</h2>
+    <p>One instance is a frozen task record plus one bundle per backend. Every
+      artifact below is published, so each step of the argument can be re-checked
+      without rerunning the pipeline.</p>
+    <dl class="artifacts">
+      <dt>Specification</dt>
+      <dd>Pre- and postconditions for the changed behaviour, in the backend's
+        language, together with the axioms and helper definitions the contracts
+        use.</dd>
+      <dt>Axioms</dt>
+      <dd>One per unchanged callee the fix relies on, stating only the property it
+        relies on. Axioms are the boundary between what is verified and what is
+        assumed, and each ships with the tests that probe it against the real
+        callee.</dd>
+      <dt>Reference implementation</dt>
+      <dd>A faithful skeleton of the real fix that verifies against the
+        specification, with the proof annotations its backend needs.</dd>
+      <dt>Pre-fix twin</dt>
+      <dd>The same specification paired with the buggy implementation. It must
+        fail to verify, which is what makes the specification non-vacuous.</dd>
+      <dt>Equivalent patch</dt>
+      <dd>The repository diff that applies at the base commit and resolves the
+        issue, with a documented step-by-step correspondence to the reference
+        implementation.</dd>
+      <dt>Property battery</dt>
+      <dd>Rival implementations with machine-checkable expected outcomes:
+        admissibility probes that must verify, and near misses that must be
+        refuted.</dd>
+      <dt>Gate record</dt>
+      <dd>Every verdict, stamped with the judging code's version and a digest of
+        the bytes it judged, so a reader can tell which judge ran on what.</dd>
+    </dl>
+  </section>
+
+  <section class="doc">
+    <h2>How an instance is admitted</h2>
+    <p>Mechanical checks are necessary and not sufficient, so the rest of the
+      suite is adversarial: model agents instructed to refute the instance by
+      exhibiting a concrete counterexample. An instance is admitted only when
+      every gate passes, and any counterexample sends it back for revision.
+      Hover a gate name for the exact check it performs.</p>
+    {# the gate keys sit under their family name rather than in a third column:
+       nowrap chips in a column of their own reserve the width of the longest run
+       (five keys) and squeeze the prose beside them into a narrow ribbon.
+
+       Each chip carries the definition in the same hover popover the boards use
+       (.gate-pop), not in a `title`: the chip is styled cursor:help, so it
+       promises a definition, and a native tooltip is slow, unstyled, and absent
+       on touch. `aria-label` keeps it reachable when the popover is not. #}
+    <table class="facts families">
+      <thead><tr><th>Family</th><th>What it defends</th></tr></thead>
+      <tbody>
+        {% for name, why, keys in gate_families %}
+        <tr>
+          <td class="fam">{{ name }}
+            <span class="keys">{% for k in keys %}<span class="gkey" tabindex="0"
+              aria-label="{{ k }}: {{ gate_defs.get(k, '') }}"><code>{{ k }}</code>{% if gate_defs.get(k) %}<span
+              class="gate-pop" role="tooltip"><span class="gp-head">{{ k }}</span><span
+              class="gp-def">{{ gate_defs.get(k) }}</span></span>{% endif %}</span>{% endfor %}</span>
+          </td>
+          <td>{{ why }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc">
+    <h2>Reading a bundle</h2>
+    <p>Two judgments the gates cannot make are left to a reader: whether a
+      specification is <em>faithful</em> to the behaviour it models, and whether
+      it <em>discloses</em> the fix. Both need the specification, the repository
+      at the base commit, and the gate notes side by side, which is what the rest
+      of this site is for.</p>
+    <ul class="plain">
+      <li><a href="{{ default_cell }}">Instance boards</a> list every instance for
+        one corpus and backend, with its gate verdicts at a glance and filters for
+        the cells worth a second look.</li>
+      <li>An instance page carries the specification, the pre-fix twin and the diff
+        between them, the patch, the property battery with each case's adjudicated
+        outcome, the audit verdict in full, and the repository as it stood at the
+        base commit.</li>
+      <li>The header chooser moves between corpora and backends, and keeps the
+        instance you are reading when you change backend.</li>
+    </ul>
+  </section>
+
+  <section class="doc">
+    <h2>Reproducing, and porting to another benchmark</h2>
+    <p>The construction pipeline is released with the corpora. Whether a corpus is
+      releasable has one executable definition rather than a judgment:</p>
+    <pre class="cmd">python scripts/release_gate.py --benchmark-dir benchmark-verified</pre>
+    <p>It is a conjunction of independent checks: every cell green, every stamp
+      describing the bytes on disk, every audit still describing the specification
+      it judged, every property battery importable, and no stale failure label. A
+      cell it cannot measure counts as a failure rather than a pass.</p>
+    <p>Nothing in the construction loop, the gate suite, or the evaluation harness
+      is specific to one dataset or one prover. Pointing the pipeline at a
+      different benchmark is a registry entry, a row adapter if its records are not
+      already the frozen schema, and an oracle adapter, none of which has to be an
+      edit to the pipeline. Adding another specification language is one backend
+      class. See the repository's <code>docs/</code> for both seams.</p>
+  </section>
+
+</div>
+{% endblock %}

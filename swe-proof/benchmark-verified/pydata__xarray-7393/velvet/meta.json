@@ -1,0 +1,773 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "41fef6f1352be994cd90056d47440fe9aa4c068f",
+  "changed_files": [
+    "xarray/core/indexing.py"
+  ],
+  "conf_skip": false,
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): the level view's recorded dtype equals the dtype the stacked coordinate was created with",
+      "encoded_property": "the dtype the view promises to expose; used as the default when no dtype is requested",
+      "kind": "A-reference",
+      "models": "self.dtype (the view's recorded element dtype, PandasIndexingAdapter.dtype property; set at construction from the coordinate's dtype)",
+      "name": "recordedDtype"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the stacked-coordinate view is a PandasMultiIndexingAdapter with level not None",
+      "encoded_property": "True for the per-level multi-index adapter the issue builds; selects the retag branch",
+      "kind": "A-reference",
+      "models": "self.level is not None (the view exposes a single named level of a multi-index)",
+      "name": "isComponent"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the native dtype of get_level_values(...).values differs from the recorded dtype on int32/float32/int16/uint8/float16/int8/uint16",
+      "encoded_property": "the level's stored values carry a NATIVE (promoted) dtype that may DIFFER from the recorded dtype (pandas promotes int->int64, float->float64), making the retag load-bearing and the bug real",
+      "kind": "A-reference",
+      "models": "self.array.get_level_values(self.level).values (the stored level values, tagged with the storage's native dtype)",
+      "name": "componentValues"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): np.asarray(native, dtype=recorded).dtype == recorded with content preserved",
+      "encoded_property": "yields an array whose .dtype == d, preserving element content for the integer/float values at play",
+      "kind": "A-reference",
+      "models": "np.asarray(values, dtype=d) (the cast the patch adds in the level branch)",
+      "name": "toDtype"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): a non-level PandasIndexingAdapter.__array__() returns the recorded dtype",
+      "encoded_property": "resolves a missing dtype to the recorded dtype internally and returns an array of that dtype; unchanged by the patch (the else branch)",
+      "kind": "A-reference",
+      "models": "super().__array__(dtype) (PandasIndexingAdapter.__array__, the inherited non-level path)",
+      "name": "baseMaterialize"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:21:41+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: per-level multi-index adapter recorded dtype faithful; stored level values natively PROMOTED away from the recorded dtype on 7 sub-64-bit dtypes (retag load-bearing: {'int32': 'int64', 'float32': 'float64', 'int16': 'int64', 'uint8': 'uint64', 'float16': 'float64', 'int8': 'int64', 'uint16': 'uint64'}); np.asarray retag yields the recorded dtype with content preserved; inherited base path already returns the recorded dtype; 400 fuzz checks. A-reference facts sound; no consumed axiom.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b",
+        "axiom_check.py": "cdf7b67bfcb6d0af123f88785cbe4790d8b8bfb363c486039bd9b58fe884763c"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:21:52+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "G-CONF OK: R/I shadow of arrayDispatch agrees with patch.diff behaviour on 100000 multi-index level views (seed=7393), 0 disagreements.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b",
+        "conformance_check.py": "1ac1fd12fa743ac6f2c7822610e449c958ace9ad5474f363cd91fc2f98b6b42b"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:57:26+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b",
+        "Solution_prepatch.lean": "61e032f2f6e257c782cb9ed0f865ae11b7f66ffc049da52879f36cd9fbbd145d"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-09T21:34:01+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_prepatch.lean`, `atk2_ignore_dtype.lean`, `atk3_swap.lean`, `atk4_boundary.lean`, `atk5_partial.lean`, `atk8_dropbranch.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk7_echo.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:57:36+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b",
+        "Solution_prepatch.lean": "61e032f2f6e257c782cb9ed0f865ae11b7f66ffc049da52879f36cd9fbbd145d"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:21:37+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "8e34844dd97ed6f35f3c6fe0f13da62bc5f785f3f8e3205e28a155a37e3fa004",
+          "impl": "78da0b60dedbc2c8a744a33dcf23899d38bb888d70f738cc61a8bb09c9179cf6",
+          "pure": "91900bed665ff8a9b0db9ca1e7fb03eb9d3c2cce9aca3fade06e369a8b6615d1",
+          "spec_view": "139f2848e92daee77733512d35d9c1f528ae59028384940a40f63e1c43428793"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:21:38+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b",
+        "instance.json": "25d7d2fdbd40543b3031f268a3f94e3c2ff450b1496cb7ca8556e760cf62278e"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:21:38+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:39:06+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-09T21:34:04+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break attack found no divergence. (1) Spec region byte-identical: same_spec(Solution, Solution_prepatch)=True. (2) Solution.lean verifies (exit 0); prepatch fails precisely on the isComponent=true branch. (3) Real repo @ base 41fef6f (checkout $SCRATCH, PandasMultiIndexingAdapter.__array__): pre-patch level branch returns get_level_values(level).values directly (native/promoted dtype) \u2014 matches Solution_prepatch. Gold patch adds `if dtype is None: dtype=self.dtype` and wraps level values in np.asarray(...,dtype=dtype). arrayMaterialize models this exactly: dtype.getD(recordedDtype) \u27fa default-resolution; toDtype(componentValues,d) \u27fa np.asarray(...,dtype=dtype); baseMaterialize adapter dtype \u27fa super().__array__(dtype). (4) Scrutinized the only plausible drift: model's else-branch passes UNRESOLVED dtype to baseMaterialize while gold reassigns dtype=self.dtype before the else. This is observationally equivalent \u2014 PandasIndexingAdapter.__array__ (indexing.py:1292-1300) re-resolves None->self.dtype internally, so super().__array__(None) === super().__array__(self.dtype). No diverging input. (5) All 5 callees modeled opaque with NO asserted ensures \u2014 spec is not stronger than the gold's observable behavior. Spec is faithful, not too strong.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen (leakage.screen over solver-visible Solution.lean spec view vs frozen patch + problem_statement) passes clean: hard_failures=[], warnings=[]. same_spec(Solution.lean, Solution_prepatch.lean)=True (spec region byte-identical; only the impl/proof regions differ). Manual review: the spec view uses only abstract modeled identifiers (recordedDtype, isComponent, componentValues, toDtype, baseMaterialize, arrayMaterialize, MatArray, Dtype) \u2014 NO patched repo symbols (__array__, get_level_values, np.asarray, self.level, self.dtype, PandasMultiIndexingAdapter), no patched file path, no diff markers, no bug/fix narration. The gold patch's mechanism (default dtype=self.dtype; wrap level values in np.asarray(..., dtype=dtype)) is not disclosed in the spec view in any repo-specific form. The discriminating behavioral content in the pure model/doc-comment (a component's stored values may be held under a wider storage dtype; materialization must still yield the recorded/requested dtype) is a direct abstraction of the PUBLIC problem_statement symptom ('stack casts int32 coordinate to int64'; 'Creating a MultiIndex should not change the data type of the Indexes from which it is built') \u2014 it restates the publicly-reported desired outcome, which is inherent to a spec-first benchmark and is not leakage. hints_text carries the literal gold patch, but leakage is judged against problem_statement only, and nothing hints-specific is echoed into the spec view. Solver must still supply the impl and discharge the proof. No spec-view line leaks the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break attack found no divergence. (1) Spec region byte-identical: same_spec(Solution, Solution_prepatch)=True. (2) Solution.lean verifies (exit 0); prepatch fails precisely on the isComponent=true branch. (3) Real repo @ base 41fef6f (checkout $SCRATCH, PandasMultiIndexingAdapter.__array__): pre-patch level branch returns get_level_values(level).values directly (native/promoted dtype) \u2014 matches Solution_prepatch. Gold patch adds `if dtype is None: dtype=self.dtype` and wraps level values in np.asarray(...,dtype=dtype). arrayMaterialize models this exactly: dtype.getD(recordedDtype) \u27fa default-resolution; toDtype(componentValues,d) \u27fa np.asarray(...,dtype=dtype); baseMaterialize adapter dtype \u27fa super().__array__(dtype). (4) Scrutinized the only plausible drift: model's else-branch passes UNRESOLVED dtype to baseMaterialize while gold reassigns dtype=self.dtype before the else. This is observationally equivalent \u2014 PandasIndexingAdapter.__array__ (indexing.py:1292-1300) re-resolves None->self.dtype internally, so super().__array__(None) === super().__array__(self.dtype). No diverging input. (5) All 5 callees modeled opaque with NO asserted ensures \u2014 spec is not stronger than the gold's observable behavior. Spec is faithful, not too strong.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen (leakage.screen over solver-visible Solution.lean spec view vs frozen patch + problem_statement) passes clean: hard_failures=[], warnings=[]. same_spec(Solution.lean, Solution_prepatch.lean)=True (spec region byte-identical; only the impl/proof regions differ). Manual review: the spec view uses only abstract modeled identifiers (recordedDtype, isComponent, componentValues, toDtype, baseMaterialize, arrayMaterialize, MatArray, Dtype) \u2014 NO patched repo symbols (__array__, get_level_values, np.asarray, self.level, self.dtype, PandasMultiIndexingAdapter), no patched file path, no diff markers, no bug/fix narration. The gold patch's mechanism (default dtype=self.dtype; wrap level values in np.asarray(..., dtype=dtype)) is not disclosed in the spec view in any repo-specific form. The discriminating behavioral content in the pure model/doc-comment (a component's stored values may be held under a wider storage dtype; materialization must still yield the recorded/requested dtype) is a direct abstraction of the PUBLIC problem_statement symptom ('stack casts int32 coordinate to int64'; 'Creating a MultiIndex should not change the data type of the Indexes from which it is built') \u2014 it restates the publicly-reported desired outcome, which is inherent to a spec-first benchmark and is not leakage. hints_text carries the literal gold patch, but leakage is judged against problem_statement only, and nothing hints-specific is echoed into the spec view. Solver must still supply the impl and discharge the proof. No spec-view line leaks the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_prepatch.lean`, `atk2_ignore_dtype.lean`, `atk3_swap.lean`, `atk4_boundary.lean`, `atk5_partial.lean`, `atk8_dropbranch.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk7_echo.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break attack found no divergence.\n\n(1) Spec region byte-identical: same_spec(Solution, Solution_prepatch)=True.\n\n(2) Solution.lean verifies (exit 0); prepatch fails precisely on the isComponent=true branch.\n\n(3) Real repo @ base 41fef6f (checkout $SCRATCH, PandasMultiIndexingAdapter.__array__): pre-patch level branch returns get_level_values(level).values directly (native/promoted dtype) \u2014 matches Solution_prepatch. Gold patch adds `if dtype is None: dtype=self.dtype` and wraps level values in np.asarray(...,dtype=dtype). arrayMaterialize models this exactly: dtype.getD(recordedDtype) \u27fa default-resolution; toDtype(componentValues,d) \u27fa np.asarray(...,dtype=dtype); baseMaterialize adapter dtype \u27fa super().__array__(dtype).\n\n(4) Scrutinized the only plausible drift: model's else-branch passes UNRESOLVED dtype to baseMaterialize while gold reassigns dtype=self.dtype before the else. This is observationally equivalent \u2014 PandasIndexingAdapter.__array__ (indexing.py:1292-1300) re-resolves None->self.dtype internally, so super().__array__(None) === super().__array__(self.dtype). No diverging input.\n\n(5) All 5 callees modeled opaque with NO asserted ensures \u2014 spec is not stronger than the gold's observable behavior. Spec is faithful, not too strong.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen (leakage.screen over solver-visible Solution.lean spec view vs frozen patch + problem_statement) passes clean: hard_failures=[], warnings=[]. same_spec(Solution.lean, Solution_prepatch.lean)=True (spec region byte-identical; only the impl/proof regions differ). Manual review: the spec view uses only abstract modeled identifiers (recordedDtype, isComponent, componentValues, toDtype, baseMaterialize, arrayMaterialize, MatArray, Dtype) \u2014 NO patched repo symbols (__array__, get_level_values, np.asarray, self.level, self.dtype, PandasMultiIndexingAdapter), no patched file path, no diff markers, no bug/fix narration.\n\nThe gold patch's mechanism (default dtype=self.dtype; wrap level values in np.asarray(..., dtype=dtype)) is not disclosed in the spec view in any repo-specific form. The discriminating behavioral content in the pure model/doc-comment (a component's stored values may be held under a wider storage dtype; materialization must still yield the recorded/requested dtype) is a direct abstraction of the PUBLIC problem_statement symptom ('stack casts int32 coordinate to int64'; 'Creating a MultiIndex should not change the data type of the Indexes from which it is built') \u2014 it restates the publicly-reported desired outcome, which is inherent to a spec-first benchmark and is not leakage. hints_text carries the literal gold patch, but leakage is judged against problem_statement only, and nothing hints-specific is echoed into the spec view. Solver must still supply the impl and discharge the proof. No spec-view line leaks the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:39:24+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-direct-model",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-component-defaulted",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.3
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument Eq.symm hh has type toDtype (componentValues 0) 7 = toDtype (componentValues 0) 7 but is expected to have type toDtype (componentValues 0) 7 = componentValues 0 in the application h2 (Eq.symm hh)",
+            "id": "weak-storage-leak",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hh has type baseMaterialize 2 none = baseMaterialize 2 none but is expected to have type componentValues 2 = baseMaterialize 2 none in the application h2 hh",
+            "id": "weak-delegate-instead-of-base",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hh has type toDtype (componentValues 4) (recordedDtype 4) = toDtype (componentValues 4) (recordedDtype 4) but is expected to have type toDtype (componentValues 4) (componentValues 4).dtype = toDtype (componentValues 4) (recordedDtype 4) in the application h2 hh",
+            "id": "weak-default-from-storage",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.0,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals h1 : isComponent 1 = true hh : toDtype (componentValues 1) (recordedDtype 1) = toDtype (componentValues 1) (recordedDtype 1) he : True \u22a2 False",
+            "id": "weak-value-extra-element",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Invalid field `symm`: The environment does not contain `True.symm` he has type True",
+            "id": "weak-value-drop-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "2acf32a410b4f0a8b1401497f5e9757d4bd6cc192442ab8c5a79520102cd2a92",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b",
+        "properties.py": "2acf32a410b4f0a8b1401497f5e9757d4bd6cc192442ab8c5a79520102cd2a92"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:02:41+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:57:22+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "wall_time_s": 4.1
+      },
+      "detail": "verified in 4.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "afd6059710bbdd90e0f8b449bd62befc21a556c9e2ce326316dcbb802cd9be5b"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-7393",
+  "modeled_functions": [
+    {
+      "carrier_type": "view handle -> Int opaque; optional dtype -> Option Dtype; spec over MatArray (elems, dtype)",
+      "model_symbol": "arrayDispatch",
+      "repo_location": "xarray/core/indexing.py:1530",
+      "repo_symbol": "xarray.core.indexing.PandasMultiIndexingAdapter.__array__"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "D6_retag_base_in_component",
+        "kind": "wrong-impl (SPEC-TOO-WEAK probe): component arm retags the DELEGATE's output instead of the component's stored values",
+        "outcome": "REJECTED (EXIT 1). Residual `toDtype (baseMaterialize adapter dtype) (dtype.getD (recordedDtype adapter)) = \u2026`. Spec pins WHICH array is retagged, not merely that a retag happened. No hole."
+      },
+      {
+        "id": "D7_double_retag_through_storage",
+        "kind": "wrong-impl: retag twice, inner call aimed at the storage dtype (probes whether toDtype idempotence is silently assumed)",
+        "outcome": "REJECTED (EXIT 1). Nothing asserts toDtype is idempotent/absorbing, so the doubled call is a distinct term. No hole."
+      },
+      {
+        "id": "D8_branch_on_dtype_not_isComponent",
+        "kind": "wrong-impl: dispatch on the REQUEST (`match dtype with none => retag | some => delegate`) instead of on isComponent",
+        "outcome": "REJECTED (EXIT 1). Spec pins the branch to the isComponent observation, so a rival that happens to agree on the none/component point is still caught. No hole."
+      },
+      {
+        "id": "D9_component_ignores_explicit_request",
+        "kind": "wrong-impl: component arm retags to recordedDtype unconditionally, dropping an explicit request (the nagini partial-ignore-requested analogue, in the component arm only)",
+        "outcome": "REJECTED (EXIT 1). Confirms the explicit-request arm is pinned; not shipped as a case, since the port's refinement argument (component views are only ever materialized with the DEFAULT on the real domain, so its faithful counterpart still resolves) makes rejecting it a break in the wrong direction. I agree with that disposition."
+      },
+      {
+        "id": "D10_correct_tag_delegate_elems",
+        "kind": "wrong-impl: keep the correct dtype tag but substitute the delegate's `elems` (a mixed forgery aimed at whether the tag alone satisfies the spec)",
+        "outcome": "REJECTED (EXIT 1). The spec pins the whole MatArray, not just its dtype projection. No hole."
+      },
+      {
+        "id": "D11_reversed_elems",
+        "kind": "wrong-impl: content PERMUTED (elems reversed) with the tag correct \u2014 aimed at the facet BOTH shipped value rivals miss, since each changes LENGTH",
+        "outcome": "REJECTED (EXIT 1). The sharpest new D probe: it shows the value-copy facet is pinned to elems IDENTITY, not merely to length. No hole."
+      },
+      {
+        "id": "E4_option_elim",
+        "kind": "correct reshape (SPEC-TOO-STRONG probe): resolve the default via `dtype.elim (recordedDtype adapter) id` instead of `getD`",
+        "outcome": "VERIFIES (EXIT 0) with `cases dtype <;> simp_all [arrayMaterialize]`. Spec is not over-fit to the getD spelling."
+      },
+      {
+        "id": "E6_early_return",
+        "kind": "correct reshape: two `return` statements, no `let` bindings, resolution inlined into the component arm",
+        "outcome": "VERIFIES (EXIT 0). Spec is not over-fit to the single-return/let shape."
+      },
+      {
+        "id": "E5_via_lambda",
+        "kind": "correct reshape: route the branch through a local `pick : Bool \u2192 MatArray` lambda applied to `isComponent adapter`",
+        "outcome": "VERIFIES (EXIT 0) \u2014 but only after retuning the proof (`split <;> simp_all [arrayMaterialize]`, or simp_all followed by `all_goals cases h : isComponent adapter <;> simp_all`). My FIRST attempt failed EXIT 1 with an unsolved branch goal, and I report it as VERIFIED rather than as a spec hole because the failure was my PROOF gap, not the spec refusing the reshape. Recorded per the brief's instruction not to claim a hole I could not close."
+      },
+      {
+        "id": "E3_base_gets_resolved (re-verification of the recorded spec hole)",
+        "kind": "correct reshape: hoist the default resolution above the branch and pass the resolved type to the delegate (`baseMaterialize adapter (some d)`)",
+        "outcome": "REJECTED (EXIT 1) under two different proof scripts, residual `baseMaterialize adapter (some (recordedDtype adapter)) = baseMaterialize adapter none`. I did NOT take the prior audit's word: I built a discriminating witness at (adapter 5, none) \u2014 rival 0 / gold 1 / probe 1 \u2014 proving the frozen spec genuinely SEPARATES the two calls rather than my proof being weak. The recorded spec_holes entry is real and I carry it forward unchanged."
+      },
+      {
+        "id": "DIV_probe / canonical probe_divergence.py",
+        "kind": "divergence category control \u2014 NOT a re-derivation of the settled lane, but a check of WHICH SIDE of the findings doc's own split this cell is on",
+        "outcome": "REJECTED. `scripts/probe_divergence.py` reports `mode=total, outcome=rejected, error: Decreasing annotations are required in total correctness semantics`. This is what exposed the manifest's stale `partial` citation (see notes). Not filed as a spec hole \u2014 the disposition (nothing to ship) is unchanged; only the stated reason was wrong."
+      }
+    ],
+    "audited_at": "u4",
+    "cases": [
+      {
+        "evidence": "Rebuilt myself: EXIT 0. Attack A: unified diff vs frozen shows ONLY the 7-line impl block replaced by `return arrayMaterialize adapter dtype` plus the now-redundant `simp_all` proof line dropped; method header, `ensures out = arrayMaterialize adapter dtype`, and `prove_correct` header byte-identical; variant_problems=[]. Not neutered: it is not a copy of the frozen impl (frozen builds the same value via let+branch) and not trivially-equal-by-construction cheating \u2014 the obligation statement is untouched and dropping a tactic cannot weaken an obligation. Rationale's grounding claim checked against the axioms region: arrayMaterialize is a total def over the two method inputs, no opaque answer key, so returning it is the honest cheapest correct impl.",
+        "id": "pos-direct-model",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rebuilt myself: EXIT 0. Statement byte-identical, scope []. Genuinely reshaped rather than definitionally equal: the guard becomes `!isComponent adapter` with the arms swapped, which is precisely why the frozen tactic no longer closes it and the case must add `cases isComponent adapter <;> simp_all` \u2014 the reshape moved the proof obligation instead of being a no-op. Rationale accurately names the branch-order over-fit risk it defends.",
+        "id": "pos-branch-reorder",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "THE CASE NO PRIOR AUDIT EXAMINED \u2014 the recorded pbt_audit payload lists only 7 cases and omits this one entirely, so I treated it as unexamined and measured it from scratch. Rebuilt: EXIT 0. Diff vs frozen: the impl is kept BYTE-VERBATIM with only an `assert (with_name_prefix `admiss ...)` prepended, and only the elided tactic body retuned to `all_goals simp_all [arrayMaterialize]` \u2014 so the method's own `ensures` still discharges and the assert is additional, not a substitute. I independently re-derived the LIVENESS of all three conjuncts by mutating each to a claim false on this carrier: (i) aiming the resolution at the bare stored values, (ii) flipping the non-degeneracy `\u2260` to `=`, (iii) swapping the delegate arm's callee to componentValues \u2014 each leaves an unsolved `admiss_1` goal, EXIT 1. So no conjunct is a tautology and none is carried by the others. The lane is correctly PORTED, not vacuous: it discharges the obligation at exactly the F2P-shaped point (component view, request DEFAULTED \u2014 matching F2P test_restore_dtype_on_multiindexes[int32]/[float32]) by unfolding the post-image, deciding nothing about the opaque values.",
+        "id": "admiss-component-defaulted",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Module rebuilt EXIT 1 (residual `(if isComponent adapter = true then componentValues adapter else ...) = ...`). Witness triple rebuilt: rival EXIT 0, gold EXIT 1, probe EXIT 1; gold signature reproduces meta.json byte-for-byte. Attack B\u2032 BOTH halves run (see witnesses_rebuilt): FLIP gold 0 / rival 1, REVEAL gold reflexive vs rival concrete \u2014 the exit code tracks the claim, not hollow. Attack C: observably wrong, not reshaped \u2014 it DROPS the retag, returning bare `componentValues adapter` where the spec forces `toDtype (componentValues adapter) d`; toDtype is opaque so nothing on this carrier equates them. Witness names its discriminating input (adapter 0, dtype = some 7) and is no tautology. Refinement checked against the real change: this is the pre-change component-branch behaviour, so its faithful counterpart is the empty change and would not resolve the F2P.",
+        "id": "weak-storage-leak",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Module EXIT 1. Witness triple: rival 0 / gold 1 / probe 1, signature matching meta.json. B\u2032 both halves: FLIP gold 0 / rival 1 (`Tactic 'rfl' failed: NonDetT.run (pure (componentValues 2)) is not definitionally equal to DivM.res (baseMaterialize 2 none)`), REVEAL gold `baseMaterialize 2 none = baseMaterialize 2 none` vs rival `componentValues 2 = baseMaterialize 2 none`. Attack C: observably wrong \u2014 two unrelated opaque callees the carrier never equates. Verified the footer's load-bearing claim myself by reading all five witnesses' hypotheses: this is the ONLY witness driving isComponent = false, so it is what makes the branch binder varied rather than pinned. Claim TRUE.",
+        "id": "weak-delegate-instead-of-base",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Module EXIT 1 (residual on the `dtype.getD (componentValues adapter).dtype` resolution). Witness triple: rival 0 / gold 1 / probe 1, signature matching meta.json. B\u2032 both halves: FLIP gold 0 / rival 1, REVEAL gold reflexive `toDtype (componentValues 4) (recordedDtype 4) = toDtype \u2026(recordedDtype 4)` vs rival concrete `toDtype \u2026 (componentValues 4).dtype = toDtype \u2026 (recordedDtype 4)`. Attack C: observably different \u2014 `(componentValues adapter).dtype` and `recordedDtype adapter` are unconstrained-independent on this carrier (mapping.md \u00a73.1 records that the real storage dtype DIFFERS from the recorded one for the sub-64-bit cases, which is what makes the retag load-bearing). This is the only rival pinning WHICH value the missing request resolves to; I confirmed the footer's retraction of the older 'covered by the dtype=none witnesses' claim is correct \u2014 every other `none` witness resolves to recordedDtype exactly as the spec demands and diverges elsewhere.",
+        "id": "weak-default-from-storage",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Module EXIT 1. Witness triple: rival 0 / gold 1 / probe 1 (probe: `simp_all made no progress` \u2014 a single trivially satisfiable hypothesis). Gold signature `unsolved goals \u2026 he : True \u22a2 False` matches meta.json. B\u2032 REVEAL is decisive here and I ran it: gold prints `he has type True` (simp PROVED the elems equation for gold) while the rival prints the concrete `\u2026.elems ++ [0] = \u2026.elems` \u2014 the exact contrast the brief names as establishing this signature class as real. FLIP: gold 0 / rival 1. Attack C: List.append is computed, not opaque, so the divergence is observable; the rationale's claim that no content hypothesis is needed (`l ++ [0] \u2260 l` is a pure list fact) is TRUE.",
+        "id": "weak-value-extra-element",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Module EXIT 1. Witness triple: rival 0 / gold 1 / probe 1. Gold signature `Invalid field 'symm': \u2026 does not contain True.symm, he has type True` matches meta.json. This signature LOOKS syntactic (a missing identifier), which is exactly the trap the brief warns about, so I ran B\u2032 REVEAL: gold prints `he has type True` \u2014 i.e. `True.symm` arises from gold's OWN reduction of the elems equation to True, not from a typo in the witness \u2014 while the rival prints `\u2026.elems.dropLast = \u2026.elems`. FLIP: gold 0 / rival 1. So the failure is a genuine degeneracy of the CLAIM on gold, not a missing name. Attack C: dropLast is observably different on non-empty content and unlike the sibling value rival it genuinely REQUIRES its non-emptiness hypothesis, which the probe shows satisfiable. Distinct input point (adapter 3) from adapter 1.",
+        "id": "weak-value-drop-last",
+        "verdict": "earned"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "D1_ignore_request",
+            "kind": "wrong-impl (SPEC-TOO-WEAK probe): resolve d to recordedDtype unconditionally, ignoring an explicit request",
+            "outcome": "REJECTED (EXIT 1). Residual `toDtype (componentValues adapter) (recordedDtype adapter) = toDtype (componentValues adapter) val` on the some.true case. Spec pins the explicit-request arm. No hole."
+          },
+          {
+            "id": "D2_default_to_zero",
+            "kind": "wrong-impl: resolve a missing request to the literal 0 instead of recordedDtype",
+            "outcome": "REJECTED (EXIT 1). No hole."
+          },
+          {
+            "id": "D3_branch_inverted",
+            "kind": "wrong-impl: swap the two branch BODIES (component arm delegates, delegate arm retags)",
+            "outcome": "REJECTED (EXIT 1). No hole."
+          },
+          {
+            "id": "D4_retag_dtype_field_only",
+            "kind": "wrong-impl: fake the retag by overwriting only the dtype FIELD, keeping elems, instead of calling toDtype",
+            "outcome": "REJECTED (EXIT 1). Residual `{elems := (componentValues adapter).elems, dtype := recordedDtype adapter} = toDtype (componentValues adapter) (recordedDtype adapter)`. This is the sharpest D probe \u2014 it shows the spec pins the retag INTENSIONALLY to the modeled conversion callee, so a structural fake cannot pass. No hole."
+          },
+          {
+            "id": "D5_base_drops_request",
+            "kind": "wrong-impl: delegate arm discards an explicit request, calling baseMaterialize adapter none",
+            "outcome": "REJECTED (EXIT 1). Residual `baseMaterialize adapter none = baseMaterialize adapter (some val)`. No hole."
+          },
+          {
+            "id": "E1_match_on_dtype",
+            "kind": "correct reshape (SPEC-TOO-STRONG probe): resolve the default with an explicit `match dtype with some x => x | none => recordedDtype adapter` instead of getD",
+            "outcome": "VERIFIES (EXIT 0). Spec is not over-fit to the getD spelling."
+          },
+          {
+            "id": "E2_inline_no_let",
+            "kind": "correct reshape: drop both lets, return from inside each branch, inlining the resolution into the component arm",
+            "outcome": "VERIFIES (EXIT 0). Spec is not over-fit to the let/single-return shape."
+          },
+          {
+            "id": "E3_base_gets_resolved",
+            "kind": "correct reshape: pass the ALREADY-RESOLVED data type to the delegate (`baseMaterialize adapter (some d)`) rather than the raw `dtype`",
+            "outcome": "REJECTED (EXIT 1) \u2014 a faithful reshape the spec refuses. Residual: `baseMaterialize adapter (some (recordedDtype adapter)) = baseMaterialize adapter none`. Unprovable because baseMaterialize is opaque and nothing asserts it resolves a missing request to the recorded data type \u2014 a fact the frozen axioms region documents in PROSE only. I confirmed this is a real spec property, not my proof gap, by building a discriminating witness at (adapter 5, dtype none): rival EXIT 0, gold EXIT 1, consistency probe EXIT 1 \u2014 i.e. the frozen spec genuinely SEPARATES the two calls. Reported as a spec_holes entry (too-strong direction); NOT patched, since closing it means editing the frozen axioms region."
+          }
+        ],
+        "audited_at": "a7",
+        "cases": [
+          {
+            "evidence": "Rebuilt: EXIT 0. Attack A: extracted statement lines (method header / return / ensures / prove_correct header) are BYTE-IDENTICAL to frozen; markers.same_spec=True and spec_view bytes equal; variant_problems=ok. Not neutered: the ensures is literally `out = arrayMaterialize adapter dtype` and the impl returns exactly that term, so it is the honest cheapest correct impl, not a trivial copy of the frozen impl (frozen builds the same value via a let+branch; diff confirms 7 lines replaced by 1). Proof weakened only by DROPPING a now-unneeded simp_all line (loom_solve alone closes it) \u2014 dropping a tactic cannot weaken the obligation, and the obligation statement is unchanged. Rationale claim (grounded post-image, no opaque answer key) checked against the axioms region: arrayMaterialize is a total def over the two inputs.",
+            "id": "pos-direct-model",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: EXIT 0. Statement byte-identical (attack A), same_spec=True, scope ok. Genuinely reshaped, not definitionally equal by rfl: the branch is inverted via `!isComponent adapter` with the arms swapped, which is why the frozen proof no longer suffices and the case must add `cases isComponent adapter <;> simp_all` \u2014 evidence the reshape actually moved the proof obligation rather than being a no-op. Rationale accurately names the branch-order over-fit risk it defends.",
+            "id": "pos-branch-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Discrimination triple rebuilt myself: rival EXIT 0, gold EXIT 1, consistency probe EXIT 1. Gold-side failure read and is SEMANTIC, not syntactic: 'Application type mismatch: Eq.symm hh has type toDtype (componentValues 0) 7 = toDtype (componentValues 0) 7 but is expected to have type toDtype (componentValues 0) 7 = componentValues 0' \u2014 i.e. gold's post-image collapses the very inequality h2 asserts. No missing identifier, no unfolding failure, no timeout. Attack C: the rival is OBSERVABLY different, not merely reshaped \u2014 it drops the retag entirely, returning bare `componentValues adapter` where the spec forces `toDtype (componentValues adapter) d`; nothing on this carrier makes those definitionally equal (toDtype is opaque). Witness mentions the discriminating input (adapter 0, dtype = some 7) and is not a tautology (it fails on gold). Refinement claim checked against the real change: this is the pre-change component-branch behaviour, so its faithful counterpart is the empty change and would not resolve the failing tests.",
+            "id": "weak-storage-leak",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Triple rebuilt: rival EXIT 0, gold EXIT 1, probe EXIT 1. Gold-side failure is SEMANTIC: 'Application type mismatch: hh has type baseMaterialize 2 none = baseMaterialize 2 none but is expected to have type componentValues 2 = baseMaterialize 2 none'. Attack C: observably wrong \u2014 on the isComponent=false arm it returns componentValues instead of baseMaterialize, two unrelated opaque functions the carrier never equates. This is the ONLY witness driving isComponent = false, so it is what makes the branch binder load-bearing rather than pinned; that footer claim is TRUE as verified by inspecting all five witnesses' hypotheses.",
+            "id": "weak-delegate-instead-of-base",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "New case I authored to close the measured gap. Triple built: rival EXIT 0, gold EXIT 1, probe EXIT 1. Gold-side failure SEMANTIC: 'Application type mismatch: hh has type toDtype (componentValues 4) (recordedDtype 4) = toDtype (componentValues 4) (recordedDtype 4) but is expected to have type toDtype (componentValues 4) (componentValues 4).dtype = toDtype (componentValues 4) (recordedDtype 4)'. Rival is REJECTED by the frozen spec on its own build: EXIT 1, residual `(if isComponent .. then toDtype .. (dtype.getD (componentValues adapter).dtype) ..) = (.. dtype.getD (recordedDtype adapter) ..)`. Consistency probe cannot derive False from the two hypotheses (EXIT 1), so the conditioning point exists. Pins WHICH value the missing request resolves to \u2014 the facet no pre-audit rival attacked.",
+            "id": "weak-default-from-storage",
+            "verdict": "earned (ADDED by this audit)"
+          },
+          {
+            "evidence": "Triple rebuilt: rival EXIT 0, gold EXIT 1, probe EXIT 1. Gold-side failure SEMANTIC: 'unsolved goals ... hh : toDtype (componentValues 1) (recordedDtype 1) = toDtype (componentValues 1) (recordedDtype 1), he : True |- False' \u2014 on gold the elems equality degenerates to True so no contradiction is available, which is exactly the right reason to fail. Attack C: appending [0] to elems is observably different (List.append is computed, not opaque); the witness needs no hypothesis about the opaque content because `l ++ [0] \u2260 l` is a pure list fact, and the single hypothesis isComponent 1 = true is trivially satisfiable. Rationale's claim that this needs no content assumption is TRUE.",
+            "id": "weak-value-extra-element",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Triple rebuilt: rival EXIT 0, gold EXIT 1, probe EXIT 1. Gold-side failure SEMANTIC: \"Invalid field 'symm': the environment does not contain 'True.symm', he has type True\" \u2014 gold's elems equality collapses to True, so the refutation is unavailable on gold. This is a degeneracy of the CLAIM on gold, not a missing identifier in the witness statement (True.symm arises from gold's own reduction of the goal, and the rival build of the same text is EXIT 0). Attack C: dropLast is observably different on non-empty content, and unlike the extra-element rival it REQUIRES the non-emptiness hypothesis h2, which is genuinely satisfiable (probe EXIT 1). Distinct input point (adapter 3) from the sibling value rival, so the two are not two spellings of one point.",
+            "id": "weak-value-drop-last",
+            "verdict": "earned"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "SOUND was NOT hollow on discrimination, but it was hollow on one coverage claim, and the audit also found a too-strong spec defect the gate cannot see.\n\nWhat I ran: 26 real builds via scripts/lean_verify.sh (all scratch under a private /tmp dir, nothing in the repo or bundle). Frozen solution rebuilt (EXIT 0) as a control. All 7 case modules diffed against frozen. Attack A run mechanically: for every case I extracted the method header / return / ensures / prove_correct header lines and compared to frozen \u2014 all BYTE-IDENTICAL, plus markers.same_spec True, spec_view byte-equal, and variant_problems ok for every case. No weakened hypothesis hiding in a reformatted statement.\n\nAttack B: rebuilt all five reject witnesses twice each plus the consistency probe (15 builds). Every one: rival EXIT 0, gold EXIT 1, probe EXIT 1. I read all five gold-side failures and each is a SEMANTIC refutation \u2014 an Application type mismatch between the rival's term and the spec's, or an unsolved False goal where the claim degenerates on gold. None is a missing identifier, statement type error, unfolding failure, or timeout. No witness is a tautology (all fail on gold), all mention their discriminating input, and none would elaborate against frozen.\n\nAttack C: no vacuous rival. Each reject rival differs from frozen observably on this carrier \u2014 the traps named in the brief (Nat truncation, Option collapsing, list coercions, clamps) do not appear; the differences are a dropped call to an opaque function, a swapped opaque function, and two computed List operations.\n\nAttacks D/E: 5 new wrong impls, all rejected \u2014 including D4, which fakes the retag by overwriting only the dtype field, showing the spec pins the retag intensionally to the modeled conversion callee rather than merely to the resulting tag. 3 new correct reshapes: 2 verify, and E3 exposed the spec_holes entry.\n\nThe SPEC finding (E3) is in the TOO-STRONG direction and I escalated rather than patched it, since the repair is an edit to the frozen axioms region. It cannot admit a wrong impl and no shipped case depends on it; I documented it in the manifest footer as an audit note so a future reader does not mistake the rejection of that reshape for a battery defect.\n\nDivergence lane: not re-derived, per instructions. The manifest's stated reason ('vacuous on a referentially transparent carrier') is the wrong reason \u2014 under loom.semantics.termination \"partial\" a non-terminating impl verifies vacuously, which is the known hole in the corpus-wide termination-semantics finding \u2014 but the disposition (nothing to ship) is right, so I left the case list alone and did not file it as a new spec hole.\n\nEdits to properties.py: added weak-default-from-storage (module, refinement, rationale, discriminating witness); retracted the false 'DEFAULT RESOLUTION is exercised through the dtype = none witnesses' claim; corrected the case accounting (6 to 7) and pts (4 to 5); recorded my independent witness rebuilds and the E3 spec finding. No frozen artifact touched \u2014 git status shows only properties.py plus meta.json, and the meta.json diff is solely the gate's own stamp (checked_at, manifest_sha256, n_cases 6 to 7, and the new case's outcome row), which the gate wrote, not me.\n\nCoverage reporter after the fix: obl=1 cases=7 (+2/-5) binders=2 pts=5-5 ok. I did not treat that as a pass by itself \u2014 I checked that the five reject points are meaningfully distinct rather than five spellings of one point: they differ in adapter (0/1/2/3/4), in dtype (some 7 vs none), in branch (isComponent true vs false), and each attacks a different facet (retag omitted / delegation / default resolution / two opposite content defects).",
+        "omissions_reviewed": [
+          {
+            "evidence": "Confirmed by reading the frozen file: the pre-conditions region is EMPTY (lines 85-86, `-- pre-conditions-start` / `-- pre-conditions-end` adjacent), and the method declares no `require`. An admissibility case asserts a precondition is satisfiable by an in-domain input; with no precondition there is nothing to admit and no input could be excluded. The residual risk an admissibility case would otherwise cover \u2014 a post-image that is degenerate/unsatisfiable somewhere \u2014 does not arise: arrayMaterialize is a total def over the two inputs, and I have three independent verifying impls (frozen, pos-direct-model, pos-branch-reorder, plus my E1/E2) witnessing satisfiability across the whole domain. The port's stated reason is correct.",
+            "nagini_case": "admiss-precond-halfperm",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The nagini case rejects `level_values.append(0)` for INSUFFICIENT PERMISSION against `Acc(list_pred(level_values),1/2)`. That mechanism has no analogue here: the frozen method binds `(adapter : Int) (dtype : Option Dtype)` with no `mut`, there is no heap, no aliasing, no Old, and no fractional-permission system in the carrier. The per-label mutable List[int] the nagini rival writes to is not a binder here at all \u2014 it is folded into the opaque `componentValues`/`elems` observation, which is a function of adapter and cannot be assigned. There is no read-only input to overwrite, so the rejection this case attests to cannot be provoked. Genuine carrier fact, correctly recorded VACUOUS.",
+            "nagini_case": "frame-mutate-append",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Same mechanism as frame-mutate-append (an in-place `level_values[i] = 0` store needing the full list_pred), same carrier reason: no mutable container binder, no permission system, no heap. Correctly recorded VACUOUS; not an effort gap.",
+            "nagini_case": "frame-mutate-index-store",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Two separate questions were conflated. (1) Is the nagini rival's exact analogue \u2014 ignore an EXPLICIT request, always resolve to recordedDtype \u2014 expressible? YES: I built it as D1_ignore_request and the frozen spec REJECTS it (EXIT 1, residual `toDtype (componentValues adapter) (recordedDtype adapter) = toDtype (componentValues adapter) val`). So the port's implied 'not landable' is false. (2) SHOULD it ship as a reject case? The port's refinement argument is that on the real domain a component view's materialization is only ever requested with the default, so a counterpart mishandling only the explicit-request arm still resolves the tests \u2014 making its rejection a break in the wrong direction. I accept that argument and did NOT ship D1. But the port then used it to justify leaving the DEFAULT-RESOLUTION facet unattacked, and falsely claimed the facet was 'exercised through the dtype = none witnesses'. That claim is measurably false: every pre-audit `none` witness resolves to recordedDtype exactly as the spec demands and diverges elsewhere, so none of them varies WHICH value getD selects. FIX: added weak-default-from-storage, a rival that retags correctly but defaults to the stored values' own data type \u2014 wrong precisely on the defaulted arm the failing tests drive, so its refinement direction is right. Rival rejected EXIT 1; witness rival 0 / gold 1 / probe 1. The false coverage prose is retracted in the manifest.",
+            "nagini_case": "partial-ignore-requested",
+            "verdict": "expressible \u2014 and I LANDED it, but the port's disposition was half right and half wrong"
+          },
+          {
+            "evidence": "Not a SPEC case: it is an A-reference soundness probe executing the real conversion callee in the instance Docker image. The G-PBT gate ignores AXIOM_TESTS entirely (confirmed in scripts/pbt_gate.py and gates/pbt.py \u2014 only SPEC_TESTS is loaded and judged), and this bundle consumes NO axiom: all five callees are opaque A-reference references whose real-callee agreement is G-AX's job via axiom_check.py (mapping.md \u00a73, G-AX pass recorded). Correctly dropped.",
+            "nagini_case": "AXIOM_TESTS (ax-sound-np-asarray-deepmodel)",
+            "verdict": "inexpressible (out of lane)"
+          }
+        ],
+        "spec_holes": [
+          {
+            "clause": "ensures out = arrayMaterialize adapter dtype \u2014 specifically its else-arm `baseMaterialize adapter dtype`, in combination with the unconstrained `opaque baseMaterialize : Int \u2192 Option Dtype \u2192 MatArray` in the axioms region.",
+            "input": "adapter with isComponent adapter = false, dtype = none \u2014 the delegate arm. Concretely the residual goal `baseMaterialize adapter (some (recordedDtype adapter)) = baseMaterialize adapter none`, exposed by the impl that differs from frozen ONLY in passing `some d` instead of `dtype` to baseMaterialize.",
+            "why": "SPEC-TOO-STRONG (soundness hole), not too-weak. The axioms region states in a COMMENT that baseMaterialize 'resolves a missing requested data type to the view's recorded data type internally', and mapping.md \u00a73.3 records the same fact validated against the real inherited callee. But that fact is never asserted as an obligation \u2014 baseMaterialize is opaque with no ensures \u2014 so on this carrier `baseMaterialize a (some (recordedDtype a))` and `baseMaterialize a none` are distinct irreducible terms. Consequence: a faithful impl that hoists the default resolution ABOVE the branch and passes the resolved type to the delegate is REJECTED, even though the documented behaviour of the delegate makes it observationally identical, and even though hoisting the resolution above the branch is the natural way to write this dispatch. Measured, not argued: the reshape builds EXIT 1 with exactly that residual, and a witness discriminating the two calls elaborates against it (EXIT 0) while failing on frozen (EXIT 1), consistency probe EXIT 1. Escalated rather than fixed: the repair is to assert the default-resolution fact about baseMaterialize (e.g. baseMaterialize a none = baseMaterialize a (some (recordedDtype a))) in the frozen axioms region, which must re-clear the equivalence, leakage and G-AX lanes outside this audit's scope. Severity is limited: it does not affect the component branch where the modeled change lives, it cannot admit a wrong impl, and no shipped case depends on it."
+          }
+        ],
+        "witness_evidence": [
+          {
+            "gold_exit": 1,
+            "id": "weak-storage-leak",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-delegate-instead-of-base",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-default-from-storage",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-value-extra-element",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "weak-value-drop-last",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 5
+      }
+    ],
+    "notes": "SOUND is EARNED on discrimination. All 8 cases earn their outcomes; I found no hollow case, no vacuous rival, and no too-weak spec hole. My edits were two PROSE corrections (one of them a claim that had gone materially false) plus recording the evidence. Verdict REPAIRED rather than SHIP because I changed shipped prose; nothing about any case's mechanics changed.\n\nWHAT I RAN: 36 real builds via scripts/lean_verify.sh, all scratch under a private mktemp -d /tmp dir \u2014 nothing in the repo, the bundle, or the repo root. Frozen control EXIT 0. All 8 modules rebuilt (3 positives 0, 5 rivals 1). Attack A run mechanically as a unified diff of every case module against frozen: every statement line (method header, ensures, prove_correct header) byte-identical, scope [] for all 8 \u2014 no weakened hypothesis hiding in a reformat. Attack B: all 5 witness triples (15 builds), every one rival 0 / gold 1 / probe 1, all five gold signatures reproducing meta.json exactly.\n\nATTACK B\u2032 WAS DECISIVE AND I RAN BOTH HALVES ON ALL FIVE (20 builds), since none of the five gold signatures is a plain evaluation. FLIP: gold EXIT 0 (the `=` claim is provable there) vs rival EXIT 1 with a concrete `rfl` mismatch \u2014 the two sides answer OPPOSITELY, so gold's exit code carries information about the claim. REVEAL: gold's hypothesis prints reflexive (three cases) or `True` (the two value rivals) \u2014 i.e. simp PROVED the equation for gold \u2014 while the rival's prints the concrete unproven equation. This matters most for weak-value-drop-last, whose `Invalid field symm / True.symm` signature LOOKS like a missing identifier; REVEAL shows the `True` comes from gold's own reduction, so it is a real refutation.\n\nTHE CASE NOBODY HAD CHECKED: the recorded pbt_audit payload lists only 7 cases and silently omits admiss-component-defaulted, which a later port added. I treated it as unexamined and measured it: EXIT 0, impl byte-verbatim (only the elided tactic body retuned), and all three conjuncts LIVE under independent mutation (EXIT 1 each). This battery therefore does NOT have the systematic admissibility gap the brief flags in 97 velvet ports.\n\nTWO PROSE DEFECTS FIXED. (1) The divergence bullet claimed this bundle sets termination \"partial\" and cited the known partial-semantics hole as applying here. It sets \"total\". I checked provenance before writing: `git show HEAD:` confirms the claim was TRUE when written, and the flip is an in-flight tree-wide migration (377 cells, commit lineage cb9ddb8a2 'close the partial-semantics divergence hole') \u2014 so this is a stale citation invalidated by the migration, not porter error, and I worded the correction that way. Per the brief I did NOT re-report divergence as a new spec hole; I ran the cited document's OWN probe once to place this cell on the rejecting side of a split the document already established (mode=total, outcome=rejected). The class is now vacuous here for the strongest reason available. (2) A stale count: 'the four reject cases below' when there are five.\n\nATTACKS D/E: 6 NEW wrong impls, all REJECTED \u2014 aimed deliberately at what the shipped rivals leave alone. The sharpest is D11_reversed_elems: both shipped value rivals change LENGTH, so a content PERMUTATION was the unattacked facet; its rejection shows the value-copy facet is pinned to elems identity, not just length. Also probed retagging the wrong array, double-retagging, branching on the request instead of isComponent, and a correct-tag/wrong-elems forgery. 3 new correct reshapes: E4 and E6 verify; E5 verifies only after I retuned the proof \u2014 I report it as VERIFIED, not as a hole, because the first failure was my proof gap, exactly as the brief instructs.\n\nSPEC FINDING: I carried forward the one recorded too-strong hole but did not take it on trust \u2014 I rebuilt it under two proof scripts and, more importantly, built a fresh discriminating witness at adapter 5 (rival 0 / gold 1 / probe 1) proving the frozen spec genuinely separates `baseMaterialize a (some (recordedDty",
+    "omissions_reviewed": [
+      {
+        "evidence": "The nagini mechanism (Acc(list_pred(level_values),1/2) admitting an in-domain input) has no analogue: the frozen pre-conditions region is empty (lines 85-86 adjacent) and the method declares no `require`, so there is no precondition to admit. Critically, the port did NOT stop there \u2014 the admissibility LANE is ported as `admiss-component-defaulted` via the total-carrier analogue (the obligation being unsatisfiable/degenerate at an F2P-shaped input). The prior audit payload never examined that case, so I measured it myself: EXIT 0, impl byte-verbatim, and all three conjuncts LIVE under independent mutation (EXIT 1 each). So this battery does NOT have the systematic admissibility gap the brief warns about (97 velvet ports carry none); it carries one and it is load-bearing. Nothing to land.",
+        "nagini_case": "admiss-precond-halfperm",
+        "verdict": "inexpressible (as the literal half-permission probe) \u2014 but the LANE is expressible and IS now ported, which I verified independently"
+      },
+      {
+        "evidence": "The nagini case rejects `level_values.append(0)` for INSUFFICIENT PERMISSION. Demonstrated carrier fact, not an effort gap: the frozen method binds `(adapter : Int) (dtype : Option Dtype)` with NO `mut` (spec_guide directive 5 \u2014 read-only inputs are non-`mut`), Lean/Velvet are referentially transparent with no heap, no aliasing, no `Old`, and no fractional-permission system. The mutable List[int] the nagini rival writes is not a binder here at all \u2014 it is folded into the opaque `componentValues`/`elems` observation (mapping.md \u00a72), which is a function of adapter and cannot be assigned. There is no read-only input to overwrite, so the rejection this case attests to cannot be provoked by any rival.",
+        "nagini_case": "frame-mutate-append",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same mechanism (an in-place `level_values[i] = 0` store needing the full list_pred) and the same demonstrated carrier reason as frame-mutate-append: no mutable container binder, no permission system, no heap. Correctly recorded VACUOUS; the port fabricated no substitute, which is the right call.",
+        "nagini_case": "frame-mutate-index-store",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Two questions, separated. (1) Is the rival's exact analogue landable? YES \u2014 I built it fresh as D9_component_ignores_request and the frozen spec REJECTS it (EXIT 1). So 'not landable' would be false. (2) SHOULD it ship? No: the port's refinement argument is that on the real domain a component view's materialization is only ever requested with the DEFAULT (the F2P drives `dtype=None`), so a counterpart mishandling only the explicit-request arm still resolves \u2014 making its rejection a break in the wrong direction. I independently agree and did not ship D9. The real defect was that this drop was used to leave the DEFAULT-RESOLUTION facet unattacked; that was already fixed by `weak-default-from-storage`, whose discrimination and forgery pair I rebuilt from scratch this audit (rival 0 / gold 1 / probe 1; FLIP and REVEAL both track the claim). Gap closed, disposition correct.",
+        "nagini_case": "partial-ignore-requested",
+        "verdict": "expressible \u2014 and the gap it left has been landed (I re-verified both halves)"
+      },
+      {
+        "evidence": "Not a SPEC case: it is an A-reference soundness probe executing the real np.asarray/xarray stack in the instance Docker image. Confirmed in scripts/pbt_gate.py and gates/pbt.py that G-PBT loads and judges ONLY SPEC_TESTS and ignores AXIOM_TESTS entirely. This bundle consumes NO axiom \u2014 all five callees are opaque A-reference references whose real-callee agreement is G-AX's job via axiom_check.py (mapping.md \u00a73; G-AX pass recorded in meta.json). Correctly dropped.",
+        "nagini_case": "AXIOM_TESTS (ax-sound-np-asarray-deepmodel)",
+        "verdict": "inexpressible (out of lane)"
+      },
+      {
+        "evidence": "Disposition unchanged and NOT re-derived as a spec hole per the brief. But the port's stated reason was stale and I corrected it: the manifest asserted `set_option loom.semantics.termination \"partial\"` is 'which this bundle sets' and cited the corpus-wide termination-semantics finding as an active hole here. The frozen solution now sets `\"total\"` (line 4). The findings doc's own measurement splits exactly on that set_option with no exceptions (partial/VERIFIES 401, total/rejected 99), so this cell is on the REJECTING side, and the canonical probe confirms it for this bundle: mode=total, outcome=rejected, 'Decreasing annotations are required in total correctness semantics'. So the class is vacuous here because the carrier REFUSES a diverging impl \u2014 there is no hole to cite and none for a diverge-* case to close.",
+        "nagini_case": "(divergence lane \u2014 nagini carries no case; reviewed because the port's stated REASON was stale)",
+        "verdict": "inexpressible (nothing to port, and now for the strongest possible reason)"
+      }
+    ],
+    "spec_holes": [
+      {
+        "clause": "`ensures out = arrayMaterialize adapter dtype` \u2014 specifically its else-arm `baseMaterialize adapter dtype`, in combination with the unconstrained `opaque baseMaterialize : Int \u2192 Option Dtype \u2192 MatArray` in the axioms region.",
+        "input": "Any adapter with `isComponent adapter = false` and `dtype = none` \u2014 the delegate arm. Concretely the residual goal `baseMaterialize adapter (some (recordedDtype adapter)) = baseMaterialize adapter none`, exposed by the impl that differs from frozen ONLY in passing `some d` instead of `dtype` to baseMaterialize. Independently reconfirmed this audit with a discriminating witness at adapter 5: rival EXIT 0, gold EXIT 1, consistency probe EXIT 1.",
+        "why": "SPEC-TOO-STRONG (soundness hole), not too-weak; carried forward from the prior audit and re-verified by me rather than taken on trust. The axioms region states in a COMMENT that baseMaterialize 'resolves a missing requested data type to the view's recorded data type internally', and mapping.md \u00a73.3 records that same fact validated against the real inherited callee (`super().__array__`). But it is never asserted as an obligation \u2014 baseMaterialize is opaque with no ensures \u2014 so on this carrier the two calls are distinct irreducible terms. Consequence: a faithful impl that hoists the default resolution ABOVE the branch and passes the resolved type to the delegate is REJECTED, even though the documented behaviour of the delegate makes it observationally identical, and hoisting is the natural way to write this dispatch. Repair is to assert that fact in the frozen axioms region (e.g. `baseMaterialize a none = baseMaterialize a (some (recordedDtype a))`), which must re-clear the equivalence, leakage and G-AX lanes outside this audit's scope \u2014 so ESCALATED, not patched. Severity limited: it does not touch the component branch where the modeled change lives, it cannot admit a wrong impl, and no shipped case depends on it."
+      }
+    ],
+    "witness_evidence": [
+      {
+        "forgery_error": "FLIP/rival: Tactic `rfl` failed: The left-hand side NonDetT.run (pure (componentValues 0)) is not definitionally equal to the right-hand side DivM.res (toDtype (componentValues 0) 7)  [FLIP/gold ELABORATES, EXIT 0] || REVEAL/gold: Type mismatch hh has type toDtype (componentValues 0) 7 = toDtype (componentValues 0) 7 (reflexive => simp PROVED it for gold) || REVEAL/rival: Type mismatch hh has type componentValues 0 = toDtype (componentValues 0) 7 (concrete unproven equation)",
+        "forgery_exit": "FLIP: gold 0, rival 1 | REVEAL: gold 1, rival 1",
+        "gold_exit": 1,
+        "id": "weak-storage-leak",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "FLIP/rival: Tactic `rfl` failed: The left-hand side NonDetT.run (pure (componentValues 2)) is not definitionally equal to the right-hand side DivM.res (baseMaterialize 2 none)  [FLIP/gold EXIT 0] || REVEAL/gold: hh has type baseMaterialize 2 none = baseMaterialize 2 none (reflexive) || REVEAL/rival: hh has type componentValues 2 = baseMaterialize 2 none (concrete)",
+        "forgery_exit": "FLIP: gold 0, rival 1 | REVEAL: gold 1, rival 1",
+        "gold_exit": 1,
+        "id": "weak-delegate-instead-of-base",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "FLIP/rival: Tactic `rfl` failed: The left-hand side NonDetT.run (pure (toDtype (componentValues 4) (componentValues 4).dtype)) is not definitionally equal to the right-hand side DivM.res (toDtype (componentValues 4) (recordedDtype 4))  [FLIP/gold EXIT 0] || REVEAL/gold: hh has type toDtype (componentValues 4) (recordedDtype 4) = toDtype (componentValues 4) (recordedDtype 4) (reflexive) || REVEAL/rival: hh has type toDtype (componentValues 4) (componentValues 4).dtype = toDtype (componentValues 4) (recordedDtype 4) (concrete)",
+        "forgery_exit": "FLIP: gold 0, rival 1 | REVEAL: gold 1, rival 1",
+        "gold_exit": 1,
+        "id": "weak-default-from-storage",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "REVEAL/gold: Type mismatch he has type True of sort `Prop` (simp PROVED the elems equation for gold) || REVEAL/rival: he has type (toDtype (componentValues 1) (recordedDtype 1)).elems ++ [0] = (toDtype (componentValues 1) (recordedDtype 1)).elems (concrete, unproven) || FLIP/rival: Tactic `rfl` failed: NonDetT.run (pure { elems := \u2026.elems ++ [0], \u2026 }) is not definitionally equal to DivM.res (toDtype \u2026)  [FLIP/gold EXIT 0]",
+        "forgery_exit": "FLIP: gold 0, rival 1 | REVEAL: gold 1, rival 1",
+        "gold_exit": 1,
+        "id": "weak-value-extra-element",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "REVEAL/gold: Type mismatch he has type True of sort `Prop` \u2014 proves the `Invalid field symm / True.symm` gold signature comes from gold's OWN reduction of the elems equation to True, NOT from a missing identifier in the witness || REVEAL/rival: he has type (toDtype (componentValues 3) (recordedDtype 3)).elems.dropLast = (toDtype (componentValues 3) (recordedDtype 3)).elems (concrete) || FLIP/rival: Tactic `rfl` failed: NonDetT.run (pure { elems := \u2026.elems.dropLast, \u2026 }) is not definitionally equal to DivM.res (toDtype \u2026)  [FLIP/gold EXIT 0]",
+        "forgery_exit": "FLIP: gold 0, rival 1 | REVEAL: gold 1, rival 1",
+        "gold_exit": 1,
+        "id": "weak-value-drop-last",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: Application type mismatch: The argument hh has type baseMaterialize 5 none = baseMaterialize 5 none but is expected to have type baseMaterialize 5 (some (recordedDtype 5)) = baseMaterialize 5 none. Gold's post-image collapses the two calls to the SAME term while the reshape's does not, so the frozen spec genuinely separates `baseMaterialize a (some (recordedDtype a))` from `baseMaterialize a none` \u2014 the too-strong hole is real, independently reconfirmed.",
+        "forgery_exit": "n/a \u2014 built to CONFIRM the recorded spec_holes entry is a real spec separation rather than a proof gap",
+        "gold_exit": 1,
+        "id": "E3_base_gets_resolved (my own witness for the recorded SPEC hole, not a shipped case)",
+        "probe_exit": 1,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 6
+  },
+  "region_hashes": {
+    "axioms": "8e34844dd97ed6f35f3c6fe0f13da62bc5f785f3f8e3205e28a155a37e3fa004",
+    "impl": "78da0b60dedbc2c8a744a33dcf23899d38bb888d70f738cc61a8bb09c9179cf6",
+    "pure": "91900bed665ff8a9b0db9ca1e7fb03eb9d3c2cce9aca3fade06e369a8b6615d1",
+    "spec_view": "f126b28a6002b2ea503dfc585036108f606a09ec854f81ab96b2b5a31160a75c"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "string_modeling": "n/a -- control-flow + dtype-tagging bundle. The view is an opaque Int handle; the optional requested dtype is Option Dtype; a numpy dtype is an opaque comparable Int handle (dtype identity, not numeric precision, is the behaviour); the produced ndarray is a MatArray (opaque elems + dtype). Only the result's dtype is observed by the F2P test.",
+  "version": "2022.09"
+}

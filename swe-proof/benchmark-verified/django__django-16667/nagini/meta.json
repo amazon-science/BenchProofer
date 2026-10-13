@@ -1,0 +1,439 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real datetime.date on 9 accepted + 11 out-of-range + 6 bad-text + 9 overflow boundary inputs and 200000 fuzz triples; every rejection exactly one of {OverflowError, ValueError}, overflow precedes range; exit 0",
+      "encoded_property": "returns normally iff kind 0 (valid representable date); Exsures(DateOutOfRange, kind==1) (ValueError); Exsures(DateCapacityOverflow, kind==2) (OverflowError). Weakest sufficient contract; the two rejection classes are the ONLY ways the integer-argument constructor fails, and OverflowError precedes range ValueError.",
+      "kind": "A-consumed",
+      "models": "datetime.date(int(y), int(m), int(d)) (CPython stdlib datetime.date constructor)",
+      "name": "construct_date",
+      "provenance": "django/forms/widgets.py:1159 (inside the try); CPython datetime.date C constructor; docs.python.org/3/library/datetime.html#datetime.date",
+      "purity": "@ContractOnly (not @Pure: used only in impl, raises)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): strftime of representative valid dates over 4 formats is non-empty",
+      "encoded_property": "the success path returns EXACTLY this callee's text (ToSeq(Result()) == success_text()), non-empty (len > 0); characters abstract. Pins the success result to its callee, not a fabricated literal (directive 8).",
+      "kind": "A-consumed",
+      "models": "date_value.strftime(input_format) (CPython datetime.date.strftime)",
+      "name": "success_text / render_success",
+      "provenance": "django/forms/widgets.py:1164 (success-path render, unchanged by the patch)",
+      "purity": "success_text @Pure @ContractOnly (used inside Ensures); render_success @ContractOnly (impl-only materializer)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the %-format fallback on out-of-range / bad-text components is non-empty",
+      "encoded_property": "the out-of-range path returns EXACTLY this callee's text (ToSeq(Result()) == out_of_range_text()), non-empty (len > 0, always three dash-separated fields); characters abstract. Pins the fallback to its callee, not a fabricated literal.",
+      "kind": "A-consumed",
+      "models": "\"%s-%s-%s\" % (y or 0, m or 0, d or 0) (the existing except ValueError pseudo-ISO fallback)",
+      "name": "out_of_range_text / render_out_of_range",
+      "provenance": "django/forms/widgets.py:1163 (out-of-range-path render, unchanged by the patch)",
+      "purity": "out_of_range_text @Pure @ContractOnly (used inside Ensures); render_out_of_range @ContractOnly (impl-only materializer)"
+    },
+    {
+      "checked_by": "no executable probe needed: the axiom is contentless (raw_value fully abstract, len>=0 trivially true); faithfulness is structural \u2014 the branch defers to the unchanged callee (refinement.md A3, mapping.md \u00a73.4)",
+      "encoded_property": "the not-all-present branch returns EXACTLY this callee's value (ToSeq(Result()) == raw_value()); raw_value is FULLY ABSTRACT (no emptiness or non-emptiness claim), matching the real data.get(name) which may be None or arbitrary raw submitted text",
+      "kind": "A-consumed",
+      "models": "return data.get(name) (the raw value submitted under the field's own undecomposed name)",
+      "name": "retrieve_raw / raw_value",
+      "provenance": "django/forms/widgets.py:1165 (not-all-present fallback, unchanged by the patch); real behaviour witness: value_from_datadict({'mydate':'2008-4-1'},{},'mydate') == '2008-4-1' at base_commit",
+      "purity": "raw_value @Pure @ContractOnly (used inside Ensures); retrieve_raw @ContractOnly (impl-only materializer)"
+    }
+  ],
+  "base_commit": "02c356f2f3945b8075735d485c3cf48cad991011",
+  "changed_files": [
+    "django/forms/widgets.py"
+  ],
+  "deep_model_references": [],
+  "exceptions_modeling": "builtin OverflowError -> user-defined DateCapacityOverflow; builtin ValueError -> user-defined DateOutOfRange (builtin-exception Exsures crashes the Nagini translator). The modeled function declares NO Exsures: its contract is that it never raises, which is exactly the bug the prepatch violates.",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:17:21+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: construct_date axiom sound against real datetime.date on 9 accepted + 11 out-of-range + 6 bad-text + 9 overflow boundary inputs and 200000 fuzz triples (outcomes {0: 118, 1: 25164, 2: 174718}); every rejection is EXACTLY one of {OverflowError, ValueError} and overflow precedes range. Sentinel '0-0-0' == [48,45,48,45,48]; strftime / pseudo-ISO renderings non-empty.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "8d8c2c1db7e9dfcca0998ce0a6c041888f486749ee7d9ebd0649eb4dfbe4da84",
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:17:26+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 113585,
+          "disagreements": 0,
+          "seed": 16667,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 113585, \"disagreements\": 0, \"seed\": 16667, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d9264b4bf4ed57c616c646b900e85b607c2ac21de1ab74d012fb581cc4930e61",
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:31:33+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6",
+        "model_prepatch.py": "2853ce54792fc3ab0c8fd47fdba7fdd042537dfd4f0e460507875ff7a5983666"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T14:16:07+00:00",
+      "code_version": "3c886bd3c-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk2_wrong_sentinel.py`, `atk3_swap_handlers.py`, `atk4_collapse_handler.py`, `atk5_notpresent_empty.py`, `atk6_oracle_echo.py`, `atk7_blank_raw.py`, `atk_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk1_dispatch_on_kind.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:32:22+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6",
+        "model_prepatch.py": "2853ce54792fc3ab0c8fd47fdba7fdd042537dfd4f0e460507875ff7a5983666"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:17:18+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "5048041434d8bdd46178e70d8374470464ccda04faca628a7fc901769de4c7b3",
+          "impl": "cdecf359cc8a6d30be7586940d6688165b9ca068c6599aad1f497122ca6f42ab",
+          "post-conditions": "c0240af0c7117c43aaa72bfea0470753cc6e7e96c87e8a7897d624760ba1635f",
+          "pre-conditions": "2991a03994f39356c4363786d87a6006ac5d2bc98263b027e67c0e042748158b",
+          "pure": "7e9d9c14c40eac23511924125b0d4bdc4c6b55d5d2ae8c6f6d5f00c04a591374",
+          "spec_view": "8d55fa0b858a7e521ef7591fd7da13a76954f2c7a4d0b101895845393c91d3e1"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:17:18+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "6d4edf601f6232732023372fdeda7aa39e1ef2c8cfec934eeff876c90a3d551c",
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:17:19+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T07:08:37+00:00",
+      "code_version": "5a5a204c7-dirty",
+      "data": {
+        "judged": 10,
+        "killed": 10,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 10,
+        "unjudged": []
+      },
+      "detail": "killed 10/10 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ca075d093bcf",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T14:16:09+00:00",
+      "code_version": "3c886bd3c-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (G-PANEL-2) audit of the modeled function value_from_components vs the real patched callee SelectDateWidget.value_from_datadict (django/forms/widgets.py, base_commit 02c356f2..., gold patch adds `except OverflowError: return \"0-0-0\"`).\n\nMethod: applied patch.diff to a fresh /tmp copy of the repo, then ran a differential harness computing the model's predicted output per the spec's Ensures (with the abstract callees bound to the same real repo functions the spec pins them to: datetime.date, strftime with repo input-format derivation, %-format fallback, data.get(name)) against the REAL patched widget. Covered a 10,285-input boundary cross-product (years/months/days incl. None, \"\", 0, valid, month 13, day 32, negatives, sys.maxsize, sys.maxsize+1, -sys.maxsize-2, 2**200, non-numeric, unicode/whitespace, plus raw-name datadict variants) AND 200,000 fuzz probes (seed 16667). Result: 0 mismatches on all 210,285 probes; the real widget never escaped with an uncaught exception.\n\nPer-obligation check \u2014 every concrete spec claim matches reality: all_blank\u2192empty \u2194 None; kind==2 (OverflowError, e.g. sys.maxsize+1 / 2**200)\u2192[48,45,48,45,48] \u2194 \"0-0-0\"; kind==0\u2192success render, kind==1\u2192pseudo-ISO fallback (both abstract, pinned to real non-empty callees); not-all-present\u2192raw_value() FULLY ABSTRACT \u2194 data.get(name) (None or arbitrary text \u2014 model over-claims nothing). The 'never raises' contract (no Exsures) holds: every int()/datetime.date failure is caught (ValueError\u2192fallback, OverflowError\u2192sentinel); no uncaught exception observed, including \u0664, 1_0, whitespace, huge magnitudes. Preconditions Implies(all_blank,all_present) and kind\u2208{0,1,2} match reality (blank is non-None; integer-arg datetime.date fails only via ValueError/OverflowError, overflow preceding range). Spec region confirmed byte-identical across the recorded attacks. The spec is neither too strong nor drifting: no input where the modeled function disagrees with the real callee. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec-view leakage screen for django__django-16667 (nagini). The consumer spec view = model.py with the impl region elided. Mechanical G-LEAK screen returns passed=True (0 hard failures): no diff markers, no gold-patch line reproduced, no patched file path/module, no spec-view identifier or comment echoing a patched repo symbol, no narration.\n\nPublic problem_statement already discloses the FULL localization of the gold edit: class SelectDateWidget, method value_from_datadict, file django/forms/widgets.py, the exact crashing line `date_value = datetime.date(int(y), int(m), int(d))`, that it raises OverflowError, and the sys.maxsize+1 trigger. So where/what/which-exception is entirely public.\n\nThe spec view is STRICTLY LESS localizing than the public issue: it names NONE of those repo symbols (checked: no SelectDateWidget, value_from_datadict, widgets.py, datetime, OverflowError, ValueError, strftime, data.get, sys.maxsize, input_format). It abstracts to 'composite widget', 'calendar-date constructor', 'capacity-overflow failure', 'out-of-range failure'. The only 'django'/'.py' hits are the instance-id header (django__django-16667) and bundle-file citations (axiom_check.py, mapping.md) \u2014 neither leaks the edit.\n\nThe one thing the spec adds beyond the problem statement is the behavioral TARGET value: capacity-overflow => the '0-0-0' sentinel, returning normally. Pinning the desired output is the definition of the specification task, not a leak of the gold edit \u2014 it reveals no diff, no file, no symbol, and no mechanism (never says 'add an except handler'); a solver still must localize and construct the fix. This does not trip the lexical screen and is not a semantic leak beyond what a faithful behavioral contract must state. relaxed_leakage flag is absent/None; no relaxation is needed or claimed. Verdict: NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (G-PANEL-2) audit of the modeled function value_from_components vs the real patched callee SelectDateWidget.value_from_datadict (django/forms/widgets.py, base_commit 02c356f2..., gold patch adds `except OverflowError: return \"0-0-0\"`).\n\nMethod: applied patch.diff to a fresh /tmp copy of the repo, then ran a differential harness computing the model's predicted output per the spec's Ensures (with the abstract callees bound to the same real repo functions the spec pins them to: datetime.date, strftime with repo input-format derivation, %-format fallback, data.get(name)) against the REAL patched widget. Covered a 10,285-input boundary cross-product (years/months/days incl. None, \"\", 0, valid, month 13, day 32, negatives, sys.maxsize, sys.maxsize+1, -sys.maxsize-2, 2**200, non-numeric, unicode/whitespace, plus raw-name datadict variants) AND 200,000 fuzz probes (seed 16667). Result: 0 mismatches on all 210,285 probes; the real widget never escaped with an uncaught exception.\n\nPer-obligation check \u2014 every concrete spec claim matches reality: all_blank\u2192empty \u2194 None; kind==2 (OverflowError, e.g. sys.maxsize+1 / 2**200)\u2192[48,45,48,45,48] \u2194 \"0-0-0\"; kind==0\u2192success render, kind==1\u2192pseudo-ISO fallback (both abstract, pinned to real non-empty callees); not-all-present\u2192raw_value() FULLY ABSTRACT \u2194 data.get(name) (None or arbitrary text \u2014 model over-claims nothing). The 'never raises' contract (no Exsures) holds: every int()/datetime.date failure is caught (ValueError\u2192fallback, OverflowError\u2192sentinel); no uncaught exception observed, including \u0664, 1_0, whitespace, huge magnitudes. Preconditions Implies(all_blank,all_present) and kind\u2208{0,1,2} match reality (blank is non-None; integer-arg datetime.date fails only via ValueError/OverflowError, overflow preceding range). Spec region confirmed byte-identical across the recorded attacks. The spec is neither too strong nor drifting: no input where the modeled function disagrees with the real callee. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec-view leakage screen for django__django-16667 (nagini). The consumer spec view = model.py with the impl region elided. Mechanical G-LEAK screen returns passed=True (0 hard failures): no diff markers, no gold-patch line reproduced, no patched file path/module, no spec-view identifier or comment echoing a patched repo symbol, no narration.\n\nPublic problem_statement already discloses the FULL localization of the gold edit: class SelectDateWidget, method value_from_datadict, file django/forms/widgets.py, the exact crashing line `date_value = datetime.date(int(y), int(m), int(d))`, that it raises OverflowError, and the sys.maxsize+1 trigger. So where/what/which-exception is entirely public.\n\nThe spec view is STRICTLY LESS localizing than the public issue: it names NONE of those repo symbols (checked: no SelectDateWidget, value_from_datadict, widgets.py, datetime, OverflowError, ValueError, strftime, data.get, sys.maxsize, input_format). It abstracts to 'composite widget', 'calendar-date constructor', 'capacity-overflow failure', 'out-of-range failure'. The only 'django'/'.py' hits are the instance-id header (django__django-16667) and bundle-file citations (axiom_check.py, mapping.md) \u2014 neither leaks the edit.\n\nThe one thing the spec adds beyond the problem statement is the behavioral TARGET value: capacity-overflow => the '0-0-0' sentinel, returning normally. Pinning the desired output is the definition of the specification task, not a leak of the gold edit \u2014 it reveals no diff, no file, no symbol, and no mechanism (never says 'add an except handler'); a solver still must localize and construct the fix. This does not trip the lexical screen and is not a semantic leak beyond what a faithful behavioral contract must state. relaxed_leakage flag is absent/None; no relaxation is needed or claimed. Verdict: NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk2_wrong_sentinel.py`, `atk3_swap_handlers.py`, `atk4_collapse_handler.py`, `atk5_notpresent_empty.py`, `atk6_oracle_echo.py`, `atk7_blank_raw.py`, `atk_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk1_dispatch_on_kind.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (G-PANEL-2) audit of the modeled function value_from_components vs the real patched callee SelectDateWidget.value_from_datadict (django/forms/widgets.py, base_commit 02c356f2..., gold patch adds `except OverflowError: return \"0-0-0\"`).\n\nMethod: applied patch.diff to a fresh /tmp copy of the repo, then ran a differential harness computing the model's predicted output per the spec's Ensures (with the abstract callees bound to the same real repo functions the spec pins them to: datetime.date, strftime with repo input-format derivation, %-format fallback, data.get(name)) against the REAL patched widget. Covered a 10,285-input boundary cross-product (years/months/days incl. None, \"\", 0, valid, month 13, day 32, negatives, sys.maxsize, sys.maxsize+1, -sys.maxsize-2, 2**200, non-numeric, unicode/whitespace, plus raw-name datadict variants) AND 200,000 fuzz probes (seed 16667). Result: 0 mismatches on all 210,285 probes; the real widget never escaped with an uncaught exception.\n\nPer-obligation check \u2014 every concrete spec claim matches reality: all_blank\u2192empty \u2194 None; kind==2 (OverflowError, e.g. sys.maxsize+1 / 2**200)\u2192[48,45,48,45,48] \u2194 \"0-0-0\"; kind==0\u2192success render, kind==1\u2192pseudo-ISO fallback (both abstract, pinned to real non-empty callees); not-all-present\u2192raw_value() FULLY ABSTRACT \u2194 data.get(name) (None or arbitrary text \u2014 model over-claims nothing). The 'never raises' contract (no Exsures) holds: every int()/datetime.date failure is caught (ValueError\u2192fallback, OverflowError\u2192sentinel); no uncaught exception observed, including \u0664, 1_0, whitespace, huge magnitudes. Preconditions Implies(all_blank,all_present) and kind\u2208{0,1,2} match reality (blank is non-None; integer-arg datetime.date fails only via ValueError/OverflowError, overflow preceding range). Spec region confirmed byte-identical across the recorded attacks. The spec is neither too strong nor drifting: no input where the modeled function disagrees with the real callee. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec-view leakage screen for django__django-16667 (nagini). The consumer spec view = model.py with the impl region elided. Mechanical G-LEAK screen returns passed=True (0 hard failures): no diff markers, no gold-patch line reproduced, no patched file path/module, no spec-view identifier or comment echoing a patched repo symbol, no narration.\n\nPublic problem_statement already discloses the FULL localization of the gold edit: class SelectDateWidget, method value_from_datadict, file django/forms/widgets.py, the exact crashing line `date_value = datetime.date(int(y), int(m), int(d))`, that it raises OverflowError, and the sys.maxsize+1 trigger. So where/what/which-exception is entirely public.\n\nThe spec view is STRICTLY LESS localizing than the public issue: it names NONE of those repo symbols (checked: no SelectDateWidget, value_from_datadict, widgets.py, datetime, OverflowError, ValueError, strftime, data.get, sys.maxsize, input_format). It abstracts to 'composite widget', 'calendar-date constructor', 'capacity-overflow failure', 'out-of-range failure'. The only 'django'/'.py' hits are the instance-id header (django__django-16667) and bundle-file citations (axiom_check.py, mapping.md) \u2014 neither leaks the edit.\n\nThe one thing the spec adds beyond the problem statement is the behavioral TARGET value: capacity-overflow => the '0-0-0' sentinel, returning normally. Pinning the desired output is the definition of the specification task, not a leak of the gold edit \u2014 it reveals no diff, no file, no symbol, and no mechanism (never says 'add an except handler'); a solver still must localize and construct the fix. This does not trip the lexical screen and is not a semantic leak beyond what a faithful behavioral contract must state. relaxed_leakage flag is absent/None; no relaxation is needed or claimed. Verdict: NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T18:05:39+00:00",
+      "code_version": "47ecb2867",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 14.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 14.7
+          },
+          {
+            "expect": "reject",
+            "id": "reject-drop-overflow-handler",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.7
+          },
+          {
+            "expect": "reject",
+            "id": "reject-echo-success-on-kind2",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.8
+          },
+          {
+            "expect": "reject",
+            "id": "reject-wrong-sentinel-content",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.7
+          },
+          {
+            "expect": "reject",
+            "id": "reject-empty-on-kind2",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.9
+          },
+          {
+            "expect": "reject",
+            "id": "reject-swap-text-on-kind0",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.7
+          },
+          {
+            "expect": "reject",
+            "id": "reject-nonempty-not-all-present",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.1
+          },
+          {
+            "expect": "reject",
+            "id": "reject-empty-literal-not-all-present",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.8
+          },
+          {
+            "expect": "reject",
+            "id": "reject-nonempty-all-blank",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "979d7f60a70f1b212490e006036b50857f5717f8ce5a39e2310649adf026d731",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6",
+        "properties.py": "979d7f60a70f1b212490e006036b50857f5717f8ce5a39e2310649adf026d731"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-04T23:26:38+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:02:20+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 12.1
+      },
+      "detail": "verified in 12.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17620298e2d50c3bedb768723c094316bb996910985a3c262061a2df6421f8c6"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-16667",
+  "modeled_functions": [
+    {
+      "carrier_type": "Optional[str] components y/m/d + datetime.date outcome -> booleans all_blank/all_present + integer kind {0 accepted, 1 ValueError/out-of-range, 2 OverflowError/capacity-overflow}; str return -> List[int] code points (all-blank None -> empty list; not-all-present raw data.get(name) -> abstract raw_value()); specification over PSeq[int] via ToSeq",
+      "model_symbol": "value_from_components",
+      "repo_location": "django/forms/widgets.py:1149 (body 1150-1165)",
+      "repo_symbol": "django.forms.widgets.SelectDateWidget.value_from_datadict",
+      "role": "modeled changed function (composite date widget value reconstruction); single contracted+implemented function (per-function markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; adds `except OverflowError: return \"0-0-0\"`)",
+  "prepatch_models": [
+    {
+      "fails_on": "the no-Exsures contract of value_from_components \u2014 on kind 2 the uncaught DateCapacityOverflow escapes (\"method raises no exceptions\" might not hold)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "value_from_datadict capacity-overflow handling",
+      "reverted_to": "the pre-patch try block that catches ONLY ValueError (DateOutOfRange) and omits the OverflowError (DateCapacityOverflow) handler"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "6af8cb74d3f7f10e5f4147674a8cea51cdf5ce433af0f03bf481eee3dbaaec87",
+    "impl": "cdecf359cc8a6d30be7586940d6688165b9ca068c6599aad1f497122ca6f42ab",
+    "post-conditions": "c0240af0c7117c43aaa72bfea0470753cc6e7e96c87e8a7897d624760ba1635f",
+    "pre-conditions": "370314505b6ca1cec6070e498812f80996271e5f4d04e617589574370429ba4d",
+    "pure": "7e9d9c14c40eac23511924125b0d4bdc4c6b55d5d2ae8c6f6d5f00c04a591374",
+    "spec_view": "ad40daa0cc8735d7d09f4490a8f2acd794e9d3f0f4ae7c70cecd60b7d210c9e6"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "str return modelled as List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; an absent value (None) modelled as the empty code-point list on the branch that ASSERTS emptiness (all-blank, whose real return is exactly None) \u2014 sound because every text-producing branch is pinned len>0 (the '0-0-0' sentinel, the pseudo-ISO fallback, the strftime render are all non-empty). The not-all-present branch is NOT pinned to emptiness: the real `return data.get(name)` may be None or arbitrary raw submitted text, so the branch is pinned to the fully abstract raw-retrieval callee value raw_value() (== retrieve_raw()), assuming nothing about its content",
+  "version": "5.0"
+}

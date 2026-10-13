@@ -1,0 +1,414 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real _MinimalMatrix._new/__getitem__, asserts _new(r,c,f)[i,j] == f(i,j) over 8 boundary + 2000 fuzz shapes",
+      "encoded_property": "value-preserving materialization at the cell level: the stored cell equals the value the per-position function produced (Ensures(Result() == value)); weakest sufficient contract.",
+      "models": "MatrixRequired._new / _MinimalMatrix._new + __getitem__ (the unchanged matrix constructor)",
+      "name": "new_matrix_cell",
+      "provenance": "sympy/matrices/common.py: _MinimalMatrix.__init__ flattens the entry function row-major into self.mat (lines 2161-2182); __getitem__((i,j)) returns mat[i*cols+j] (2185-2223); _new = cls(*args) (2158). The patch does NOT change _new; it changes only the entry function passed to it.",
+      "purity": "@Pure @ContractOnly (used inside Ensures / Assert)"
+    }
+  ],
+  "base_commit": "67e3c956083d0128a621f65ee86a7dacd4f9f19f",
+  "changed_files": [
+    "sympy/matrices/common.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts output_value == the real patched _eval_col_insert cell by cell over the issue example + 13 boundary shapes + 4000 fuzz column-insertions",
+      "encoded_property": "output_value(self_row, other_row, cols, other_cols, pos, j): left band -> self_row[j]; middle band -> other_row[j-pos]; right band -> self_row[j - other_cols] (shift left by exactly the inserted width). The discriminating clause is the right band: j - other_cols (correct) vs the pre-patch j - pos - other_cols.",
+      "kind": "A-reference",
+      "models": "the corrected per-cell banding of MatrixShaping._eval_col_insert.entry (post-patch)",
+      "name": "output_value",
+      "provenance": "sympy/matrices/common.py:82-88 (post-patch entry): j<pos -> self[i,j]; pos<=j<pos+other.cols -> other[i,j-pos]; else -> self[i, j - other.cols]",
+      "role": "deep model (pure region) of the changed banding; NOT a consumed axiom -- there is no @ContractOnly for the changed entry function"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:02:33+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: new_matrix_cell axiom value-preserving over 8 boundary + 2000 fuzz shapes; expected_entry == real _eval_col_insert over the issue example + 13 boundary + 4000 fuzz column-insertions",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ca39dd0c9c301bea947ac3b55c6c818ba6f138f82a710fad17c9e1a756536aa3",
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:02:51+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100034,
+          "disagreements": 0,
+          "seed": 13647,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callee -> real _new/__getitem__)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100034, \"disagreements\": 0, \"seed\": 13647, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callee -> real _new/__getitem__)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "13ebd2a37f5105281177e9a2081df16502f226d095cb3705b0ec0feef33154ed",
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:16:11+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a",
+        "model_prepatch.py": "aef959de3c734c0ca3e376664e4b90dca1a6a8b08b37b36ef6cee741bf75c689"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-02T06:52:31+00:00",
+      "code_version": "05792c06-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 10 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 10 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The audit re-ran 10 candidate wrong implementations against this specification, each changing the implementation and leaving the specification as this bundle ships it. None of them verified without also resolving the instance, which is what a counterexample to `verify => correct` would require. The positive control verifies, so the specification is satisfiable by a correct implementation and that outcome is not an artifact of a specification nothing can satisfy.\n\n**How far this record can be re-checked.** The attack sources are not carried in this bundle. The count above and the positive-control outcome are what the harness recorded; the sources and their individual outcomes are not, so this role is the one part of the cell a reader cannot re-run from the bundle alone. The audit record states the same limitation.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:17:01+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a",
+        "model_prepatch.py": "aef959de3c734c0ca3e376664e4b90dca1a6a8b08b37b36ef6cee741bf75c689"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:02:29+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "7864c1321593ecb900fd2836018904148faa0fcdb3e75d6fa3098e7625d782c9",
+          "impl": "b8d03b3c8d25d44a002ca2e0d1baf36306911525c38d7342927993974a23dbc5",
+          "invariants": "610c090b5e4794d327361fe870623f2960e09a338e3ebae09aec345534cae022",
+          "post-conditions": "57d27e4307f0452dd3bbd2450f6f092b1bf2742eb80df8127f85d485a99bf1cc",
+          "pre-conditions": "eb3376d017b90f16262ed755182366d7533e356a44dec99f874a526fb175138a",
+          "pure": "7b2a96b37ab3871015b105b481eeb79dcb4f478c683beaa8cf644eec8c92a7b9",
+          "spec_view": "afb14de8640f73c7fc92128e64440af41c42bcbd8c146c595cf59f9f9e18191e"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:02:29+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "73208f8d1e8cf5bf1523a9de1ffb90e81b30fe6bbf46e7f7b42e9a56f08a4d94",
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:02:29+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:12:12+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "judged": 15,
+        "killed": 15,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 16,
+        "unjudged": [
+          "line 126: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 15/15 (100%); no verdict on 1: [\"line 126: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-02T06:52:31+00:00",
+      "code_version": "05792c06-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 10 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) attack on sympy__sympy-13647 nagini bundle. The modeled function insert_row's postcondition pins Result()[j] == output_value(...) for the corrected banding: j<pos -> self_row[j]; pos<=j<pos+other_cols -> other_row[j-pos]; else -> self_row[j-other_cols]. This is byte-identical to the gold-patched entry(i,j) in MatrixShaping._eval_col_insert (patch.diff: 'self[i, j - other.cols]').\n\nMethod: built the real repo at base_commit 67e3c956 in a /tmp worktree, applied the gold patch, and ran an EXHAUSTIVE comparison of model.py's output_value banding against the REAL patched _eval_col_insert result (via _MinimalMatrix._new/__getitem__, the same ShapingOnlyMatrix the repo test uses) over the FULL modeled domain: cols 0..7, other_cols 0..7, every valid pos in [0,cols], rows 1..3 \u2014 cell by cell. Result: 0 divergences. The bundle's own axiom_check.py also passes against the patched repo (issue example eye(6).col_insert(3,6x2) + 13 boundary + 4000 fuzz, plus _new value-preservation over 2000 fuzz shapes).\n\nPreconditions faithfully mirror the state _eval_col_insert receives: col_insert (unchanged) clamps pos into [0,cols] and raises ShapeError if rows mismatch, so 0<=pos<=cols and rows==other.rows are exactly the already-validated state; the model takes these as Requires, not an over-strengthening. Row-independence (entry reads only self[i,.]/other[i,.], never moves values across rows) justifies the 1-D List[int] per-row abstraction; entries abstracted to int is faithful for the integer-matrix F2P test. No input found where the modeled function disagrees with the real callee. same-spec check: exit 0 (byte-identical spec).",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Instance sympy__sympy-13647. Gold edit: in sympy/matrices/common.py, _eval_col_insert.entry right band changes `self[i, j - pos - other.cols]` -> `self[i, j - other.cols]`.\n\nSpec view examined = the frozen (non-impl) regions of model.py confirmed by same-spec (exit 0): module docstring, new_matrix_cell axiom (@ContractOnly), output_value pure region, and insert_row pre/post-conditions + loop invariants. Compared against the public problem_statement (which names Matrix.col_insert(), gives the exact repro eye(6).col_insert(3, 2*ones(6,2)), shows the wrong output, and explains the trailing identity block is misplaced across rows).\n\nFinding: NO-LEAKAGE.\n- The spec's output_value encodes the CORRECT three-band semantics, including right band `self_row[j - other_cols]`. Encoding intended behaviour is exactly a specification's job; the correct col-insert semantics (trailing original columns shift right by the inserted block width, staying in their rows) are directly derivable from the public problem_statement + ordinary col_insert domain knowledge. This does not localize the fix beyond the public issue.\n- The spec view contains NO repo file/line pointers (no `sympy/matrices/common.py`, no `_eval_col_insert`, no line 86), NO mention of the pre-patch buggy formula `j - pos - other_cols`, and NO 'this is the bug / discriminating clause' narrative. All three bands are stated neutrally and symmetrically.\n- The gold-edit disclosures (pre-patch formula `j - pos - other_cols`, the 'discriminating clause is the right band' framing, file:line 82-88/90 provenance, prepatch model reproducing the bug) live ONLY in the audit artifacts refinement.md / mapping.md / meta.json.deep_model_references \u2014 these are auditor-facing, NOT part of the solver's spec view.\n\nConclusion: the spec view specifies correct behaviour without revealing the edit's location, its pre->post delta, or which line to change \u2014 nothing beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 10 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) attack on sympy__sympy-13647 nagini bundle. The modeled function insert_row's postcondition pins Result()[j] == output_value(...) for the corrected banding: j<pos -> self_row[j]; pos<=j<pos+other_cols -> other_row[j-pos]; else -> self_row[j-other_cols]. This is byte-identical to the gold-patched entry(i,j) in MatrixShaping._eval_col_insert (patch.diff: 'self[i, j - other.cols]').\n\nMethod: built the real repo at base_commit 67e3c956 in a /tmp worktree, applied the gold patch, and ran an EXHAUSTIVE comparison of model.py's output_value banding against the REAL patched _eval_col_insert result (via _MinimalMatrix._new/__getitem__, the same ShapingOnlyMatrix the repo test uses) over the FULL modeled domain: cols 0..7, other_cols 0..7, every valid pos in [0,cols], rows 1..3 \u2014 cell by cell. Result: 0 divergences. The bundle's own axiom_check.py also passes against the patched repo (issue example eye(6).col_insert(3,6x2) + 13 boundary + 4000 fuzz, plus _new value-preservation over 2000 fuzz shapes).\n\nPreconditions faithfully mirror the state _eval_col_insert receives: col_insert (unchanged) clamps pos into [0,cols] and raises ShapeError if rows mismatch, so 0<=pos<=cols and rows==other.rows are exactly the already-validated state; the model takes these as Requires, not an over-strengthening. Row-independence (entry reads only self[i,.]/other[i,.], never moves values across rows) justifies the 1-D List[int] per-row abstraction; entries abstracted to int is faithful for the integer-matrix F2P test. No input found where the modeled function disagrees with the real callee. same-spec check: exit 0 (byte-identical spec).; G-PANEL-3 (leakage): pass \u2014 Instance sympy__sympy-13647. Gold edit: in sympy/matrices/common.py, _eval_col_insert.entry right band changes `self[i, j - pos - other.cols]` -> `self[i, j - other.cols]`.\n\nSpec view examined = the frozen (non-impl) regions of model.py confirmed by same-spec (exit 0): module docstring, new_matrix_cell axiom (@ContractOnly), output_value pure region, and insert_row pre/post-conditions + loop invariants. Compared against the public problem_statement (which names Matrix.col_insert(), gives the exact repro eye(6).col_insert(3, 2*ones(6,2)), shows the wrong output, and explains the trailing identity block is misplaced across rows).\n\nFinding: NO-LEAKAGE.\n- The spec's output_value encodes the CORRECT three-band semantics, including right band `self_row[j - other_cols]`. Encoding intended behaviour is exactly a specification's job; the correct col-insert semantics (trailing original columns shift right by the inserted block width, staying in their rows) are directly derivable from the public problem_statement + ordinary col_insert domain knowledge. This does not localize the fix beyond the public issue.\n- The spec view contains NO repo file/line pointers (no `sympy/matrices/common.py`, no `_eval_col_insert`, no line 86), NO mention of the pre-patch buggy formula `j - pos - other_cols`, and NO 'this is the bug / discriminating clause' narrative. All three bands are stated neutrally and symmetrically.\n- The gold-edit disclosures (pre-patch formula `j - pos - other_cols`, the 'discriminating clause is the right band' framing, file:line 82-88/90 provenance, prepatch model reproducing the bug) live ONLY in the audit artifacts refinement.md / mapping.md / meta.json.deep_model_references \u2014 these are auditor-facing, NOT part of the solver's spec view.\n\nConclusion: the spec view specifies correct behaviour without revealing the edit's location, its pre->post delta, or which line to change \u2014 nothing beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 10 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The audit re-ran 10 candidate wrong implementations against this specification, each changing the implementation and leaving the specification as this bundle ships it. None of them verified without also resolving the instance, which is what a counterexample to `verify => correct` would require. The positive control verifies, so the specification is satisfiable by a correct implementation and that outcome is not an artifact of a specification nothing can satisfy.\n\n**How far this record can be re-checked.** The attack sources are not carried in this bundle. The count above and the positive-control outcome are what the harness recorded; the sources and their individual outcomes are not, so this role is the one part of the cell a reader cannot re-run from the bundle alone. The audit record states the same limitation.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) attack on sympy__sympy-13647 nagini bundle. The modeled function insert_row's postcondition pins Result()[j] == output_value(...) for the corrected banding: j<pos -> self_row[j]; pos<=j<pos+other_cols -> other_row[j-pos]; else -> self_row[j-other_cols]. This is byte-identical to the gold-patched entry(i,j) in MatrixShaping._eval_col_insert (patch.diff: 'self[i, j - other.cols]').\n\nMethod: built the real repo at base_commit 67e3c956 in a /tmp worktree, applied the gold patch, and ran an EXHAUSTIVE comparison of model.py's output_value banding against the REAL patched _eval_col_insert result (via _MinimalMatrix._new/__getitem__, the same ShapingOnlyMatrix the repo test uses) over the FULL modeled domain: cols 0..7, other_cols 0..7, every valid pos in [0,cols], rows 1..3 \u2014 cell by cell. Result: 0 divergences. The bundle's own axiom_check.py also passes against the patched repo (issue example eye(6).col_insert(3,6x2) + 13 boundary + 4000 fuzz, plus _new value-preservation over 2000 fuzz shapes).\n\nPreconditions faithfully mirror the state _eval_col_insert receives: col_insert (unchanged) clamps pos into [0,cols] and raises ShapeError if rows mismatch, so 0<=pos<=cols and rows==other.rows are exactly the already-validated state; the model takes these as Requires, not an over-strengthening. Row-independence (entry reads only self[i,.]/other[i,.], never moves values across rows) justifies the 1-D List[int] per-row abstraction; entries abstracted to int is faithful for the integer-matrix F2P test. No input found where the modeled function disagrees with the real callee. same-spec check: exit 0 (byte-identical spec).\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Instance sympy__sympy-13647. Gold edit: in sympy/matrices/common.py, _eval_col_insert.entry right band changes `self[i, j - pos - other.cols]` -> `self[i, j - other.cols]`.\n\nSpec view examined = the frozen (non-impl) regions of model.py confirmed by same-spec (exit 0): module docstring, new_matrix_cell axiom (@ContractOnly), output_value pure region, and insert_row pre/post-conditions + loop invariants. Compared against the public problem_statement (which names Matrix.col_insert(), gives the exact repro eye(6).col_insert(3, 2*ones(6,2)), shows the wrong output, and explains the trailing identity block is misplaced across rows).\n\nFinding: NO-LEAKAGE.\n- The spec's output_value encodes the CORRECT three-band semantics, including right band `self_row[j - other_cols]`. Encoding intended behaviour is exactly a specification's job; the correct col-insert semantics (trailing original columns shift right by the inserted block width, staying in their rows) are directly derivable from the public problem_statement + ordinary col_insert domain knowledge. This does not localize the fix beyond the public issue.\n- The spec view contains NO repo file/line pointers (no `sympy/matrices/common.py`, no `_eval_col_insert`, no line 86), NO mention of the pre-patch buggy formula `j - pos - other_cols`, and NO 'this is the bug / discriminating clause' narrative. All three bands are stated neutrally and symmetrically.\n- The gold-edit disclosures (pre-patch formula `j - pos - other_cols`, the 'discriminating clause is the right band' framing, file:line 82-88/90 provenance, prepatch model reproducing the bug) live ONLY in the audit artifacts refinement.md / mapping.md / meta.json.deep_model_references \u2014 these are auditor-facing, NOT part of the solver's spec view.\n\nConclusion: the spec view specifies correct behaviour without revealing the edit's location, its pre->post delta, or which line to change \u2014 nothing beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:31:05+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-echo-output-value",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 63.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-band-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 51.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 46.3
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-self-row",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.9
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-prepatch-right-band",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-offbyone-right-band",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-middle-band-offset",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-last-column-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "45df3f93fa9a96353c116e6dfbbdc10bbd040836d88e52571602a342e1aade20",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a",
+        "properties.py": "45df3f93fa9a96353c116e6dfbbdc10bbd040836d88e52571602a342e1aade20"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:00:48+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:04:34+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 13.6
+      },
+      "detail": "verified in 13.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2651e2c4a4ed776ffc0f991ca6728f987eac03b70cb1c8840de88d5557de649a"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-13647",
+  "modeled_functions": [
+    {
+      "carrier_type": "matrix row -> List[int]; self.cols/other.cols -> int params; specification phrased over the List[int] rows directly",
+      "model_symbol": "insert_row",
+      "repo_location": "sympy/matrices/common.py:79 (entry at 82-88; assembled by _new at 90)",
+      "repo_symbol": "MatrixShaping._eval_col_insert (the nested entry(i, j))",
+      "role": "modeled changed function (column-block insertion); single contracted+implemented function. The change is a per-cell column-index banding that is row-independent, so one row captures the whole behaviour."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "loop invariant / postcondition result[j] == output_value(...,j) -- the right band disagrees whenever pos > 0 and a right band exists (the issue's eye(6).col_insert(3, V) case)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the right-band column index of the column-insertion entry function",
+      "reverted_to": "self_row[j - pos - other_cols] (the pre-patch formula, which subtracts pos as well)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "7864c1321593ecb900fd2836018904148faa0fcdb3e75d6fa3098e7625d782c9",
+    "impl": "d2d751d493c89952399e7cc679094dd6e0d50fe70aa9fa36f9810df6ef7297c8",
+    "invariants": "8519ce4ddfe0d8dae3dc2f486db63651e0987d7c7f8e6b48b4047c13287de9f9",
+    "post-conditions": "57d27e4307f0452dd3bbd2450f6f092b1bf2742eb80df8127f85d485a99bf1cc",
+    "pre-conditions": "9aecdf899c6197ca0172fa8a4c7b4c7ac8459ffe8a0cb3297190c84b99adee2b",
+    "pure": "7b2a96b37ab3871015b105b481eeb79dcb4f478c683beaa8cf644eec8c92a7b9",
+    "spec_view": "2750cd66e92e1f7b9558193360f987b28ef882c36980932b60ec3bd873322dd2"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": null,
+  "type_modeling": "matrix row as List[int]; row-independence of the per-cell entry banding makes one modeled row faithful to the full operation; the spec pins every output position via the pure output_value banding (no nonlinear flat-index arithmetic, which crashed the prover under a row-major List[int] encoding)",
+  "version": "1.1"
+}

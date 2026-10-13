@@ -1,0 +1,413 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real xr.dot over bool/int operand pairs; numeric == int_dot (incl. astype(int)=gold), boolean == bool_dot (pre-patch); GH4074 separation 1(bool) vs 2(int) validated",
+      "encoded_property": "keyed on boolean_dot (= both operands boolean): boolean_dot==False -> Result()==int_dot(mask,weights) (numeric contraction, the true count); boolean_dot==True -> Result()==bool_dot(mask,weights) (boolean saturating contraction, 0/1). Weakest sufficient contract; both branches grounded in the input carriers.",
+      "models": "xarray.core.computation.dot (the array dot product / weighted reduction used by Weighted._reduce); UNCHANGED community callee",
+      "name": "dot_reduce",
+      "provenance": "xarray/core/weighted.py:135 `return dot(da, weights, dims=dim)`; xarray/core/computation.py dot; numpy einsum/tensordot. The patch changes only the operand dtype handed to this dot, never the dot itself.",
+      "purity": "@Pure @ContractOnly (used inside Ensures via int_dot/bool_dot)"
+    }
+  ],
+  "base_commit": "19b088636eb7d3f65ab7a1046ac672e0689371d8",
+  "changed_files": [
+    "xarray/core/weighted.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts int_dot == real xr.dot on a bool mask with numeric (and bool->int cast) weights over boundary + 2000 fuzz pairs",
+      "encoded_property": "int_dot(mask, weights) == sum_i mask[i]*weights[i] (front-recursive fold); the genuine arithmetic weighted count",
+      "kind": "A-reference",
+      "models": "xarray.core.computation.dot (numpy.einsum/tensordot) in NUMERIC contraction mode",
+      "name": "int_dot",
+      "provenance": "xarray/core/weighted.py:135 (_reduce -> dot(da, weights, dims=dim)); xarray/core/computation.py dot -> numpy contraction. The gold patch's self.weights.astype(int) makes the operand numeric.",
+      "role": "deep model (pure region) of the numeric branch of the changed reduction; NOT a consumed axiom about the function under change"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts bool_dot == real xr.dot on a bool mask dotted with a BOOL weight array; result saturates to 0/1",
+      "encoded_property": "bool_dot(mask, weights) == OR_i (mask[i] AND weights[i]) in {0,1} (front-recursive saturating fold)",
+      "kind": "A-reference",
+      "models": "xarray.core.computation.dot (numpy.einsum/tensordot) in BOOLEAN contraction mode (both operands boolean)",
+      "name": "bool_dot",
+      "provenance": "xarray/core/weighted.py:135; numpy logical contraction over bool arrays: xr.dot([True,True],[True,True]) -> True (==1), not 2 (the GH4074 bug)",
+      "role": "deep model (pure region) of the boolean (pre-patch) branch of the changed reduction; the prepatch's failing value"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:07:37+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: dot_reduce axiom sound against the real xarray dot -- int_dot == numeric contraction (incl. bool->int cast = gold patch), bool_dot == boolean saturating contraction (pre-patch bug); the GH4074 case xr.dot([True,True],[True,True]) -> 1 (bool) vs 2 (int) validated on boundary + 2000 fuzz inputs.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "11e297eb292633bc357b340bd97cbbd9b6db157915b41da1e4898f6af51a5c10",
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:09:34+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100030,
+          "disagreements": 0,
+          "seed": 4075,
+          "shadow": "direct (contract-stripped impl region; dot_reduce delegated to the real xr.dot)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100030, \"disagreements\": 0, \"seed\": 4075, \"shadow\": \"direct (contract-stripped impl region; dot_reduce delegated to the real xr.dot)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d43086b18104f15c4f283e17bf239c0c4dab7ee287270d68e31c0c3f82a87172",
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:46:15+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c",
+        "model_prepatch.py": "70136b7a0bb7f05dd39d21b94380fa144e0244138d092849f6b320e8cdd3cb83"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T09:55:15+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:47:02+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c",
+        "model_prepatch.py": "70136b7a0bb7f05dd39d21b94380fa144e0244138d092849f6b320e8cdd3cb83"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:07:30+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "3b9acae03a439fd542360d28e14938e855439d30061ea8d5c4c3d24b139c275b",
+          "impl": "e91875b0fbe0c389b5e9461f2fa47d3b5eeb0533459c126047ae8cbcc15f1741",
+          "post-conditions": "1fc29f302436fa5bb54a037a21fb6b70e1ca7239382640a13eb1980b9c4a82cb",
+          "pre-conditions": "023d2ec530ef1e011b060aec352ba771b0a339f8ad0caebf2346f3d3ab7523ba",
+          "pure": "0a98367b647ece645f09d84f38539a5d48707f4d52c00996c40a4e3505324528",
+          "spec_view": "78e0f3d378b2a73a53d293b7fde1044014a3cab9be465395440e15e026701808"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:07:30+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "006e1db42ecd780594d7be2d9c8b1e97a6363bbb11983464247476ef96e3a165",
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:07:31+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T07:24:06+00:00",
+      "code_version": "77ca0a596-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ca075d093bcf",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T09:55:17+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "The modeled function `sum_of_weights_value` is scoped to the value of the changed statement `sum_of_weights = self._reduce(mask, weights, dim, skipna=False)` = `dot(mask, weights, dims=dim)` (xarray/core/weighted.py:145 at base_commit 19b08863), NOT the full `_sum_of_weights` body. Postcondition `Result()==int_dot(ToSeq(mask),ToSeq(weights)) = sum_i mask[i]*weights[i]`.\n\nFaithfulness of the modeled callee: verified. Re-ran axiom_check.py in xarray 0.15.1 \u2014 PASS: int_dot == real numeric xr.dot (incl. bool weights cast via astype(int)) over 11 boundary + 2000 fuzz inputs; bool_dot == boolean saturating contraction. No in-domain input (mask\u2208{0,1}, weights\u22650 int) separates int_dot from the real numeric dot.\n\nSpec is NOT too strong: the gold patch computes the changed statement numerically in BOTH branches (bool\u2192astype(int)\u2192numeric dot; else already-numeric), so the real gold changed-statement value equals int_dot across the entire modeled domain, including weights_are_bool==True. The postcondition therefore agrees with the gold patch everywhere in domain; the pre-patch (model_prepatch: boolean_dot=weights_are_bool \u2192 bool_dot) correctly FAILS it on true-count\u22652 (the GH4074 case). This confirms the spec discriminates buggy from fixed rather than over-constraining.\n\nF2P impact: on both F2P tests (test_weighted_sum_of_weights_bool \u2192 2; test_weighted_mean_bool denominator \u2192 2) the reduction is non-zero, so the excluded `.where` masking is the identity and the tested observation is unaffected \u2014 the out-of-scope divergence never manifests on the resolving inputs.\n\nspec region byte-identical check (same_spec) passes; model verifies (G-EQ recorded pass, 9 attacks rejected); G-AX recorded pass. No faithfulness break found.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "The public problem_statement is exceptionally explicit: it names the bug (xr.dot of two boolean arrays -> True/1 not 2) and states the fix verbatim ('We'll need to convert it to int or float: xr.dot(dta.notnull(), wgt * 1)'). Thus the entire discriminating idea of the gold edit (cast boolean weights to numeric before the dot so the contraction counts instead of saturating) is already fully public. The spec view (model.py spec regions: docstring, dot_reduce axiom, int_dot/bool_dot pure folds, pre/post-conditions) describes the desired numeric-count behavior in ABSTRACT modeling terms (boolean_dot, weights_are_bool, int_dot == sum_i mask[i]*weights[i]) and does NOT quote the gold patch's concrete tokens (astype(int), if self.weights.dtype == bool, the GH4074 comment). Those verbatim gold-hunk quotations appear only in mapping.md and refinement.md, which are auditor derivation/audit artifacts, not the solver-facing spec. Every behavioral fact the spec view conveys about the boolean-vs-numeric distinction is already disclosed \u2014 more concretely \u2014 in problem_statement. Therefore the spec view leaks nothing beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 The modeled function `sum_of_weights_value` is scoped to the value of the changed statement `sum_of_weights = self._reduce(mask, weights, dim, skipna=False)` = `dot(mask, weights, dims=dim)` (xarray/core/weighted.py:145 at base_commit 19b08863), NOT the full `_sum_of_weights` body. Postcondition `Result()==int_dot(ToSeq(mask),ToSeq(weights)) = sum_i mask[i]*weights[i]`.\n\nFaithfulness of the modeled callee: verified. Re-ran axiom_check.py in xarray 0.15.1 \u2014 PASS: int_dot == real numeric xr.dot (incl. bool weights cast via astype(int)) over 11 boundary + 2000 fuzz inputs; bool_dot == boolean saturating contraction. No in-domain input (mask\u2208{0,1}, weights\u22650 int) separates int_dot from the real numeric dot.\n\nSpec is NOT too strong: the gold patch computes the changed statement numerically in BOTH branches (bool\u2192astype(int)\u2192numeric dot; else already-numeric), so the real gold changed-statement value equals int_dot across the entire modeled domain, including weights_are_bool==True. The postcondition therefore agrees with the gold patch everywhere in domain; the pre-patch (model_prepatch: boolean_dot=weights_are_bool \u2192 bool_dot) correctly FAILS it on true-count\u22652 (the GH4074 case). This confirms the spec discriminates buggy from fixed rather than over-constraining.\n\nF2P impact: on both F2P tests (test_weighted_sum_of_weights_bool \u2192 2; test_weighted_mean_bool denominator \u2192 2) the reduction is non-zero, so the excluded `.where` masking is the identity and the tested observation is unaffected \u2014 the out-of-scope divergence never manifests on the resolving inputs.\n\nspec region byte-identical check (same_spec) passes; model verifies (G-EQ recorded pass, 9 attacks rejected); G-AX recorded pass. No faithfulness break found.; G-PANEL-3 (leakage): pass \u2014 The public problem_statement is exceptionally explicit: it names the bug (xr.dot of two boolean arrays -> True/1 not 2) and states the fix verbatim ('We'll need to convert it to int or float: xr.dot(dta.notnull(), wgt * 1)'). Thus the entire discriminating idea of the gold edit (cast boolean weights to numeric before the dot so the contraction counts instead of saturating) is already fully public. The spec view (model.py spec regions: docstring, dot_reduce axiom, int_dot/bool_dot pure folds, pre/post-conditions) describes the desired numeric-count behavior in ABSTRACT modeling terms (boolean_dot, weights_are_bool, int_dot == sum_i mask[i]*weights[i]) and does NOT quote the gold patch's concrete tokens (astype(int), if self.weights.dtype == bool, the GH4074 comment). Those verbatim gold-hunk quotations appear only in mapping.md and refinement.md, which are auditor derivation/audit artifacts, not the solver-facing spec. Every behavioral fact the spec view conveys about the boolean-vs-numeric distinction is already disclosed \u2014 more concretely \u2014 in problem_statement. Therefore the spec view leaks nothing beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "The modeled function `sum_of_weights_value` is scoped to the value of the changed statement `sum_of_weights = self._reduce(mask, weights, dim, skipna=False)` = `dot(mask, weights, dims=dim)` (xarray/core/weighted.py:145 at base_commit 19b08863), NOT the full `_sum_of_weights` body. Postcondition `Result()==int_dot(ToSeq(mask),ToSeq(weights)) = sum_i mask[i]*weights[i]`.\n\nFaithfulness of the modeled callee: verified. Re-ran axiom_check.py in xarray 0.15.1 \u2014 PASS: int_dot == real numeric xr.dot (incl. bool weights cast via astype(int)) over 11 boundary + 2000 fuzz inputs; bool_dot == boolean saturating contraction. No in-domain input (mask\u2208{0,1}, weights\u22650 int) separates int_dot from the real numeric dot.\n\nSpec is NOT too strong: the gold patch computes the changed statement numerically in BOTH branches (bool\u2192astype(int)\u2192numeric dot; else already-numeric), so the real gold changed-statement value equals int_dot across the entire modeled domain, including weights_are_bool==True. The postcondition therefore agrees with the gold patch everywhere in domain; the pre-patch (model_prepatch: boolean_dot=weights_are_bool \u2192 bool_dot) correctly FAILS it on true-count\u22652 (the GH4074 case). This confirms the spec discriminates buggy from fixed rather than over-constraining.\n\nF2P impact: on both F2P tests (test_weighted_sum_of_weights_bool \u2192 2; test_weighted_mean_bool denominator \u2192 2) the reduction is non-zero, so the excluded `.where` masking is the identity and the tested observation is unaffected \u2014 the out-of-scope divergence never manifests on the resolving inputs.\n\nspec region byte-identical check (same_spec) passes; model verifies (G-EQ recorded pass, 9 attacks rejected); G-AX recorded pass. No faithfulness break found.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "The public problem_statement is exceptionally explicit: it names the bug (xr.dot of two boolean arrays -> True/1 not 2) and states the fix verbatim ('We'll need to convert it to int or float: xr.dot(dta.notnull(), wgt * 1)'). Thus the entire discriminating idea of the gold edit (cast boolean weights to numeric before the dot so the contraction counts instead of saturating) is already fully public. The spec view (model.py spec regions: docstring, dot_reduce axiom, int_dot/bool_dot pure folds, pre/post-conditions) describes the desired numeric-count behavior in ABSTRACT modeling terms (boolean_dot, weights_are_bool, int_dot == sum_i mask[i]*weights[i]) and does NOT quote the gold patch's concrete tokens (astype(int), if self.weights.dtype == bool, the GH4074 comment). Those verbatim gold-hunk quotations appear only in mapping.md and refinement.md, which are auditor derivation/audit artifacts, not the solver-facing spec. Every behavioral fact the spec view conveys about the boolean-vs-numeric distinction is already disclosed \u2014 more concretely \u2014 in problem_statement. Therefore the spec view leaks nothing beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:01:41+00:00",
+      "code_version": "1471e0937-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-int-dot-direct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reads",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-mask",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-weights",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-bool-dot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "af9e6444946dca5cf712f1274292cc87e147bf80a271343316de167dca67ade4",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c",
+        "properties.py": "af9e6444946dca5cf712f1274292cc87e147bf80a271343316de167dca67ade4"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:47:54+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:02:57+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 12.4
+      },
+      "detail": "verified in 12.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9970d1ff9f6fc10c2b63a29a7c2ed73de95f81b7a6a5af23afeea77265979d0c"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-4075",
+  "modeled_functions": [
+    {
+      "carrier_type": "boolean presence mask da.notnull() -> List[int] of 0/1; weights DataArray -> List[int] of non-negative ints (booleans = 0/1); weights.dtype==bool -> bool flag weights_are_bool; reduction scalar -> int; specification over PSeq[int]",
+      "model_symbol": "sum_of_weights_value",
+      "repo_location": "xarray/core/weighted.py:137-150 (changed statement line 145; rewritten as a dtype==bool branch post-patch)",
+      "repo_symbol": "xarray.core.weighted.Weighted._sum_of_weights",
+      "role": "modeled changed function (the weighted dot-product reduction the changed statement computes); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; the dtype==bool astype(int) branch in _sum_of_weights)",
+  "prepatch_models": [
+    {
+      "fails_on": "the postcondition Result() == int_dot(ToSeq(mask), ToSeq(weights)): for boolean weights the dot returns bool_dot (saturating to 0/1), != int_dot when the true count >= 2 (the GH4074 case mask=[1,1] weights=[1,1]: 1 vs 2)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the operand dtype handed to the weighted-reduction dot (boolean weights collapsing the count)",
+      "reverted_to": "self._reduce(mask, self.weights, ...) with no astype(int) cast (boolean_dot = weights_are_bool)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3b9acae03a439fd542360d28e14938e855439d30061ea8d5c4c3d24b139c275b",
+    "impl": "e91875b0fbe0c389b5e9461f2fa47d3b5eeb0533459c126047ae8cbcc15f1741",
+    "post-conditions": "1fc29f302436fa5bb54a037a21fb6b70e1ca7239382640a13eb1980b9c4a82cb",
+    "pre-conditions": "18a7d0d58b0b887a0268cbe3532e2188f1e07d7f5b31d7a6d8fcab4cd97ba370",
+    "pure": "0a98367b647ece645f09d84f38539a5d48707f4d52c00996c40a4e3505324528",
+    "spec_view": "1ef00864ae7f2888f6978ba0748a2b4562292c3c43371f1fd46c59010d92726c"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "string_modeling": "no strings; the boolean presence mask and the weights are abstracted to List[int] (0/1 mask, non-negative-int weights, booleans 0/1); the weight dtype to a bool flag; the reduction to an int; specification carried by PSeq[int] via ToSeq with front-recursive dot folds",
+  "version": "0.12"
+}

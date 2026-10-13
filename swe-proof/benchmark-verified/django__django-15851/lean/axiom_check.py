@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""G-AX skip stub for django__django-15851.
+
+No consumed callee axiom is declared in the bundle. The behavior the patch
+changes — the position at which the caller-supplied parameters are spliced into
+the command-line argument vector, relative to the database name — is modeled
+DEEPLY in Lean as an ordered list concatenation over the component inputs (an R/I
+impl), validated against the real post-patch `args` assembly by the differential
+`conformance_check.py` (G-CONF), not by an axiom. The settings reads
+(`settings_dict.get(...)`) and per-setting truthiness are abstracted at the
+boundary into the optional-string / list inputs; there is no `opaque`/`axiom`
+callee whose contract the proof consumes.
+
+There is therefore nothing for G-AX to validate. Exit 0 with status=skip.
+"""
+import json
+import sys
+
+print(json.dumps({
+    "status": "skip",
+    "instance": "django__django-15851",
+    "reason": "no consumed callee axiom and no A-reference; impl is all R/I "
+              "(argument-vector assembly validated by G-CONF)",
+}))
+sys.exit(0)

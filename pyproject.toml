@@ -1,0 +1,241 @@
+[build-system]
+# 1.27 is the first release that writes a PEP 639 license expression into the
+# metadata, which is how the license below reaches an index unambiguously.
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "benchproofer"
+version = "0.1.0"
+description = "Turn any real-world benchmark into a formally verified one."
+readme = "README.md"
+license = "CC-BY-NC-4.0"
+license-files = ["LICENSE.txt"]
+requires-python = ">=3.10"
+keywords = [
+  "formal-verification",
+  "benchmark",
+  "program-verification",
+  "specification",
+  "evaluation",
+]
+classifiers = [
+  # No license classifier: the `license` field above carries it, and an index
+  # rejects metadata that states the license twice.
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+  "Typing :: Typed",
+]
+dependencies = [
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "typer>=0.12",
+  "rich>=13.7",
+  "httpx>=0.27",
+  "platformdirs>=4.2",
+  "hypothesis>=6.100",
+  "huggingface-hub>=0.24",
+  "pyarrow>=15.0",
+  "tomli>=2.0; python_version<'3.11'",
+]
+
+[project.optional-dependencies]
+# Verification backends that install as pure Python wheels.
+crosshair = ["crosshair-tool>=0.0.100; python_version<'3.13'"]
+smt = ["z3-solver>=4.13"]
+# Model providers for the formalization stage.
+llm = ["anthropic[bedrock]>=0.40"]
+# A model that acts rather than answers, for the stages whose inputs depend on what
+# the answer turns out to be. Needs the `claude` command-line tool as well.
+agent = ["claude-agent-sdk>=0.2.88"]
+dev = [
+  "pytest>=8.1",
+  "pytest-cov>=5.0",
+  "pytest-timeout>=2.3",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "pre-commit>=3.7",
+]
+docs = ["mkdocs-material>=9.5"]
+all = ["benchproofer[crosshair,smt,llm,dev,docs]"]
+
+[project.scripts]
+benchproofer = "benchproofer.cli.main:main"
+
+# Built-in plugins are registered through the same entry-point groups third-party
+# packages use, so the plugin API is exercised by the tool's own components.
+[project.entry-points."benchproofer.backends"]
+dafny = "benchproofer.backends.dafny:DafnyBackend"
+lean4 = "benchproofer.backends.lean4:Lean4Backend"
+nagini = "benchproofer.backends.nagini:NaginiBackend"
+velvet = "benchproofer.backends.velvet:VelvetBackend"
+crosshair = "benchproofer.backends.crosshair:CrossHairBackend"
+smt = "benchproofer.backends.smt:SmtBackend"
+falsifier = "benchproofer.backends.falsifier:FalsifierBackend"
+
+[project.entry-points."benchproofer.benchmarks"]
+humaneval = "benchproofer.benchmarks.builtin:humaneval"
+mbpp = "benchproofer.benchmarks.builtin:mbpp"
+bigcodebench = "benchproofer.benchmarks.builtin:bigcodebench"
+gsm8k = "benchproofer.benchmarks.builtin:gsm8k"
+swebench-verified = "benchproofer.benchmarks.builtin:swebench_verified"
+swebench-lite = "benchproofer.benchmarks.builtin:swebench_lite"
+swebench-pro = "benchproofer.benchmarks.builtin:swebench_pro"
+quixbugs = "benchproofer.benchmarks.quixbugs:quixbugs"
+jsonl = "benchproofer.benchmarks.local:jsonl"
+
+[project.entry-points."benchproofer.oracles"]
+none = "benchproofer.oracles.null:NullOracle"
+inline-tests = "benchproofer.oracles.inline:InlineTestOracle"
+pytest = "benchproofer.oracles.pytest_oracle:PytestOracle"
+answer = "benchproofer.oracles.answer:AnswerOracle"
+docker = "benchproofer.oracles.docker:DockerOracle"
+
+[project.entry-points."benchproofer.gates"]
+"artifact.integrity" = "benchproofer.gates.integrity:IntegrityGate"
+"spec.hygiene" = "benchproofer.gates.hygiene:HygieneGate"
+"spec.no_leakage" = "benchproofer.gates.leakage:LeakageGate"
+"spec.verifies" = "benchproofer.gates.verifies:VerifiesGate"
+"spec.discriminates" = "benchproofer.gates.discriminates:DiscriminatesGate"
+"spec.strength.mutation" = "benchproofer.gates.mutation:MutationGate"
+"spec.strength.battery" = "benchproofer.gates.battery:BatteryGate"
+"impl.conformance" = "benchproofer.gates.conformance:ConformanceGate"
+"spec.axioms_grounded" = "benchproofer.gates.axioms:AxiomsGroundedGate"
+"oracle.reference_resolves" = "benchproofer.gates.reference:ReferenceResolvesGate"
+"audit.independence" = "benchproofer.gates.audit:IndependenceGate"
+"audit.spec_completeness" = "benchproofer.gates.audit:SpecCompletenessGate"
+"audit.spec_soundness" = "benchproofer.gates.audit:SpecSoundnessGate"
+"audit.faithfulness" = "benchproofer.gates.audit:FaithfulnessJudgmentGate"
+"audit.equivalence" = "benchproofer.gates.audit:EquivalenceJudgmentGate"
+"audit.no_disclosure" = "benchproofer.gates.audit:DisclosureJudgmentGate"
+"audit.axiom_soundness" = "benchproofer.gates.axioms:AxiomSoundnessGate"
+
+[project.entry-points."benchproofer.providers"]
+null = "benchproofer.llm.null:NullProvider"
+anthropic = "benchproofer.llm.anthropic:AnthropicProvider"
+openai = "benchproofer.llm.openai:OpenAICompatibleProvider"
+scripted = "benchproofer.smoke.scripted:ScriptedProvider"
+
+[project.entry-points."benchproofer.sessions"]
+claude-code = "benchproofer.llm.claude_code:ClaudeCodeSession"
+scripted = "benchproofer.smoke.scripted:ScriptedSession"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/benchproofer"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src",
+  "tests",
+  "docs",
+  "scripts",
+  "examples",
+  "constraints",
+  "environment.yml",
+  "mkdocs.yml",
+  "Makefile",
+  "README.md",
+  "LICENSE.txt",
+  "CONTRIBUTING.md",
+]
+
+[tool.ruff]
+line-length = 96
+target-version = "py310"
+src = ["src", "tests"]
+# Fixture bundles are data: they are read as text, never imported, and some of them
+# are deliberately defective. Documentation snippets are prose: they carry marker
+# sentinels whose spacing is part of what is being explained, and several of them are
+# not Python at all. `swe-proof/` is a separate project with its own configuration.
+extend-exclude = ["src/benchproofer/smoke/fixtures/bundles", "*.md", "swe-proof"]
+
+[tool.ruff.lint]
+select = [
+  "F",   # pyflakes
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "I",   # import sorting
+  "UP",  # pyupgrade
+  "B",   # bugbear
+  "BLE", # blind except: every one has to be justified with a noqa
+  "C4",  # comprehensions
+  "SIM", # simplify
+  "RET", # return
+  "PTH", # pathlib
+  "S",   # bandit
+  "TID", # tidy imports
+  "RUF",
+  "D",   # docstrings
+]
+ignore = [
+  "D105", # magic method docstrings
+  "D107", # __init__ docstring (documented on the class)
+  "D203",
+  "D213",
+  "D401", # a property's docstring is a noun phrase, not an imperative
+  "S404", # subprocess is how a verifier and a container are run
+  "TID252", # relative imports within the package are this project's style
+]
+
+[tool.ruff.lint.per-file-ignores]
+# A test asserts, and a test drives subprocesses with arguments it wrote itself.
+"tests/**" = ["D100", "D101", "D102", "D103", "D104", "S101", "S603", "S607"]
+"scripts/**" = ["D100", "D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.10"
+# The example plugin is type-checked with the package it extends. It is what a
+# contributor copies, and nothing installs it, so this is what notices when an
+# interface it implements changes under it.
+files = ["src", "examples/plugin/src"]
+exclude = "^src/benchproofer/smoke/fixtures/bundles/"
+strict = true
+warn_unreachable = true
+disallow_untyped_decorators = false
+plugins = []
+
+[[tool.mypy.overrides]]
+module = [
+  "crosshair.*",
+  "z3.*",
+  "nagini_translation.*",
+  "pyarrow.*",
+  "huggingface_hub.*",
+  "anthropic.*",
+  "tomli.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+# So that the test doubles are importable as `doubles` from any test module.
+pythonpath = ["tests"]
+markers = [
+  "toolchain: requires an external verifier toolchain (dafny, lean, nagini, velvet)",
+  "network: requires network access",
+  "docker: requires a working Docker daemon",
+  "live_model: calls a real language-model provider",
+  "slow: takes more than a few seconds",
+]
+filterwarnings = ["error::DeprecationWarning:benchproofer.*"]
+
+[tool.coverage.run]
+source = ["benchproofer"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "@abstractmethod"]

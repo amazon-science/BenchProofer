@@ -1,0 +1,392 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real URLValidator on the repo valid/invalid oracle inputs + 5000 forbidden-char-free fuzz; total over {accept->None, reject->ValidationError}",
+      "encoded_property": "the only observable on the model's domain (forbidden-char-free str values) is the verdict `accepted`: returns the empty value None iff accepted, raises ValidationError (and nothing else) iff not accepted. Weakest sufficient contract; NOT a claim about which concrete URLs are valid.",
+      "kind": "A-consumed",
+      "models": "the UNCHANGED remainder of URLValidator.__call__ (scheme check + RegexValidator.__call__ regex + IDN/punycode retry + validate_ipv6_address recheck)",
+      "name": "downstream_validate",
+      "provenance": "the validation chain the new forbidden-character screen defers to; not touched by the patch (the hunk only inserts an early check before it)",
+      "purity": "@ContractOnly (NOT @Pure: it is used by control flow / Exsures, not inside an Ensures expression)",
+      "repo_location": "django/core/validators.py:105-135 (post-patch :107-137); RegexValidator.__call__ :43-51; django/utils/encoding.py:203 (punycode); django/core/validators.py:278 (validate_ipv6_address)"
+    }
+  ],
+  "base_commit": "a708f39ce67af174df90c5b5e50ad1976cec7cb8",
+  "changed_files": [
+    "django/core/validators.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:33:28+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: real URLValidator on 6 valid + 9 invalid oracle inputs and 5000 forbidden-char-free fuzz inputs is total over {accept->None, reject->ValidationError}; downstream_validate axiom sound",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "e573de57f17da110cd953103d9343b1e591a9ed71c44b9eab69120b9b4cf844c",
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:33:36+00:00",
+      "code_version": "898696377-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: model.py impl region (verbatim shadow, @ContractOnly downstream_validate calling the REAL unchanged remainder) agrees with the real patched URLValidator.__call__ on all 100000 checked inputs (seed=14349, 3-way outcome; branches raise=43664 empty=2976 defer-accept=19246 defer-reject=34114; 2283 input(s) excluded: forbidden-char-free values whose unchanged remainder raises a non-ValidationError, outside the axiom's 2-valued domain), 0 disagreements.",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "f0f7d8f5f02ba895a4a491d7c1ee1714843039f2f89e646b3ac203a77ec58974",
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:06:13+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d",
+        "model_prepatch.py": "18feb9f655b174c8705135394a61aff95b753fecac70d414c35d785396a5578b"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-14T01:35:05+00:00",
+      "code_version": "0517d0e86-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 15 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "harness_digest": "0868ab31d1da",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 15 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 16 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_3_prepatch.py`, `atk_4_boundary_last.py`, `atk_6_diverge.py`, `atk_8_mutate.py`, `atk_9_skip_first.py`, `atk_10_overreject.py`, `atk_11_extra_char.py`, `atk_12_partial_len.py`, `atk_15_overreject2.py`, `atk_16_drop_cr.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_1_reorder.py`, `atk_2_echo.py`, `atk_5_chain_then_raise.py`, `atk_7_chain_in_loop.py`, `atk_14_accepted_guarded.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_13_other_exc.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:06:56+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d",
+        "model_prepatch.py": "18feb9f655b174c8705135394a61aff95b753fecac70d414c35d785396a5578b"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:33:14+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "b6b2e57a91a435938bc525b157e3941f0c775e6cc1217c51cfcf75ed626bca20",
+          "impl": "435c9ef764027ddcba0c81a10169a939000d34aab81f8b7a3d9655641af6caec",
+          "invariants": "83dafe8aae2910f90a827e66b45a3c6764043ce02212bafa2291b171c7e2b000",
+          "post-conditions": "d77168713beec008ea0e3ce19d43c4d8dc243cf1869fe4f5976bc16044253f52",
+          "pre-conditions": "496077a7a370b292b336de862a5c634b25404f3f2e3aa062c37b341dd7a94086",
+          "pure": "2184e0a8361b5fc7c5b61d932d9ffa227d5fa47d80e42bc5428d9aa4054d54c1",
+          "spec_view": "85ff430c9ab4c148849e83d42e96d3debce1aa35c4107cb84c92578a90cf557d"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:33:14+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "94c030dc370af1dc65d6c0ab59fe0bf4e3c65a2bcc70055f9debcbb20e0988f8",
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:33:14+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-13T17:03:28+00:00",
+      "code_version": "8d04526eb-dirty",
+      "data": {
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "a423f58bea01",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-14T01:35:06+00:00",
+      "code_version": "0517d0e86-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 15 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK LANE: is the spec too strong / does the modeled function disagree with the real callee on some input? I could NOT exhibit a diverging input on the bridge-defined domain. Verdict FAITHFUL.\n\nENVIRONMENT: fresh worktrees in /tmp (bundle untouched). $SCRATCH @ a708f39ce6 (base), $SCRATCH @ base + patch.diff. python 3.10.20.\n\nBASELINES REPRODUCED\n- same-spec on the bundle model itself: SAME, exit 0 (identity baseline for the spec region).\n- nagini_verify.sh on bundle model.py: 'Verification successful', 16.27s, exit 0.\n- model_prepatch.py FAILS on exactly the discriminating clause: 'Postcondition of validate_url might not hold. Assertion Forall(int, lambda k: Implies(0<=k<len(value), not is_forbidden(value[k]))) might not hold' (exit 1). The spec genuinely senses the change (G-DIFF); it is not vacuous.\n- axiom_check.py: exit 0. Seed-robustness: re-ran under 7 alternative fuzz seeds (1,2,7,123,999,31337,424242) - all exit 0, so the totality claim is not seed-luck.\n- conformance_check.py: exit 0, 100000 checked inputs, 0 disagreements, all four branches hit (raise=43664 empty=2976 defer-accept=19246 defer-reject=34114), 2283 exclusions reported not hidden.\n\nINDEPENDENT PROBES (my own alphabet/seeds/exclusion logic, not the bundle's)\n1. Differential sweep, 3 seeds x 40k = 120k inputs, alphabet including exotic Unicode (lone surrogate, NUL, VT, FF, NEL, NBSP, ZWSP, BOM, LS U+2028, PS U+2029, ideographic space, U+1F600): 0 model-vs-real disagreements on every seed.\n2. EXHAUSTIVE sweep over all strings of length 0-2 over an 18-char alphabet (all three forbidden chars + near-miss whitespace + crash-family chars) appended to 7 deep-reaching prefixes ('', 'http://', 'http://a.com', 'http://[::1]', 'http://?@[::1]', 'ftp://a.co', 'http://localhost'): 2374 checked, 0 disagreements. Separately: the real patched validator ACCEPTED a forbidden-char value 0 times across the entire sweep.\n3. OVER-STRONG DIRECTION (the core of my lane). The spec mandates unconditional rejection whenever TAB/LF/CR is present, so it is refuted if the real patched code ever ACCEPTS such a value. (a) systematic injection of each of TAB/LF/CR at EVERY position of 16 known-valid URLs = 1215 inputs; (b) 200000 randomized multi-injections (1-3 forbidden chars) into those valid URLs. Result: 'SPEC mandates reject but REAL ACCEPTED: 0'. (c) converse leg, 120000 forbidden-char-free bridge-defined inputs: 0 model-vs-real disagreements.\n4. Repo's OWN oracle fixtures: valid_urls.txt 81/81 checked, 0 mismatches; invalid_urls.txt 67/68 checked, 0 mismatches.\n5. All 8 F2P inputs from the test patch: real=reject, model=reject on every one. None falls in the excluded class.\n6. Forbidden-set correspondence is exact, not approximate: frozenset('\\t\\r\\n') enumerates to code points {9,10,13}, identical to is_forbidden's {9,10,13}. Verified by enumeration over the full 0x110000 code-point range.\n7. Callee determinism (the bridge assumes 'accepted' is a function of the value): 400 varied inputs called 3x each against both the oracle and the neutralized remainder - 0 nondeterministic inputs.\n8. MustTerminate(1)/(2) stress: historical catastrophic-backtracking shapes (trailing junk, repeated labels, dash runs, colon runs) at n=20..1280. Worst single call 0.0261s, no divergence. The totality claim is well-founded, and it is load-bearing (it is what rejects a 'while True' same-spec rival).\n\nTHE ONE GAP I FOUND, AND WHY IT IS NOT A FAITHFULNESS BREAK\nThere is a real third outcome of the unchanged code: forbidden-char-free values like 'http://?@[::1]', 'ftp://?@[::1]', 'https://?@[::1]', 'ftp://?q@[::ffff:1.2.3.4]', 'http://#@[::1]' raise TypeError (\"object of type 'NoneType' has no len()\") from len(urlsplit(value).hostname), not ValidationError. On those inputs no boolean 'accepted' models the callee, so the two-valued axiom has no faithful instance. I confirmed this is a genuine hole in the axiom's stated domain by injecting 'http://?@[::1]' into axiom_check.py's invalid partition: it fails loudly with 'downstream axiom unsound: real URLValidator did NOT reject with ValidationError' (exit 1). However this does NOT make the spec too strong or unfaithful, for four independently checked reasons: (i) it is DISCLOSED, not hidden - mapping.md G-CONF and conformance_check.py's DOMAIN section name this exact class, name the exact TypeError and the exact input 'http://?@[::1]', and the driver COUNTS and REPORTS the 2283 exclusions rather than dropping them; (ii) it is PRE-EXISTING and patch-orthogonal - I reproduced the identical TypeError at base_commit with no unsafe_chars attribute present, so the patch neither causes nor is required to fix it; (iii) the exclusion is bridge-scoped and CANNOT launder the discriminating behaviour - I checked all 45 crash-family variants WITH a forbidden char injected (pre/mid/post x TAB/LF/CR x 5 bases): on the PATCHED repo all 45 are rejected and the model agrees on all 45 (mismatches=0), i.e. the new screen correctly takes precedence over the downstream crash and those inputs are KEPT, not excluded; on the unpatched base the same 45 still TypeError, which is precisely the model_prepatch failure; (iv) the excluded class is disjoint from the oracle - none of the 8 F2P inputs is in it, and only 1 of 149 repo fixture URLs ('http://[::1:2::3]:8080/', a urlsplit ValueError on py3.10) falls in it.\n\nENVIRONMENT ARTIFACT (not a spec defect, flagged for the record)\nRunning the F2P test on the patched repo shows 1 ERROR on value='http://[::1:2::3]:8080/' - a ValueError from python 3.10.20's urllib _check_bracketed_netloc, a stdlib version artifact of this local env, not of the patch. Proof it is patch-independent: on the UNPATCHED base with the same test patch the run is 'FAILED (failures=8, errors=1)' - the same 1 error plus exactly the 8 forbidden-char failures the patch is meant to fix; patched drops the 8 failures and leaves only that 1 pre-existing stdlib error. Per MEMORY, I am NOT scoring this as a spec defect.\n\nCONCLUSION: no diverging input found. The spec's mandated behaviour matches the real patched callee on ~440k independent inputs plus an exhaustive short-string sweep, both fixture oracles, and all 8 F2P inputs; the forbidden set is exactly {9,10,13}; the axiom is seed-robust and its one domain hole is disclosed, pre-existing, oracle-disjoint, and unable to hide the discriminating behaviour. Verdict FAITHFUL. NOTE: 'FAITHFUL' here is my attack failing to break the spec, which per the instructions is not itself a defect - I supply no diverging_input because I found none.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Attacker role 3 (leakage / gold-reconstruction) for django__django-14349/nagini. Audited the ACTUAL consumer projection, not the raw bundle: markers.spec_view(model.py, nagini) \u2014 impl region (lines 128-146, incl. the nested invariants) collapses to `...  # implementation elided`; docstring, imports, InvalidValue class, axioms, pure, pre/post-conditions pass through. Spec-region byte-identity confirmed independently: `adversary same-spec nagini django__django-14349 $SCRATCH/atk.py` -> exit 0 (\"SAME\"). G-VERIFY re-run: model.py \"Verification successful\", 23.02s. Only spec_view + modeled_functions + localization reach the agent (eval/dataset.as_dict + eval/prompts._spec_block); mapping.md, patch.diff, refinement.md, meta.json are NEVER in the agent view, so mapping.md \u00a71 quoting the verbatim gold hunk (`unsafe_chars = frozenset('\\t\\r\\n')`, `self.unsafe_chars.intersection(value)`) is out of scope for this gate.\n\nMECHANICAL EVIDENCE (all clean):\n(1) leakage.screen(model.py, nagini, patch.diff) => LeakageReport(hard_failures=[], warnings=[]) \u2014 zero findings, no relaxation invoked.\n(2) Gold-line reproduction, re-tested by hand with whitespace normalization and WITHOUT the trivial-fragment exemptions (so no false negative from the allowlist): all three added gold lines ABSENT from the spec view.\n(3) Gold-symbol collision via AST over the spec view (Name + FunctionDef/ClassDef + Attribute ids): `unsafe_chars`, `frozenset`, `intersection`, `URLValidator`, `ValidationError`, `schemes`, `message`, `code`, `params` all CLEAN. Only `value` collides \u2014 the argument name, non-distinctive and localizing nothing. Model identifiers (`validate_url`, `is_forbidden`, `downstream_validate`, `InvalidValue`, `accepted`) name behaviour, not the edit; none echoes a patched repo symbol.\n(4) No diff markers, and the patched path `django/core/validators.py` never appears in the spec view. No `scheme`/`regex`/`IDN`/`punycode`/`IPv6` internals leak into the view's contract surface.\n(5) Narration scan: the only hits are \"...not as an edit\" (an explicit ANTI-narration disclaimer), \"screened before it is accepted\", \"diverges before answering\", and \"`while True: pass` inserted after the screen\" (a Nagini partial-correctness justification for MustTerminate). None narrates bug->fix mechanism; no \"fix\"/\"bug\"/\"patch\"/\"previously\"/\"regression\"/\"bpo\" token. Per MEMORY (\"G-LEAK rejects 'fixed' and 'copy'\") I checked these are measure/termination prose, not fix narration \u2014 correct.\n\nSEMANTIC / RECONSTRUCTION TEST (the binding half, judged against problem_statement ONLY, never hints_text): every discriminating concept in the spec view is present in the PUBLIC problem_statement. Token map (PS / hints / test_patch): LF (YES/--/--), CR (YES/--/--), tab (YES/--/YES), \"forbidden\" (YES/--/--), \"reject\" (YES/--/YES), \"early\" (YES/--/--), \"all instances\" i.e. anywhere-not-just-trailing (YES/--/--), ValidationError (YES/--/YES). The PS verbatim states \"the bpo-43882 fix changes URL splitting behavior to strip all instances of LF, CR and tab characters\" and \"One option is to reject URLs containing the forbidden characters early\" \u2014 which is precisely and only what the spec pins: the exact three code points {9,10,13} (`is_forbidden`), rejection anywhere in the value (the Exists postcondition), and precedence/independence over the remaining structural validation (the branch independent of `accepted`). The word \"forbidden\", the three-character set, \"reject\", \"early\", and \"all instances\" are ALL public. Nothing in the spec view is hints_text-only \u2014 hints_text here is pure release chatter (duplicate-of-#32074, Python 3.9.5 backport) and contributes zero vocabulary to the view.\n\nADVERSARIAL CROSS-CHECK: this is deliberately NOT the relaxed-leakage shape (no RELAXED_LEAKAGE.md, no meta.json relaxed_leakage flag, G-LEAK status \"pass\" not \"relaxed\") \u2014 and it does not need one. Unlike django-15252 / django-14011, there is NO PS<->gold mismatch: the gold implements exactly the first of the two options the PS itself enumerates. The spec does resolve the PS's stated ambiguity (reject-early vs. strip-silently) in favour of reject \u2014 but that is the specification's job (a spec must pin ONE behaviour to be faithful), the chosen alternative is quoted verbatim in the public text, and the F2P test outcome (\"ValidationError not raised\" = a rejection was expected) is itself public in the PS traceback. So the resolution is PS-derivable, not gold-derived. The gold's MECHANISM \u2014 a `frozenset` class attribute intersected against the value, positioned after the isinstance guard \u2014 is fully absent; the spec states set membership as an existential over a List[int] code-point carrier (a Nagini-forced abstraction, per mapping.md \u00a72, since Nagini bans str indexing), which is a strictly weaker, mechanism-free formulation. A consumer reading the spec view learns the required behaviour, which is what modes 1/2 intend to give them, and cannot reconstruct the gold edit's shape, symbols, or location.\n\nNote for the panel: meta.json records G-EQ=fail and G-PANEL-1=fail (the spec-too-weak lane). Those are attacker-1's territory and are NOT re-judged here; per MEMORY (\"retained attack labels carry the oracle verdict\") I did not import that verdict into this gate. The leakage axis is independently clean.\n\nVERDICT: NO-LEAKAGE. No leaking line found; nothing in the spec view exceeds the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 15 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 ATTACK LANE: is the spec too strong / does the modeled function disagree with the real callee on some input? I could NOT exhibit a diverging input on the bridge-defined domain. Verdict FAITHFUL.\n\nENVIRONMENT: fresh worktrees in /tmp (bundle untouched). $SCRATCH @ a708f39ce6 (base), $SCRATCH @ base + patch.diff. python 3.10.20.\n\nBASELINES REPRODUCED\n- same-spec on the bundle model itself: SAME, exit 0 (identity baseline for the spec region).\n- nagini_verify.sh on bundle model.py: 'Verification successful', 16.27s, exit 0.\n- model_prepatch.py FAILS on exactly the discriminating clause: 'Postcondition of validate_url might not hold. Assertion Forall(int, lambda k: Implies(0<=k<len(value), not is_forbidden(value[k]))) might not hold' (exit 1). The spec genuinely senses the change (G-DIFF); it is not vacuous.\n- axiom_check.py: exit 0. Seed-robustness: re-ran under 7 alternative fuzz seeds (1,2,7,123,999,31337,424242) - all exit 0, so the totality claim is not seed-luck.\n- conformance_check.py: exit 0, 100000 checked inputs, 0 disagreements, all four branches hit (raise=43664 empty=2976 defer-accept=19246 defer-reject=34114), 2283 exclusions reported not hidden.\n\nINDEPENDENT PROBES (my own alphabet/seeds/exclusion logic, not the bundle's)\n1. Differential sweep, 3 seeds x 40k = 120k inputs, alphabet including exotic Unicode (lone surrogate, NUL, VT, FF, NEL, NBSP, ZWSP, BOM, LS U+2028, PS U+2029, ideographic space, U+1F600): 0 model-vs-real disagreements on every seed.\n2. EXHAUSTIVE sweep over all strings of length 0-2 over an 18-char alphabet (all three forbidden chars + near-miss whitespace + crash-family chars) appended to 7 deep-reaching prefixes ('', 'http://', 'http://a.com', 'http://[::1]', 'http://?@[::1]', 'ftp://a.co', 'http://localhost'): 2374 checked, 0 disagreements. Separately: the real patched validator ACCEPTED a forbidden-char value 0 times across the entire sweep.\n3. OVER-STRONG DIRECTION (the core of my lane). The spec mandates unconditional rejection whenever TAB/LF/CR is present, so it is refuted if the real patched code ever ACCEPTS such a value. (a) systematic injection of each of TAB/LF/CR at EVERY position of 16 known-valid URLs = 1215 inputs; (b) 200000 randomized multi-injections (1-3 forbidden chars) into those valid URLs. Result: 'SPEC mandates reject but REAL ACCEPTED: 0'. (c) converse leg, 120000 forbidden-char-free bridge-defined inputs: 0 model-vs-real disagreements.\n4. Repo's OWN oracle fixtures: valid_urls.txt 81/81 checked, 0 mismatches; invalid_urls.txt 67/68 checked, 0 mismatches.\n5. All 8 F2P inputs from the test patch: real=reject, model=reject on every one. None falls in the excluded class.\n6. Forbidden-set correspondence is exact, not approximate: frozenset('\\t\\r\\n') enumerates to code points {9,10,13}, identical to is_forbidden's {9,10,13}. Verified by enumeration over the full 0x110000 code-point range.\n7. Callee determinism (the bridge assumes 'accepted' is a function of the value): 400 varied inputs called 3x each against both the oracle and the neutralized remainder - 0 nondeterministic inputs.\n8. MustTerminate(1)/(2) stress: historical catastrophic-backtracking shapes (trailing junk, repeated labels, dash runs, colon runs) at n=20..1280. Worst single call 0.0261s, no divergence. The totality claim is well-founded, and it is load-bearing (it is what rejects a 'while True' same-spec rival).\n\nTHE ONE GAP I FOUND, AND WHY IT IS NOT A FAITHFULNESS BREAK\nThere is a real third outcome of the unchanged code: forbidden-char-free values like 'http://?@[::1]', 'ftp://?@[::1]', 'https://?@[::1]', 'ftp://?q@[::ffff:1.2.3.4]', 'http://#@[::1]' raise TypeError (\"object of type 'NoneType' has no len()\") from len(urlsplit(value).hostname), not ValidationError. On those inputs no boolean 'accepted' models the callee, so the two-valued axiom has no faithful instance. I confirmed this is a genuine hole in the axiom's stated domain by injecting 'http://?@[::1]' into axiom_check.py's invalid partition: it fails loudly with 'downstream axiom unsound: real URLValidator did NOT reject with ValidationError' (exit 1). However this does NOT make the spec too strong or unfaithful, for four independently checked reasons: (i) it is DISCLOSED, not hidden - mapping.md G-CONF and conformance_check.py's DOMAIN section name this exact class, name the exact TypeError and the exact input 'http://?@[::1]', and the driver COUNTS and REPORTS the 2283 exclusions rather than dropping them; (ii) it is PRE-EXISTING and patch-orthogonal - I reproduced the identical TypeError at base_commit with no unsafe_chars attribute present, so the patch neither causes nor is required to fix it; (iii) the exclusion is bridge-scoped and CANNOT launder the discriminating behaviour - I checked all 45 crash-family variants WITH a forbidden char injected (pre/mid/post x TAB/LF/CR x 5 bases): on the PATCHED repo all 45 are rejected and the model agrees on all 45 (mismatches=0), i.e. the new screen correctly takes precedence over the downstream crash and those inputs are KEPT, not excluded; on the unpatched base the same 45 still TypeError, which is precisely the model_prepatch failure; (iv) the excluded class is disjoint from the oracle - none of the 8 F2P inputs is in it, and only 1 of 149 repo fixture URLs ('http://[::1:2::3]:8080/', a urlsplit ValueError on py3.10) falls in it.\n\nENVIRONMENT ARTIFACT (not a spec defect, flagged for the record)\nRunning the F2P test on the patched repo shows 1 ERROR on value='http://[::1:2::3]:8080/' - a ValueError from python 3.10.20's urllib _check_bracketed_netloc, a stdlib version artifact of this local env, not of the patch. Proof it is patch-independent: on the UNPATCHED base with the same test patch the run is 'FAILED (failures=8, errors=1)' - the same 1 error plus exactly the 8 forbidden-char failures the patch is meant to fix; patched drops the 8 failures and leaves only that 1 pre-existing stdlib error. Per MEMORY, I am NOT scoring this as a spec defect.\n\nCONCLUSION: no diverging input found. The spec's mandated behaviour matches the real patched callee on ~440k independent inputs plus an exhaustive short-string sweep, both fixture oracles, and all 8 F2P inputs; the forbidden set is exactly {9,10,13}; the axiom is seed-robust and its one domain hole is disclosed, pre-existing, oracle-disjoint, and unable to hide the discriminating behaviour. Verdict FAITHFUL. NOTE: 'FAITHFUL' here is my attack failing to break the spec, which per the instructions is not itself a defect - I supply no diverging_input because I found none.; G-PANEL-3 (leakage): pass \u2014 Attacker role 3 (leakage / gold-reconstruction) for django__django-14349/nagini. Audited the ACTUAL consumer projection, not the raw bundle: markers.spec_view(model.py, nagini) \u2014 impl region (lines 128-146, incl. the nested invariants) collapses to `...  # implementation elided`; docstring, imports, InvalidValue class, axioms, pure, pre/post-conditions pass through. Spec-region byte-identity confirmed independently: `adversary same-spec nagini django__django-14349 $SCRATCH/atk.py` -> exit 0 (\"SAME\"). G-VERIFY re-run: model.py \"Verification successful\", 23.02s. Only spec_view + modeled_functions + localization reach the agent (eval/dataset.as_dict + eval/prompts._spec_block); mapping.md, patch.diff, refinement.md, meta.json are NEVER in the agent view, so mapping.md \u00a71 quoting the verbatim gold hunk (`unsafe_chars = frozenset('\\t\\r\\n')`, `self.unsafe_chars.intersection(value)`) is out of scope for this gate.\n\nMECHANICAL EVIDENCE (all clean):\n(1) leakage.screen(model.py, nagini, patch.diff) => LeakageReport(hard_failures=[], warnings=[]) \u2014 zero findings, no relaxation invoked.\n(2) Gold-line reproduction, re-tested by hand with whitespace normalization and WITHOUT the trivial-fragment exemptions (so no false negative from the allowlist): all three added gold lines ABSENT from the spec view.\n(3) Gold-symbol collision via AST over the spec view (Name + FunctionDef/ClassDef + Attribute ids): `unsafe_chars`, `frozenset`, `intersection`, `URLValidator`, `ValidationError`, `schemes`, `message`, `code`, `params` all CLEAN. Only `value` collides \u2014 the argument name, non-distinctive and localizing nothing. Model identifiers (`validate_url`, `is_forbidden`, `downstream_validate`, `InvalidValue`, `accepted`) name behaviour, not the edit; none echoes a patched repo symbol.\n(4) No diff markers, and the patched path `django/core/validators.py` never appears in the spec view. No `scheme`/`regex`/`IDN`/`punycode`/`IPv6` internals leak into the view's contract surface.\n(5) Narration scan: the only hits are \"...not as an edit\" (an explicit ANTI-narration disclaimer), \"screened before it is accepted\", \"diverges before answering\", and \"`while True: pass` inserted after the screen\" (a Nagini partial-correctness justification for MustTerminate). None narrates bug->fix mechanism; no \"fix\"/\"bug\"/\"patch\"/\"previously\"/\"regression\"/\"bpo\" token. Per MEMORY (\"G-LEAK rejects 'fixed' and 'copy'\") I checked these are measure/termination prose, not fix narration \u2014 correct.\n\nSEMANTIC / RECONSTRUCTION TEST (the binding half, judged against problem_statement ONLY, never hints_text): every discriminating concept in the spec view is present in the PUBLIC problem_statement. Token map (PS / hints / test_patch): LF (YES/--/--), CR (YES/--/--), tab (YES/--/YES), \"forbidden\" (YES/--/--), \"reject\" (YES/--/YES), \"early\" (YES/--/--), \"all instances\" i.e. anywhere-not-just-trailing (YES/--/--), ValidationError (YES/--/YES). The PS verbatim states \"the bpo-43882 fix changes URL splitting behavior to strip all instances of LF, CR and tab characters\" and \"One option is to reject URLs containing the forbidden characters early\" \u2014 which is precisely and only what the spec pins: the exact three code points {9,10,13} (`is_forbidden`), rejection anywhere in the value (the Exists postcondition), and precedence/independence over the remaining structural validation (the branch independent of `accepted`). The word \"forbidden\", the three-character set, \"reject\", \"early\", and \"all instances\" are ALL public. Nothing in the spec view is hints_text-only \u2014 hints_text here is pure release chatter (duplicate-of-#32074, Python 3.9.5 backport) and contributes zero vocabulary to the view.\n\nADVERSARIAL CROSS-CHECK: this is deliberately NOT the relaxed-leakage shape (no RELAXED_LEAKAGE.md, no meta.json relaxed_leakage flag, G-LEAK status \"pass\" not \"relaxed\") \u2014 and it does not need one. Unlike django-15252 / django-14011, there is NO PS<->gold mismatch: the gold implements exactly the first of the two options the PS itself enumerates. The spec does resolve the PS's stated ambiguity (reject-early vs. strip-silently) in favour of reject \u2014 but that is the specification's job (a spec must pin ONE behaviour to be faithful), the chosen alternative is quoted verbatim in the public text, and the F2P test outcome (\"ValidationError not raised\" = a rejection was expected) is itself public in the PS traceback. So the resolution is PS-derivable, not gold-derived. The gold's MECHANISM \u2014 a `frozenset` class attribute intersected against the value, positioned after the isinstance guard \u2014 is fully absent; the spec states set membership as an existential over a List[int] code-point carrier (a Nagini-forced abstraction, per mapping.md \u00a72, since Nagini bans str indexing), which is a strictly weaker, mechanism-free formulation. A consumer reading the spec view learns the required behaviour, which is what modes 1/2 intend to give them, and cannot reconstruct the gold edit's shape, symbols, or location.\n\nNote for the panel: meta.json records G-EQ=fail and G-PANEL-1=fail (the spec-too-weak lane). Those are attacker-1's territory and are NOT re-judged here; per MEMORY (\"retained attack labels carry the oracle verdict\") I did not import that verdict into this gate. The leakage axis is independently clean.\n\nVERDICT: NO-LEAKAGE. No leaking line found; nothing in the spec view exceeds the public problem_statement.",
+      "gate": "G-PANEL",
+      "harness_digest": "0868ab31d1da",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 15 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 16 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_3_prepatch.py`, `atk_4_boundary_last.py`, `atk_6_diverge.py`, `atk_8_mutate.py`, `atk_9_skip_first.py`, `atk_10_overreject.py`, `atk_11_extra_char.py`, `atk_12_partial_len.py`, `atk_15_overreject2.py`, `atk_16_drop_cr.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_1_reorder.py`, `atk_2_echo.py`, `atk_5_chain_then_raise.py`, `atk_7_chain_in_loop.py`, `atk_14_accepted_guarded.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_13_other_exc.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK LANE: is the spec too strong / does the modeled function disagree with the real callee on some input? I could NOT exhibit a diverging input on the bridge-defined domain. Verdict FAITHFUL.\n\nENVIRONMENT: fresh worktrees in /tmp (bundle untouched). $SCRATCH @ a708f39ce6 (base), $SCRATCH @ base + patch.diff. python 3.10.20.\n\nBASELINES REPRODUCED\n- same-spec on the bundle model itself: SAME, exit 0 (identity baseline for the spec region).\n- nagini_verify.sh on bundle model.py: 'Verification successful', 16.27s, exit 0.\n- model_prepatch.py FAILS on exactly the discriminating clause: 'Postcondition of validate_url might not hold. Assertion Forall(int, lambda k: Implies(0<=k<len(value), not is_forbidden(value[k]))) might not hold' (exit 1). The spec genuinely senses the change (G-DIFF); it is not vacuous.\n- axiom_check.py: exit 0. Seed-robustness: re-ran under 7 alternative fuzz seeds (1,2,7,123,999,31337,424242) - all exit 0, so the totality claim is not seed-luck.\n- conformance_check.py: exit 0, 100000 checked inputs, 0 disagreements, all four branches hit (raise=43664 empty=2976 defer-accept=19246 defer-reject=34114), 2283 exclusions reported not hidden.\n\nINDEPENDENT PROBES (my own alphabet/seeds/exclusion logic, not the bundle's)\n1. Differential sweep, 3 seeds x 40k = 120k inputs, alphabet including exotic Unicode (lone surrogate, NUL, VT, FF, NEL, NBSP, ZWSP, BOM, LS U+2028, PS U+2029, ideographic space, U+1F600): 0 model-vs-real disagreements on every seed.\n2. EXHAUSTIVE sweep over all strings of length 0-2 over an 18-char alphabet (all three forbidden chars + near-miss whitespace + crash-family chars) appended to 7 deep-reaching prefixes ('', 'http://', 'http://a.com', 'http://[::1]', 'http://?@[::1]', 'ftp://a.co', 'http://localhost'): 2374 checked, 0 disagreements. Separately: the real patched validator ACCEPTED a forbidden-char value 0 times across the entire sweep.\n3. OVER-STRONG DIRECTION (the core of my lane). The spec mandates unconditional rejection whenever TAB/LF/CR is present, so it is refuted if the real patched code ever ACCEPTS such a value. (a) systematic injection of each of TAB/LF/CR at EVERY position of 16 known-valid URLs = 1215 inputs; (b) 200000 randomized multi-injections (1-3 forbidden chars) into those valid URLs. Result: 'SPEC mandates reject but REAL ACCEPTED: 0'. (c) converse leg, 120000 forbidden-char-free bridge-defined inputs: 0 model-vs-real disagreements.\n4. Repo's OWN oracle fixtures: valid_urls.txt 81/81 checked, 0 mismatches; invalid_urls.txt 67/68 checked, 0 mismatches.\n5. All 8 F2P inputs from the test patch: real=reject, model=reject on every one. None falls in the excluded class.\n6. Forbidden-set correspondence is exact, not approximate: frozenset('\\t\\r\\n') enumerates to code points {9,10,13}, identical to is_forbidden's {9,10,13}. Verified by enumeration over the full 0x110000 code-point range.\n7. Callee determinism (the bridge assumes 'accepted' is a function of the value): 400 varied inputs called 3x each against both the oracle and the neutralized remainder - 0 nondeterministic inputs.\n8. MustTerminate(1)/(2) stress: historical catastrophic-backtracking shapes (trailing junk, repeated labels, dash runs, colon runs) at n=20..1280. Worst single call 0.0261s, no divergence. The totality claim is well-founded, and it is load-bearing (it is what rejects a 'while True' same-spec rival).\n\nTHE ONE GAP I FOUND, AND WHY IT IS NOT A FAITHFULNESS BREAK There is a real third outcome of the unchanged code: forbidden-char-free values like 'http://?@[::1]', 'ftp://?@[::1]', 'https://?@[::1]', 'ftp://?q@[::ffff:1.2.3.4]', 'http://#@[::1]' raise TypeError (\"object of type 'NoneType' has no len()\") from len(urlsplit(value).hostname), not ValidationError. On those inputs no boolean 'accepted' models the callee, so the two-valued axiom has no faithful instance. I confirmed this is a genuine hole in the axiom's stated domain by injecting 'http://?@[::1]' into axiom_check.py's invalid partition: it fails loudly with 'downstream axiom unsound: real URLValidator did NOT reject with ValidationError' (exit 1).\n\nHowever this does NOT make the spec too strong or unfaithful, for four independently checked reasons: (i) it is DISCLOSED, not hidden - mapping.md G-CONF and conformance_check.py's DOMAIN section name this exact class, name the exact TypeError and the exact input 'http://?@[::1]', and the driver COUNTS and REPORTS the 2283 exclusions rather than dropping them; (ii) it is PRE-EXISTING and patch-orthogonal - I reproduced the identical TypeError at base_commit with no unsafe_chars attribute present, so the patch neither causes nor is required to fix it; (iii) the exclusion is bridge-scoped and CANNOT launder the discriminating behaviour - I checked all 45 crash-family variants WITH a forbidden char injected (pre/mid/post x TAB/LF/CR x 5 bases): on the PATCHED repo all 45 are rejected and the model agrees on all 45 (mismatches=0), i.e. the new screen correctly takes precedence over the downstream crash and those inputs are KEPT, not excluded; on the unpatched base the same 45 still TypeError, which is precisely the model_prepatch failure; (iv) the excluded class is disjoint from the oracle - none of the 8 F2P inputs is in it, and only 1 of 149 repo fixture URLs ('http://[::1:2::3]:8080/', a urlsplit ValueError on py3.10) falls in it.\n\nENVIRONMENT ARTIFACT (not a spec defect, flagged for the record)\nRunning the F2P test on the patched repo shows 1 ERROR on value='http://[::1:2::3]:8080/' - a ValueError from python 3.10.20's urllib _check_bracketed_netloc, a stdlib version artifact of this local env, not of the patch. Proof it is patch-independent: on the UNPATCHED base with the same test patch the run is 'FAILED (failures=8, errors=1)' - the same 1 error plus exactly the 8 forbidden-char failures the patch is meant to fix; patched drops the 8 failures and leaves only that 1 pre-existing stdlib error. Per MEMORY, I am NOT scoring this as a spec defect.\n\nCONCLUSION: no diverging input found. The spec's mandated behaviour matches the real patched callee on ~440k independent inputs plus an exhaustive short-string sweep, both fixture oracles, and all 8 F2P inputs; the forbidden set is exactly {9,10,13}; the axiom is seed-robust and its one domain hole is disclosed, pre-existing, oracle-disjoint, and unable to hide the discriminating behaviour. Verdict FAITHFUL. NOTE: 'FAITHFUL' here is my attack failing to break the spec, which per the instructions is not itself a defect - I supply no diverging_input because I found none.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "Attacker role 3 (leakage / gold-reconstruction) for django__django-14349/nagini. Audited the ACTUAL consumer projection, not the raw bundle: markers.spec_view(model.py, nagini) \u2014 impl region (lines 128-146, incl. the nested invariants) collapses to `...  # implementation elided`; docstring, imports, InvalidValue class, axioms, pure, pre/post-conditions pass through. Spec-region byte-identity confirmed independently: `adversary same-spec nagini django__django-14349 $SCRATCH/atk.py` -> exit 0 (\"SAME\"). G-VERIFY re-run: model.py \"Verification successful\", 23.02s. Only spec_view + modeled_functions + localization reach the agent (eval/dataset.as_dict + eval/prompts._spec_block); mapping.md, patch.diff, refinement.md, meta.json are NEVER in the agent view, so mapping.md \u00a71 quoting the verbatim gold hunk (`unsafe_chars = frozenset('\\t\\r\\n')`, `self.unsafe_chars.intersection(value)`) is out of scope for this gate.\n\nMECHANICAL EVIDENCE (all clean):\n\n(1) leakage.screen(model.py, nagini, patch.diff) => LeakageReport(hard_failures=[], warnings=[]) \u2014 zero findings, no relaxation invoked.\n\n(2) Gold-line reproduction, re-tested by hand with whitespace normalization and WITHOUT the trivial-fragment exemptions (so no false negative from the allowlist): all three added gold lines ABSENT from the spec view.\n\n(3) Gold-symbol collision via AST over the spec view (Name + FunctionDef/ClassDef + Attribute ids): `unsafe_chars`, `frozenset`, `intersection`, `URLValidator`, `ValidationError`, `schemes`, `message`, `code`, `params` all CLEAN. Only `value` collides \u2014 the argument name, non-distinctive and localizing nothing. Model identifiers (`validate_url`, `is_forbidden`, `downstream_validate`, `InvalidValue`, `accepted`) name behaviour, not the edit; none echoes a patched repo symbol.\n\n(4) No diff markers, and the patched path `django/core/validators.py` never appears in the spec view. No `scheme`/`regex`/`IDN`/`punycode`/`IPv6` internals leak into the view's contract surface.\n\n(5) Narration scan: the only hits are \"...not as an edit\" (an explicit ANTI-narration disclaimer), \"screened before it is accepted\", \"diverges before answering\", and \"`while True: pass` inserted after the screen\" (a Nagini partial-correctness justification for MustTerminate). None narrates bug->fix mechanism; no \"fix\"/\"bug\"/\"patch\"/\"previously\"/\"regression\"/\"bpo\" token. Per MEMORY (\"G-LEAK rejects 'fixed' and 'copy'\") I checked these are measure/termination prose, not fix narration \u2014 correct.\n\nSEMANTIC / RECONSTRUCTION TEST (the binding half, judged against problem_statement ONLY, never hints_text): every discriminating concept in the spec view is present in the PUBLIC problem_statement. Token map (PS / hints / test_patch): LF (YES/--/--), CR (YES/--/--), tab (YES/--/YES), \"forbidden\" (YES/--/--), \"reject\" (YES/--/YES), \"early\" (YES/--/--), \"all instances\" i.e. anywhere-not-just-trailing (YES/--/--), ValidationError (YES/--/YES). The PS verbatim states \"the bpo-43882 fix changes URL splitting behavior to strip all instances of LF, CR and tab characters\" and \"One option is to reject URLs containing the forbidden characters early\" \u2014 which is precisely and only what the spec pins: the exact three code points {9,10,13} (`is_forbidden`), rejection anywhere in the value (the Exists postcondition), and precedence/independence over the remaining structural validation (the branch independent of `accepted`). The word \"forbidden\", the three-character set, \"reject\", \"early\", and \"all instances\" are ALL public. Nothing in the spec view is hints_text-only \u2014 hints_text here is pure release chatter (duplicate-of-#32074, Python 3.9.5 backport) and contributes zero vocabulary to the view.\n\nADVERSARIAL CROSS-CHECK: this is deliberately NOT the relaxed-leakage shape (no RELAXED_LEAKAGE.md, no meta.json relaxed_leakage flag, G-LEAK status \"pass\" not \"relaxed\") \u2014 and it does not need one. Unlike django-15252 / django-14011, there is NO PS<->gold mismatch: the gold implements exactly the first of the two options the PS itself enumerates. The spec does resolve the PS's stated ambiguity (reject-early vs. strip-silently) in favour of reject \u2014 but that is the specification's job (a spec must pin ONE behaviour to be faithful), the chosen alternative is quoted verbatim in the public text, and the F2P test outcome (\"ValidationError not raised\" = a rejection was expected) is itself public in the PS traceback. So the resolution is PS-derivable, not gold-derived.\n\nThe gold's MECHANISM \u2014 a `frozenset` class attribute intersected against the value, positioned after the isinstance guard \u2014 is fully absent; the spec states set membership as an existential over a List[int] code-point carrier (a Nagini-forced abstraction, per mapping.md \u00a72, since Nagini bans str indexing), which is a strictly weaker, mechanism-free formulation. A consumer reading the spec view learns the required behaviour, which is what modes 1/2 intend to give them, and cannot reconstruct the gold edit's shape, symbols, or location.\n\nNote for the panel: meta.json records G-EQ=fail and G-PANEL-1=fail (the spec-too-weak lane). Those are attacker-1's territory and are NOT re-judged here; per MEMORY (\"retained attack labels carry the oracle verdict\") I did not import that verdict into this gate. The leakage axis is independently clean.\n\nVERDICT: NO-LEAKAGE. No leaking line found; nothing in the spec view exceeds the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:36:05+00:00",
+      "code_version": "86d931006-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-localvar-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reads",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-first-char-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-downstream",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-diverge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-reject",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.4
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "513fc0853e82d8c1df981e39b1e4fd1179dbf32d54cd093c7192e3ecc5ecbd0d",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ce5feffd3ca4a35e0dab6a3c24dce5e7b49c70c0d04b90bec751372d63bcae5d",
+        "properties.py": "513fc0853e82d8c1df981e39b1e4fd1179dbf32d54cd093c7192e3ecc5ecbd0d"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T03:22:25+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-13T17:02:32+00:00",
+      "code_version": "8d04526eb-dirty",
+      "data": {
+        "wall_time_s": 12.5
+      },
+      "detail": "verified in 12.5s",
+      "gate": "G-VERIFY",
+      "harness_digest": "a423f58bea01",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-14349",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; forbidden-char membership stated as an existential over the code-point list; downstream verdict abstracted by the boolean `accepted`",
+      "model_symbol": "validate_url",
+      "repo_location": "django/core/validators.py:101",
+      "repo_symbol": "django.core.validators.URLValidator.__call__",
+      "role": "modeled changed function (the URL value screen the patch adds a forbidden-character check to); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "normal-completion postcondition Forall k. not is_forbidden(value[k]) \u2014 an input with a forbidden code point that downstream would accept returns normally instead of raising",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "URLValidator.__call__ forbidden-character (TAB/LF/CR) rejection",
+      "reverted_to": "pre-patch body: no forbidden-character screen; value handed straight to downstream_validate(accepted)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3077087e03056f4924696dedc7562927f3cac86051ebd4ad321f60cfa5565792",
+    "impl": "9a19aa340a80d0e33e9e1ea1c7c0cb0ba5be97fbca46346f34b56a8737b6fa8d",
+    "invariants": "0cdb19ed998f81e4798cab7322d722fb0b8f9ce2e8f3069c02a3c39c1f3cbc85",
+    "post-conditions": "d77168713beec008ea0e3ce19d43c4d8dc243cf1869fe4f5976bc16044253f52",
+    "pre-conditions": "fe4170962def0f2adf40e0af1843b6902e07e48cfe0840f78c06b483c1252a8e",
+    "pure": "2184e0a8361b5fc7c5b61d932d9ffa227d5fa47d80e42bc5428d9aa4054d54c1",
+    "spec_view": "c54a8f392abf868b8a74e57722ed7def80613cb21f405e7c2ce266a8d6a10d3a"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "value modelled as List[int] of Unicode code points; forbidden-character membership = Exists k. value[k] in {9,10,13} (TAB/LF/CR); the scan loop refines frozenset('\\t\\r\\n').intersection(value); rejection raised as a user-defined InvalidValue exception standing in for ValidationError (builtin-exception Exsures crashes the translator)",
+  "version": "4.0"
+}

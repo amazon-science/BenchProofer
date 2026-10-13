@@ -1,0 +1,406 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts real Paginator.page(n) is deterministic in n (page(n) == page(n) by number + content) over a broad config sweep",
+      "encoded_property": "Ensures(True) -- the weakest sufficient contract: page_lookup is a well-defined PURE function of the 1-based page number alone (its value does not depend on traversal position). Deliberately encodes nothing about page content/orphans/EmptyPage -- those are page's unchanged concern, not what __iter__ changes.",
+      "models": "django.core.paginator.Paginator.page (unchanged accessor, django/core/paginator.py:67)",
+      "name": "page_lookup",
+      "provenance": "Paginator.page(number) at django/core/paginator.py:67 returns self._get_page(self.object_list[bottom:top], number, self) (line 74); unchanged by the gold patch, which only ADDS __iter__",
+      "purity": "@Pure @ContractOnly (used inside the deep model mapped, which appears in Ensures)"
+    }
+  ],
+  "base_commit": "84322a29ce9b0940335f8ab3d60e55192bef1e50",
+  "changed_files": [
+    "django/core/paginator.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts list(iter(paginator)) == [paginator.page(n) for n in paginator.page_range] page-for-page (number + content) over 480 collection configs (object_list length x per_page x orphans x allow_empty_first_page) incl. the F2P witness Paginator([1,2,3],2) -> [[1,2],[3]] and the empty/single-page/orphan boundaries",
+      "encoded_property": "mapped(s): the in-order per-page-number image of the page accessor over the page-number run s -- front-recursive PSeq(page_lookup(s[0])) + mapped(s.drop(1)); one item per page number, in page_range order, none skipped/repeated/reordered; empty run -> empty result",
+      "kind": "A-reference",
+      "models": "django.core.paginator.Paginator.__iter__ (post-patch): for page_number in self.page_range: yield self.page(page_number)",
+      "name": "mapped",
+      "provenance": "gold patch body; relies on the unchanged Paginator.page_range (paginator.py:102, range(1, num_pages+1)) and Paginator.page (paginator.py:67)",
+      "role": "deep model (pure region) of the changed traversal behaviour; NOT a consumed axiom -- there is no @ContractOnly __iter__ axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:19:50+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: page_lookup determinism + mapped(page_range) == real Paginator.__iter__ over 480 collection configs (incl. F2P witness, empty / single-page / orphan boundaries)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "36b385fbcd4bc3980e2711fbf247ad5a1a3a23b54a29e52156fdefba90b61dd8",
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:19:56+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100018,
+          "disagreements": 0,
+          "seed": 9296,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly page_lookup -> real Paginator.page)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100018, \"disagreements\": 0, \"seed\": 9296, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly page_lookup -> real Paginator.page)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e715b984a6a69c90d43bded62a2c65ccaf33bea24db0f6a714f15aba29d9a81a",
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:34:30+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db",
+        "model_prepatch.py": "b8bd89818ae909164bb078d0556ab7efa9bb3c302c6efc92d7e43f03a249261e"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T13:45:39+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:35:14+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db",
+        "model_prepatch.py": "b8bd89818ae909164bb078d0556ab7efa9bb3c302c6efc92d7e43f03a249261e"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:19:27+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "de7efb4ddaf4438e3fdc5cc1af68a7f4fbf0a9e1c957436a062b34ee15f12e0b",
+          "impl": "c9740a30c07095067fdaf9730fa9e573f1262499904cde01a03dd49be66e444c",
+          "invariants": "9e2ec5013a2e81ff021a30ec72ac1cfa8c146d9b4a7550ab28e3915b2447dd4f",
+          "post-conditions": "041b2c24aff51313f7aacf2d36ad1ecd38db03a7d8c4b6198fe90f025c7a21c8",
+          "pre-conditions": "d1cdc144a7b668f44a9962f468fe20d3f68457d5bdaec01f9ae0a926610e0575",
+          "pure": "a21b67a11038fed279a46b8bede928bca97ec88daca60403627dec3576dfc4ea",
+          "spec_view": "d40cb6ad1444f1a4b17ea8c1fc85b9883c8edb23712a827601230776e475d1f0"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:19:28+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "dd248c7ae579072216df0624361ef895a2b1b59bbbc3a4dfc36b4cffa927456d",
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:19:29+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:37:27+00:00",
+      "code_version": "49a48fd3f-dirty",
+      "data": {
+        "invalid": [
+          "line 89: '+' -> '-'"
+        ],
+        "judged": 10,
+        "killed": 10,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 10,
+        "unjudged": []
+      },
+      "detail": "killed 10/10 (100%); 1 mutant(s) left the sample as non-programs (the checker refused the file, reproducibly, while the unmutated source reached a verdict): [\"line 89: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T13:45:40+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break attack: no divergence found between the modeled function and the real repo callee.\n\nBASE/PATCH: base_commit 84322a29ce9b0940335f8ab3d60e55192bef1e50 present in $SCRATCH. Gold patch is purely additive \u2014 adds `def __iter__(self): for page_number in self.page_range: yield self.page(page_number)` to Paginator (django/core/paginator.py). page_range, page, num_pages, _get_page, Page are unchanged. This matches the model exactly.\n\nSPEC INTEGRITY: same-spec on a byte-identical copy of model.py returns exit 0 (SAME).\n\nMACHINE CHECKS (against real patched repo worktree $SCRATCH):\n- nagini_verify.sh: Verification successful (18.5s).\n- axiom_check.py (G-AX): OK over 480 configs \u2014 real Paginator.__iter__ == [page(n) for n in page_range] page-for-page (number + object_list), plus page(n) determinism; incl. F2P witness Paginator([1,2,3],2)=>[[1,2],[3]] and empty/single/orphan boundaries.\n- conformance_check.py (G-CONF): OK over 100018 configs (18 boundary + 100000 fuzz, seed 9296), 0 disagreements \u2014 contract-stripped impl (backward-prepend loop) == real left-to-right traversal.\n- Independent differential sweep over length x per_page x orphans x allow_empty: 0 divergences.\n\nWHY NOT OVER-STRONG: The page_lookup axiom claims only the WEAKEST sufficient property (Ensures(True) \u2014 page(n) is a pure/deterministic function of n for a fixed collection), which the real Paginator.page satisfies; it deliberately does NOT encode slice/content/orphan/EmptyPage behaviour (page's unchanged concern). The deep model `mapped` equals the real traversal in order and per-position. The postcondition ToSeq(Result()) == mapped(ToSeq(page_numbers)) pins exactly count == len(page_numbers), order preservation, no skip/repeat/reorder, and empty->empty \u2014 precisely what the gold generator does, no more. Domain restriction orphans < per_page matches Django's operating domain and does not over-constrain vs. the real callee. G-DIFF: model_prepatch.py (returns []) fails the postcondition on any non-empty run, confirming the spec senses the change.\n\nConclusion: spec is a faithful abstraction of the real repo behavior; no diverging input exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "The public problem_statement for django__django-9296 already contains the gold patch VERBATIM (`def __iter__(self):\\n    for page_num in self.page_range:\\n        yield self.page(page_num)`). Because the entire gold edit \u2014 the new Paginator.__iter__ method, iterating self.page_range and yielding self.page(page_number), in django/core/paginator.py \u2014 is fully disclosed publicly, no line in the spec view can leak the gold edit BEYOND the public baseline. Every specifics-bearing statement in model.py/mapping.md/refinement.md (ordered per-page-number traversal, page-by-number accessor, page_range element list, empty-run boundary, target file/class) is traceable to code the problem_statement already prints. Auxiliary derivation detail (F2P witness Paginator([1,2,3],2), test name test_paginator_iteration, base_commit hash, line numbers) reveals test/provenance, not any residual gold-edit content the problem_statement does not already give. Judged against problem_statement only, not hints_text.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break attack: no divergence found between the modeled function and the real repo callee.\n\nBASE/PATCH: base_commit 84322a29ce9b0940335f8ab3d60e55192bef1e50 present in $SCRATCH. Gold patch is purely additive \u2014 adds `def __iter__(self): for page_number in self.page_range: yield self.page(page_number)` to Paginator (django/core/paginator.py). page_range, page, num_pages, _get_page, Page are unchanged. This matches the model exactly.\n\nSPEC INTEGRITY: same-spec on a byte-identical copy of model.py returns exit 0 (SAME).\n\nMACHINE CHECKS (against real patched repo worktree $SCRATCH):\n- nagini_verify.sh: Verification successful (18.5s).\n- axiom_check.py (G-AX): OK over 480 configs \u2014 real Paginator.__iter__ == [page(n) for n in page_range] page-for-page (number + object_list), plus page(n) determinism; incl. F2P witness Paginator([1,2,3],2)=>[[1,2],[3]] and empty/single/orphan boundaries.\n- conformance_check.py (G-CONF): OK over 100018 configs (18 boundary + 100000 fuzz, seed 9296), 0 disagreements \u2014 contract-stripped impl (backward-prepend loop) == real left-to-right traversal.\n- Independent differential sweep over length x per_page x orphans x allow_empty: 0 divergences.\n\nWHY NOT OVER-STRONG: The page_lookup axiom claims only the WEAKEST sufficient property (Ensures(True) \u2014 page(n) is a pure/deterministic function of n for a fixed collection), which the real Paginator.page satisfies; it deliberately does NOT encode slice/content/orphan/EmptyPage behaviour (page's unchanged concern). The deep model `mapped` equals the real traversal in order and per-position. The postcondition ToSeq(Result()) == mapped(ToSeq(page_numbers)) pins exactly count == len(page_numbers), order preservation, no skip/repeat/reorder, and empty->empty \u2014 precisely what the gold generator does, no more. Domain restriction orphans < per_page matches Django's operating domain and does not over-constrain vs. the real callee. G-DIFF: model_prepatch.py (returns []) fails the postcondition on any non-empty run, confirming the spec senses the change.\n\nConclusion: spec is a faithful abstraction of the real repo behavior; no diverging input exists.; G-PANEL-3 (leakage): pass \u2014 The public problem_statement for django__django-9296 already contains the gold patch VERBATIM (`def __iter__(self):\\n    for page_num in self.page_range:\\n        yield self.page(page_num)`). Because the entire gold edit \u2014 the new Paginator.__iter__ method, iterating self.page_range and yielding self.page(page_number), in django/core/paginator.py \u2014 is fully disclosed publicly, no line in the spec view can leak the gold edit BEYOND the public baseline. Every specifics-bearing statement in model.py/mapping.md/refinement.md (ordered per-page-number traversal, page-by-number accessor, page_range element list, empty-run boundary, target file/class) is traceable to code the problem_statement already prints. Auxiliary derivation detail (F2P witness Paginator([1,2,3],2), test name test_paginator_iteration, base_commit hash, line numbers) reveals test/provenance, not any residual gold-edit content the problem_statement does not already give. Judged against problem_statement only, not hints_text.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break attack: no divergence found between the modeled function and the real repo callee.\n\nBASE/PATCH: base_commit 84322a29ce9b0940335f8ab3d60e55192bef1e50 present in $SCRATCH. Gold patch is purely additive \u2014 adds `def __iter__(self): for page_number in self.page_range: yield self.page(page_number)` to Paginator (django/core/paginator.py). page_range, page, num_pages, _get_page, Page are unchanged. This matches the model exactly.\n\nSPEC INTEGRITY: same-spec on a byte-identical copy of model.py returns exit 0 (SAME).\n\nMACHINE CHECKS (against real patched repo worktree $SCRATCH):\n- nagini_verify.sh: Verification successful (18.5s).\n- axiom_check.py (G-AX): OK over 480 configs \u2014 real Paginator.__iter__ == [page(n) for n in page_range] page-for-page (number + object_list), plus page(n) determinism; incl. F2P witness Paginator([1,2,3],2)=>[[1,2],[3]] and empty/single/orphan boundaries.\n- conformance_check.py (G-CONF): OK over 100018 configs (18 boundary + 100000 fuzz, seed 9296), 0 disagreements \u2014 contract-stripped impl (backward-prepend loop) == real left-to-right traversal.\n- Independent differential sweep over length x per_page x orphans x allow_empty: 0 divergences.\n\nWHY NOT OVER-STRONG: The page_lookup axiom claims only the WEAKEST sufficient property (Ensures(True) \u2014 page(n) is a pure/deterministic function of n for a fixed collection), which the real Paginator.page satisfies; it deliberately does NOT encode slice/content/orphan/EmptyPage behaviour (page's unchanged concern). The deep model `mapped` equals the real traversal in order and per-position. The postcondition ToSeq(Result()) == mapped(ToSeq(page_numbers)) pins exactly count == len(page_numbers), order preservation, no skip/repeat/reorder, and empty->empty \u2014 precisely what the gold generator does, no more. Domain restriction orphans < per_page matches Django's operating domain and does not over-constrain vs. the real callee. G-DIFF: model_prepatch.py (returns []) fails the postcondition on any non-empty run, confirming the spec senses the change.\n\nConclusion: spec is a faithful abstraction of the real repo behavior; no diverging input exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "The public problem_statement for django__django-9296 already contains the gold patch VERBATIM (`def __iter__(self):\\n    for page_num in self.page_range:\\n        yield self.page(page_num)`). Because the entire gold edit \u2014 the new Paginator.__iter__ method, iterating self.page_range and yielding self.page(page_number), in django/core/paginator.py \u2014 is fully disclosed publicly, no line in the spec view can leak the gold edit BEYOND the public baseline. Every specifics-bearing statement in model.py/mapping.md/refinement.md (ordered per-page-number traversal, page-by-number accessor, page_range element list, empty-run boundary, target file/class) is traceable to code the problem_statement already prints. Auxiliary derivation detail (F2P witness Paginator([1,2,3],2), test name test_paginator_iteration, base_commit hash, line numbers) reveals test/provenance, not any residual gold-edit content the problem_statement does not already give. Judged against problem_statement only, not hints_text.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T18:12:07+00:00",
+      "code_version": "47ecb2867-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mutation-store",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.7
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.9
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-index-not-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.9
+          },
+          {
+            "expect": "reject",
+            "id": "order-reversed-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-localvar-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.7
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "7a48a59cc3d7f207cef123ad1b1e271447d0e47d7ecb90835dfdedcefcfbbdeb",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db",
+        "properties.py": "7a48a59cc3d7f207cef123ad1b1e271447d0e47d7ecb90835dfdedcefcfbbdeb"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T14:36:26+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:37:43+00:00",
+      "code_version": "49a48fd3f-dirty",
+      "data": {
+        "wall_time_s": 16.0
+      },
+      "detail": "verified in 16.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab2383993487fa811a8ec1f1afec39f700ccf547349c63154708f5b642ccf1db"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-9296",
+  "modeled_functions": [
+    {
+      "carrier_type": "self.page_range (a range(1, num_pages+1)) -> page_numbers: List[int] of its ordered elements; each yielded Page object -> opaque per-page-number value page_lookup(n): int; the generator's output -> List[int] result, in order; specification carried by PSeq[int]",
+      "model_symbol": "paginate_iter",
+      "repo_location": "django/core/paginator.py (new generator inserted at line 37, between __init__ (line 29) and validate_number)",
+      "repo_symbol": "django.core.paginator.Paginator.__iter__",
+      "role": "modeled changed behaviour (the collection's page traversal); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result()) == mapped(ToSeq(page_numbers)) -- the empty result != the in-order page image for every non-empty page_range",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the existence of the ordered page traversal (Paginator becomes iterable, yielding pages in page_range order)",
+      "reverted_to": "no traversal at all: the impl returns [] (the absent-iterator pre-image -- pre-patch Paginator has no __iter__ and is not iterable)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "c6ba9d40f4a5bf5c25f9c3e18f1e0898697ac742545a2d1c2c49d81d5eb33f72",
+    "impl": "13c93cf11c76498fd4821c0d427af55b6ada62d2280b908d454a93b9a714243d",
+    "invariants": "2be43108c54d45b4ee20162f0d28185bf9d955a37d18953bd7b12b94e03c55ca",
+    "post-conditions": "43e53eee4e7c60d1bbba56168ced7530dee7f206e4d45ed2680094a4e871e520",
+    "pre-conditions": "07ece0b9ed2f4d0aed0b79971c5c130ceb966577751d61faada870f467595871",
+    "pure": "8d6696b8747f3d4ee3b4e0a1fd1163150bcfad8f5ace02bed30b8af67bd83466",
+    "spec_view": "cd1aec5af66c4480c029ac1e16f4d5bae0ef8d64da88375b34ad525bb0518c2b"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "n/a (no strings). page_range (a range) -> List[int] of ordered page numbers; each Page -> opaque int page_lookup(n); traversal output -> List[int]; the order-and-per-position image proven by a backward per-element fold (front-recursive mapped over .drop(i) gives a single unfold per step)",
+  "version": "3.1"
+}

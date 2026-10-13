@@ -1,0 +1,684 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real DeleteQuery.delete_batch over 93 observations on an in-memory sqlite DB -- 50 live-row + 25 absent-identifier trials at AutoField identifiers, plus 16 DOMAIN-EDGE observations at the extremes of the stated domain (2**63-1, -2**63, 2**63-2, -2**63+1, +/-2**62, 2**31, -2**31-1, each stored and observed live then re-targeted absent). Each invocation observed through the connection's execute_wrapper to issue exactly ONE row-removal statement, to have removed by the identifier it was handed (read from the statement's real bind parameters), and to return that statement's own non-negative count (in {0,1}); the in-memory pk is left untouched by the primitive. THE REFUSAL is measured in both directions and on its cost (section c, with PRAGMA foreign_keys read out of the live connection rather than assumed, foreign keys enforced=True): a row protected by a live DO_NOTHING foreign key -- asserted still can_fast_delete, so the refusal is reachable on the modeled path -- is answered with NO count (the real exception's class is checked to be django.db.utils.IntegrityError, the row is checked to survive, the in-memory pk is checked untouched), and that refused invocation is checked to have issued exactly ONE row-removal statement carrying the identifier it was handed; the SAME identifier with the protecting row deleted is answered with count 1 (so the refusal is conditioned on what the store holds, not something the primitive may always do); and a dependent row behind a db_constraint=False reference is answered with count 1 (so refuses_removal is the store's own refusal, not 'a dependent exists'). Control: asserting refused_statements == 0 instead of 1 makes G-AX exit 1 with an AssertionError, so the cost half of the exceptional clause is live. The DOMAIN is measured, not assumed: 7 out-of-range identifiers (2**63, 2**63+1, 2**64, 2**70, -2**63-1, -2**63-2, -2**70) are each asserted to report NO count at all (the sqlite driver cannot adapt the bind parameter and raises OverflowError out of SQLiteCursorWrapper.execute, django/db/backends/sqlite3/base.py:387-391), which is why the axiom's Requires bounds the range; and no stored row can be keyed by such a value in the first place -- objects.create(pk=2**63) and objects.create(pk=-2**63-1) raise the same OverflowError on the INSERT while both in-range extremes store and are found by filter(pk=...) -- so the bound excludes no persistent object. The out-of-range assertions are live: moving one in-range value into that list makes G-AX exit 1 ('the Requires is then narrower than the real domain and must be widened'). Sections (a)-(c) run before (d)-(f) for a mechanical reason: on sqlite an AutoField pk is AUTOINCREMENT, whose sqlite_sequence high-water mark is never lowered, so once a row has been stored at 2**63-1 no later AutoField insert can succeed.",
+      "encoded_property": "for an identifier the store can represent (Requires -(2**63) <= identifier < 2**63, the primitive's real domain of definition -- boundary-tight in both directions and the only range in which it ends in one of the two ways below at all), one invocation issues exactly one row-removal statement (db.removal_statements == Old(...) + 1), that statement targets the identifier it was handed (db.last_removal_target == identifier), the same one statement advances the module-wide total whichever handle it went through (LEDGER.total_removal_statements == Old(...) + 1), and the value returned is the non-negative row count that same statement reported (db.last_removal_report == Result(), Result() >= 0); the primitive removes the DB row only and never clears the in-memory object's pk (the latter property also G-AX-checked). The invocation has a SECOND outcome, which the axiom carries as its only exceptional case: the store can REFUSE the statement (a live constrained FOREIGN KEY reference to the targeted row), and then there is no count to report. Ensures(not Old(db.refuses_removal)) says a count comes back only from a removal the store carried out; Exsures(RemovalRefused, <permissions> and Old(db.refuses_removal) and db.removal_statements == Old(...) + 1 and db.last_removal_target == identifier and LEDGER.total_removal_statements == Old(...) + 1) says the refusal is signalled only when the store really refused AND that the refused statement was still issued -- the refusal is what the store answers a statement WITH, so it still cost one against the handle and one in total and still carried the identifier it was handed; only the report is missing. Conditioning the Exsures on the store's own refusal is load-bearing: an unconditional exceptional clause would let an impl take a free exit doing no work (every clause about a returning path is vacuous on a path that never returns), and db.refuses_removal is held at 1/2 so the condition cannot be forged. The callee is modelled ONCE, effectfully: a second, effect-free model of the same return value would refine a zero-cost model operation to a real DELETE and make every model-side statement-count guarantee unsound. The domain bound is what makes the returns-normally-or-refuses reading of the clauses true rather than over-claiming, and it is a property of the domain, not a weakened obligation: no stored row -- hence no persistent object -- can carry an identifier outside it, so every input the F2P/P2P behaviour or any real row can produce is inside, and remove_single_independent carries the same bound for the same reason.",
+      "kind": "A-consumed",
+      "models": "django.db.models.sql.subqueries.DeleteQuery.delete_batch",
+      "name": "remove_rows",
+      "provenance": "django/db/models/sql/subqueries.py:27-42 (delete_batch -> sum of do_query over range(0, len(pk_list), GET_ITERATOR_CHUNK_SIZE) -- one iteration for a one-element pk_list; the WHERE is built from that pk_list via add_q; do_query returns cursor.rowcount if cursor else 0, subqueries.py:21-25); the identifier reaches the backend as a real bind parameter, so the domain of definition is the driver's, django/db/backends/sqlite3/base.py:387-391 (SQLiteCursorWrapper.execute -> Database.Cursor.execute), which raises OverflowError('Python int too large to convert to SQLite INTEGER') outside the signed 64-bit window; unchanged callee (the gold patch touches only django/db/models/deletion.py) invoked by the fast branch as sql.DeleteQuery(model).delete_batch([instance.pk], self.using); the second outcome is the store's own refusal: do_query runs cursor.execute (subqueries.py:21-25), and a live constrained FOREIGN KEY reference to the targeted row makes sqlite fail the statement, so django/db/backends/sqlite3/base.py:387-391 raises IntegrityError('FOREIGN KEY constraint failed'), which propagates through the fast branch (deletion.py:274-280) unhandled -- the row stays, the count never exists and setattr(instance, ..., None) at deletion.py:280 is never reached. Reachable on the modeled path because a DO_NOTHING back-reference leaves can_fast_delete true. Corroborated upstream by Django's own test comment at tests/delete/tests.py::test_do_nothing ('It would raise IntegrityError for a normal model')",
+      "purity": "@ContractOnly, effectful over the Database carrier (no @Pure twin exists)"
+    }
+  ],
+  "base_commit": "19fc6376ce67d01ca37a91ef2f55ef769f50513a",
+  "changed_files": [
+    "django/db/models/deletion.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T21:07:42+00:00",
+      "code_version": "8e17e6deb-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: remove_rows axiom sound against the real DeleteQuery.delete_batch over 93 observations: every invocation issued EXACTLY ONE row-removal statement, that statement removed by the identifier it was handed (93 observations with observable bind parameters), the returned count was that statement's own non-negative report (counts in {0,1}), and the primitive never clears the in-memory pk. Domain measured, not assumed: every clause holds at the 8 extreme representable identifiers (2**63-1 and -2**63 among them, each observed live and absent); for all 7 out-of-range identifiers the primitive reports NO count (it raises in the backend's parameter adaptation), which is why the axiom's Requires bounds the range; and no row can be stored under an out-of-range identifier at all, so the bound excludes no persistent object. The refusal is measured the same way (1 observation(s), foreign keys enforced=True): a still-fast-deletable row the store protects is answered with NO count and survives, the refused invocation still issued exactly ONE statement carrying the identifier it was handed, the same identifier unprotected is answered with a count, and a dependent row behind a constraint-free reference does not refuse.",
+      "gate": "G-AX",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "0ea56a3d00a020defeee97a54a412b3bd21a56b35104643d3cedfa4b8dc33564",
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T21:07:41+00:00",
+      "code_version": "8e17e6deb-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100000,
+          "disagreements": 0,
+          "oracle": "called: django.db.models.deletion.Collector.delete (patched fast branch)",
+          "refusals_observed": 33217,
+          "seed": 11179,
+          "shadow": "direct (contract-stripped impl region)",
+          "target_observed": 100000
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"disagreements\": 0, \"seed\": 11179, \"target_observed\": 100000, \"refusals_observed\": 33217, \"shadow\": \"direct (contract-stripped impl region)\", \"oracle\": \"called: django.db.models.deletion.Collector.delete (patched fast branch)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "f904c63bc0f053e9d1a777f358b4c015196b16b9f5e3c9bf56de1cabc3c4f7f7",
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:32:54+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48",
+        "model_prepatch.py": "a08b005cc04785d3a3ad79e03da625db51269475f5cbd0c703194dfb049ae0a3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T00:11:25+00:00",
+      "code_version": "571883f41-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 19 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 19 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 20 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_20.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_16.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_15.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48",
+        "properties.py": "93b0ce0a75d8a0cd6e535be97b88514e82249151df8bb9033a86d1004da8393b"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:33:59+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48",
+        "model_prepatch.py": "a08b005cc04785d3a3ad79e03da625db51269475f5cbd0c703194dfb049ae0a3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T20:51:55+00:00",
+      "code_version": "513643552-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "9fa0725f94ef4b0713b9deee3a38da15346fb4694edd5fbf11d1ceae942c029b",
+          "impl": "7fb1a257591530f1930ddd7d03c3a7daea7070687c554db00daa0ba3ba1421e5",
+          "post-conditions": "13f37973ff05dfaa2d3c54a70437e70896856a0bb38f696303a5b73e9b02983d",
+          "pre-conditions": "6a1c207d0c9c8249934bf5ee95a6403f59f3b64c89d94f44710564a0342381ea",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "0d1e63681205639c51fa5e7d130cb7c8cc67de09d171b5fc3735225f0e8d0142"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T20:51:55+00:00",
+      "code_version": "513643552-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "37d5f99298f8bb20c72f87b8c4fc8c59159c5cd3fb8bb99fe4ce1a6d5fb4a17f",
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T20:51:56+00:00",
+      "code_version": "513643552-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T20:50:04+00:00",
+      "code_version": "fdc03f349-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T00:11:25+00:00",
+      "code_version": "571883f41-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 19 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK ROLE: faithfulness-break (spec too strong / drifts from real repo behavior). No diverging input found after machine-checked probing. Reference = base_commit 19fc6376ce67d01ca37a91ef2f55ef769f50513a worktree with patch.diff APPLIED (I re-derived the patch from the SWE-bench Verified record and applied it myself in /tmp; bundle untouched, read-only).\n\nSETUP: two worktrees off repos/django_django.git \u2014  (base, for the axiom's untouched callee) and  (patched, oracle for the modeled function). Confirmed the patched oracle really carries `setattr(instance, model._meta.pk.attname, None)` in the fast branch before trusting any agreement.\n\nBASELINE INTEGRITY: bundle model.py copied verbatim -> `same-spec` = SAME (exit 0); `scripts/nagini_verify.sh` = 'Verification successful' (14.29s, exit 0). So the spec region I judged is the shipped one and it does verify.\n\nWHAT I TRIED TO BREAK, AND THE MEASUREMENT:\n(1) The unconditional pk-clearing on the normal exit \u2014 guarantee (5) \u2014 including the zero-rows case. My own randomized harness, 4000 trials, seed 11179, over pk drawn from the full signed-64 range plus small/extreme values, row present/absent x protected/unprotected: 3075 normal exits (1599 of them with count==0, i.e. no row actually matched) and 925 store refusals. In EVERY normal exit the real patched branch cleared the pk attribute even when the statement reported 0 rows removed, exactly as Ensures(instance.pk is None) demands; in EVERY refusal the pk was preserved BIT-EXACT (after == Old(pk)), exactly as the Exsures demands. 0 violations. The (5)/(6) pair 'identifier surrendered exactly when the row is gone' is therefore not stronger than reality \u2014 the real code clears unconditionally on the count exit and never on the raise exit.\n(2) Exactly-one-statement, counted, and its target \u2014 guarantees (1),(2),(4). Counted DELETEs via connection execute_wrapper on all trials plus a separate 200-pk sweep: always exactly 1, always parameterized with [Old(pk)] and no other identifier, never 0 and never 2. count>=0 held throughout (observed {0,1}); the primitive cannot short-circuit to zero statements here because SQLDeleteCompiler.as_sql always emits a non-empty DELETE for a 1-element __in, so no EmptyResultSet path exists to make (1)'s 'not zero' too strong.\n(3) The domain Requires(-(2**63) <= pk < 2**63) \u2014 the likeliest place for an over-strong precondition to hide real behavior. Boundary-tight in BOTH directions and it excludes nothing: 2**63-1 and -(2**63) are storable and delete normally with 1 statement and a real count, while 2**63, 2**63+1/+5, -(2**63)-1 and 2**70 raise OverflowError in the backend's parameter adaptation (no count AND no refusal \u2014 so admitting them would make the axiom's two-outcome shape unsound, not more faithful) and, critically, no row can be STORED under an out-of-range identifier at all (create() itself raises OverflowError), so no persistent object is shut out by the bound.\n\n(4) Requires(instance.pk is not None) \u2014 justified, not convenient: Model.delete() on a pk-less instance raises AssertionError (\"can't be deleted because its id attribute is set to None\") and Collector.collect raises TypeError ('Model instances without primary key value are unhashable'), so the excluded state is unreachable on this path rather than quietly mishandled.\n(5) The pk-attname abstraction (mapping.md models the dynamic `model._meta.pk.attname` as the concrete field `pk`). Checked on a custom-named integer pk (attname='code') and the default (attname='id'): after the real patched branch, getattr(inst, attname) and inst.pk agree and are both None. MTI Child (attname='parent_ptr_id') is NOT fast-deletable (can_fast_delete False, 2 statements), so it is outside the modeled branch and no claim is made about it \u2014 correctly scoped, not overclaimed.\n(6) NONDETERMINISM CHECK \u2014 the one place a too-strong spec would have been easy to write and ISN'T. The model deliberately leaves which answer the store gives OPEN (remove_rows is not a function of anything the caller holds; the refusal is a receipt minted by the answer, never a pre-state predicate). I confirmed this is the faithful choice, not a hedge: the FK DDL is DEFERRABLE INITIALLY DEFERRED, so the SAME protected row that raises IntegrityError out of the branch in autocommit instead returns a count of 1 and defers the IntegrityError to COMMIT when wrapped in an outer transaction.atomic(). A spec that had made refusal a function of 'a protecting row exists' would be UNFAITHFUL on exactly that input; this spec is not, because it never predicts the outcome. This was my strongest candidate and it resolves in the spec's favor.\n\nCROSS-EVIDENCE (bundle's own checkers, run by me in my worktrees): axiom_check.py on the BASE tree -> G-AX OK, 93 observations, one statement per invocation, target and non-negative own-report count grounded, pk never touched by the primitive, refusal measured with foreign_keys enforced. conformance_check.py on the PATCHED tree -> G-CONF OK, 100000 Requires-satisfying inputs, 0 disagreements, 33217 refusals matching in BOTH directions.\n\nRESIDUAL / NOT A DEFECT: the return type is narrowed from (int, dict) to int; the dict is an identical construction over the same count (refinement.md I-ret) and carries no behavior the F2P/P2P tests observe. The Database/LEDGER record fields are deliberately outside the modeled path's permission set (mapping.md 2.1); I confirmed this is a faithfulness ARGUMENT rather than a gap \u2014 the real fast branch has no such counter in scope, so a free model read would license an impl whose faithful form pays an extra SELECT and breaks test_do_nothing_qscount's 1-statement assertion.\n\nCONCLUSION: no input exhibits the modeled function disagreeing with the real patched callee. The spec is not too strong on its declared domain and does not drift. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "FACET: does the spec view of model.py (sha256 abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48) reveal the gold edit beyond the SOLVER-VISIBLE problem_statement (hints_text excluded by construction)? Verdict is my own measurement; nothing was inherited.\n\n0. NO RELAXATION CLAIM TO INHERIT (checked first, not assumed). `find . -iname '*relax*'` under benchmark-verified/django__django-11179/ returns empty -- there is no RELAXED_LEAKAGE.md. A recursive key walk of meta.json for /relax/ finds NO key: top-level `relaxed_leakage` is False, and gate modes are all `strict`. (Note for the record: a naive `'relaxed_leakage' in json.dumps(meta)` returns True, but only because the PRIOR G-PANEL-3 note text quotes the phrase -- it is prose inside a stamped note, not a disposition.) So this is judged as a plain strict spec view.\n\n0b. THE PRIOR STAMP IS STALE AND WAS NOT RELIED ON. meta.json gates/G-PANEL-3 records agent_verdict NO-LEAKAGE with sources/model.py = 13da833e41d9b81ac1708338aa1de6ccbc2b2e2b80ad60ab3a899733d0ba5f3e. The current model.py hashes abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48 -- a DIFFERENT file. The prior note also cites 'meta.json records G-EQ fail and G-PANEL-1 fail', whereas both now read pass. Everything below is re-derived against the current bytes.\n\n1. WHAT THE PUBLIC STATEMENT ALREADY GIVES. problem_statement verbatim: \"delete() on instances of models without any dependencies doesn't clear PKs. ... Deleting any model with no dependencies not updates the PK on the model. It should be set to None after .delete() call. See Django.db.models.deletion:276-281. Should update the model line 280.\" The gold patch adds exactly one line -- `setattr(instance, model._meta.pk.attname, None)` on the fast-delete branch. The discriminator IS public: 'set to None after .delete()', scoped to 'no dependencies', with the file and line range cited. Spec guarantee (5) (`Ensures(instance.pk is None)`, spec-view line 351 / prose lines 39-42) is a restatement of that public sentence, not a gold-diff disclosure. The Exsures counterpart (pk retained on a store refusal) is likewise derivable without the gold: the statement itself points the solver at deletion.py:276-281, and ordinary Python control flow says code after a raising call is not reached.\n\n2. MECHANICAL SCREEN, RE-RUN NOT TRUSTED. swebench_unified.leakage.screen(model.py, get_backend('nagini'), row['patch'], row['problem_statement'], row['test_patch']) -> passed=True, hard_failures=[], warnings=[]. leakage.reviewer_directed(model.py) -> []. Computed spec_view sha256 = 0d1e63681205639c51fa5e7d130cb7c8cc67de09d171b5fc3735225f0e8d0142, matching the G-HYGIENE stamp (392 lines; impl region replaced by the elision placeholder). Gold changed_symbols = ['delete']; changed_lines = ['setattr(instance, model._meta.pk.attname, None)']; changed_files = ['django/db/models/deletion.py'].\n\n3. MANUAL SWEEPS OVER THE STRIPPED VIEW (specview.txt). (a) Repo/edit vocabulary -- setattr, attname, _meta, .pk., fast_delete, can_fast_delete, delete_batch, DeleteQuery, Collector, deletion.py, mark_for_rollback, transaction, savepoint, field_updates, django, 'instance.pk = None', line numbers 276/280/324: ZERO hits except line 1, the docstring title 'Twin-artifact model for django__django-11179' (the instance id, carried by every bundle). Normalized-whitespace containment of the gold line in the view: False. (b) Narration -- fix/bug/patch/regression/previously/used to/before this/mimic/copy: zero hits; the only matches for 'unchanged' (L156) and 'general path' / 'general multi-object removal path' (L12, L40) describe the axiomatized primitive as upstream code and contrast the optimized path with the general one -- both facts stated in the public issue ('models without any dependencies', i.e. the fast path) and neither localizing an edit. (c) Test leak -- test_patch def/class names test_fast_delete_instance_set_pk_none / test_fast_delete_joined_qs / test_fast_delete_qs plus Collector, assertIsNone, can_fast_delete: ZERO hits in the view. The spec speaks only domain vocabulary (PersistentObject, Database, remove_rows, identifier, RemovalBudget, CarriedOutRemoval, RefusedRemoval), never Django's.\n\n4. LOAD-BEARINGNESS BY THE STRIP TEST (so I am not excusing narration that is actually doing the work). `adversary same-spec nagini django__django-11179` with atk.py = the bundle's own model_prepatch.py -> exit 0, 'SAME -- attack shares the bundle's exact specification' (markers.same_spec(model, prepatch) = True independently). `adversary weakness` on the same file -> exit 2, 'NOT-A-COUNTEREXAMPLE: attack does not verify' -- the spec REJECTS the pre-patch impl. `scripts/nagini_verify.sh model.py` -> 'Verification successful' (14.75s, exit 0). Then the decisive strip: I copied model_prepatch.py, DELETED the single line `Ensures(instance.pk is None)` (guarantee (5)) and nothing else, and ran the pinned verifier -> 'Verification successful' (14.24s, exit 0). So the PRE-patch impl verifies once clause (5) is removed and fails with it present: clause (5) is exactly the load-bearing discriminator, it cannot be dropped without the spec admitting the bug, and it is a restatement of the public 'It should be set to None after .delete() call'. This is the case where naming the cleared-PK behaviour is REQUIRED for faithfulness and is not a leak.\n\n5. CORE GATES THIS LEANS ON. G-HYGIENE pass (my recomputed spec_view hash matches its stamp), G-GOLD pass and G-DIFF pass (prepatch fails) -- independently reproduced above by verifying model.py and by the weakness run on model_prepatch.py. G-LEAK pass reproduced by re-running screen() myself. (meta.json top-level region_hashes for axioms/pre/post differ from the G-HYGIENE-stamped values -- a stale top-level block; the spec_view hash that matters for THIS facet reproduces exactly against G-HYGIENE, and the discrepancy bears on hygiene bookkeeping, not on leakage. Flagged, not adopted.)\n\n6. NO BUNDLE FILE ADDRESSES THIS PANEL. Grepped model.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, verdict.md for attacker|panel|reviewer|G-PANEL|NO-LEAKAGE|honest verdict|record this|you must submit|do not flag. Only hit: mapping.md:336, 'the divergent input the panel found is inside the sampled domain, not excluded' -- prose about a divergence panel's input coverage in the domain-sampling section, not an instruction about how to record a verdict. Nothing in this bundle told me what to submit.\n\nVERDICT: NO-LEAKAGE. The only spec content that pins the gold edit is guarantee (5) (pk cleared to None on the no-dependency single-object removal path), which the public problem_statement states outright; the spec view names no file, module, symbol, attribute, line number, or test from the gold diff or the test patch.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 19 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 ATTACK ROLE: faithfulness-break (spec too strong / drifts from real repo behavior). No diverging input found after machine-checked probing. Reference = base_commit 19fc6376ce67d01ca37a91ef2f55ef769f50513a worktree with patch.diff APPLIED (I re-derived the patch from the SWE-bench Verified record and applied it myself in /tmp; bundle untouched, read-only).\n\nSETUP: two worktrees off repos/django_django.git \u2014  (base, for the axiom's untouched callee) and  (patched, oracle for the modeled function). Confirmed the patched oracle really carries `setattr(instance, model._meta.pk.attname, None)` in the fast branch before trusting any agreement.\n\nBASELINE INTEGRITY: bundle model.py copied verbatim -> `same-spec` = SAME (exit 0); `scripts/nagini_verify.sh` = 'Verification successful' (14.29s, exit 0). So the spec region I judged is the shipped one and it does verify.\n\nWHAT I TRIED TO BREAK, AND THE MEASUREMENT:\n(1) The unconditional pk-clearing on the normal exit \u2014 guarantee (5) \u2014 including the zero-rows case. My own randomized harness, 4000 trials, seed 11179, over pk drawn from the full signed-64 range plus small/extreme values, row present/absent x protected/unprotected: 3075 normal exits (1599 of them with count==0, i.e. no row actually matched) and 925 store refusals. In EVERY normal exit the real patched branch cleared the pk attribute even when the statement reported 0 rows removed, exactly as Ensures(instance.pk is None) demands; in EVERY refusal the pk was preserved BIT-EXACT (after == Old(pk)), exactly as the Exsures demands. 0 violations. The (5)/(6) pair 'identifier surrendered exactly when the row is gone' is therefore not stronger than reality \u2014 the real code clears unconditionally on the count exit and never on the raise exit.\n(2) Exactly-one-statement, counted, and its target \u2014 guarantees (1),(2),(4). Counted DELETEs via connection execute_wrapper on all trials plus a separate 200-pk sweep: always exactly 1, always parameterized with [Old(pk)] and no other identifier, never 0 and never 2. count>=0 held throughout (observed {0,1}); the primitive cannot short-circuit to zero statements here because SQLDeleteCompiler.as_sql always emits a non-empty DELETE for a 1-element __in, so no EmptyResultSet path exists to make (1)'s 'not zero' too strong.\n(3) The domain Requires(-(2**63) <= pk < 2**63) \u2014 the likeliest place for an over-strong precondition to hide real behavior. Boundary-tight in BOTH directions and it excludes nothing: 2**63-1 and -(2**63) are storable and delete normally with 1 statement and a real count, while 2**63, 2**63+1/+5, -(2**63)-1 and 2**70 raise OverflowError in the backend's parameter adaptation (no count AND no refusal \u2014 so admitting them would make the axiom's two-outcome shape unsound, not more faithful) and, critically, no row can be STORED under an out-of-range identifier at all (create() itself raises OverflowError), so no persistent object is shut out by the bound.\n\n(4) Requires(instance.pk is not None) \u2014 justified, not convenient: Model.delete() on a pk-less instance raises AssertionError (\"can't be deleted because its id attribute is set to None\") and Collector.collect raises TypeError ('Model instances without primary key value are unhashable'), so the excluded state is unreachable on this path rather than quietly mishandled.\n(5) The pk-attname abstraction (mapping.md models the dynamic `model._meta.pk.attname` as the concrete field `pk`). Checked on a custom-named integer pk (attname='code') and the default (attname='id'): after the real patched branch, getattr(inst, attname) and inst.pk agree and are both None. MTI Child (attname='parent_ptr_id') is NOT fast-deletable (can_fast_delete False, 2 statements), so it is outside the modeled branch and no claim is made about it \u2014 correctly scoped, not overclaimed.\n(6) NONDETERMINISM CHECK \u2014 the one place a too-strong spec would have been easy to write and ISN'T. The model deliberately leaves which answer the store gives OPEN (remove_rows is not a function of anything the caller holds; the refusal is a receipt minted by the answer, never a pre-state predicate). I confirmed this is the faithful choice, not a hedge: the FK DDL is DEFERRABLE INITIALLY DEFERRED, so the SAME protected row that raises IntegrityError out of the branch in autocommit instead returns a count of 1 and defers the IntegrityError to COMMIT when wrapped in an outer transaction.atomic(). A spec that had made refusal a function of 'a protecting row exists' would be UNFAITHFUL on exactly that input; this spec is not, because it never predicts the outcome. This was my strongest candidate and it resolves in the spec's favor.\n\nCROSS-EVIDENCE (bundle's own checkers, run by me in my worktrees): axiom_check.py on the BASE tree -> G-AX OK, 93 observations, one statement per invocation, target and non-negative own-report count grounded, pk never touched by the primitive, refusal measured with foreign_keys enforced. conformance_check.py on the PATCHED tree -> G-CONF OK, 100000 Requires-satisfying inputs, 0 disagreements, 33217 refusals matching in BOTH directions.\n\nRESIDUAL / NOT A DEFECT: the return type is narrowed from (int, dict) to int; the dict is an identical construction over the same count (refinement.md I-ret) and carries no behavior the F2P/P2P tests observe. The Database/LEDGER record fields are deliberately outside the modeled path's permission set (mapping.md 2.1); I confirmed this is a faithfulness ARGUMENT rather than a gap \u2014 the real fast branch has no such counter in scope, so a free model read would license an impl whose faithful form pays an extra SELECT and breaks test_do_nothing_qscount's 1-statement assertion.\n\nCONCLUSION: no input exhibits the modeled function disagreeing with the real patched callee. The spec is not too strong on its declared domain and does not drift. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 FACET: does the spec view of model.py (sha256 abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48) reveal the gold edit beyond the SOLVER-VISIBLE problem_statement (hints_text excluded by construction)? Verdict is my own measurement; nothing was inherited.\n\n0. NO RELAXATION CLAIM TO INHERIT (checked first, not assumed). `find . -iname '*relax*'` under benchmark-verified/django__django-11179/ returns empty -- there is no RELAXED_LEAKAGE.md. A recursive key walk of meta.json for /relax/ finds NO key: top-level `relaxed_leakage` is False, and gate modes are all `strict`. (Note for the record: a naive `'relaxed_leakage' in json.dumps(meta)` returns True, but only because the PRIOR G-PANEL-3 note text quotes the phrase -- it is prose inside a stamped note, not a disposition.) So this is judged as a plain strict spec view.\n\n0b. THE PRIOR STAMP IS STALE AND WAS NOT RELIED ON. meta.json gates/G-PANEL-3 records agent_verdict NO-LEAKAGE with sources/model.py = 13da833e41d9b81ac1708338aa1de6ccbc2b2e2b80ad60ab3a899733d0ba5f3e. The current model.py hashes abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48 -- a DIFFERENT file. The prior note also cites 'meta.json records G-EQ fail and G-PANEL-1 fail', whereas both now read pass. Everything below is re-derived against the current bytes.\n\n1. WHAT THE PUBLIC STATEMENT ALREADY GIVES. problem_statement verbatim: \"delete() on instances of models without any dependencies doesn't clear PKs. ... Deleting any model with no dependencies not updates the PK on the model. It should be set to None after .delete() call. See Django.db.models.deletion:276-281. Should update the model line 280.\" The gold patch adds exactly one line -- `setattr(instance, model._meta.pk.attname, None)` on the fast-delete branch. The discriminator IS public: 'set to None after .delete()', scoped to 'no dependencies', with the file and line range cited. Spec guarantee (5) (`Ensures(instance.pk is None)`, spec-view line 351 / prose lines 39-42) is a restatement of that public sentence, not a gold-diff disclosure. The Exsures counterpart (pk retained on a store refusal) is likewise derivable without the gold: the statement itself points the solver at deletion.py:276-281, and ordinary Python control flow says code after a raising call is not reached.\n\n2. MECHANICAL SCREEN, RE-RUN NOT TRUSTED. swebench_unified.leakage.screen(model.py, get_backend('nagini'), row['patch'], row['problem_statement'], row['test_patch']) -> passed=True, hard_failures=[], warnings=[]. leakage.reviewer_directed(model.py) -> []. Computed spec_view sha256 = 0d1e63681205639c51fa5e7d130cb7c8cc67de09d171b5fc3735225f0e8d0142, matching the G-HYGIENE stamp (392 lines; impl region replaced by the elision placeholder). Gold changed_symbols = ['delete']; changed_lines = ['setattr(instance, model._meta.pk.attname, None)']; changed_files = ['django/db/models/deletion.py'].\n\n3. MANUAL SWEEPS OVER THE STRIPPED VIEW (specview.txt). (a) Repo/edit vocabulary -- setattr, attname, _meta, .pk., fast_delete, can_fast_delete, delete_batch, DeleteQuery, Collector, deletion.py, mark_for_rollback, transaction, savepoint, field_updates, django, 'instance.pk = None', line numbers 276/280/324: ZERO hits except line 1, the docstring title 'Twin-artifact model for django__django-11179' (the instance id, carried by every bundle). Normalized-whitespace containment of the gold line in the view: False. (b) Narration -- fix/bug/patch/regression/previously/used to/before this/mimic/copy: zero hits; the only matches for 'unchanged' (L156) and 'general path' / 'general multi-object removal path' (L12, L40) describe the axiomatized primitive as upstream code and contrast the optimized path with the general one -- both facts stated in the public issue ('models without any dependencies', i.e. the fast path) and neither localizing an edit. (c) Test leak -- test_patch def/class names test_fast_delete_instance_set_pk_none / test_fast_delete_joined_qs / test_fast_delete_qs plus Collector, assertIsNone, can_fast_delete: ZERO hits in the view. The spec speaks only domain vocabulary (PersistentObject, Database, remove_rows, identifier, RemovalBudget, CarriedOutRemoval, RefusedRemoval), never Django's.\n\n4. LOAD-BEARINGNESS BY THE STRIP TEST (so I am not excusing narration that is actually doing the work). `adversary same-spec nagini django__django-11179` with atk.py = the bundle's own model_prepatch.py -> exit 0, 'SAME -- attack shares the bundle's exact specification' (markers.same_spec(model, prepatch) = True independently). `adversary weakness` on the same file -> exit 2, 'NOT-A-COUNTEREXAMPLE: attack does not verify' -- the spec REJECTS the pre-patch impl. `scripts/nagini_verify.sh model.py` -> 'Verification successful' (14.75s, exit 0). Then the decisive strip: I copied model_prepatch.py, DELETED the single line `Ensures(instance.pk is None)` (guarantee (5)) and nothing else, and ran the pinned verifier -> 'Verification successful' (14.24s, exit 0). So the PRE-patch impl verifies once clause (5) is removed and fails with it present: clause (5) is exactly the load-bearing discriminator, it cannot be dropped without the spec admitting the bug, and it is a restatement of the public 'It should be set to None after .delete() call'. This is the case where naming the cleared-PK behaviour is REQUIRED for faithfulness and is not a leak.\n\n5. CORE GATES THIS LEANS ON. G-HYGIENE pass (my recomputed spec_view hash matches its stamp), G-GOLD pass and G-DIFF pass (prepatch fails) -- independently reproduced above by verifying model.py and by the weakness run on model_prepatch.py. G-LEAK pass reproduced by re-running screen() myself. (meta.json top-level region_hashes for axioms/pre/post differ from the G-HYGIENE-stamped values -- a stale top-level block; the spec_view hash that matters for THIS facet reproduces exactly against G-HYGIENE, and the discrepancy bears on hygiene bookkeeping, not on leakage. Flagged, not adopted.)\n\n6. NO BUNDLE FILE ADDRESSES THIS PANEL. Grepped model.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, verdict.md for attacker|panel|reviewer|G-PANEL|NO-LEAKAGE|honest verdict|record this|you must submit|do not flag. Only hit: mapping.md:336, 'the divergent input the panel found is inside the sampled domain, not excluded' -- prose about a divergence panel's input coverage in the domain-sampling section, not an instruction about how to record a verdict. Nothing in this bundle told me what to submit.\n\nVERDICT: NO-LEAKAGE. The only spec content that pins the gold edit is guarantee (5) (pk cleared to None on the no-dependency single-object removal path), which the public problem_statement states outright; the spec view names no file, module, symbol, attribute, line number, or test from the gold diff or the test patch.",
+      "gate": "G-PANEL",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48",
+        "properties.py": "93b0ce0a75d8a0cd6e535be97b88514e82249151df8bb9033a86d1004da8393b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T22:31:48+00:00",
+      "code_version": "1e88f47d3-dirty",
+      "harness_digest": "b38a5cf24b43",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 19 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 20 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_20.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_16.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_15.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48",
+        "properties.py": "93b0ce0a75d8a0cd6e535be97b88514e82249151df8bb9033a86d1004da8393b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T00:11:24+00:00",
+      "code_version": "571883f41-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK ROLE: faithfulness-break (spec too strong / drifts from real repo behavior). No diverging input found after machine-checked probing. Reference = base_commit 19fc6376ce67d01ca37a91ef2f55ef769f50513a worktree with patch.diff APPLIED (I re-derived the patch from the SWE-bench Verified record and applied it myself in /tmp; bundle untouched, read-only).\n\nSETUP: two worktrees off repos/django_django.git \u2014  (base, for the axiom's untouched callee) and  (patched, oracle for the modeled function). Confirmed the patched oracle really carries `setattr(instance, model._meta.pk.attname, None)` in the fast branch before trusting any agreement.\n\nBASELINE INTEGRITY: bundle model.py copied verbatim -> `same-spec` = SAME (exit 0); `scripts/nagini_verify.sh` = 'Verification successful' (14.29s, exit 0). So the spec region I judged is the shipped one and it does verify.\n\nWHAT I TRIED TO BREAK, AND THE MEASUREMENT:\n\n(1) The unconditional pk-clearing on the normal exit \u2014 guarantee (5) \u2014 including the zero-rows case. My own randomized harness, 4000 trials, seed 11179, over pk drawn from the full signed-64 range plus small/extreme values, row present/absent x protected/unprotected: 3075 normal exits (1599 of them with count==0, i.e. no row actually matched) and 925 store refusals. In EVERY normal exit the real patched branch cleared the pk attribute even when the statement reported 0 rows removed, exactly as Ensures(instance.pk is None) demands; in EVERY refusal the pk was preserved BIT-EXACT (after == Old(pk)), exactly as the Exsures demands. 0 violations. The (5)/(6) pair 'identifier surrendered exactly when the row is gone' is therefore not stronger than reality \u2014 the real code clears unconditionally on the count exit and never on the raise exit.\n\n(2) Exactly-one-statement, counted, and its target \u2014 guarantees (1),(2),(4). Counted DELETEs via connection execute_wrapper on all trials plus a separate 200-pk sweep: always exactly 1, always parameterized with [Old(pk)] and no other identifier, never 0 and never 2. count>=0 held throughout (observed {0,1}); the primitive cannot short-circuit to zero statements here because SQLDeleteCompiler.as_sql always emits a non-empty DELETE for a 1-element __in, so no EmptyResultSet path exists to make (1)'s 'not zero' too strong.\n\n(3) The domain Requires(-(2**63) <= pk < 2**63) \u2014 the likeliest place for an over-strong precondition to hide real behavior. Boundary-tight in BOTH directions and it excludes nothing: 2**63-1 and -(2**63) are storable and delete normally with 1 statement and a real count, while 2**63, 2**63+1/+5, -(2**63)-1 and 2**70 raise OverflowError in the backend's parameter adaptation (no count AND no refusal \u2014 so admitting them would make the axiom's two-outcome shape unsound, not more faithful) and, critically, no row can be STORED under an out-of-range identifier at all (create() itself raises OverflowError), so no persistent object is shut out by the bound.\n\n(4) Requires(instance.pk is not None) \u2014 justified, not convenient: Model.delete() on a pk-less instance raises AssertionError (\"can't be deleted because its id attribute is set to None\") and Collector.collect raises TypeError ('Model instances without primary key value are unhashable'), so the excluded state is unreachable on this path rather than quietly mishandled.\n\n(5) The pk-attname abstraction (mapping.md models the dynamic `model._meta.pk.attname` as the concrete field `pk`). Checked on a custom-named integer pk (attname='code') and the default (attname='id'): after the real patched branch, getattr(inst, attname) and inst.pk agree and are both None. MTI Child (attname='parent_ptr_id') is NOT fast-deletable (can_fast_delete False, 2 statements), so it is outside the modeled branch and no claim is made about it \u2014 correctly scoped, not overclaimed.\n\n(6) NONDETERMINISM CHECK \u2014 the one place a too-strong spec would have been easy to write and ISN'T. The model deliberately leaves which answer the store gives OPEN (remove_rows is not a function of anything the caller holds; the refusal is a receipt minted by the answer, never a pre-state predicate). I confirmed this is the faithful choice, not a hedge: the FK DDL is DEFERRABLE INITIALLY DEFERRED, so the SAME protected row that raises IntegrityError out of the branch in autocommit instead returns a count of 1 and defers the IntegrityError to COMMIT when wrapped in an outer transaction.atomic(). A spec that had made refusal a function of 'a protecting row exists' would be UNFAITHFUL on exactly that input; this spec is not, because it never predicts the outcome. This was my strongest candidate and it resolves in the spec's favor.\n\nCROSS-EVIDENCE (bundle's own checkers, run by me in my worktrees): axiom_check.py on the BASE tree -> G-AX OK, 93 observations, one statement per invocation, target and non-negative own-report count grounded, pk never touched by the primitive, refusal measured with foreign_keys enforced. conformance_check.py on the PATCHED tree -> G-CONF OK, 100000 Requires-satisfying inputs, 0 disagreements, 33217 refusals matching in BOTH directions.\n\nRESIDUAL / NOT A DEFECT: the return type is narrowed from (int, dict) to int; the dict is an identical construction over the same count (refinement.md I-ret) and carries no behavior the F2P/P2P tests observe. The Database/LEDGER record fields are deliberately outside the modeled path's permission set (mapping.md 2.1); I confirmed this is a faithfulness ARGUMENT rather than a gap \u2014 the real fast branch has no such counter in scope, so a free model read would license an impl whose faithful form pays an extra SELECT and breaks test_do_nothing_qscount's 1-statement assertion.\n\nCONCLUSION: no input exhibits the modeled function disagreeing with the real patched callee. The spec is not too strong on its declared domain and does not drift. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T00:03:17+00:00",
+      "code_version": "c32c27388-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FACET: does the spec view of model.py (sha256 abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48) reveal the gold edit beyond the SOLVER-VISIBLE problem_statement (hints_text excluded by construction)? Verdict is my own measurement; nothing was inherited.\n\n0. NO RELAXATION CLAIM TO INHERIT (checked first, not assumed). `find . -iname '*relax*'` under benchmark-verified/django__django-11179/ returns empty -- there is no RELAXED_LEAKAGE.md. A recursive key walk of meta.json for /relax/ finds NO key: top-level `relaxed_leakage` is False, and gate modes are all `strict`. (Note for the record: a naive `'relaxed_leakage' in json.dumps(meta)` returns True, but only because the PRIOR G-PANEL-3 note text quotes the phrase -- it is prose inside a stamped note, not a disposition.) So this is judged as a plain strict spec view.\n\n0b. THE PRIOR STAMP IS STALE AND WAS NOT RELIED ON. meta.json gates/G-PANEL-3 records agent_verdict NO-LEAKAGE with sources/model.py = 13da833e41d9b81ac1708338aa1de6ccbc2b2e2b80ad60ab3a899733d0ba5f3e. The current model.py hashes abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48 -- a DIFFERENT file. The prior note also cites 'meta.json records G-EQ fail and G-PANEL-1 fail', whereas both now read pass. Everything below is re-derived against the current bytes.\n\n1. WHAT THE PUBLIC STATEMENT ALREADY GIVES. problem_statement verbatim: \"delete() on instances of models without any dependencies doesn't clear PKs. ... Deleting any model with no dependencies not updates the PK on the model. It should be set to None after .delete() call. See Django.db.models.deletion:276-281. Should update the model line 280.\" The gold patch adds exactly one line -- `setattr(instance, model._meta.pk.attname, None)` on the fast-delete branch. The discriminator IS public: 'set to None after .delete()', scoped to 'no dependencies', with the file and line range cited. Spec guarantee (5) (`Ensures(instance.pk is None)`, spec-view line 351 / prose lines 39-42) is a restatement of that public sentence, not a gold-diff disclosure. The Exsures counterpart (pk retained on a store refusal) is likewise derivable without the gold: the statement itself points the solver at deletion.py:276-281, and ordinary Python control flow says code after a raising call is not reached.\n\n2. MECHANICAL SCREEN, RE-RUN NOT TRUSTED. swebench_unified.leakage.screen(model.py, get_backend('nagini'), row['patch'], row['problem_statement'], row['test_patch']) -> passed=True, hard_failures=[], warnings=[]. leakage.reviewer_directed(model.py) -> []. Computed spec_view sha256 = 0d1e63681205639c51fa5e7d130cb7c8cc67de09d171b5fc3735225f0e8d0142, matching the G-HYGIENE stamp (392 lines; impl region replaced by the elision placeholder). Gold changed_symbols = ['delete']; changed_lines = ['setattr(instance, model._meta.pk.attname, None)']; changed_files = ['django/db/models/deletion.py'].\n\n3. MANUAL SWEEPS OVER THE STRIPPED VIEW (specview.txt). (a) Repo/edit vocabulary -- setattr, attname, _meta, .pk., fast_delete, can_fast_delete, delete_batch, DeleteQuery, Collector, deletion.py, mark_for_rollback, transaction, savepoint, field_updates, django, 'instance.pk = None', line numbers 276/280/324: ZERO hits except line 1, the docstring title 'Twin-artifact model for django__django-11179' (the instance id, carried by every bundle). Normalized-whitespace containment of the gold line in the view: False. (b) Narration -- fix/bug/patch/regression/previously/used to/before this/mimic/copy: zero hits; the only matches for 'unchanged' (L156) and 'general path' / 'general multi-object removal path' (L12, L40) describe the axiomatized primitive as upstream code and contrast the optimized path with the general one -- both facts stated in the public issue ('models without any dependencies', i.e. the fast path) and neither localizing an edit. (c) Test leak -- test_patch def/class names test_fast_delete_instance_set_pk_none / test_fast_delete_joined_qs / test_fast_delete_qs plus Collector, assertIsNone, can_fast_delete: ZERO hits in the view. The spec speaks only domain vocabulary (PersistentObject, Database, remove_rows, identifier, RemovalBudget, CarriedOutRemoval, RefusedRemoval), never Django's.\n\n4. LOAD-BEARINGNESS BY THE STRIP TEST (so I am not excusing narration that is actually doing the work). `adversary same-spec nagini django__django-11179` with atk.py = the bundle's own model_prepatch.py -> exit 0, 'SAME -- attack shares the bundle's exact specification' (markers.same_spec(model, prepatch) = True independently). `adversary weakness` on the same file -> exit 2, 'NOT-A-COUNTEREXAMPLE: attack does not verify' -- the spec REJECTS the pre-patch impl. `scripts/nagini_verify.sh model.py` -> 'Verification successful' (14.75s, exit 0). Then the decisive strip: I copied model_prepatch.py, DELETED the single line `Ensures(instance.pk is None)` (guarantee (5)) and nothing else, and ran the pinned verifier -> 'Verification successful' (14.24s, exit 0). So the PRE-patch impl verifies once clause (5) is removed and fails with it present: clause (5) is exactly the load-bearing discriminator, it cannot be dropped without the spec admitting the bug, and it is a restatement of the public 'It should be set to None after .delete() call'. This is the case where naming the cleared-PK behaviour is REQUIRED for faithfulness and is not a leak.\n\n5. CORE GATES THIS LEANS ON. G-HYGIENE pass (my recomputed spec_view hash matches its stamp), G-GOLD pass and G-DIFF pass (prepatch fails) -- independently reproduced above by verifying model.py and by the weakness run on model_prepatch.py. G-LEAK pass reproduced by re-running screen() myself. (meta.json top-level region_hashes for axioms/pre/post differ from the G-HYGIENE-stamped values -- a stale top-level block; the spec_view hash that matters for THIS facet reproduces exactly against G-HYGIENE, and the discrepancy bears on hygiene bookkeeping, not on leakage. Flagged, not adopted.)\n\n6. NO BUNDLE FILE ADDRESSES THIS PANEL. Grepped model.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, verdict.md for attacker|panel|reviewer|G-PANEL|NO-LEAKAGE|honest verdict|record this|you must submit|do not flag. Only hit: mapping.md:336, 'the divergent input the panel found is inside the sampled domain, not excluded' -- prose about a divergence panel's input coverage in the domain-sampling section, not an instruction about how to record a verdict. Nothing in this bundle told me what to submit.\n\nVERDICT: NO-LEAKAGE. The only spec content that pins the gold edit is guarantee (5) (pk cleared to None on the no-dependency single-object removal path), which the public problem_statement states outright; the spec view names no file, module, symbol, attribute, line number, or test from the gold diff or the test patch.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:56:11+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "uniq-clear-before-asking",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.2
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-clear-before-asking-inline",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-guarded-clear",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 38.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-late-name",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 36.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-rethrow",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 35.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 35.2
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-drop-clear",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fabricate-count",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-wrong-identifier",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.1
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-count-after-clear",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.1
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-duplicate-removal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-extra-removal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-triple-removal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.4
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fabricate-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-echo-count-wrong-target",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.1
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-echo-count-extra-statement",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-stale-report",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-forge-tally",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-forge-target",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-forge-report",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-manufacture-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-refuse-after-removing",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-refuse-without-asking",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-swallow-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.9
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-swallow-stale-report",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-forge-completed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.9
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-guess-refusal-arm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-preempt-refusal-order",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.4
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-offbooks-decoy-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-offbooks-decoy-after",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-offbooks-partial-domain",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.1
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-offbooks-echo-count",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-forge-ledger",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-offbooks-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.2
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-diverge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-refused-clear",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-refused-corrupt",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-freeread-clear-order",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-freeread-clear-order-ledger",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-clear-early-partial-domain",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 36
+        },
+        "manifest_sha256": "93b0ce0a75d8a0cd6e535be97b88514e82249151df8bb9033a86d1004da8393b",
+        "n_cases": 40,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 40 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48",
+        "properties.py": "93b0ce0a75d8a0cd6e535be97b88514e82249151df8bb9033a86d1004da8393b"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T21:04:11+00:00",
+      "code_version": "61aa128fc-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "37d5f99298f8bb20c72f87b8c4fc8c59159c5cd3fb8bb99fe4ce1a6d5fb4a17f",
+        "patch.diff": "a1896338de07ff4fa040d7e692a1c954e44f3cac29f6db8bd7f15820a123b45f"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T20:49:11+00:00",
+      "code_version": "fdc03f349-dirty",
+      "data": {
+        "wall_time_s": 19.9
+      },
+      "detail": "verified in 19.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "abd856d47178b9177f489c91acac36b837b3dd620342b66e5bdace96a9f81c48"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-11179",
+  "modeled_functions": [
+    {
+      "carrier_type": "model instance -> PersistentObject with one field instance.pk: Optional[int]; the dynamically-named pk attribute (model._meta.pk.attname) modelled as the field pk; stored pk value as int, over the identifiers the store can represent (Requires -(2**63) <= instance.pk < 2**63: the range in which the row-removal primitive is defined, and the only range a stored row can be keyed by -- mapping.md 3.1, G-AX sections d/e/f); the using alias plus the observable record of removals issued through it (statement tally, last statement's target identifier, last statement's reported rowcount) modelled as the Database carrier, held by a caller at 1/2 permission so the record is readable but only the primitive writes it; the state of the stored data that makes the removal fail -- a live row whose enforced FOREIGN KEY references the targeted row -- modelled as the Database field refuses_removal: bool, held at 1/2 for the same reason (whether a DELETE is refused is a fact about what the store holds, not a value the branch chooses), and the IntegrityError('FOREIGN KEY constraint failed') that outcome surfaces as modelled as the RemovalRefused exception; (count, dict) return modelled as int count",
+      "model_symbol": "remove_single_independent",
+      "repo_location": "django/db/models/deletion.py:274-280",
+      "repo_symbol": "django.db.models.deletion.Collector.delete (optimized single-object fast-delete branch)",
+      "role": "modeled changed function (the fast single-object removal path); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; single added line setattr(instance, model._meta.pk.attname, None) at deletion.py:280)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Ensures(instance.pk is None) -- Assertion (instance.pk is None) might not hold (model_prepatch.py:275)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "fast single-object delete path clearing the in-memory primary key",
+      "reverted_to": "pre-patch fast branch: row removed and count returned, but instance.pk left untouched (no setattr(instance, model._meta.pk.attname, None))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "a4865ca36b93d13d18415c53e9f5e2f907ea9b209aa3a775c5c80b4d06260b12",
+    "impl": "7fb1a257591530f1930ddd7d03c3a7daea7070687c554db00daa0ba3ba1421e5",
+    "post-conditions": "0f70c5f8a5b05d7808ed5d1bb7651b625d1a927fca3e430dbe86c3b52093464b",
+    "pre-conditions": "1da675fd2311c5a6f08717af8102d346a763580884a648d9ac5f56181f747a23",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "a4f3add866825c47a6bd20e4c16b72b96a584cf0013c5294c85e99952eb648d0"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none required; the change is an object-attribute mutation (clear the primary-key attribute) plus a preserved integer count. The dynamically-named pk attribute (model._meta.pk.attname) is modelled as the concrete field PersistentObject.pk : Optional[int]; cleared-pk <-> pk is None.",
+  "version": "3.0"
+}

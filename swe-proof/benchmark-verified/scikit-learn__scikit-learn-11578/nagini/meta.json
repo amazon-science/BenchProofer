@@ -1,0 +1,399 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "consumed_by": "post-condition #4 at model.py:115-116 Implies(caller_mode==MULTINOMIAL and d==witness_decision(), Result() != proba_ovr(d)); independently confirmed load-bearing \u2014 removing the Requires makes verification FAIL on exactly that post-condition. NOT load-bearing for the differential (post-condition #1 Result()==scoring_proba(caller_mode,d) catches the prepatch bug independently).",
+      "ensures": "Implies(Result(), proba_softmax(witness_decision()) != proba_ovr(witness_decision()))",
+      "grounding_note": "the result of scoring_estimator_proba is GROUNDED by post-condition #1 (Result()==scoring_proba(caller_mode,d)) directly over the modeled inputs caller_mode/d via the deep pure-region selector scoring_proba; transforms_differ is NOT an answer-key oracle the impl echoes \u2014 it is a helper fact that lets the derived discriminating consequence (#4) follow from the already-pinned #1. The two opaque numeric transforms are intrinsically inexpressible in Nagini's int fragment, so an existential A-consumed distinctness fact validated by G-AX is the principled (non-over-claimed) modeling, not an avoidable oracle.",
+      "kind": "A-consumed",
+      "location": "model.py:68-75 (Ensures), consumed via Requires(transforms_differ()) at model.py:101",
+      "name": "transforms_differ",
+      "provenance": "the EXISTENTIAL distinctness of extmath.softmax vs base._predict_proba_lr on a multiclass row; sklearn/utils/extmath.py:588 softmax(), sklearn/linear_model/base.py:280-297 _predict_proba_lr()",
+      "soundness": "TRUE and validated in-container by axiom_check.py check_transforms_differ (a witness row where softmax != one-vs-rest exists). This is an EXISTENTIAL distinctness fact (NOT a universal over all rows), so it is sound \u2014 it does not over-claim. Contrast the prior over-claimed arg-max universal (dropped in the first refinement, false at float64 sigmoid saturation)."
+    }
+  ],
+  "base_commit": "dd69361a0d9c6ccde0d2353b00b86e0e7541a3e3",
+  "changed_files": [
+    "sklearn/linear_model/logistic.py"
+  ],
+  "deep_model_references": [
+    {
+      "kind": "deep model (pure region)",
+      "models": "the mode dispatch inside LogisticRegression.predict_proba (logistic.py:1343-1353): softmax(decision) if multi_class=='multinomial' else one-vs-rest normalised transform",
+      "name": "scoring_proba",
+      "role": "the changed selection behaviour, modeled deeply and consumed by scoring_estimator_proba; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real multinomial predict_proba == softmax(decision) over 2000 fuzz instances",
+      "encoded_property": "multinomial class-probability transform of a decision row (len(Result()) == len(d)); numeric content opaque, validated == real callee by axiom_check.py",
+      "kind": "A-reference",
+      "models": "LogisticRegression.predict_proba multinomial branch = sklearn.utils.extmath.softmax(decision_2d)",
+      "name": "proba_softmax",
+      "provenance": "sklearn/linear_model/logistic.py:1345-1353; sklearn/utils/extmath.py:588 softmax()"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real ovr predict_proba == normalised one-vs-rest transform over 2000 fuzz instances",
+      "encoded_property": "one-vs-rest class-probability transform of a decision row (len(Result()) == len(d)); validated == real callee by axiom_check.py",
+      "kind": "A-reference",
+      "models": "LogisticRegression.predict_proba ovr branch = LinearClassifierMixin._predict_proba_lr (sigmoid then row-normalise)",
+      "name": "proba_ovr",
+      "provenance": "sklearn/linear_model/logistic.py:1343-1344; sklearn/linear_model/base.py:280-297 _predict_proba_lr()"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): witness existence (check_transforms_differ)",
+      "encoded_property": "len(Result()) >= 2 (a multiclass decision row exists); the len shape Ensures is dead for the proof (confirmed: weakening it to True still verifies), validated only as documentation by axiom_check.py",
+      "kind": "A-reference",
+      "models": "the existence of a multiclass decision row on which the two transforms differ",
+      "name": "witness_decision",
+      "provenance": "relationship between extmath.softmax and base._predict_proba_lr"
+    }
+  ],
+  "deliberately_not_modeled": "arg-max (predicted-class) mode-independence is DELIBERATELY NOT modeled: it is false in float64 at sigmoid saturation (decision coord >= ~36.74 makes ovr row-normalisation tie and np.argmax break ties differently from softmax), so encoding it as a consumed axiom would be an over-claim (this was the first-refinement defect D1 and was dropped). The fitted F2P/P2P data stays non-saturating (absmax ~6.82) so the P2P prediction scorers pass, but that is documentation, not a proof obligation.",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:34:23+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: predict_proba routes by multi_class (softmax vs one-vs-rest); transforms differ on a witness; probabilistic score discriminates the modes",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "d26d909ab36b54dad1b6fdfb246f4af05d36efbe7b9b5b63e23e4b5dd3f6d624",
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:34:31+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: model.py impl shadow (real softmax / one-vs-rest transform callees) agrees with the real patched scoring estimator's probability output on 101382 probability rows across 54 configurations x 2 modes (seed=11578), 0 disagreements.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "be5ab9909948a27f88c80d75893d55e5e83ba03410a889ddaeb64f97da5c7d4a",
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:54:59+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897",
+        "model_prepatch.py": "081b5b43f5a94350826880f066874dd8a8690ea81486ec09ad0189b054098ff8"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T00:30:42+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 9 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1_identity.py`, `atk2_swap.py`, `atk3_partial_ovr_wrong.py`, `atk4_always_softmax.py`, `atk5_always_ovr.py`, `atk6_mode_negate.py`, `atk_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk7_echo_inline.py`, `atk8_defensive_echo.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:55:39+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897",
+        "model_prepatch.py": "081b5b43f5a94350826880f066874dd8a8690ea81486ec09ad0189b054098ff8"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:34:17+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "3a94bc908437c9b1a3189452dcc4ca7d1e7dc776c4d036fa9e0ee73d4708084c",
+          "impl": "d3eef77a5c53be9a3e39e63758dc80811a1061785c01993a021c5b902cd4647e",
+          "post-conditions": "ddff142df0bbf1965578fefc856da338355b1046b265ce9f80ef6fb8bb2a427e",
+          "pre-conditions": "649c29ec9c8dd96689120de77bfc9bb81a694c932bf1360fd59ddb405816f012",
+          "pure": "fae8aaab0077a5c3d2493d64e23a5ace201061321eb844b12b99a2ee11da2cd6",
+          "spec_view": "234b97407bd0c59ac19fcb40f6f83f3eb63b8be01d7c724ec344430bbfaf0f33"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:34:18+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "2f411aff6329a6ea00828a657acfcbbdfd4d947c52fc055140340ae32459640b",
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:34:18+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T07:31:24+00:00",
+      "code_version": "77ca0a596-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "ca075d093bcf",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T00:30:43+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong/drift) check for scikit-learn__scikit-learn-11578 nagini. The modeled function scoring_estimator_proba(caller_mode, d) abstracts the gold change LogisticRegression(multi_class=multi_class) at _log_reg_scoring_path (logistic.py:925). No diverging input found; the spec does NOT over-claim relative to the real repo callees.\n\nEvidence:\n1. model.py verifies (Nagini, 12.1s); model_prepatch.py (effective_mode=OVR) FAILS on postcondition #1 (Result()==scoring_proba(caller_mode,d)) \u2014 the differential is real and grounded in modeled inputs, not the axiom.\n2. Spec regions (axioms..post-conditions) are byte-identical between model.py and model_prepatch.py; only the impl region differs. `same-spec` toolkit returns SAME (exit 0).\n3. G-AX (axiom_check.py) passes against real scikit-learn 1.3.0: over 2000 random fitted LogisticRegression pairs, decision_function is mode-independent, predict_proba routes softmax<->multinomial and normalized-OvR<->ovr, a witness row where the two transforms differ exists, and neg-log-loss discriminates the modes. The real predict_proba dispatch (logistic.py:1343-1353) and LinearClassifierMixin._predict_proba_lr (base.py: expit then row-normalize for multiclass) exactly match the modeled proba_softmax/proba_ovr references.\n4. The spec is deliberately CONSERVATIVE: transforms_differ is an existential (not universal) fact; the refinement/mapping explicitly refuse to assert arg-max (predicted-class) agreement between the transforms, because that is false once a decision coordinate saturates the sigmoid (~36.74). Encoding it would have been the plausible over-claim, and it is intentionally absent from both the contract and axiom_check.py. Every postcondition (result-pinning #1, mode-specific #2/#3, witness-inequality #4) is validated true against the real callees.\n\nNo input on which the modeled function disagrees with the real callee was found. Verdict: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Gold edit: LogisticRegression(fit_intercept=fit_intercept) -> LogisticRegression(multi_class=multi_class) in _log_reg_scoring_path (logistic.py:922/925). The public problem_statement ALREADY discloses the fix in full: it quotes the buggy line verbatim, states it defaults multi_class='ovr', explains ovr=normalised one-vs-rest logistic response vs multinomial=softmax, that they differ, that neg_log_loss reads predict_proba, and literally proposes the fix `LogisticRegression(fit_intercept=fit_intercept, multi_class=multi_class)` so the estimator inherits the multi_class option.\n\nSpec view checked line by line against problem_statement (NOT hints_text):\n(a) docstring 'ovr normalises a per-class logistic response / multinomial applies softmax' + 'the two modes induce DIFFERENT class-probability vectors' -> already in problem_statement (ovr_approach vs softmax, differing probs).\n(b) 'the scoring estimator must use the SAME multi_class mode the helper was asked for' + 'probability-consuming scorer sees multinomial probabilities NOT one-vs-rest' -> paraphrase of the problem_statement's own proposed fix and observed symptom.\n(c) Nagini-fragment modeling (int tags OVR/MULTINOMIAL, PSeq[int], opaque proba_softmax/proba_ovr/witness_decision/transforms_differ) is pure abstraction disclosing nothing about the concrete edit; postconditions (Result()==scoring_proba(caller_mode,d); softmax in MULTINOMIAL, ovr in OVR) restate already-public desired inheritance behavior.\n\nNotably the spec view discloses STRICTLY LESS about the concrete edit than problem_statement: it never mentions fit_intercept being dropped nor names the constructor site (logistic.py:925). Impl region correctly elided (verified via swebench_unified.markers.spec_view with nagini backend: impl-start shows '... implementation elided'). Every modeled fact is derivable from the already-public behavioral description. No spec-view line leaks the gold edit beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 9 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong/drift) check for scikit-learn__scikit-learn-11578 nagini. The modeled function scoring_estimator_proba(caller_mode, d) abstracts the gold change LogisticRegression(multi_class=multi_class) at _log_reg_scoring_path (logistic.py:925). No diverging input found; the spec does NOT over-claim relative to the real repo callees.\n\nEvidence:\n1. model.py verifies (Nagini, 12.1s); model_prepatch.py (effective_mode=OVR) FAILS on postcondition #1 (Result()==scoring_proba(caller_mode,d)) \u2014 the differential is real and grounded in modeled inputs, not the axiom.\n2. Spec regions (axioms..post-conditions) are byte-identical between model.py and model_prepatch.py; only the impl region differs. `same-spec` toolkit returns SAME (exit 0).\n3. G-AX (axiom_check.py) passes against real scikit-learn 1.3.0: over 2000 random fitted LogisticRegression pairs, decision_function is mode-independent, predict_proba routes softmax<->multinomial and normalized-OvR<->ovr, a witness row where the two transforms differ exists, and neg-log-loss discriminates the modes. The real predict_proba dispatch (logistic.py:1343-1353) and LinearClassifierMixin._predict_proba_lr (base.py: expit then row-normalize for multiclass) exactly match the modeled proba_softmax/proba_ovr references.\n4. The spec is deliberately CONSERVATIVE: transforms_differ is an existential (not universal) fact; the refinement/mapping explicitly refuse to assert arg-max (predicted-class) agreement between the transforms, because that is false once a decision coordinate saturates the sigmoid (~36.74). Encoding it would have been the plausible over-claim, and it is intentionally absent from both the contract and axiom_check.py. Every postcondition (result-pinning #1, mode-specific #2/#3, witness-inequality #4) is validated true against the real callees.\n\nNo input on which the modeled function disagrees with the real callee was found. Verdict: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Gold edit: LogisticRegression(fit_intercept=fit_intercept) -> LogisticRegression(multi_class=multi_class) in _log_reg_scoring_path (logistic.py:922/925). The public problem_statement ALREADY discloses the fix in full: it quotes the buggy line verbatim, states it defaults multi_class='ovr', explains ovr=normalised one-vs-rest logistic response vs multinomial=softmax, that they differ, that neg_log_loss reads predict_proba, and literally proposes the fix `LogisticRegression(fit_intercept=fit_intercept, multi_class=multi_class)` so the estimator inherits the multi_class option.\n\nSpec view checked line by line against problem_statement (NOT hints_text):\n(a) docstring 'ovr normalises a per-class logistic response / multinomial applies softmax' + 'the two modes induce DIFFERENT class-probability vectors' -> already in problem_statement (ovr_approach vs softmax, differing probs).\n(b) 'the scoring estimator must use the SAME multi_class mode the helper was asked for' + 'probability-consuming scorer sees multinomial probabilities NOT one-vs-rest' -> paraphrase of the problem_statement's own proposed fix and observed symptom.\n(c) Nagini-fragment modeling (int tags OVR/MULTINOMIAL, PSeq[int], opaque proba_softmax/proba_ovr/witness_decision/transforms_differ) is pure abstraction disclosing nothing about the concrete edit; postconditions (Result()==scoring_proba(caller_mode,d); softmax in MULTINOMIAL, ovr in OVR) restate already-public desired inheritance behavior.\n\nNotably the spec view discloses STRICTLY LESS about the concrete edit than problem_statement: it never mentions fit_intercept being dropped nor names the constructor site (logistic.py:925). Impl region correctly elided (verified via swebench_unified.markers.spec_view with nagini backend: impl-start shows '... implementation elided'). Every modeled fact is derivable from the already-public behavioral description. No spec-view line leaks the gold edit beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1_identity.py`, `atk2_swap.py`, `atk3_partial_ovr_wrong.py`, `atk4_always_softmax.py`, `atk5_always_ovr.py`, `atk6_mode_negate.py`, `atk_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk7_echo_inline.py`, `atk8_defensive_echo.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong/drift) check for scikit-learn__scikit-learn-11578 nagini. The modeled function scoring_estimator_proba(caller_mode, d) abstracts the gold change LogisticRegression(multi_class=multi_class) at _log_reg_scoring_path (logistic.py:925). No diverging input found; the spec does NOT over-claim relative to the real repo callees.\n\nEvidence:\n1. model.py verifies (Nagini, 12.1s); model_prepatch.py (effective_mode=OVR) FAILS on postcondition #1 (Result()==scoring_proba(caller_mode,d)) \u2014 the differential is real and grounded in modeled inputs, not the axiom.\n2. Spec regions (axioms..post-conditions) are byte-identical between model.py and model_prepatch.py; only the impl region differs. `same-spec` toolkit returns SAME (exit 0).\n3. G-AX (axiom_check.py) passes against real scikit-learn 1.3.0: over 2000 random fitted LogisticRegression pairs, decision_function is mode-independent, predict_proba routes softmax<->multinomial and normalized-OvR<->ovr, a witness row where the two transforms differ exists, and neg-log-loss discriminates the modes. The real predict_proba dispatch (logistic.py:1343-1353) and LinearClassifierMixin._predict_proba_lr (base.py: expit then row-normalize for multiclass) exactly match the modeled proba_softmax/proba_ovr references.\n4. The spec is deliberately CONSERVATIVE: transforms_differ is an existential (not universal) fact; the refinement/mapping explicitly refuse to assert arg-max (predicted-class) agreement between the transforms, because that is false once a decision coordinate saturates the sigmoid (~36.74). Encoding it would have been the plausible over-claim, and it is intentionally absent from both the contract and axiom_check.py. Every postcondition (result-pinning #1, mode-specific #2/#3, witness-inequality #4) is validated true against the real callees.\n\nNo input on which the modeled function disagrees with the real callee was found. Verdict: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Gold edit: LogisticRegression(fit_intercept=fit_intercept) -> LogisticRegression(multi_class=multi_class) in _log_reg_scoring_path (logistic.py:922/925). The public problem_statement ALREADY discloses the fix in full: it quotes the buggy line verbatim, states it defaults multi_class='ovr', explains ovr=normalised one-vs-rest logistic response vs multinomial=softmax, that they differ, that neg_log_loss reads predict_proba, and literally proposes the fix `LogisticRegression(fit_intercept=fit_intercept, multi_class=multi_class)` so the estimator inherits the multi_class option.\n\nSpec view checked line by line against problem_statement (NOT hints_text):\n(a) docstring 'ovr normalises a per-class logistic response / multinomial applies softmax' + 'the two modes induce DIFFERENT class-probability vectors' -> already in problem_statement (ovr_approach vs softmax, differing probs).\n(b) 'the scoring estimator must use the SAME multi_class mode the helper was asked for' + 'probability-consuming scorer sees multinomial probabilities NOT one-vs-rest' -> paraphrase of the problem_statement's own proposed fix and observed symptom.\n(c) Nagini-fragment modeling (int tags OVR/MULTINOMIAL, PSeq[int], opaque proba_softmax/proba_ovr/witness_decision/transforms_differ) is pure abstraction disclosing nothing about the concrete edit; postconditions (Result()==scoring_proba(caller_mode,d); softmax in MULTINOMIAL, ovr in OVR) restate already-public desired inheritance behavior.\n\nNotably the spec view discloses STRICTLY LESS about the concrete edit than problem_statement: it never mentions fit_intercept being dropped nor names the constructor site (logistic.py:925). Impl region correctly elided (verified via swebench_unified.markers.spec_view with nagini backend: impl-start shows '... implementation elided'). Every modeled fact is derivable from the already-public behavioral description. No spec-view line leaks the gold edit beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:28:13+00:00",
+      "code_version": "aa0954627-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-inline-branch",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-precond-nonvacuous",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch-ovr",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-mode-flip",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-multinomial",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 3
+        },
+        "manifest_sha256": "93fc2f963aa81b5c9ef20e0f606a16356cddfe20dae93bfb0503afe98d7026fa",
+        "n_cases": 6,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 6 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897",
+        "properties.py": "93fc2f963aa81b5c9ef20e0f606a16356cddfe20dae93bfb0503afe98d7026fa"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:46:43+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:03:15+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 11.0
+      },
+      "detail": "verified in 11.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "906064e7f1d98647c5e5fbe82177a52feb0355e5d56da3bb3cf710433c08e897"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-11578",
+  "modeled_functions": [
+    {
+      "carrier_type": "multi_class str {'ovr','multinomial'} -> int tag {OVR=0, MULTINOMIAL=1}; decision/probability rows -> PSeq[int]",
+      "model_symbol": "scoring_estimator_proba",
+      "repo_location": "sklearn/linear_model/logistic.py:925 (changed line), 958 (scoring call)",
+      "repo_symbol": "sklearn.linear_model.logistic._log_reg_scoring_path (scoring estimator construction + predict_proba consumed by the scorer)",
+      "role": "modeled changed behaviour: the throw-away scoring estimator inherits the caller's multi_class mode, so a probabilistic scorer observes that mode's class-probability transform"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "post-condition #1 Result() == scoring_proba(caller_mode, d) on the caller_mode == MULTINOMIAL case (returns proba_ovr(d), required proba_softmax(d) \u2014 the verifier cannot prove the two opaque transforms equal). This differential is grounded directly in the modeled inputs caller_mode/d via the deep pure-region selector scoring_proba, INDEPENDENT of the A-consumed transforms_differ axiom (which only carries the derived discriminating consequence #4).",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "scoring estimator multiclass mode inheritance",
+      "reverted_to": "LogisticRegression(fit_intercept=fit_intercept) -> multi_class defaults to 'ovr' (effective_mode = OVR, ignoring the caller)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3a94bc908437c9b1a3189452dcc4ca7d1e7dc776c4d036fa9e0ee73d4708084c",
+    "impl": "d3eef77a5c53be9a3e39e63758dc80811a1061785c01993a021c5b902cd4647e",
+    "post-conditions": "ddff142df0bbf1965578fefc856da338355b1046b265ce9f80ef6fb8bb2a427e",
+    "pre-conditions": "3977765d9db70ce1c82ee7e52949a532260e75cdf270bb1b2bb659aabf73bc6d",
+    "pure": "fae8aaab0077a5c3d2493d64e23a5ace201061321eb844b12b99a2ee11da2cd6",
+    "spec_view": "4cb1a104d91a1bd18c36ca37fbafe0b49835c5309a11456ad008705f6ee15c64"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": "multi_class string -> int tag {OVR=0, MULTINOMIAL=1}; per-class decision and probability rows -> PSeq[int]; only the mode selection between the two probability transforms is modeled. proba_softmax/proba_ovr are opaque A-references (their len Ensures is dead, validated only as documentation by axiom_check.py); transforms_differ is the single A-consumed axiom (existential distinctness, validated by axiom_check.py).",
+  "version": "0.20"
+}

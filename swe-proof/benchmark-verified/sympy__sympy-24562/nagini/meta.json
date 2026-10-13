@@ -1,0 +1,443 @@
+{
+  "adversarial": {
+    "positive_control": {
+      "desc": "structurally-different correct impl (denominator accumulated in the other order, token read before numerator formed)",
+      "file": "pos_control.py",
+      "result": "same_spec True AND VERIFIES (26.7s) -> spec non-vacuous"
+    },
+    "scratch_dir": "experiments/scratch/atk_24562/ (same-spec impls; re-runnable via `python -m swebench_nagini.adversary weakness sympy__sympy-24562 <file>`). The 2nd-pass leakage-fix re-encoding (NEW spec, read_repeated->aux_value) was proven in $SCRATCH/: all 7 atk_*.py NOT-A-COUNTEREXAMPLE, pos_control.py VERIFIES.",
+    "spec_too_weak_attacks": [
+      {
+        "desc": "verdict counterexample: numerator omits the q_den factor (old narrow spec admitted this)",
+        "file": "atk_1.py",
+        "rejecting_clause": "Result()[0] == p_num * q_den",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      },
+      {
+        "desc": "prepatch bug: denominator uses the unpinned aux_value",
+        "file": "atk_2.py",
+        "rejecting_clause": "Result()[1] == p_den * read_int(ToSeq(q_digits))",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      },
+      {
+        "desc": "numerator/denominator factors swapped",
+        "file": "atk_3.py",
+        "rejecting_clause": "Result()[0] == p_num * q_den",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      },
+      {
+        "desc": "denominator omits the dividend denominator factor p_den",
+        "file": "atk_4.py",
+        "rejecting_clause": "Result()[1] == p_den * read_int(ToSeq(q_digits))",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      },
+      {
+        "desc": "denominator ignores the divisor numeric value (uses q_den)",
+        "file": "atk_5.py",
+        "rejecting_clause": "Result()[1] == p_den * read_int(ToSeq(q_digits))",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      },
+      {
+        "desc": "numerator uses the read value instead of q_den",
+        "file": "atk_6.py",
+        "rejecting_clause": "Result()[0] == p_num * q_den",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      },
+      {
+        "desc": "denominator uses q_den in place of the read value",
+        "file": "atk_7.py",
+        "rejecting_clause": "Result()[1] == p_den * read_int(ToSeq(q_digits))",
+        "weakness_result": "NOT-A-COUNTEREXAMPLE (does not verify)"
+      }
+    ]
+  },
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real fractions.Fraction(s) on 12 boundary + 20000 fuzz all-digit strings asserts Result()>=0 and exact value int(s); ALSO fuzzes 14 Requires-EXCLUDED inputs (sign/empty/decimal/slash/non-digit/whitespace) confirming they are where the reader goes negative or raises (no over-claim). Exit 0 in-container.",
+      "encoded_property": "non-empty ALL-DIGIT sequence (Requires tightened: 48<=digits[k]<=57) reads to a non-negative integer (Result() >= 0); weakest sufficient contract, does not pin the exact value so cannot over-claim. The all-digit Requires makes Ensures(Result()>=0) genuinely sound (excludes leading '-' that would yield a negative value).",
+      "kind": "A-consumed",
+      "models": "textual-integer reader fractions.Fraction(str).numerator == int(str) for an all-digit string (reached via q = Rational(q) -> Q *= q.p)",
+      "name": "read_int",
+      "provenance": "sympy/core/numbers.py:1636-1638 post-patch; Rational(str) parse at numbers.py:1612-1620 -> fractions.Fraction",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts aux_value(s,n)>=0 (==int(s*n)) on 8 boundary + 5000 fuzz; confirms discriminating fact int(s*n) != n*int(s) (int('100100')=100100 vs int('100')*2=200; 4530/5000 fuzz witnesses differ). Exit 0 in-container.",
+      "consumer_view": "named NEUTRALLY `aux_value` with a docstring that narrates NO mechanism (states only: an unspecified non-negative integer function unrelated to read_int); the repeat-then-read meaning lives only in mapping.md/axiom_check.py (hidden). model.py never references it (used only by model_prepatch.py's hidden impl), so the spec view leaks no bug->fix mechanism -- this closes the residual G-LEAK re-audit finding.",
+      "encoded_property": "non-empty all-digit token (n>=1) maps to a non-negative integer (Result()>=0); VALUE DELIBERATELY UNPINNED (not == n*read_int, not related to read_int at all) -- this is what makes the denominator postcondition discriminating",
+      "kind": "A-reference",
+      "models": "the value an alternative reading obtains from the SAME characters: fractions.Fraction(str * n).numerator -- repeat the digit token n times (Python str repetition q*p.q, the pre-patch `q *= p.q` on the textual divisor) then read once",
+      "name": "aux_value",
+      "provenance": "sympy/core/numbers.py:1630 pre-patch `q *= p.q` while q is still the textual divisor string; the read is the same fractions.Fraction parse",
+      "purity": "@Pure @ContractOnly (used inside the prepatch impl)"
+    }
+  ],
+  "base_commit": "b1cb676cf92dd1a48365b731979833375b188bf2",
+  "changed_files": [
+    "sympy/core/numbers.py"
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:44:35+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: read_int (A-consumed) sound on 12 boundary + 20000 fuzz all-digit tokens, Requires-excluded boundary (14) confirmed; aux_value (A-reference) sound on 8 boundary + 5000 fuzz; discriminating fact int(s*n) != n*int(s) confirmed (4530 differ in fuzz).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "f2d79ea0309fa73b1a1be213f245dac4cfb09490c7122a792eed48cfb78ead03",
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:44:45+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100117,
+          "disagreements": 0,
+          "seed": 245620,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100117, \"disagreements\": 0, \"seed\": 245620, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "32e35a3123b405d457c5ee22cb5d1e811a05a3067382fd2b73aaba8fbf62e8e0",
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:11:38+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108",
+        "model_prepatch.py": "dbeb349c422dbbdfbe31c0076e14d898fcea7a5e8ca70c234b577eef5b19e358"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T14:54:01+00:00",
+      "code_version": "63fb87adf-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1_recurse.py`, `atk_2_prepatch.py`, `atk_3_num_drop.py`, `atk_4_swap.py`, `atk_5_loop.py`, `atk_6_den_drop.py`, `atk_7_aux_n1.py`, `atk_8_partial.py` |\n\n**Non-vacuity.** The positive control `atk_pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:13:03+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108",
+        "model_prepatch.py": "dbeb349c422dbbdfbe31c0076e14d898fcea7a5e8ca70c234b577eef5b19e358"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:44:28+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "8c6ca2a5e1aef2724ff2ce305b8bba534416c0754e5b2bbeee1236c950e35370",
+          "impl": "fa55027536486a5937296bf3bccc7564f5655502b190891369a61a0f9b020a5a",
+          "post-conditions": "026479059ae5d989fba29ab445628bc00ed876273f62f57bf484f30f941aaa24",
+          "pre-conditions": "a8b4bf1ef3ad0a88ea4cf81a6cdf4c6546abf2ab01a36ad2b45f919b1a406e76",
+          "pure": "e7274a4d78c44d138074a2143c79fb1dbb8f564955e47b1b48cea0c7d8ad4269",
+          "spec_view": "2c4e20a6a8145bddb9e3d0706fb91975a5930b890ba895841b7bbb19f853c768"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:44:29+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "9ab632771011a4cef3786f6b0ef57d10b0ffba0583d8bc774b12c1880959bf37",
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:44:29+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:25:56+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T14:54:04+00:00",
+      "code_version": "63fb87adf-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness check of combine_ratio's spec against the REAL PATCHED repo callee (the integer-combination block of Rational.__new__ after the gold patch, base_commit b1cb676c). The spec pins two postconditions: Result()[0] == p_num*q_den and Result()[1] == p_den*read_int(ToSeq(q_digits)). This is the exact pre-reduction quotient (p_num/p_den)/(read_int/q_den) = (p_num*q_den)/(p_den*read_int); the subsequent gcd reduction is unchanged and ratio-preserving, so the pinned pre-reduction pair transfers to the observed reduced result.\n\nEvidence the modeled function AGREES with the real callee on every in-domain input (no diverging input found):\n1. Bundle conformance_check.py run against a freshly gold-patched testbed (PYTHONPATH=$SCRATCH, verified the Q-accumulator patch applied): 'G-CONF OK ... 100117 inputs (117 boundary + 100000 fuzz)', 0 disagreements. Comparison is by ratio (Fraction(out_num,out_den) == Fraction(r.p,r.q)), with zero-den mapped to NaN/zoo.\n2. Independent adversarial probe (300170 inputs) recomputing spec_pair = (p_num*q_den, p_den*read_int(tok)) vs real Rational(Rational(p_num,p_den,1), Rational(qv,q_den,1)) over targeted edge cases (zero-value tokens '0','00','000'; leading-zero tokens '007','0100','100100'; huge magnitudes up to 1e50; fractional divisors q_den up to 1e15; negatives) plus 200k random inputs within the Requires domain: 0 disagreements.\n\nThe read_int axiom (Requires all-digit token len>=1; Ensures Result()>=0) is a sound UNDER-approximation of the real textual-integer reader (fractions.Fraction(s).numerator), not too strong: it constrains the callee only where the reader genuinely returns a non-negative int, and the tightened all-digit precondition excludes signed/non-digit inputs where the reader could be negative or raise (validated by axiom_check.py G-AX). The aux_value axiom is unpinned and not referenced by model.py's proof/postconditions, so it cannot make the consumer spec too strong.\n\nModel verifies under the pinned Nagini verifier (Verification successful, 14.25s). Spec region is the audited frozen spec. No input found on which the modeled function disagrees with the real patched callee. Verdict: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = projected model.py (docstring + read_int/aux_value axiom contracts + combine_ratio pre/post-conditions; impl elided). Mechanical G-LEAK screen PASSES (no hard failures) \u2014 verified via leakage.screen against the frozen row. Semantic review confirms no leak beyond public problem_statement.\n\nGold edit: introduce a fresh accumulator Q so the divisor's TEXTUAL numerator is read as a number exactly once (patch: Q=1; q*=p.q -> Q*=p.q; q=q.p -> Q*=q.p; else Q*=int(q); q=Q), replacing the pre-patch reuse of variable q that caused string repetition ('100'*2='100100'). Problem_statement discloses only the symptom Rational('0.5','100')==1/100100 vs 1/200; no mechanism.\n\nSpec view checks: (1) no diff markers; (2) patched path sympy/core/numbers.py and module dotted name appear only in the HIDDEN mapping.md, not the spec view; (3) patch touches no distinctive def/class symbol (__new__ is non-distinctive), so no identifier/comment symbol echo; (4) no bug/fix/regression narration in any spec-view comment/docstring; (5) the axiom docstrings avoid the mechanism \u2014 aux_value is named neutrally, is UNUSED by model.py, and its docstring explicitly states it is unspecified and does NOT relate to read_int, disclosing nothing about the string-repetition root cause (that meaning lives only in hidden mapping.md/axiom_check.py); (6) textual operands ('0.5','100') are already public in the issue.\n\nThe spec states the CORRECT behavior (numerator == p_num*q_den, denominator == p_den*read_int(q_num) = read-once-then-scale). Stating correct behavior is a spec's legitimate function and is not a reproduction of the gold diff or its bug->fix mechanism; a solver cannot reconstruct the fresh-accumulator/variable-reuse edit from the spec view beyond the public problem statement. Verdict: NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness check of combine_ratio's spec against the REAL PATCHED repo callee (the integer-combination block of Rational.__new__ after the gold patch, base_commit b1cb676c). The spec pins two postconditions: Result()[0] == p_num*q_den and Result()[1] == p_den*read_int(ToSeq(q_digits)). This is the exact pre-reduction quotient (p_num/p_den)/(read_int/q_den) = (p_num*q_den)/(p_den*read_int); the subsequent gcd reduction is unchanged and ratio-preserving, so the pinned pre-reduction pair transfers to the observed reduced result.\n\nEvidence the modeled function AGREES with the real callee on every in-domain input (no diverging input found):\n1. Bundle conformance_check.py run against a freshly gold-patched testbed (PYTHONPATH=$SCRATCH, verified the Q-accumulator patch applied): 'G-CONF OK ... 100117 inputs (117 boundary + 100000 fuzz)', 0 disagreements. Comparison is by ratio (Fraction(out_num,out_den) == Fraction(r.p,r.q)), with zero-den mapped to NaN/zoo.\n2. Independent adversarial probe (300170 inputs) recomputing spec_pair = (p_num*q_den, p_den*read_int(tok)) vs real Rational(Rational(p_num,p_den,1), Rational(qv,q_den,1)) over targeted edge cases (zero-value tokens '0','00','000'; leading-zero tokens '007','0100','100100'; huge magnitudes up to 1e50; fractional divisors q_den up to 1e15; negatives) plus 200k random inputs within the Requires domain: 0 disagreements.\n\nThe read_int axiom (Requires all-digit token len>=1; Ensures Result()>=0) is a sound UNDER-approximation of the real textual-integer reader (fractions.Fraction(s).numerator), not too strong: it constrains the callee only where the reader genuinely returns a non-negative int, and the tightened all-digit precondition excludes signed/non-digit inputs where the reader could be negative or raise (validated by axiom_check.py G-AX). The aux_value axiom is unpinned and not referenced by model.py's proof/postconditions, so it cannot make the consumer spec too strong.\n\nModel verifies under the pinned Nagini verifier (Verification successful, 14.25s). Spec region is the audited frozen spec. No input found on which the modeled function disagrees with the real patched callee. Verdict: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view = projected model.py (docstring + read_int/aux_value axiom contracts + combine_ratio pre/post-conditions; impl elided). Mechanical G-LEAK screen PASSES (no hard failures) \u2014 verified via leakage.screen against the frozen row. Semantic review confirms no leak beyond public problem_statement.\n\nGold edit: introduce a fresh accumulator Q so the divisor's TEXTUAL numerator is read as a number exactly once (patch: Q=1; q*=p.q -> Q*=p.q; q=q.p -> Q*=q.p; else Q*=int(q); q=Q), replacing the pre-patch reuse of variable q that caused string repetition ('100'*2='100100'). Problem_statement discloses only the symptom Rational('0.5','100')==1/100100 vs 1/200; no mechanism.\n\nSpec view checks: (1) no diff markers; (2) patched path sympy/core/numbers.py and module dotted name appear only in the HIDDEN mapping.md, not the spec view; (3) patch touches no distinctive def/class symbol (__new__ is non-distinctive), so no identifier/comment symbol echo; (4) no bug/fix/regression narration in any spec-view comment/docstring; (5) the axiom docstrings avoid the mechanism \u2014 aux_value is named neutrally, is UNUSED by model.py, and its docstring explicitly states it is unspecified and does NOT relate to read_int, disclosing nothing about the string-repetition root cause (that meaning lives only in hidden mapping.md/axiom_check.py); (6) textual operands ('0.5','100') are already public in the issue.\n\nThe spec states the CORRECT behavior (numerator == p_num*q_den, denominator == p_den*read_int(q_num) = read-once-then-scale). Stating correct behavior is a spec's legitimate function and is not a reproduction of the gold diff or its bug->fix mechanism; a solver cannot reconstruct the fresh-accumulator/variable-reuse edit from the spec view beyond the public problem statement. Verdict: NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1_recurse.py`, `atk_2_prepatch.py`, `atk_3_num_drop.py`, `atk_4_swap.py`, `atk_5_loop.py`, `atk_6_den_drop.py`, `atk_7_aux_n1.py`, `atk_8_partial.py` |\n\n**Non-vacuity.** The positive control `atk_pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness check of combine_ratio's spec against the REAL PATCHED repo callee (the integer-combination block of Rational.__new__ after the gold patch, base_commit b1cb676c). The spec pins two postconditions: Result()[0] == p_num*q_den and Result()[1] == p_den*read_int(ToSeq(q_digits)). This is the exact pre-reduction quotient (p_num/p_den)/(read_int/q_den) = (p_num*q_den)/(p_den*read_int); the subsequent gcd reduction is unchanged and ratio-preserving, so the pinned pre-reduction pair transfers to the observed reduced result.\n\nEvidence the modeled function AGREES with the real callee on every in-domain input (no diverging input found):\n1. Bundle conformance_check.py run against a freshly gold-patched testbed (PYTHONPATH=$SCRATCH, verified the Q-accumulator patch applied): 'G-CONF OK ... 100117 inputs (117 boundary + 100000 fuzz)', 0 disagreements. Comparison is by ratio (Fraction(out_num,out_den) == Fraction(r.p,r.q)), with zero-den mapped to NaN/zoo.\n2. Independent adversarial probe (300170 inputs) recomputing spec_pair = (p_num*q_den, p_den*read_int(tok)) vs real Rational(Rational(p_num,p_den,1), Rational(qv,q_den,1)) over targeted edge cases (zero-value tokens '0','00','000'; leading-zero tokens '007','0100','100100'; huge magnitudes up to 1e50; fractional divisors q_den up to 1e15; negatives) plus 200k random inputs within the Requires domain: 0 disagreements.\n\nThe read_int axiom (Requires all-digit token len>=1; Ensures Result()>=0) is a sound UNDER-approximation of the real textual-integer reader (fractions.Fraction(s).numerator), not too strong: it constrains the callee only where the reader genuinely returns a non-negative int, and the tightened all-digit precondition excludes signed/non-digit inputs where the reader could be negative or raise (validated by axiom_check.py G-AX). The aux_value axiom is unpinned and not referenced by model.py's proof/postconditions, so it cannot make the consumer spec too strong.\n\nModel verifies under the pinned Nagini verifier (Verification successful, 14.25s). Spec region is the audited frozen spec. No input found on which the modeled function disagrees with the real patched callee. Verdict: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec view = projected model.py (docstring + read_int/aux_value axiom contracts + combine_ratio pre/post-conditions; impl elided). Mechanical G-LEAK screen PASSES (no hard failures) \u2014 verified via leakage.screen against the frozen row. Semantic review confirms no leak beyond public problem_statement.\n\nGold edit: introduce a fresh accumulator Q so the divisor's TEXTUAL numerator is read as a number exactly once (patch: Q=1; q*=p.q -> Q*=p.q; q=q.p -> Q*=q.p; else Q*=int(q); q=Q), replacing the pre-patch reuse of variable q that caused string repetition ('100'*2='100100'). Problem_statement discloses only the symptom Rational('0.5','100')==1/100100 vs 1/200; no mechanism.\n\nSpec view checks: (1) no diff markers; (2) patched path sympy/core/numbers.py and module dotted name appear only in the HIDDEN mapping.md, not the spec view; (3) patch touches no distinctive def/class symbol (__new__ is non-distinctive), so no identifier/comment symbol echo; (4) no bug/fix/regression narration in any spec-view comment/docstring; (5) the axiom docstrings avoid the mechanism \u2014 aux_value is named neutrally, is UNUSED by model.py, and its docstring explicitly states it is unspecified and does NOT relate to read_int, disclosing nothing about the string-repetition root cause (that meaning lives only in hidden mapping.md/axiom_check.py); (6) textual operands ('0.5','100') are already public in the issue.\n\nThe spec states the CORRECT behavior (numerator == p_num*q_den, denominator == p_den*read_int(q_num) = read-once-then-scale). Stating correct behavior is a spec's legitimate function and is not a reproduction of the gold diff or its bug->fix mechanism; a solver cannot reconstruct the fresh-accumulator/variable-reuse edit from the spec view beyond the public problem statement. Verdict: NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T18:05:56+00:00",
+      "code_version": "47ecb2867-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mut-qdigits",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-numerator",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.5
+          },
+          {
+            "expect": "reject",
+            "id": "denominator-uses-qden",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.5
+          },
+          {
+            "expect": "reject",
+            "id": "denominator-drops-pden",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 13.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 13.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "2bf983bab9ffbdb167feb2d34cdc2d22d2560b1cd0a11e85a3b4b96b7255b332",
+        "n_cases": 6,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 6 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108",
+        "properties.py": "2bf983bab9ffbdb167feb2d34cdc2d22d2560b1cd0a11e85a3b4b96b7255b332"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T20:08:24+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T15:10:44+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "wall_time_s": 42.3
+      },
+      "detail": "verified in 42.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bc57ea87a8d986ba73cf2420473732651080affbc9481f6228bdb91ee9916108"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-24562",
+  "modeled_domain": "WIDENED to cover every F2P/P2P input shape: dividend p any exact rational with p_den>=1 (integer dividend p_den==1 e.g. p=2; fractional p_den>1 e.g. p='1.5'->3/2, p='0.5'->1/2) AND divisor q any exact rational with numerator the all-digit token q_digits and denominator q_den>=1 (whole-number divisor q_den==1 e.g. q='100'; fractional divisor q_den>1 e.g. q='1.5'->3/2). Includes BOTH the input the F2P test fails on FIRST at base_commit (Rational('1.5','1.5'): p_den=2,q_den=2) and the headline (Rational('0.5','100'): p_den=2,q_den=1). Both numerator (p_num*q_den) and denominator (p_den*read_int(q_digits)) branches are pinned.",
+  "modeled_functions": [
+    {
+      "carrier_type": "dividend as ints p_num/p_den (p.p/p.q, p_den>=1); divisor numerator str -> List[int] of digit code points (spec over PSeq[int]); divisor denominator int q_den (q.q, q_den>=1); output Tuple[int,int] (pre-reduction (p, Q))",
+      "model_symbol": "combine_ratio",
+      "repo_location": "sympy/core/numbers.py:1628-1641 (integer-combination block; gold adds +Q=1, +q=Q and accumulates the denominator in a fresh Q)",
+      "repo_symbol": "sympy.core.numbers.Rational.__new__",
+      "role": "modeled changed function: form the quotient of a dividend resolved to p_num/p_den and a divisor (numerator the textual digit token q_digits, denominator q_den) into the constructed ratio's (numerator, denominator) before gcd reduction; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; G-RESOLVE resolved=True in-container)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result()[1] == p_den * read_int(ToSeq(q_digits)) (an unpinned repeat-then-read value is not provably equal to the read-then-scale value)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the constructed quotient's denominator: the divisor's textual numerator read exactly once then scaled, vs. repeated then read",
+      "reverted_to": "old reuse of variable q as the denominator accumulator (`q *= p.q` then `q = q.p`): the textual divisor numerator is repeated p_den times THEN read (aux_value(q_digits, p_den)); the numerator branch (p_num*q_den) is unchanged"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "8c6ca2a5e1aef2724ff2ce305b8bba534416c0754e5b2bbeee1236c950e35370",
+    "impl": "fa55027536486a5937296bf3bccc7564f5655502b190891369a61a0f9b020a5a",
+    "post-conditions": "026479059ae5d989fba29ab445628bc00ed876273f62f57bf484f30f941aaa24",
+    "pre-conditions": "7756c3f50845c906b8229fb8dda237a21c6a4799aa4e4e77ed7977130345f0de",
+    "pure": "e7274a4d78c44d138074a2143c79fb1dbb8f564955e47b1b48cea0c7d8ad4269",
+    "spec_view": "2b85fc12f9f60df3c8a651365af17cff3e63346170bc2a6e9a1b2b83e1323b8e"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "divisor numerator as List[int] of decimal-digit code points; specification carried by PSeq[int] via ToSeq; the textual-integer reader axiomatized as read_int (read once); a second, deliberately-unpinned auxiliary value axiomatized as aux_value (consumer-neutral name; its repeat-then-read meaning is recorded only in the hidden mapping.md/axiom_check.py)",
+  "version": "1.12"
+}

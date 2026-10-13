@@ -1,0 +1,525 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "byte-identical edit to the same nested helper as python.py; modeled by the same build_pk_iterator; same R/A-reference map; single failing prepatch witnesses both (same fixed behavior)",
+      "repo_location": "django/core/serializers/xml_serializer.py:157-158",
+      "repo_symbol": "django.core.serializers.xml_serializer.Serializer.handle_m2m_field.queryset_iterator"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "1136aa5005f0ae70fea12796b7e37d6f027b9263",
+  "changed_files": [
+    "django/core/serializers/python.py",
+    "django/core/serializers/xml_serializer.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): pre-patch chain raises FieldError, post-patch chain does not",
+      "encoded_property": "ill_formed(restricted, requested, loaded) == restricted and EXISTS f in requested with f not in loaded; False whenever restricted is False",
+      "kind": "A-reference",
+      "models": "select_related_descend (django/db/models/query_utils.py:315-351, raise branch lines 341-350)",
+      "name": "ill_formed",
+      "over_approximation": "drops the real guard's select_mask-non-empty conjunct; real_raises ==> model_ill_formed (sound in the raise direction), so 'not ill_formed' is at least as strong as 'real query does not raise'; the differing region (empty select_mask) is unreachable by the modeled chain which always ends in only_pk (loaded == {pk}). Documented in mapping.md 3.3.",
+      "provenance": "raise FieldError when (restricted and select_mask and field.name in requested and field not in select_mask) \u2014 'cannot be both deferred and traversed using select_related at the same time'",
+      "role": "deep model (pure region) of the unchanged evaluation-time descend check; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): after .select_related(), query.select_related is not a dict",
+      "encoded_property": "Result().restricted == False; requested and loaded carried through unchanged (Result().requested is q.requested, Result().loaded is q.loaded)",
+      "kind": "A-reference",
+      "models": "QuerySet.select_related() no-args (django/db/models/query.py:1546-1568; else: obj.query.select_related = True)",
+      "name": "clear_specific_request",
+      "provenance": "no-args select_related sets query.select_related = True (a bool, not a dict) -> compiler restricted = isinstance(select_related, dict) == False (compiler.py:1184)",
+      "role": "deep model of the added unchanged callee (the fix); NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): post-patch compiled select is exactly the pk column",
+      "encoded_property": "Result().loaded == {pk}; eager-co-selection request unchanged",
+      "kind": "A-reference",
+      "models": "QuerySet.only(\"pk\") (django/db/models/query.py:1728-1747 -> query.add_immediate_loading)",
+      "name": "only_pk",
+      "provenance": "only(\"pk\") narrows immediate-loading to the pk field",
+      "role": "deep model of the unchanged projection callee; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T15:20:49+00:00",
+      "code_version": "7b9f830c6-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model (clear_specific_request / only_pk / ill_formed) validated against real Django QuerySet.select_related/only + select_related_descend. Pre-patch chain raises FieldError (ill_formed True); post-patch chain is well-formed and selects only the pk.",
+      "gate": "G-AX",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "607e6e71f06748996bbe7195587e31acdae977d752d16b1e68424ab029485845",
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T15:20:47+00:00",
+      "code_version": "7b9f830c6-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "clauses_checked": [
+            "well_formedness(ill_formed vs real FieldError)",
+            "restricted",
+            "listed+excluding(projection as deferred_loading)",
+            "loaded(effective mask vs real get_select_mask)",
+            "members",
+            "member_set(real serialized m2m pks)"
+          ],
+          "disagreements": 0,
+          "exhaustive_cases": 7813,
+          "gate": "G-CONF",
+          "inputs_checked": 100000,
+          "oracle": "real patched queryset_iterator driven via serializers.serialize (python+xml sites), queryset captured at QuerySet.iterator",
+          "requested_keyset_mismatches": 0,
+          "seed": 16938,
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"gate\": \"G-CONF\", \"status\": \"pass\", \"seed\": 16938, \"inputs_checked\": 100000, \"exhaustive_cases\": 7813, \"disagreements\": 0, \"requested_keyset_mismatches\": 0, \"clauses_checked\": [\"well_formedness(ill_formed vs real FieldError)\", \"restricted\", \"listed+excluding(projection as deferred_loading)\", \"loaded(effective mask vs real get_select_mask)\", \"members\", \"member_set(real serialized m2m pks)\"], \"oracle\": \"real patched queryset_iterator driven via serializers.serialize (python+xml sites), queryset captured at QuerySet.iterator\"}",
+      "gate": "G-CONF",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "7a971c0f995701faf9e0cd008f8dfc3e647275127db7ecd4da75b6ea290de4c6",
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:33:16+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349",
+        "model_prepatch.py": "0fe0deb85a5401c1383d1244e48b0a88ec0966fd3aa0575456aa96f615bdd238"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-14T16:15:57+00:00",
+      "code_version": "bacdc73eb-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_8.py`, `atk_9.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `ctrl.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349",
+        "properties.py": "1443b9fd567c882e2863524693481b90e8ada4ad4d8ddd6b294fdc972eb0424d"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:34:09+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349",
+        "model_prepatch.py": "0fe0deb85a5401c1383d1244e48b0a88ec0966fd3aa0575456aa96f615bdd238"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T15:18:49+00:00",
+      "code_version": "bd35d9264-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "7580c8056847693e3572145d09bb668e02d33abef36765ae8a9b010adaaade4a",
+          "impl": "65dc4836baf157ec5002af2ad3589fd058d71799f809884b721ba7e29d0fd386",
+          "post-conditions": "25d5fcdb04301132e423e4d218eda1a94c58e6c7249110fbe2fad7076bd88f6b",
+          "pre-conditions": "79436ac533241deddbeda2723c4d101968bcace370050b8ea816129fefcb4103",
+          "pure": "e38e6d0dad4618c6315d99cd3f34265ed974d0e8a6e4eeefcd783bd91db2cc29",
+          "spec_view": "0fc94389a3f8300edb56a7e7563eb84fe0b1a826f5db6c3f674d27b474fd0323"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T15:18:48+00:00",
+      "code_version": "bd35d9264-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8b226765f0d0d7419f8cd6df0b7822f993096be747561f00ed8755c7b7ba4d83",
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T15:18:49+00:00",
+      "code_version": "bd35d9264-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T15:18:00+00:00",
+      "code_version": "bd35d9264-dirty",
+      "data": {
+        "judged": 6,
+        "killed": 6,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 6,
+        "unjudged": []
+      },
+      "detail": "killed 6/6 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-14T16:15:57+00:00",
+      "code_version": "bacdc73eb-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK OUTCOME: no diverging input found. I attacked the spec as too-strong/drifting from real repo behavior and every avenue closed under machine-checked differential testing against the reference (base_commit 1136aa5005 + patch.diff APPLIED, per the mandated reference convention).\n\nSETUP: built two worktrees from repos/django_django.git at base_commit under a mktemp -d in /tmp; applied the gold patch (both hunks: python.py queryset_iterator and xml_serializer.py queryset_iterator -> getattr(obj, field.name).select_related().only(\"pk\").iterator()) to the reference worktree; left the second unpatched purely as the negative control. Bundle never modified (read-only copies into scratch). Worktrees removed after.\n\nPROBES RUN (all against the REAL ORM, callees executed not transliterated):\n1. ill_formed vs real select_related_descend raise branch, on ARBITRARY (unbuilt) query states: 384 cases (select_related in {absent,noargs,None,every non-empty FK subset} x projection in {absent, only/defer over every subset of concrete fields}), compared model ill_formed against whether the real compiler.as_sql() raises FieldError. RESULT: 0/384 disagreements. All three real guard conjuncts (restricted, non-empty select_mask, requested-and-dropped) are present in the model; the len(listed)>0 conjunct is genuinely needed and genuinely there.\n2. Full build_pk_iterator differential using the BUNDLE'S EXACT alpha (conformance_check.py:418-430) over 5952 cases, including CHAINED projection operations (only/defer composed twice) which the bundle's own G-CONF domain does NOT enumerate, plus non-null FKs and multi-FK models. Diffed listed, excluding, restricted, requested, effective loaded set (vs real get_select_mask), and ill_formed vs real raise. RESULT: 0 divergences.\n3. Attacked the headline never-errors postcondition (not ill_formed(Result()...)) with shapes designed to reach the raise branch in unrestricted mode: multi-table-inheritance parent_link FKs, non-null FK chains of depth 2-3, self-referential non-null FKs, select_related('l2__l3'), select_related('parentm_ptr'). The built chain compiled cleanly in every configuration. RESULT: no error found; guarantee holds. (Mechanism confirmed sound: select_related() sets query.select_related = True, a bool, so compiler's restricted = isinstance(..., dict) is False and the raise branch is unreachable regardless of projection.)\n4. Attacked the members == base.members clause end-to-end through the real patched serializer with custom managers baking in select_related/filter/distinct/order_by, capturing the built queryset at the unchanged QuerySet.iterator boundary. Membership preserved in every case. The one apparent mismatch (manager baking in .filter) is the ACCESSOR's own narrowing: base.members is [1,3] and built.members is [1,3] \u2014 the clause is relative to base, exactly as the spec text scopes it (\"inherits the owning record's membership filter unchanged\").\n5. Attacked the only_pk defer(pk) case split, the family the bundle documents as historically mis-attributed. Confirmed the real asymmetry in add_immediate_loading (sql/query.py:2336-2358): it normalizes literal \"pk\" -> pk.name, while add_deferred_loading does NOT. So a defer(\"id\") base yields built deferred_loading (set(), False) / empty mask / all columns, whereas a defer(\"pk\") base yields ({'id'}, False) / mask {id}. The model's case split on (q.excluding and pk in q.listed) reproduces the defer(real-pk-name) branch correctly.\n\nONE FALSE POSITIVE I RAISED AND THEN KILLED (recorded for honesty): I initially found 5 divergences on defer(\"pk\")-family bases where the model predicted no-restriction but the real built query restricted to {id}. This was MY OWN alpha bug, not a spec defect. I had invented an alpha collapsing literal \"pk\" and the real pk name \"id\" onto one code; the bundle's actual alpha maps field NAMES through CODE = {name: i for concrete_fields}, and literal \"pk\" is not in CODE, so a defer(\"pk\") base abstracts to listed=[] \u2014 which is SOUND, because a defer(\"pk\") base is itself an incoherent Django state (its own get_select_mask() raises FieldDoesNotExist: Tag has no field named 'pk'), and its built result is identical to a plain base's. Re-running the identical 43-case sweep under the bundle's real alpha gave 0 divergences. Per my own standing note, a measurement of spec weakness that is really my parse/bridge bug must not be reported as a finding.\n\nGATES REPRODUCED INDEPENDENTLY: nagini_verify.sh on model.py -> \"Verification successful\" (14.1s, exit 0). axiom_check.py against base_commit -> G-AX OK. conformance_check.py against my own patched worktree -> pass, 100000 inputs, 0 disagreements, requested_keyset_mismatches 0. Negative control on the UNPATCHED base -> fail, 69870 disagreements dominated by well_formedness+restricted (52894): the gate is falsifiable, not vacuous. model_prepatch.py -> \"Verification failed\" on exactly the discriminating clause (pp.py:233 Postcondition ... not ill_formed(...) might not hold), so the spec senses the bug. same-spec harness sanity-checked SAME on an identity copy.\n\nSPEC-STRENGTH ASSESSMENT: the spec is strong but not stronger than the real fixed behavior. Every postcondition is discharged by the real patched chain on all inputs I could construct. The reset is modeled as wholesale discard (len(requested)==0), which I verified is what the real select_related() does \u2014 it replaces the dict with the bool True, discarding the keys \u2014 so this clause is faithful, not over-strong.\n\nMINOR DOCUMENTATION DEFECT (not a faithfulness break, does not change the verdict): refinement.md C.1 twice asserts the spec \"Ensures(Result().requested == base.requested)\" and reasons that this grounds the result by PRESERVING the requested set. model.py actually ensures len(Result().requested) == 0, i.e. the opposite (discard). The MODEL is the faithful one (real select_related() discards the keys \u2014 probe 13 confirms select_related={'master': {}} becomes select_related=True); the refinement.md C.1 prose is stale relative to the current model, and its \"the two postconditions together pin the result to exactly Fetch(False, base.requested, {pk})\" sentence is wrong on the requested facet. mapping.md's MODELING NOTE and the G-CONF section already describe the discard correctly, so this is an internal inconsistency in one document's prose, not in the verified artifact. Worth a doc fix; no bearing on soundness.\n\nCONCLUSION: FAITHFUL. I could not exhibit any input on which the modeled function disagrees with the real patched callee. No diverging_input is claimed, so no defect is asserted.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE: leakage / gold-reconstruction only. Judged the EXACT shipped consumer view: derived spec_view(model.py) via swebench_unified.markers and confirmed byte-equality with what eval/adapter.py:spec_view() exposes (`judged view == adapter view: True`), with all 3 impl regions elided (`implementation elided` x3, no `PSet(pk) - PSet(pk)`, no `clear_specific_request(base)` composition visible). Baseline same-spec on an unmodified copy exits 0.\n\nGOLD EDIT: insert `.select_related()` before `.only(\"pk\")` in queryset_iterator, in BOTH django/core/serializers/python.py and xml_serializer.py.\n\nMECHANICAL: leakage.screen(nagini flavor, gold patch + PS, no hints) => PASSED, 0 hard failures, 0 warnings. All five sub-rules clear: no diff marker; no gold changed line reproduced (checked all 8, incl. `getattr(obj, field.name).select_related().only(\"pk\").iterator()`); neither patched path nor dotted module path present; patched symbols {m2m_value, handle_m2m} absent from identifiers AND comments (both are public in PS anyway via the traceback); no _NARRATION hit.\n\nLEXICAL DE-COUPLING (manual, beyond the mechanical list): spec view contains NONE of select_related / selectrelated / .only / only( / iterator() / queryset_iterator / getattr / m2m / manytomany / prefetch / FieldError / deferred / defer( / manager / get_queryset / queryset / master / topic / 19e0587 / 33937. Notably the hints-ONLY tokens (pk-as-getattr, queryset_iterator, 'clear') are absent as repo vocabulary. Only snake/camel tokens in the view are model-local (Fetch, build_pk_iterator, clear_specific_request, only_pk, ill_formed, dropped) plus framework imports (nagini_contracts, MustTerminate, ContractOnly) and the instance-id header `django__django-16938`. 'serializ*' appears but 'Serialization of m2m relation fails' is the PS TITLE; 'django' appears only inside the instance id the consumer is already given. No edit-localization: no file path, no `.py:`, no 'xml', no hint that TWO sites change (the two byte-identical hunks are collapsed into one modeled function, and that fan-out lives in meta.json/mapping.md, not the spec view).\n\nCLOSEST CALL (examined, judged NOT leakage): the docstring's 'That reset is wholesale rather than selective: the built fetch falls back on the unrestricted default and NAMES NO adjacent-record code at all, so the specific codes ... are DISCARDED rather than carried along, narrowed or reshuffled', backed by `Ensures(Result().restricted == False)` + `Ensures(len(Result().requested) == 0)`. This is semantically close to the hints_text suggestion ('Maybe we could clear select_related()'). I judge NO-LEAKAGE because (a) it is stated purely as the required POST-STATE of an abstracted 3-facet Fetch, i.e. the 'element i of the result is f(...)' contract style G-LEAK explicitly asks for, never as bug->fix mechanism, diagnosis, or edit; (b) it is de-lexicalized -- a solver must still discover WHICH API produces a wholesale reset, in WHICH function, in HOW MANY files; (c) the PS itself is unusually explicit (full traceback through select_related_descend, the FieldError text 'cannot be both deferred and traversed using select_related at the same time', the custom-manager select_related reproducer, and the 'set a simple default manager' workaround), so the conflict-to-be-avoided is already public -- the spec view adds no non-public diagnosis; (d) omitting the wholesale/discarding clause would gut spec strength and hand G-PANEL-1 a carry-along/narrow counterexample, so this precision is soundness-mandated, not lazy de-narration. No relaxed-leakage claim is needed: the spec is both faithful and non-leaking.\n\nNo LEAKAGE finding; no leaking_line to report.\n\nOUT-OF-LANE OBSERVATION (not leakage, flagged for construction hygiene, NOT a G-PANEL-3 failure): meta.json region_hashes are STALE -- stored impl/pure/pre-conditions/post-conditions/spec_view hashes do not match live region_hashes(model.py) under either the backend or backend.language tables form (only 'axioms' matches); model_prepatch.py mismatches identically, so it is not a model/prepatch mix-up. Harmless for leakage because the shipped view is derived LIVE from model.py (which I verified directly), and adapter.spec_view() hard-guards elision independently of these hashes. Worth a hygiene re-stamp by whoever owns G-HYGIENE/G-INTEGRITY.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK OUTCOME: no diverging input found. I attacked the spec as too-strong/drifting from real repo behavior and every avenue closed under machine-checked differential testing against the reference (base_commit 1136aa5005 + patch.diff APPLIED, per the mandated reference convention).\n\nSETUP: built two worktrees from repos/django_django.git at base_commit under a mktemp -d in /tmp; applied the gold patch (both hunks: python.py queryset_iterator and xml_serializer.py queryset_iterator -> getattr(obj, field.name).select_related().only(\"pk\").iterator()) to the reference worktree; left the second unpatched purely as the negative control. Bundle never modified (read-only copies into scratch). Worktrees removed after.\n\nPROBES RUN (all against the REAL ORM, callees executed not transliterated):\n1. ill_formed vs real select_related_descend raise branch, on ARBITRARY (unbuilt) query states: 384 cases (select_related in {absent,noargs,None,every non-empty FK subset} x projection in {absent, only/defer over every subset of concrete fields}), compared model ill_formed against whether the real compiler.as_sql() raises FieldError. RESULT: 0/384 disagreements. All three real guard conjuncts (restricted, non-empty select_mask, requested-and-dropped) are present in the model; the len(listed)>0 conjunct is genuinely needed and genuinely there.\n2. Full build_pk_iterator differential using the BUNDLE'S EXACT alpha (conformance_check.py:418-430) over 5952 cases, including CHAINED projection operations (only/defer composed twice) which the bundle's own G-CONF domain does NOT enumerate, plus non-null FKs and multi-FK models. Diffed listed, excluding, restricted, requested, effective loaded set (vs real get_select_mask), and ill_formed vs real raise. RESULT: 0 divergences.\n3. Attacked the headline never-errors postcondition (not ill_formed(Result()...)) with shapes designed to reach the raise branch in unrestricted mode: multi-table-inheritance parent_link FKs, non-null FK chains of depth 2-3, self-referential non-null FKs, select_related('l2__l3'), select_related('parentm_ptr'). The built chain compiled cleanly in every configuration. RESULT: no error found; guarantee holds. (Mechanism confirmed sound: select_related() sets query.select_related = True, a bool, so compiler's restricted = isinstance(..., dict) is False and the raise branch is unreachable regardless of projection.)\n4. Attacked the members == base.members clause end-to-end through the real patched serializer with custom managers baking in select_related/filter/distinct/order_by, capturing the built queryset at the unchanged QuerySet.iterator boundary. Membership preserved in every case. The one apparent mismatch (manager baking in .filter) is the ACCESSOR's own narrowing: base.members is [1,3] and built.members is [1,3] \u2014 the clause is relative to base, exactly as the spec text scopes it (\"inherits the owning record's membership filter unchanged\").\n5. Attacked the only_pk defer(pk) case split, the family the bundle documents as historically mis-attributed. Confirmed the real asymmetry in add_immediate_loading (sql/query.py:2336-2358): it normalizes literal \"pk\" -> pk.name, while add_deferred_loading does NOT. So a defer(\"id\") base yields built deferred_loading (set(), False) / empty mask / all columns, whereas a defer(\"pk\") base yields ({'id'}, False) / mask {id}. The model's case split on (q.excluding and pk in q.listed) reproduces the defer(real-pk-name) branch correctly.\n\nONE FALSE POSITIVE I RAISED AND THEN KILLED (recorded for honesty): I initially found 5 divergences on defer(\"pk\")-family bases where the model predicted no-restriction but the real built query restricted to {id}. This was MY OWN alpha bug, not a spec defect. I had invented an alpha collapsing literal \"pk\" and the real pk name \"id\" onto one code; the bundle's actual alpha maps field NAMES through CODE = {name: i for concrete_fields}, and literal \"pk\" is not in CODE, so a defer(\"pk\") base abstracts to listed=[] \u2014 which is SOUND, because a defer(\"pk\") base is itself an incoherent Django state (its own get_select_mask() raises FieldDoesNotExist: Tag has no field named 'pk'), and its built result is identical to a plain base's. Re-running the identical 43-case sweep under the bundle's real alpha gave 0 divergences. Per my own standing note, a measurement of spec weakness that is really my parse/bridge bug must not be reported as a finding.\n\nGATES REPRODUCED INDEPENDENTLY: nagini_verify.sh on model.py -> \"Verification successful\" (14.1s, exit 0). axiom_check.py against base_commit -> G-AX OK. conformance_check.py against my own patched worktree -> pass, 100000 inputs, 0 disagreements, requested_keyset_mismatches 0. Negative control on the UNPATCHED base -> fail, 69870 disagreements dominated by well_formedness+restricted (52894): the gate is falsifiable, not vacuous. model_prepatch.py -> \"Verification failed\" on exactly the discriminating clause (pp.py:233 Postcondition ... not ill_formed(...) might not hold), so the spec senses the bug. same-spec harness sanity-checked SAME on an identity copy.\n\nSPEC-STRENGTH ASSESSMENT: the spec is strong but not stronger than the real fixed behavior. Every postcondition is discharged by the real patched chain on all inputs I could construct. The reset is modeled as wholesale discard (len(requested)==0), which I verified is what the real select_related() does \u2014 it replaces the dict with the bool True, discarding the keys \u2014 so this clause is faithful, not over-strong.\n\nMINOR DOCUMENTATION DEFECT (not a faithfulness break, does not change the verdict): refinement.md C.1 twice asserts the spec \"Ensures(Result().requested == base.requested)\" and reasons that this grounds the result by PRESERVING the requested set. model.py actually ensures len(Result().requested) == 0, i.e. the opposite (discard). The MODEL is the faithful one (real select_related() discards the keys \u2014 probe 13 confirms select_related={'master': {}} becomes select_related=True); the refinement.md C.1 prose is stale relative to the current model, and its \"the two postconditions together pin the result to exactly Fetch(False, base.requested, {pk})\" sentence is wrong on the requested facet. mapping.md's MODELING NOTE and the G-CONF section already describe the discard correctly, so this is an internal inconsistency in one document's prose, not in the verified artifact. Worth a doc fix; no bearing on soundness.\n\nCONCLUSION: FAITHFUL. I could not exhibit any input on which the modeled function disagrees with the real patched callee. No diverging_input is claimed, so no defect is asserted.; G-PANEL-3 (leakage): pass \u2014 SCOPE: leakage / gold-reconstruction only. Judged the EXACT shipped consumer view: derived spec_view(model.py) via swebench_unified.markers and confirmed byte-equality with what eval/adapter.py:spec_view() exposes (`judged view == adapter view: True`), with all 3 impl regions elided (`implementation elided` x3, no `PSet(pk) - PSet(pk)`, no `clear_specific_request(base)` composition visible). Baseline same-spec on an unmodified copy exits 0.\n\nGOLD EDIT: insert `.select_related()` before `.only(\"pk\")` in queryset_iterator, in BOTH django/core/serializers/python.py and xml_serializer.py.\n\nMECHANICAL: leakage.screen(nagini flavor, gold patch + PS, no hints) => PASSED, 0 hard failures, 0 warnings. All five sub-rules clear: no diff marker; no gold changed line reproduced (checked all 8, incl. `getattr(obj, field.name).select_related().only(\"pk\").iterator()`); neither patched path nor dotted module path present; patched symbols {m2m_value, handle_m2m} absent from identifiers AND comments (both are public in PS anyway via the traceback); no _NARRATION hit.\n\nLEXICAL DE-COUPLING (manual, beyond the mechanical list): spec view contains NONE of select_related / selectrelated / .only / only( / iterator() / queryset_iterator / getattr / m2m / manytomany / prefetch / FieldError / deferred / defer( / manager / get_queryset / queryset / master / topic / 19e0587 / 33937. Notably the hints-ONLY tokens (pk-as-getattr, queryset_iterator, 'clear') are absent as repo vocabulary. Only snake/camel tokens in the view are model-local (Fetch, build_pk_iterator, clear_specific_request, only_pk, ill_formed, dropped) plus framework imports (nagini_contracts, MustTerminate, ContractOnly) and the instance-id header `django__django-16938`. 'serializ*' appears but 'Serialization of m2m relation fails' is the PS TITLE; 'django' appears only inside the instance id the consumer is already given. No edit-localization: no file path, no `.py:`, no 'xml', no hint that TWO sites change (the two byte-identical hunks are collapsed into one modeled function, and that fan-out lives in meta.json/mapping.md, not the spec view).\n\nCLOSEST CALL (examined, judged NOT leakage): the docstring's 'That reset is wholesale rather than selective: the built fetch falls back on the unrestricted default and NAMES NO adjacent-record code at all, so the specific codes ... are DISCARDED rather than carried along, narrowed or reshuffled', backed by `Ensures(Result().restricted == False)` + `Ensures(len(Result().requested) == 0)`. This is semantically close to the hints_text suggestion ('Maybe we could clear select_related()'). I judge NO-LEAKAGE because (a) it is stated purely as the required POST-STATE of an abstracted 3-facet Fetch, i.e. the 'element i of the result is f(...)' contract style G-LEAK explicitly asks for, never as bug->fix mechanism, diagnosis, or edit; (b) it is de-lexicalized -- a solver must still discover WHICH API produces a wholesale reset, in WHICH function, in HOW MANY files; (c) the PS itself is unusually explicit (full traceback through select_related_descend, the FieldError text 'cannot be both deferred and traversed using select_related at the same time', the custom-manager select_related reproducer, and the 'set a simple default manager' workaround), so the conflict-to-be-avoided is already public -- the spec view adds no non-public diagnosis; (d) omitting the wholesale/discarding clause would gut spec strength and hand G-PANEL-1 a carry-along/narrow counterexample, so this precision is soundness-mandated, not lazy de-narration. No relaxed-leakage claim is needed: the spec is both faithful and non-leaking.\n\nNo LEAKAGE finding; no leaking_line to report.\n\nOUT-OF-LANE OBSERVATION (not leakage, flagged for construction hygiene, NOT a G-PANEL-3 failure): meta.json region_hashes are STALE -- stored impl/pure/pre-conditions/post-conditions/spec_view hashes do not match live region_hashes(model.py) under either the backend or backend.language tables form (only 'axioms' matches); model_prepatch.py mismatches identically, so it is not a model/prepatch mix-up. Harmless for leakage because the shipped view is derived LIVE from model.py (which I verified directly), and adapter.spec_view() hard-guards elision independently of these hashes. Worth a hygiene re-stamp by whoever owns G-HYGIENE/G-INTEGRITY.",
+      "gate": "G-PANEL",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349",
+        "properties.py": "1443b9fd567c882e2863524693481b90e8ada4ad4d8ddd6b294fdc972eb0424d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-14T16:15:57+00:00",
+      "code_version": "bacdc73eb-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_8.py`, `atk_9.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `ctrl.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349",
+        "properties.py": "1443b9fd567c882e2863524693481b90e8ada4ad4d8ddd6b294fdc972eb0424d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-14T15:44:29+00:00",
+      "code_version": "b6346e232-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK OUTCOME: no diverging input found. I attacked the spec as too-strong/drifting from real repo behavior and every avenue closed under machine-checked differential testing against the reference (base_commit 1136aa5005 + patch.diff APPLIED, per the mandated reference convention).\n\nSETUP: built two worktrees from repos/django_django.git at base_commit under a mktemp -d in /tmp; applied the gold patch (both hunks: python.py queryset_iterator and xml_serializer.py queryset_iterator -> getattr(obj, field.name).select_related().only(\"pk\").iterator()) to the reference worktree; left the second unpatched purely as the negative control. Bundle never modified (read-only copies into scratch). Worktrees removed after.\n\nPROBES RUN (all against the REAL ORM, callees executed not transliterated):\n1. ill_formed vs real select_related_descend raise branch, on ARBITRARY (unbuilt) query states: 384 cases (select_related in {absent,noargs,None,every non-empty FK subset} x projection in {absent, only/defer over every subset of concrete fields}), compared model ill_formed against whether the real compiler.as_sql() raises FieldError. RESULT: 0/384 disagreements. All three real guard conjuncts (restricted, non-empty select_mask, requested-and-dropped) are present in the model; the len(listed)>0 conjunct is genuinely needed and genuinely there.\n2. Full build_pk_iterator differential using the BUNDLE'S EXACT alpha (conformance_check.py:418-430) over 5952 cases, including CHAINED projection operations (only/defer composed twice) which the bundle's own G-CONF domain does NOT enumerate, plus non-null FKs and multi-FK models. Diffed listed, excluding, restricted, requested, effective loaded set (vs real get_select_mask), and ill_formed vs real raise. RESULT: 0 divergences.\n3. Attacked the headline never-errors postcondition (not ill_formed(Result()...)) with shapes designed to reach the raise branch in unrestricted mode: multi-table-inheritance parent_link FKs, non-null FK chains of depth 2-3, self-referential non-null FKs, select_related('l2__l3'), select_related('parentm_ptr'). The built chain compiled cleanly in every configuration. RESULT: no error found; guarantee holds. (Mechanism confirmed sound: select_related() sets query.select_related = True, a bool, so compiler's restricted = isinstance(..., dict) is False and the raise branch is unreachable regardless of projection.)\n4. Attacked the members == base.members clause end-to-end through the real patched serializer with custom managers baking in select_related/filter/distinct/order_by, capturing the built queryset at the unchanged QuerySet.iterator boundary. Membership preserved in every case. The one apparent mismatch (manager baking in .filter) is the ACCESSOR's own narrowing: base.members is [1,3] and built.members is [1,3] \u2014 the clause is relative to base, exactly as the spec text scopes it (\"inherits the owning record's membership filter unchanged\").\n5. Attacked the only_pk defer(pk) case split, the family the bundle documents as historically mis-attributed. Confirmed the real asymmetry in add_immediate_loading (sql/query.py:2336-2358): it normalizes literal \"pk\" -> pk.name, while add_deferred_loading does NOT. So a defer(\"id\") base yields built deferred_loading (set(), False) / empty mask / all columns, whereas a defer(\"pk\") base yields ({'id'}, False) / mask {id}. The model's case split on (q.excluding and pk in q.listed) reproduces the defer(real-pk-name) branch correctly.\n\nONE FALSE POSITIVE I RAISED AND THEN KILLED (recorded for honesty): I initially found 5 divergences on defer(\"pk\")-family bases where the model predicted no-restriction but the real built query restricted to {id}. This was MY OWN alpha bug, not a spec defect. I had invented an alpha collapsing literal \"pk\" and the real pk name \"id\" onto one code; the bundle's actual alpha maps field NAMES through CODE = {name: i for concrete_fields}, and literal \"pk\" is not in CODE, so a defer(\"pk\") base abstracts to listed=[] \u2014 which is SOUND, because a defer(\"pk\") base is itself an incoherent Django state (its own get_select_mask() raises FieldDoesNotExist: Tag has no field named 'pk'), and its built result is identical to a plain base's. Re-running the identical 43-case sweep under the bundle's real alpha gave 0 divergences. Per my own standing note, a measurement of spec weakness that is really my parse/bridge bug must not be reported as a finding.\n\nGATES REPRODUCED INDEPENDENTLY: nagini_verify.sh on model.py -> \"Verification successful\" (14.1s, exit 0). axiom_check.py against base_commit -> G-AX OK. conformance_check.py against my own patched worktree -> pass, 100000 inputs, 0 disagreements, requested_keyset_mismatches 0. Negative control on the UNPATCHED base -> fail, 69870 disagreements dominated by well_formedness+restricted (52894): the gate is falsifiable, not vacuous. model_prepatch.py -> \"Verification failed\" on exactly the discriminating clause (pp.py:233 Postcondition ... not ill_formed(...) might not hold), so the spec senses the bug. same-spec harness sanity-checked SAME on an identity copy.\n\nSPEC-STRENGTH ASSESSMENT: the spec is strong but not stronger than the real fixed behavior. Every postcondition is discharged by the real patched chain on all inputs I could construct. The reset is modeled as wholesale discard (len(requested)==0), which I verified is what the real select_related() does \u2014 it replaces the dict with the bool True, discarding the keys \u2014 so this clause is faithful, not over-strong.\n\nMINOR DOCUMENTATION DEFECT (not a faithfulness break, does not change the verdict): refinement.md C.1 twice asserts the spec \"Ensures(Result().requested == base.requested)\" and reasons that this grounds the result by PRESERVING the requested set. model.py actually ensures len(Result().requested) == 0, i.e. the opposite (discard). The MODEL is the faithful one (real select_related() discards the keys \u2014 probe 13 confirms select_related={'master': {}} becomes select_related=True); the refinement.md C.1 prose is stale relative to the current model, and its \"the two postconditions together pin the result to exactly Fetch(False, base.requested, {pk})\" sentence is wrong on the requested facet. mapping.md's MODELING NOTE and the G-CONF section already describe the discard correctly, so this is an internal inconsistency in one document's prose, not in the verified artifact. Worth a doc fix; no bearing on soundness.\n\nCONCLUSION: FAITHFUL. I could not exhibit any input on which the modeled function disagrees with the real patched callee. No diverging_input is claimed, so no defect is asserted.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-14T15:37:32+00:00",
+      "code_version": "8f77d27a3-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE: leakage / gold-reconstruction only. Judged the EXACT shipped consumer view: derived spec_view(model.py) via swebench_unified.markers and confirmed byte-equality with what eval/adapter.py:spec_view() exposes (`judged view == adapter view: True`), with all 3 impl regions elided (`implementation elided` x3, no `PSet(pk) - PSet(pk)`, no `clear_specific_request(base)` composition visible). Baseline same-spec on an unmodified copy exits 0.\n\nGOLD EDIT: insert `.select_related()` before `.only(\"pk\")` in queryset_iterator, in BOTH django/core/serializers/python.py and xml_serializer.py.\n\nMECHANICAL: leakage.screen(nagini flavor, gold patch + PS, no hints) => PASSED, 0 hard failures, 0 warnings. All five sub-rules clear: no diff marker; no gold changed line reproduced (checked all 8, incl. `getattr(obj, field.name).select_related().only(\"pk\").iterator()`); neither patched path nor dotted module path present; patched symbols {m2m_value, handle_m2m} absent from identifiers AND comments (both are public in PS anyway via the traceback); no _NARRATION hit.\n\nLEXICAL DE-COUPLING (manual, beyond the mechanical list): spec view contains NONE of select_related / selectrelated / .only / only( / iterator() / queryset_iterator / getattr / m2m / manytomany / prefetch / FieldError / deferred / defer( / manager / get_queryset / queryset / master / topic / 19e0587 / 33937. Notably the hints-ONLY tokens (pk-as-getattr, queryset_iterator, 'clear') are absent as repo vocabulary. Only snake/camel tokens in the view are model-local (Fetch, build_pk_iterator, clear_specific_request, only_pk, ill_formed, dropped) plus framework imports (nagini_contracts, MustTerminate, ContractOnly) and the instance-id header `django__django-16938`. 'serializ*' appears but 'Serialization of m2m relation fails' is the PS TITLE; 'django' appears only inside the instance id the consumer is already given. No edit-localization: no file path, no `.py:`, no 'xml', no hint that TWO sites change (the two byte-identical hunks are collapsed into one modeled function, and that fan-out lives in meta.json/mapping.md, not the spec view).\n\nCLOSEST CALL (examined, judged NOT leakage): the docstring's 'That reset is wholesale rather than selective: the built fetch falls back on the unrestricted default and NAMES NO adjacent-record code at all, so the specific codes ... are DISCARDED rather than carried along, narrowed or reshuffled', backed by `Ensures(Result().restricted == False)` + `Ensures(len(Result().requested) == 0)`. This is semantically close to the hints_text suggestion ('Maybe we could clear select_related()').\n\nI judge NO-LEAKAGE because (a) it is stated purely as the required POST-STATE of an abstracted 3-facet Fetch, i.e. the 'element i of the result is f(...)' contract style G-LEAK explicitly asks for, never as bug->fix mechanism, diagnosis, or edit; (b) it is de-lexicalized -- a solver must still discover WHICH API produces a wholesale reset, in WHICH function, in HOW MANY files; (c) the PS itself is unusually explicit (full traceback through select_related_descend, the FieldError text 'cannot be both deferred and traversed using select_related at the same time', the custom-manager select_related reproducer, and the 'set a simple default manager' workaround), so the conflict-to-be-avoided is already public -- the spec view adds no non-public diagnosis; (d) omitting the wholesale/discarding clause would gut spec strength and hand G-PANEL-1 a carry-along/narrow counterexample, so this precision is soundness-mandated, not lazy de-narration. No relaxed-leakage claim is needed: the spec is both faithful and non-leaking.\n\nNo LEAKAGE finding; no leaking_line to report.\n\nOUT-OF-LANE OBSERVATION (not leakage, flagged for construction hygiene, NOT a G-PANEL-3 failure): meta.json region_hashes are STALE -- stored impl/pure/pre-conditions/post-conditions/spec_view hashes do not match live region_hashes(model.py) under either the backend or backend.language tables form (only 'axioms' matches); model_prepatch.py mismatches identically, so it is not a model/prepatch mix-up. Harmless for leakage because the shipped view is derived LIVE from model.py (which I verified directly), and adapter.spec_view() hard-guards elision independently of these hashes. Worth a hygiene re-stamp by whoever owns G-HYGIENE/G-INTEGRITY.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T18:10:22+00:00",
+      "code_version": "47ecb2867-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-build-direct-construct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 14.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-build-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 14.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-onlypk-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reproducer-shaped-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-base-restricted-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-clear-q-restricted-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-prepatch-keep-restriction",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-drop-base-fabricate-members",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-no-projection-narrow",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-unconditional-projection-pin",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "free-facet-fabricate-requested",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "free-facet-fabricate-requested-one-branch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.4
+          },
+          {
+            "expect": "reject",
+            "id": "diverging-self-call",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 9
+        },
+        "manifest_sha256": "1443b9fd567c882e2863524693481b90e8ada4ad4d8ddd6b294fdc972eb0424d",
+        "n_cases": 13,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 13 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349",
+        "properties.py": "1443b9fd567c882e2863524693481b90e8ada4ad4d8ddd6b294fdc972eb0424d"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T15:19:26+00:00",
+      "code_version": "bd35d9264-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8b226765f0d0d7419f8cd6df0b7822f993096be747561f00ed8755c7b7ba4d83",
+        "patch.diff": "7d3a9762ecc6ed1fb0450b4a3712f880cf1554bb1bcb7b2d76d93ab682d87612"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T15:16:37+00:00",
+      "code_version": "bd35d9264-dirty",
+      "data": {
+        "wall_time_s": 18.9
+      },
+      "detail": "verified in 18.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c20b2ba1460f6141a94fa8c7d31f14578fd3a114f917702760ab2285b9bc0349"
+      },
+      "status": "pass"
+    }
+  },
+  "helper_functions": [
+    {
+      "model_symbol": "clear_specific_request",
+      "models": "QuerySet.select_related() with no arguments",
+      "role": "deep-model state transition (A-reference): leaves no specific eager-co-selection request standing -> restricted becomes False; requested and loaded carried through unchanged"
+    },
+    {
+      "model_symbol": "only_pk",
+      "models": "QuerySet.only(\"pk\")",
+      "role": "deep-model state transition (A-reference): narrows projection -> loaded == {pk}"
+    }
+  ],
+  "instance_id": "django__django-16938",
+  "modeled_functions": [
+    {
+      "carrier_type": "related QuerySet+query state -> Fetch class (touched facets: restricted bool, requested PSet[int], loaded PSet[int]); field names -> int field codes / PSet[int]",
+      "model_symbol": "build_pk_iterator",
+      "repo_location": "django/core/serializers/python.py:81-82; django/core/serializers/xml_serializer.py:157-158",
+      "repo_symbol": "django.core.serializers.python.Serializer.handle_m2m_field.queryset_iterator AND django.core.serializers.xml_serializer.Serializer.handle_m2m_field.queryset_iterator",
+      "role": "modeled changed function: build the by-reference (pk-only) iterator for a related m2m collection so its evaluation never raises FieldError; one modeled function stands for the two byte-identical hunks (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition not ill_formed(Result().restricted, Result().requested, Result().loaded) of build_pk_iterator",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "m2m pk-only reference fetch must not error under a custom-manager select_related (both python.py and xml_serializer.py sites)",
+      "reverted_to": "old chain getattr(...).only(\"pk\") without the added clearing step (build_pk_iterator omits clear_specific_request)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "7580c8056847693e3572145d09bb668e02d33abef36765ae8a9b010adaaade4a",
+    "impl": "972b893a0a186dd10d3f8eae3dabf235dc9dab9ca046a4c473f2bb95a4ffc343",
+    "post-conditions": "10c6dc05064f9d04d2889f340cc3e72f25d838c0b24c0bfe7c03f4f9bdc2c4ac",
+    "pre-conditions": "949b14883eb1bc1dd43d2d22043e67fab4940eeac8122492f8254350ac5e4625",
+    "pure": "686f722a6c10cc9563d43e69f6707c7ead492a3aed13a6a92d30349bc7ed7340",
+    "spec_view": "812e33673281f05391269b844cc65aa81267cbe3fd4d13f7435a73556744a5ff"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "no strings indexed; field identities abstracted to distinct int field codes and PSet[int]; query state abstracted to a 3-facet Fetch class",
+  "version": "5.0"
+}

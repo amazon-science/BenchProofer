@@ -1,0 +1,64 @@
+# A weak formalization of the coin-change repair task.
+#
+# The specification pins down conservation but says nothing about using the fewest
+# coins, which is the part the task was about. The pre-fix implementation and the
+# wrong rival both satisfy it, so the falsifier finds no counterexample and the
+# bundle is left unfinished rather than certified.
+#
+# A falsifier that fails to refute has not shown the specification is weak, only
+# that it did not find a counterexample within its budget, so the three gates that
+# attack strength record INCONCLUSIVE rather than a failure.
+
+task_id = "coin-change"
+backend = "falsifier"
+summary = "A specification too weak to reject the bug the task is about."
+
+[expect]
+static = "incomplete"
+oracle = "incomplete"
+
+# The three gates that attack strength cannot decide: the falsifier found no
+# counterexample, which is not the same as there being none. Six of the 16 mutants
+# survive mutation: they shift a denomination by one, which conservation alone does not
+# notice.
+[unfavorable]
+static = ["spec.discriminates", "spec.strength.battery", "spec.strength.mutation"]
+oracle = ["spec.discriminates", "spec.strength.battery", "spec.strength.mutation"]
+
+# What a reviewer shown these artifacts concludes. The specification is what is weak
+# here: the implementation is still the one in the golden patch, and nothing in the
+# specification hands it over. A repair therefore has to strengthen the specification
+# and leave the rest alone.
+[review.faithfulness]
+verdict = "unsound"
+summary = "Conservation is the only obligation, so the specification never says the result has to use the fewest coins -- which is the whole of what the task asks for."
+findings = [
+  "The task asks for the fewest coins and no obligation mentions coin counts at all, so the pre-fix implementation satisfies this specification.",
+  "Nothing requires a coin count to be non-negative, so an implementation that hands out a negative number of pennies conserves the amount and passes.",
+]
+
+[[review.faithfulness.coverage]]
+behavior = "the coins returned add up to the amount"
+tested_by = "the task's test program"
+covered_by = "assert quarters * 25 + dimes * 10 + nickels * 5 + pennies == cents"
+
+[[review.faithfulness.coverage]]
+behavior = "the coins are the fewest that add up to the amount, so 40 cents is a quarter, a dime and a nickel"
+tested_by = "the task's test program"
+covered_by = ""
+
+[review.equivalence]
+verdict = "sound"
+summary = "It takes the denominations in the same order as the golden patch and returns the same tuple on every amount; only the specification is weak."
+
+[[review.equivalence.operations]]
+kind = "identical"
+detail = "The subtotal is carried in one variable that is reassigned, rather than in a fresh name per denomination."
+
+[[review.equivalence.operations]]
+kind = "identical"
+detail = "The denominations are taken largest first, in the same order as the golden patch."
+
+[review.disclosure]
+verdict = "sound"
+summary = "The one obligation states a property of the result and says nothing about how to compute it."

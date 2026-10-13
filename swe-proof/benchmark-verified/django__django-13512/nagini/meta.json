@@ -1,0 +1,384 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "same modeled behaviour as the forms site (both are the identical ensure_ascii=True -> False change); covered by json_render_text + the A-reference deep model; one prepatch witness suffices",
+      "repo_location": "django/contrib/admin/utils.py:403 (plus module-level `import json`)",
+      "repo_symbol": "django.contrib.admin.utils.display_for_field JSONField branch: field.get_prep_value(value) -> json.dumps(value, ensure_ascii=False, cls=field.encoder)"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "b79088306513d5ed76d31ac40ab3c15f858946ea",
+  "changed_files": [
+    "django/forms/fields.py",
+    "django/contrib/admin/utils.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts json_string_body == real json.dumps(...,ensure_ascii=False) on the F2P discriminators (loud, not skipped) + full 0x20-0xFFFF per-code-point index sweep + astral samples + 15 boundary + 40000 fuzz inputs; index-level non-ASCII-literal discriminator checked on both sides (no double mask)",
+      "encoded_property": "json_char(c): \" (34) -> \\\" (PSeq(92,34)), \\ (92) -> \\\\ (PSeq(92,92)), else literal PSeq(c) incl. all non-ASCII; json_string_body folds it; json_render_text wraps as PSeq(34)+body+PSeq(34). Modelled domain: printable code points >= U+0020 (the Requires), exactly the tested domain",
+      "flag_dependency": "ensure_ascii=False (the gold patch's explicit argument); cls/encoder is the identity on a text scalar",
+      "kind": "A-reference",
+      "models": "json.dumps(s, ensure_ascii=False) (CPython stdlib) for a text scalar s",
+      "name": "json_string_body",
+      "provenance": "Lib/json/encoder.py py_encode_basestring(): ESCAPE = re.compile(r'[\\x00-\\x1f\\\\\"]'); under ensure_ascii=False only \" \\ and control chars <0x20 are escaped, every code point >=0x20 (incl. all non-ASCII) is emitted literally; docs.python.org/3/library/json.html#json.dumps",
+      "role": "deep model (pure region) of the changed serialisation operation; NOT a consumed axiom -- there is NO serialiser @ContractOnly axiom and NO consumed axiom in this bundle"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:25:49+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model json_string_body (== json.dumps(ensure_ascii==False)) sound on 6 F2P + full 0x20-0xFFFF index sweep + astral + 15 boundary + 40000 fuzz inputs; non-ASCII kept literal.",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "a607a488342263937ca72c45ebf70f6ae91d53483a732562f0ad799bbf6d1fc8",
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:25:57+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: shadow (contract-stripped impl of json_render_text) == real patched forms prepare_value and admin display_for_field on 108194 inputs (8194 boundary + 100000 fuzz, seed 135120); zero disagreements.",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "375dfa5d3cbb283b9f16c6ad658078036e9b4a70481df0844add0959d1565c09",
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:55:59+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773",
+        "model_prepatch.py": "080c9ca06ed6f55df7899bc8ecd86386ba7705bd70569acfa30199c445c233a4"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T21:51:11+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 6 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:56:53+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773",
+        "model_prepatch.py": "080c9ca06ed6f55df7899bc8ecd86386ba7705bd70569acfa30199c445c233a4"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:25:30+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "impl": "a3bbd0c3edea4b79591e4c90ec11161fc24fc782b73a88390dc67debef9d749f",
+          "invariants": "33bf1a3fb959ecce443773ec033e14ebd7d8ae9fd859c604939fde2c797bea9f",
+          "post-conditions": "1344381ddf355cccff50fe5efb8e5ca472e2e7dd451ee72b8de3cda09e233888",
+          "pre-conditions": "f7e03eab4d76176a2647a5b2f87b500878d243324e36d33b6037b275de8984df",
+          "pure": "a5d9f67b347dfbc9a37a7677b7c7a693ef892e5becc090d3ceea79cca0cc24a9",
+          "spec_view": "df1e0886f773a58ded7324b859064b82e8a33c57860b75184e1c9d3b953950b8"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:25:31+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "5d4eb8d60d14608df2db578e88dc91d3e4d4b9eedb774d542dffea9b0e6006c2",
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:25:32+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-13T22:06:07+00:00",
+      "code_version": "78ae167c7-dirty",
+      "data": {
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "570ea576e841",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T21:51:12+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-not-too-strong / no drift from real repo behavior) CONFIRMED for django__django-13512/nagini.\n\nThe modeled function `json_render_text` (via the deep model `json_char`/`json_string_body`, output `'\"' + body + '\"'`) is the twin of the real callee the gold patch invokes: `json.dumps(value, ensure_ascii=False, cls=...)` on a text scalar (forms/fields.py:1261 and admin/utils.py:403). Domain is restricted by `Requires(text[k] >= 32)` to printable code points (>= U+0020), which is exactly the tested F2P domain.\n\nIndependent verification (not relying on the bundle's axiom_check.py):\n1. Full single-code-point sweep U+0020..U+10FFFF (incl. surrogates 0xD800/0xDFFF, DEL 0x7F, astral) comparing model_render(chr(c)) vs [ord(x) for x in json.dumps(chr(c), ensure_ascii=False)]: 0 divergences.\n2. 200,000 multi-char fuzz strings over an adversarial pool (\", \\, controls-adjacent, CJK, surrogates, astral, DEL, 0xFEFF): 0 divergences.\n3. Boundary set (0x7f,0x80,0x9f,0xa0,0xad,0x200b,0x2028,0x2029,0xfeff): 0 divergences.\n\nReal `ensure_ascii=False` escapes only \" , \\ , and control chars < U+0020 (ESCAPE = r'[\\x00-\\x1f\\\\\"]'). On the modeled domain (>= U+0020) the only escapes are \"->\\\" (34->[92,34]) and \\->\\\\ (92->[92,92]), exactly what json_char encodes; every other code point (incl. all non-ASCII >= U+0080) maps to itself, matching the discriminating clause `json_char(c)==PSeq(c)` for c>=128. `cls=encoder` is identity on a plain text scalar and does not affect string serialization.\n\nSupporting facts: model verifies under pinned Nagini (Verification successful, 13.4s); the bundle's G-AX axiom_check.py passes and is genuinely loud (F2P discriminators '\u4f60\u597d \u4e16\u754c', '\u4f60\u597d\uff0c\u4e16\u754c', '\ud83d\ude00\ud83d\udc31', 'ja\u017a\u0144' asserted, not skipped) with full BMP sweep + astral + 40k fuzz.\n\nThe spec is neither too strong nor drifted: within its declared (and tested) domain the modeled function agrees with the real repo callee on every input. No diverging input exists. Spec region markers are consistent with the model.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (rep.passed=True, no hard failures). Independent adversarial review of the spec view against the PUBLIC problem_statement (not hints_text) confirms no leakage of the gold edit.\n\nGold edit: add `ensure_ascii=False` to json.dumps in JSONField.prepare_value (django/forms/fields.py) and the JSONField branch of display_for_field (django/contrib/admin/utils.py:403, replacing field.get_prep_value(value)).\n\nPublic problem_statement already fully discloses the target behavior: it shows `json.dumps('\u4e2d\u56fd')` -> `\"\u4e2d\u56fd\"`, states 'json.dumps use ASCII encoding by default when serializing Chinese', and complains that a JSONField with Chinese chars in Django admin 'will appear in ASCII characters' \u2014 i.e. the desired fix is to render non-ASCII text literally. So the solver-visible task itself already demands: keep non-ASCII code points literal instead of \\uXXXX transliteration.\n\nSpec view (model.py docstring + json_char/json_string_body/json_render_text contracts) describes exactly this behavior as DESIRED behavior, not as an edit: rendering = quote + per-code-point JSON encoding + quote, escaping only U+0022 and U+005C, every other code point (incl. all >= U+0080, CJK/emoji/accented Latin) emitted unchanged and never expanded into an ASCII-only surrogate. This is a faithful behavioral restatement of the already-public requirement.\n\nLeakage checks beyond the public statement, all clean:\n- No diff markers, no reproduced gold-patch line, and the discriminating keyword `ensure_ascii` never appears.\n- No patched file paths (forms/fields.py, admin/utils.py) or dotted module paths in the spec view.\n- No patched repo symbols surfaced: spec-view identifiers are json_render_text/json_char/json_string_body/text/s/c \u2014 none echo prepare_value, display_for_field, get_prep_value, or JSONField. (Those symbols DO appear in mapping.md, but mapping.md is the audit-view, not the consumer spec view.)\n- No bug/fix/patch narration in comments; the JSON escaping rules ('\"'->'\\\"', '\\'->'\\\\') are standard JSON semantics, not edit-localizing.\n- impl region is elided ('implementation elided \u2014 supplied by the consumer'); the solver must still discover WHERE (which two call sites) and HOW (ensure_ascii=False) \u2014 none of that is revealed.\n\nThe spec pins the same non-ASCII-literal behavior the problem statement already requires, at behavioral altitude, without revealing the edit location or mechanism. No leakage.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 6 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-not-too-strong / no drift from real repo behavior) CONFIRMED for django__django-13512/nagini.\n\nThe modeled function `json_render_text` (via the deep model `json_char`/`json_string_body`, output `'\"' + body + '\"'`) is the twin of the real callee the gold patch invokes: `json.dumps(value, ensure_ascii=False, cls=...)` on a text scalar (forms/fields.py:1261 and admin/utils.py:403). Domain is restricted by `Requires(text[k] >= 32)` to printable code points (>= U+0020), which is exactly the tested F2P domain.\n\nIndependent verification (not relying on the bundle's axiom_check.py):\n1. Full single-code-point sweep U+0020..U+10FFFF (incl. surrogates 0xD800/0xDFFF, DEL 0x7F, astral) comparing model_render(chr(c)) vs [ord(x) for x in json.dumps(chr(c), ensure_ascii=False)]: 0 divergences.\n2. 200,000 multi-char fuzz strings over an adversarial pool (\", \\, controls-adjacent, CJK, surrogates, astral, DEL, 0xFEFF): 0 divergences.\n3. Boundary set (0x7f,0x80,0x9f,0xa0,0xad,0x200b,0x2028,0x2029,0xfeff): 0 divergences.\n\nReal `ensure_ascii=False` escapes only \" , \\ , and control chars < U+0020 (ESCAPE = r'[\\x00-\\x1f\\\\\"]'). On the modeled domain (>= U+0020) the only escapes are \"->\\\" (34->[92,34]) and \\->\\\\ (92->[92,92]), exactly what json_char encodes; every other code point (incl. all non-ASCII >= U+0080) maps to itself, matching the discriminating clause `json_char(c)==PSeq(c)` for c>=128. `cls=encoder` is identity on a plain text scalar and does not affect string serialization.\n\nSupporting facts: model verifies under pinned Nagini (Verification successful, 13.4s); the bundle's G-AX axiom_check.py passes and is genuinely loud (F2P discriminators '\u4f60\u597d \u4e16\u754c', '\u4f60\u597d\uff0c\u4e16\u754c', '\ud83d\ude00\ud83d\udc31', 'ja\u017a\u0144' asserted, not skipped) with full BMP sweep + astral + 40k fuzz.\n\nThe spec is neither too strong nor drifted: within its declared (and tested) domain the modeled function agrees with the real repo callee on every input. No diverging input exists. Spec region markers are consistent with the model.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (rep.passed=True, no hard failures). Independent adversarial review of the spec view against the PUBLIC problem_statement (not hints_text) confirms no leakage of the gold edit.\n\nGold edit: add `ensure_ascii=False` to json.dumps in JSONField.prepare_value (django/forms/fields.py) and the JSONField branch of display_for_field (django/contrib/admin/utils.py:403, replacing field.get_prep_value(value)).\n\nPublic problem_statement already fully discloses the target behavior: it shows `json.dumps('\u4e2d\u56fd')` -> `\"\u4e2d\u56fd\"`, states 'json.dumps use ASCII encoding by default when serializing Chinese', and complains that a JSONField with Chinese chars in Django admin 'will appear in ASCII characters' \u2014 i.e. the desired fix is to render non-ASCII text literally. So the solver-visible task itself already demands: keep non-ASCII code points literal instead of \\uXXXX transliteration.\n\nSpec view (model.py docstring + json_char/json_string_body/json_render_text contracts) describes exactly this behavior as DESIRED behavior, not as an edit: rendering = quote + per-code-point JSON encoding + quote, escaping only U+0022 and U+005C, every other code point (incl. all >= U+0080, CJK/emoji/accented Latin) emitted unchanged and never expanded into an ASCII-only surrogate. This is a faithful behavioral restatement of the already-public requirement.\n\nLeakage checks beyond the public statement, all clean:\n- No diff markers, no reproduced gold-patch line, and the discriminating keyword `ensure_ascii` never appears.\n- No patched file paths (forms/fields.py, admin/utils.py) or dotted module paths in the spec view.\n- No patched repo symbols surfaced: spec-view identifiers are json_render_text/json_char/json_string_body/text/s/c \u2014 none echo prepare_value, display_for_field, get_prep_value, or JSONField. (Those symbols DO appear in mapping.md, but mapping.md is the audit-view, not the consumer spec view.)\n- No bug/fix/patch narration in comments; the JSON escaping rules ('\"'->'\\\"', '\\'->'\\\\') are standard JSON semantics, not edit-localizing.\n- impl region is elided ('implementation elided \u2014 supplied by the consumer'); the solver must still discover WHERE (which two call sites) and HOW (ensure_ascii=False) \u2014 none of that is revealed.\n\nThe spec pins the same non-ASCII-literal behavior the problem statement already requires, at behavioral altitude, without revealing the edit location or mechanism. No leakage.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-not-too-strong / no drift from real repo behavior) CONFIRMED for django__django-13512/nagini.\n\nThe modeled function `json_render_text` (via the deep model `json_char`/`json_string_body`, output `'\"' + body + '\"'`) is the twin of the real callee the gold patch invokes: `json.dumps(value, ensure_ascii=False, cls=...)` on a text scalar (forms/fields.py:1261 and admin/utils.py:403). Domain is restricted by `Requires(text[k] >= 32)` to printable code points (>= U+0020), which is exactly the tested F2P domain.\n\nIndependent verification (not relying on the bundle's axiom_check.py):\n1. Full single-code-point sweep U+0020..U+10FFFF (incl. surrogates 0xD800/0xDFFF, DEL 0x7F, astral) comparing model_render(chr(c)) vs [ord(x) for x in json.dumps(chr(c), ensure_ascii=False)]: 0 divergences.\n2. 200,000 multi-char fuzz strings over an adversarial pool (\", \\, controls-adjacent, CJK, surrogates, astral, DEL, 0xFEFF): 0 divergences.\n3. Boundary set (0x7f,0x80,0x9f,0xa0,0xad,0x200b,0x2028,0x2029,0xfeff): 0 divergences.\n\nReal `ensure_ascii=False` escapes only \" , \\ , and control chars < U+0020 (ESCAPE = r'[\\x00-\\x1f\\\\\"]'). On the modeled domain (>= U+0020) the only escapes are \"->\\\" (34->[92,34]) and \\->\\\\ (92->[92,92]), exactly what json_char encodes; every other code point (incl. all non-ASCII >= U+0080) maps to itself, matching the discriminating clause `json_char(c)==PSeq(c)` for c>=128. `cls=encoder` is identity on a plain text scalar and does not affect string serialization.\n\nSupporting facts: model verifies under pinned Nagini (Verification successful, 13.4s); the bundle's G-AX axiom_check.py passes and is genuinely loud (F2P discriminators '\u4f60\u597d \u4e16\u754c', '\u4f60\u597d\uff0c\u4e16\u754c', '\ud83d\ude00\ud83d\udc31', 'ja\u017a\u0144' asserted, not skipped) with full BMP sweep + astral + 40k fuzz.\n\nThe spec is neither too strong nor drifted: within its declared (and tested) domain the modeled function agrees with the real repo callee on every input. No diverging input exists. Spec region markers are consistent with the model.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (rep.passed=True, no hard failures). Independent adversarial review of the spec view against the PUBLIC problem_statement (not hints_text) confirms no leakage of the gold edit.\n\nGold edit: add `ensure_ascii=False` to json.dumps in JSONField.prepare_value (django/forms/fields.py) and the JSONField branch of display_for_field (django/contrib/admin/utils.py:403, replacing field.get_prep_value(value)).\n\nPublic problem_statement already fully discloses the target behavior: it shows `json.dumps('\u4e2d\u56fd')` -> `\"\u4e2d\u56fd\"`, states 'json.dumps use ASCII encoding by default when serializing Chinese', and complains that a JSONField with Chinese chars in Django admin 'will appear in ASCII characters' \u2014 i.e. the desired fix is to render non-ASCII text literally. So the solver-visible task itself already demands: keep non-ASCII code points literal instead of \\uXXXX transliteration.\n\nSpec view (model.py docstring + json_char/json_string_body/json_render_text contracts) describes exactly this behavior as DESIRED behavior, not as an edit: rendering = quote + per-code-point JSON encoding + quote, escaping only U+0022 and U+005C, every other code point (incl. all >= U+0080, CJK/emoji/accented Latin) emitted unchanged and never expanded into an ASCII-only surrogate. This is a faithful behavioral restatement of the already-public requirement.\n\nLeakage checks beyond the public statement, all clean:\n- No diff markers, no reproduced gold-patch line, and the discriminating keyword `ensure_ascii` never appears.\n- No patched file paths (forms/fields.py, admin/utils.py) or dotted module paths in the spec view.\n- No patched repo symbols surfaced: spec-view identifiers are json_render_text/json_char/json_string_body/text/s/c \u2014 none echo prepare_value, display_for_field, get_prep_value, or JSONField. (Those symbols DO appear in mapping.md, but mapping.md is the audit-view, not the consumer spec view.)\n- No bug/fix/patch narration in comments; the JSON escaping rules ('\"'->'\\\"', '\\'->'\\\\') are standard JSON semantics, not edit-localizing.\n- impl region is elided ('implementation elided \u2014 supplied by the consumer'); the solver must still discover WHERE (which two call sites) and HOW (ensure_ascii=False) \u2014 none of that is revealed.\n\nThe spec pins the same non-ASCII-literal behavior the problem statement already requires, at behavioral altitude, without revealing the edit location or mechanism. No leakage.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:48:27+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 35.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-split-assembly",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 38.2
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-selfcall",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 36.3
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-text",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-nonascii-escaped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-quote-not-escaped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-no-closing-quote",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "ce5824599a3e6beb2c0aa816e97dfceaa47d35705a68df5ee2ab7e6377e9ce70",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ab8f0ec72a97c08f27116bd8160f41142f342856870c8aa783414ab685b65773",
+        "properties.py": "ce5824599a3e6beb2c0aa816e97dfceaa47d35705a68df5ee2ab7e6377e9ce70"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T11:58:31+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-13T22:03:17+00:00",
+      "code_version": "78ae167c7-dirty",
+      "data": {
+        "wall_time_s": 24.2
+      },
+      "detail": "verified in 24.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "570ea576e841",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13512",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "json_render_text",
+      "repo_location": "django/forms/fields.py:1258 (body 1261); django/contrib/admin/utils.py:401 (body 403)",
+      "repo_symbol": "django.forms.fields.JSONField.prepare_value AND django.contrib.admin.utils.display_for_field (JSONField branch)",
+      "role": "modeled changed behaviour: serialise a text scalar to its JSON-text rendering keeping non-ASCII code points literal; one contracted+implemented function covering both convergent sites (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "loop invariant ToSeq(body) == json_string_body(ToSeq(text).drop(i)) (the non-ASCII branch), which forces the main postcondition ToSeq(Result()) == PSeq(34)+json_string_body(...)+PSeq(34)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "JSON serialisation of non-ASCII text (ensure_ascii)",
+      "reverted_to": "default ensure_ascii=True: a non-ASCII code point (>=128) is transliterated into a backslash-u escape sequence rather than emitted literally"
+    }
+  ],
+  "region_hashes": {
+    "impl": "35c064d2a308fa21e4f6befc7506006457bc28e743eed8527b467fec0eef44d1",
+    "invariants": "da934b8f532050bb058640f46c1da7971dcea37aaa37e5c2ba94395c75bfefa2",
+    "post-conditions": "1344381ddf355cccff50fe5efb8e5ca472e2e7dd451ee72b8de3cda09e233888",
+    "pre-conditions": "9d691ac8bd3ab1976eeee1dce3d7bf9c7a4b38706b14354fae2e74ac9bfb2b6f",
+    "pure": "a5d9f67b347dfbc9a37a7677b7c7a693ef892e5becc090d3ceea79cca0cc24a9",
+    "spec_view": "8f0c769036b05c2d67dfa9d705f26c6351f5a8a2b3938648c994cb22cc945569"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; JSON-string encoding proven by a backward per-code-point fold (front-recursive json_string_body gives a single unfold per loop step)",
+  "version": "3.2"
+}

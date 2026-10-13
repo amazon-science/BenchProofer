@@ -1,0 +1,560 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "06107f838c28ab6ca6bfc2cc208e15997fcb2146",
+  "changed_files": [
+    "sphinx/domains/python.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the `rendered` deep model == the real re.split(delims, target) + filter(None,...) + delims_re.match(...) tokenisation, reading the produced text off the real code's own innernode/contnode arguments, on ALL 266595 generated inputs with NO domain restriction (boundary corpus + fuzz over the full delimiter alphabet + structured specs), 0 mismatch. conformance_check.py (G-CONF) re-measures the same equality as its PRIMARY, exit-code-driving observable on 254104 unfiltered inputs (115700 of them outside well_formed), 0 disagreements, with every render_nodes branch taken (tail-text 214227, separator 134497, empty-tail 39877, adjacent-separator 62169). RC=0 confirmed in the pinned eval container with the gold patch applied.",
+      "domain": "NONE. `rendered` is total on every PSeq[int] and every start index, so the render_nodes obligation carries no domain precondition: bracket, comma, `or`, ellipsis and adjacent/degenerate separators are all inside the claim. An earlier revision's kind-only reading WAS restricted (stated only on well_formed, i.e. bar is the sole separator), which left the node kinds on every other delimiter shape unconstrained; that restriction is gone -- split_render now carries the equally total `marks` (dmr `marks`), so neither obligation has a domain clause.",
+      "encoded_property": "rendered(s, i): the whole node stream for s[i:], as `<code points of the node's text> <kind marker>` per node in emission order (-1 cross-reference, -2 literal separator), terminated by -3. Defined by front recursion through next_sep (first index at which a separator token starts) and sep_end (one past that token's end, or -1).",
+      "kind": "A-reference",
+      "models": "the real make_xrefs node stream with the gold patch's delimiter regex (the added \\s*\\|\\s* alternative): one pending_xref per non-empty split piece carrying the piece text (with make_xref's leading . / ~ rewrite applied), one literal_emphasis per matched delimiter carrying the delimiter text verbatim",
+      "name": "rendered (with next_sep / sep_end)",
+      "provenance": "sphinx/domains/python.py:293-325 (make_xref, make_xrefs; delims at line 307); sphinx/util/docfields.py:63-78 (Field.make_xref -- the one innernode call per produced node); stdlib re module; the patched pattern reproduced verbatim in axiom_check.py and conformance_check.py",
+      "role": "deep model (pure region) of the changed split/classify/render operation; NOT a consumed axiom -- there is no @ContractOnly the proof depends on"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): fuzzes over the FULL delimiter alphabet {type-name chars, space, |, [ ] ( ) , . o r} \u2014 deliberately including every other delimiter so the fuzz exercises the well_formed boundary, not a bar-only subset. Asserts model_kinds == real re.split/re.match tokeniser on 15 in-domain boundary + 10 out-of-domain boundary (each correctly REJECTED by well_formed) + 60000 in-domain fuzz (with ~314000 out-of-domain draws correctly skipped) + ~20770 in-domain structured specs, 0 mismatch. RC=0 confirmed in the pinned eval container with the gold patch applied.",
+      "domain": "NOT A DOMAIN CLAUSE -- no modeled function has one. well_formed(s, i) = no_other_sep(s, i) AND every bar-separated segment names a non-empty type is the EXACTNESS REGION of this reading: TWO clauses, (a) every bar-separated segment is non-empty (no leading/trailing/consecutive bars that filter(None,...) would drop), AND (b) no_other_sep: the spec contains none of the OTHER (pre-existing, unchanged) delimiter triggers the regex also splits on -- no [ ] ( ) , no '...' run, no whitespace-bounded 'or' -- so the vertical bar is the only boundary. The realistic union-type shape ('int | str', 'bytes | str | None', 'mod.Class | other.Class') has it. Clause (b) was ADDED in refinement: the first audit shipped only clause (a), which was unsound (specs like 'List[int]', 'Tuple[str, ...]', 'Dict[str, str]', 'str or int' satisfy (a) but the real regex splits them on the other delimiters, so the bar-only reading disagreed). OFF that shape this reading is FALSE of the real function ('list[int] | None' renders 6 nodes, kinds describes 3), which is why it is not asserted anywhere -- de-gating it would over-claim rather than strengthen. What the kinds of those shapes ARE is stated by `marks`, and their whole node stream by `rendered`.",
+      "encoded_property": "kinds(s, i): the strictly-alternating rendered-node kind sequence True,False,True,... of length 2*bars+1 for the bar-structure split of s[i:] (cross-reference per bar-separated segment, literal separator per bar)",
+      "kind": "A-reference",
+      "models": "the real re.split(delims, target) + filter(None,...) + delims_re.match(...) tokeniser, with the gold patch's delimiter regex (the added \\s*\\|\\s* alternative)",
+      "name": "kinds (retained bar-only reading)",
+      "provenance": "sphinx/domains/python.py:307-324 (make_xrefs); stdlib re module; the patched pattern reproduced verbatim in axiom_check.py",
+      "role": "retained bar-only reading (pure region) of the changed split/classify operation: a validated statement of the strict alternation a union spec renders to, exercised by G-AX and G-CONF. It is NOT any function's postcondition and NOT a consumed axiom -- there is no @ContractOnly the proof depends on."
+    },
+    {
+      "checked_by": "conformance_check.py (G-CONF): the verbatim shadow of split_render's impl region is compared to the REAL patched PyXrefMixin.make_xrefs's node kinds on ALL 254104 inputs with NO filter -- 115700 of them carrying a bracket, comma, `or` or ellipsis separator, i.e. exactly the shapes a bar-only reading cannot describe -- 0 disagreements, and on every input the kind sequence is additionally asserted to BE the kind projection of the `rendered` node stream the same file pins. All four split_render branches taken (tail cross-reference 214227, tail empty/separator 39877, text-then-separator 100362, separator with no text in front 34135). RC=0, 90.2s, measured in the pinned eval container with the gold patch applied. axiom_check.py (G-AX) covers the same case analysis at full strength through `rendered` (266595 inputs, no domain restriction, 0 mismatch), of which `marks` is the kind projection.",
+      "domain": "NONE. `marks` is total on every PSeq[int] and every start index: the same next_sep/sep_end vocabulary as `rendered`, so a specification mixing the vertical bar with a bracket, comma, `or` or an ellipsis is inside the claim. This is what makes split_render's postcondition state something about every input rather than assuming a shape.",
+      "encoded_property": "marks(s, i): the rendered-node KIND sequence for s[i:] in emission order -- True for a cross-reference (a non-empty stretch of type-name text), False for a literal separator (a delimiter token) -- with no node for an empty stretch (the real filter(None,...)). The empty sequence is PSeq(True).drop(1). Front recursion through next_sep and sep_end, identical to `rendered` with the carried text dropped, so it is that stream's kind projection.",
+      "kind": "A-reference",
+      "models": "the KIND of each node the real make_xrefs produces with the gold patch's delimiter regex: the alternation is a capturing group, so re.split returns each delimiter as its own piece (python.py:309), filter(None,...) drops only empty pieces (314), and each surviving piece becomes one node whose kind is `bool(delims_re.match(sub_target))` (318) -- literal at 319, cross-reference at 321",
+      "name": "marks",
+      "provenance": "sphinx/domains/python.py:307-324 (make_xrefs; delims at line 307); stdlib re module; the patched pattern reached by CALLING the real method in conformance_check.py",
+      "role": "deep model (pure region) of the changed split/classify operation read for kinds only; split_render's postcondition. NOT a consumed axiom -- there is no @ContractOnly the proof depends on"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T10:55:24+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: (1) `rendered` deep model -- the WHOLE node stream, node count + per-node kind + per-node exact text, and hence the `marks` kind projection `split_render` is obliged to return -- == the real re.split/re.match tokenisation on ALL 266595 generated inputs with NO domain restriction; (2) the retained bar-only `kinds` reading is exact on its `well_formed` region and NOT beyond it: 22 well-formed boundary + 42 boundary cases outside the region (correctly excluded by `well_formed`, still carried by (1)) + 60000 fuzz (146531 outside the region) + 15343 structured (44657 outside it) inputs over the FULL delimiter alphabet",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "9382ced3bb25bcd42b094a04a578f79c1bc5b61e8b1c0ff1581c2194f6580569",
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T10:55:08+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "backend": "nagini",
+          "boundary": 32,
+          "branch_bare_separator": 34135,
+          "branch_separator": 100362,
+          "branch_stream_empty_piece": 62169,
+          "branch_stream_separator": 134497,
+          "branch_stream_tail_empty": 39877,
+          "branch_stream_tail_text": 214227,
+          "branch_tail_empty": 39877,
+          "branch_tail_xref": 214227,
+          "checked": 254104,
+          "checked_kinds_full_domain": 254104,
+          "checked_outside_well_formed": 115700,
+          "checked_stream_full_domain": 254104,
+          "checked_well_formed_shape": 138404,
+          "full_domain": 150072,
+          "fuzz": 100000,
+          "gate": "G-CONF",
+          "instance": "sphinx-doc__sphinx-9258",
+          "kind_disagreements": [],
+          "kind_disagreements_sampled": 0,
+          "oracle": "called: sphinx.domains.python.PyXrefMixin.make_xrefs (patched, via PyField); per-node text read off the real code's own innernode calls",
+          "out_of_domain_rejected": 28,
+          "seed": 92580,
+          "shadow": "direct (model.py impl regions, contracts stripped, verbatim)",
+          "status": "pass",
+          "stream_disagreements": [],
+          "stream_disagreements_sampled": 0,
+          "structured": 4000
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"gate\": \"G-CONF\", \"instance\": \"sphinx-doc__sphinx-9258\", \"backend\": \"nagini\", \"status\": \"pass\", \"shadow\": \"direct (model.py impl regions, contracts stripped, verbatim)\", \"oracle\": \"called: sphinx.domains.python.PyXrefMixin.make_xrefs (patched, via PyField); per-node text read off the real code's own innernode calls\", \"checked\": 254104, \"checked_stream_full_domain\": 254104, \"checked_kinds_full_domain\": 254104, \"checked_outside_well_formed\": 115700, \"checked_well_formed_shape\": 138404, \"boundary\": 32, \"structured\": 4000, \"fuzz\": 100000, \"full_domain\": 150072, \"out_of_domain_rejected\": 28, \"branch_tail_xref\": 214227, \"branch_tail_empty\": 39877, \"branch_separator\": 100362, \"branch_bare_separator\": 34135, \"branch_stream_separator\": 134497, \"branch_stream_tail_text\": 214227, \"branch_stream_tail_empty\": 39877, \"branch_stream_empty_piece\": 62169, \"seed\": 92580, \"stream_disagreements_sampled\": 0, \"stream_disagreements\": [], \"kind_disagreements_sampled\": 0, \"kind_disagreements\": []}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "81a8f85dd95b74f172d113244babc3b350f5b0e3b02155eb33bf03dff708dd77",
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:11:32+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f",
+        "model_prepatch.py": "f47fbb66738c6f99703efda22a1467eec07341b6e5e2d045134778be338044bd"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-18T00:24:19+00:00",
+      "code_version": "0b0b21eb1",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "gate": "G-EQ",
+      "harness_digest": "9c8459201672",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-18T00:38:52+00:00",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f",
+        "properties.py": "3947c3f444918888e557485b80058323c895fb64da318ffbf6825af4bfbcc3ab"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:16:07+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f",
+        "model_prepatch.py": "f47fbb66738c6f99703efda22a1467eec07341b6e5e2d045134778be338044bd"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T11:04:07+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "f960ec99f340b49ac6f0874582154fd12a70fc75791144738f49d706917582ed",
+          "impl": "0283c6ab9f2747b8fe77d3223ee35f93208e9562b6da72c39dc5f104b51005e7",
+          "invariants": "58dccbac6130be9a48201eb92c9d2ef700fa1ecb843b983212c5ac41e82e5ba0",
+          "post-conditions": "8b43be7d5732261ed556a4a751b7bdf6a50706b21621a67d0a1421b445e2f7a8",
+          "pre-conditions": "901f19941bba9262216f8d9bcf2d043c6d2fa7869df0f0e02d311434ec49adcc",
+          "pure": "8a1b78b45940f3fdff1e8d84d82a60106267a40bd027caa95981cf93099ba7f5",
+          "spec_view": "5c31a88a40bef25eba9f5a78996cc7645ddaea58616776a706dd19ab0e965968"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T11:04:07+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "f8c61c37c38ee283cd6905fb7ffeae0a8ade3eabd377bb7c3f96afdec27193d3",
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T11:04:08+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T12:46:08+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 18,
+        "survivors": [
+          "line 621: '>=' -> '=='",
+          "line 632: '+' -> '-'"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 18/20 (90%); survivors: [\"line 621: '>=' -> '=='\", \"line 632: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T03:39:33+00:00",
+      "code_version": "69dfa6a4e-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK GOAL: find an input where the modeled function disagrees with the REAL repo callee (patch.diff APPLIED, per the brief). Result: no such input found across ~490k machine-checked inputs, including exhaustive coverage of every string up to length 5 over a delimiter-dense alphabet. Verdict FAITHFUL.\n\nSETUP (all in /tmp; bundle not modified). Worktree at base_commit 06107f838 with patch.diff applied -- confirmed `git diff` is exactly the one-line delims change and `grep` shows python.py:307 carries `\\s*\\|\\s*`. Built  (python3.10 + docutils 0.23) and a `types.Union` shim (the repo guards on sys.version_info > (3,10)) so the REAL sphinx.domains.python module IMPORTS and its real method is CALLED -- not transliterated. Startup guards replicated: `inspect.getsource` contains the patched alternative, and `PyField.make_xrefs is PyXrefMixin.make_xrefs`. I independently re-transcribed model.py's whole pure region (is_space, strip_left/right, seg_text, first_bar, no_other_sep, well_formed, kinds, sep_end, next_sep, rendered, marks) into mdl.py rather than reusing the bundle's conformance_check.py shadow, so the comparison does not inherit a mis-copy from the bundle's own harness.\n\nORACLE: node text is OBSERVED, not assumed -- a recording stand-in is passed as `innernode` and the k-th node's text is read off the k-th call, with `len(calls) == len(nodes)` asserted on EVERY input (never tripped). Node kind read from the source branch actually taken (python.py:319 literal vs 321 xref).\n\nEVIDENCE (0 divergences everywhere):\n1. `is_space` == regex `\\s` over the FULL Unicode range 0..0x10FFFF: 0 mismatches (1,114,112 code points). This was the previously-recorded divergence class (non-ASCII whitespace beside a bar); it is genuinely closed at the source, not excluded from the domain.\n2. Exhaustive length 0..3 over 14 chars + 200k random over a 29-token alphabet incl. TAB/NL/VT/FF/U+001C/U+001D/U+001E/U+001F/NEL/NBSP/U+2000-200A/U+2028/U+202F/U+205F/IDEOGRAPHIC SPACE: 202,955 inputs, 0 bad on BOTH `rendered` (stream: node count + per-node kind + per-node exact text) and `marks` (kinds).\n3. Exhaustive length 0..5 over the delimiter-dense alphabet {| , space, o, r, [, ',', '.', a}: 37,449 inputs, 0 bad. This is total coverage of the tokeniser's interaction space at small length -- adjacent/overlapping delimiters, ' or ' straddling a bar, '..' vs '...', bracket+optional-`or`, leading/trailing/doubled bars.\n4. Dot/tilde stratum: 82,801 inputs with 34,470 carrying a '.'/'~'-prefixed piece, 0 bad. The `make_xref` callee's display rewrite (python.py:293-301) is a genuine DOWNSTREAM rewrite of the piece, disclosed in mapping.md; the modeled observable (the piece handed to the branch) is unaffected, which I confirmed by measurement, not by taking the doc's word.\n5. Long-token stress: 120,000 inputs built from 34 multi-char tokens up to 18 tokens deep, 0 bad.\n6. Argument-configuration sweep: 24,716 inputs x 3 field classes actually registered in PyObject.doc_field_types (PyField, PyTypedField, PyGroupedField) x 4 innernode factories actually passed at the real docfields.py call sites (nodes.emphasis, nodes.Text, literal_strong, literal_emphasis) x contnode in {None, Text(target)} = 24 configurations, 0 bad in all 24. So the model being a function of `target` ALONE is not an over-abstraction: `split_contnode`/`innernode` do not perturb the tokenisation the spec pins.\n\nTOO-STRONG CHECKS (the specific ways this spec could over-claim, each probed and each clean):\n- The two obligations are domain-FREE (no `well_formed` precondition on render_nodes or split_render). A domain-free postcondition is the strongest place a faithfulness break can hide, so I fuzzed the off-shape region hardest: brackets, commas, `or`, `...`, bare/leading/trailing/doubled bars, whitespace-only segments, empty string. `rendered`/`marks` hold there too. Confirmed the docs' own worked example: 'list[int] | None' -> real 6 nodes [T,F,T,F,F,T], and `marks` gives exactly that (the bar-only `kinds` gives 3, which is why `kinds` is correctly NOT any postcondition -- de-gating it WOULD have been unfaithful, and the bundle does not do that).\n- `sep_end`'s hand-ordered 4-way alternation could mis-model the regex's leftmost-then-preference semantics. Exhaustive length<=5 over {|,space,o,r,[,',','.',a} is precisely the stress case for this and finds nothing.\n- Separator payload: the spec models each literal node as the UNTRIMMED span with padding. Verified against the real node text ('x  |  y' -> literal carries '  |  '; '[ a ]' -> '[ ' and ' ]'). The refinement.md note that the old `seg_text`-equals-carried-text comparison was REMOVED because it is false, and replaced by the untrimmed span, matches what the real function does -- that is a correctly-repaired model, not a drifted one.\n- One narrow observation, NOT a defect: mapping.md \u00a72 words the -1 marker as `isinstance(node, addnodes.pending_xref)`. The real call sites pass rolename=None (PyField.rolename and PyTypedField.rolename are both None), and under rolename=None docfields.py:68 short-circuits so the xref branch returns a plain emphasis, making the isinstance test degenerate (measured: 4836/5000 mismatches under that literal reading). This does NOT make the spec unfaithful: mapping.md and refinement.md both bind the marker to the BRANCH (\"the `make_xref` branch, python.py:321\" / \"the `contnode or innernode` branch, python.py:319\"), and under that branch reading the stream is exact at rolename in {'class', None, ''} -- 44,681 inputs each, 0 bad. The real change under specification is which pieces reach which branch, and the spec pins that correctly. The isinstance phrasing is a bridge-wording imprecision in the conformance harness's type bridge, not an input on which the modeled function disagrees with the real callee.\n\nDIRECTION-OF-COMPARISON GUARD (per the brief): I did NOT report the patch delta as a divergence. Confirmed the model describes the FIXED behavior by re-running against the BASE (unpatched) delims: model != base on 'int | str', 'a|b', 'list[int] | None'. So the spec senses the change (G-DIFF holds) and the reference I compared against was the patched worktree throughout.\n\nCONCLUSION: no diverging input exists that I could find; the spec is neither too strong nor drifted from real repo behavior. Note that a FAITHFUL verdict here bounds only this gate -- I did not assess spec strength/weakness (G-PANEL-1's lane), and the refinement.md admission that the meta.json G-CONF stamp predates the domain-free kind obligation and is due a re-run is a records-freshness matter for the gate, orthogonal to faithfulness. My independent re-measurement above supersedes it on the substance: the obligations hold on the full domain.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE: no relaxation to inherit. I checked directly rather than trusting verdict.md's narration: `'relaxed_leakage' in json.load(nagini/meta.json)` -> False (key list is additional_change_sites/axioms/base_commit/changed_files/deep_model_references/float_encoding/gates/instance_id/modeled_functions/patch_diff/prepatch_models/region_hashes/repo/schema_version/string_modeling/version), and `find benchmark-verified/sphinx-doc__sphinx-9258/ -iname '*RELAX*'` -> empty. So there is no unavoidability argument to re-derive and no disposition asserted at me; this is a plain leakage judgement. (Note: verdict.md contains the string 'relaxed_leakage' only inside its own prior SCOPE paragraph, duplicated three times -- an appended-record artifact, not a relaxation claim.)\n\nDECISIVE MEASUREMENT -- spec views coincide across the patch boundary. I built both views myself with markers.spec_view(src, get_backend('nagini')): model.py -> 549 lines, model_prepatch.py -> 549 lines, and `diff` reports them BYTE-IDENTICAL (sha256 5c31a88a40bef25e...). markers.same_spec(model.py, model_prepatch.py, nagini) -> True and markers.spec_signature equality -> True. A spec view that is bit-for-bit the same on the gold and pre-patch models carries zero bits discriminating one from the other, so there is no line that could be pointed at as leaking the edit. The whole gold/prepatch delta lives inside elided `# impl-start/# impl-end` regions.\n\nGOLD-LINE / PATH / SYMBOL SCREEN, run with a live control. leakage.screen(model.py, nagini backend, instance.patch, instance.problem_statement, instance.test_patch) -> passed=True, hard_failures=[], warnings=[]. Control: I injected the gold line `delims = r'(\\s*[\\[\\]\\(\\),](?:\\s*or\\s)?\\s*|\\s+or\\s+|\\s*\\|\\s*|\\.\\.\\.)'` into the module docstring (spec region) and re-ran -> passed=False, hard_failures=['L1: gold-patch line reproduced: ...'], so the screen is actually sensitive on this bundle and its pass is a measurement, not a default. Independently, whitespace-normalized containment of BOTH the added and the removed patch line against the view -> False/False. Token counts in the 549-line view: sphinx/domains/python.py 0, sphinx.domains.python 0, make_xrefs 0, make_xref 0, delims 0, delims_re 0, sub_targets 0, innernode 0, contnode 0, rolename 0, TextlikeNode 0, re.split 0, re.compile 0, '(?:' 0, '\\s*' 0, pending_xref 0, emphasis 0.\n\nEDIT-FRAMING: grep -iE over the view for added|adding|newly|no longer|used to|previously|regression|bug|fix(ed|es)|patch|broken|incorrectly|wrongly|prior to -> ZERO hits. The docstring states the bar behaviour as a required property ('must produce ... k cross-references interleaved with k-1 literal separators') and states the forbidden reading as a property of the spec, not as a before/after. model_prepatch.py's defect-narrating comments sit inside impl regions and are elided -- which is exactly why the two views coincide.\n\nWHY NAMING THE BAR IS NOT BEYOND problem_statement. The bar is the public ask verbatim: the problem_statement is titled '[RFE] Support union types specification using | (vertical bar/pipe)' and shows ':type text: bytes | str'. Omitting it would make the spec unfaithful, not discreet. I then checked that the view's other three separator tokens are not gold-only knowledge: `git show 06107f838c28ab6ca6bfc2cc208e15997fcb2146:sphinx/domains/python.py` from repos/sphinx-doc_sphinx.git (read-only, no worktree written) shows the PRE-patch line 307 already carries the bracket/comma-with-optional-`or`, whitespace-bounded `or`, and three-dot tokens. So `sep_end`'s documented four-token try-order names one public-from-the-issue token and three public-from-base_commit tokens, with no ordering privilege marking which is the one to add.\n\nNO BUNDLE-DIRECTED-AT-REVIEWER TEXT: leakage.reviewer_directed() over every .md/.json/.py in nagini/ -> zero hits, and a manual grep of refinement.md, mapping.md, axiom_check.py, conformance_check.py, model.py for auditor|reviewer|panel|G-PANEL|honest verdict|do not submit|recording convention|attacker -> nothing. No file attempts to tell me what to record.\n\nOne observation, not a finding at this layer: refinement.md:25-26 and :81-82 quote the raw before/after `delims` regex, i.e. the gold edit in full. That is expected for a refinement/mapping document (the human-facing proof-obligation mapping) and it is NOT part of the spec view a solver consumes -- spec_view is computed from model.py alone, and refinement.md is read by the audit/score/integrity paths, not handed to the implementer. Flagging it so the record shows I looked at it rather than only at model.py.\n\nCONCLUSION: NO-LEAKAGE. Byte-identical pre/post spec views is the decisive fact; the mechanical screen passes with a demonstrated-sensitive control; every separator fact in the view is derivable from problem_statement plus the base_commit source. hints_text was never consulted (I confirmed its length only, 1450 chars, and did not read it).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n; G-PANEL-2 (faithfulness): pass \u2014 ATTACK GOAL: find an input where the modeled function disagrees with the REAL repo callee (patch.diff APPLIED, per the brief). Result: no such input found across ~490k machine-checked inputs, including exhaustive coverage of every string up to length 5 over a delimiter-dense alphabet. Verdict FAITHFUL.\n\nSETUP (all in /tmp; bundle not modified). Worktree at base_commit 06107f838 with patch.diff applied -- confirmed `git diff` is exactly the one-line delims change and `grep` shows python.py:307 carries `\\s*\\|\\s*`. Built  (python3.10 + docutils 0.23) and a `types.Union` shim (the repo guards on sys.version_info > (3,10)) so the REAL sphinx.domains.python module IMPORTS and its real method is CALLED -- not transliterated. Startup guards replicated: `inspect.getsource` contains the patched alternative, and `PyField.make_xrefs is PyXrefMixin.make_xrefs`. I independently re-transcribed model.py's whole pure region (is_space, strip_left/right, seg_text, first_bar, no_other_sep, well_formed, kinds, sep_end, next_sep, rendered, marks) into mdl.py rather than reusing the bundle's conformance_check.py shadow, so the comparison does not inherit a mis-copy from the bundle's own harness.\n\nORACLE: node text is OBSERVED, not assumed -- a recording stand-in is passed as `innernode` and the k-th node's text is read off the k-th call, with `len(calls) == len(nodes)` asserted on EVERY input (never tripped). Node kind read from the source branch actually taken (python.py:319 literal vs 321 xref).\n\nEVIDENCE (0 divergences everywhere):\n1. `is_space` == regex `\\s` over the FULL Unicode range 0..0x10FFFF: 0 mismatches (1,114,112 code points). This was the previously-recorded divergence class (non-ASCII whitespace beside a bar); it is genuinely closed at the source, not excluded from the domain.\n2. Exhaustive length 0..3 over 14 chars + 200k random over a 29-token alphabet incl. TAB/NL/VT/FF/U+001C/U+001D/U+001E/U+001F/NEL/NBSP/U+2000-200A/U+2028/U+202F/U+205F/IDEOGRAPHIC SPACE: 202,955 inputs, 0 bad on BOTH `rendered` (stream: node count + per-node kind + per-node exact text) and `marks` (kinds).\n3. Exhaustive length 0..5 over the delimiter-dense alphabet {| , space, o, r, [, ',', '.', a}: 37,449 inputs, 0 bad. This is total coverage of the tokeniser's interaction space at small length -- adjacent/overlapping delimiters, ' or ' straddling a bar, '..' vs '...', bracket+optional-`or`, leading/trailing/doubled bars.\n4. Dot/tilde stratum: 82,801 inputs with 34,470 carrying a '.'/'~'-prefixed piece, 0 bad. The `make_xref` callee's display rewrite (python.py:293-301) is a genuine DOWNSTREAM rewrite of the piece, disclosed in mapping.md; the modeled observable (the piece handed to the branch) is unaffected, which I confirmed by measurement, not by taking the doc's word.\n5. Long-token stress: 120,000 inputs built from 34 multi-char tokens up to 18 tokens deep, 0 bad.\n6. Argument-configuration sweep: 24,716 inputs x 3 field classes actually registered in PyObject.doc_field_types (PyField, PyTypedField, PyGroupedField) x 4 innernode factories actually passed at the real docfields.py call sites (nodes.emphasis, nodes.Text, literal_strong, literal_emphasis) x contnode in {None, Text(target)} = 24 configurations, 0 bad in all 24. So the model being a function of `target` ALONE is not an over-abstraction: `split_contnode`/`innernode` do not perturb the tokenisation the spec pins.\n\nTOO-STRONG CHECKS (the specific ways this spec could over-claim, each probed and each clean):\n- The two obligations are domain-FREE (no `well_formed` precondition on render_nodes or split_render). A domain-free postcondition is the strongest place a faithfulness break can hide, so I fuzzed the off-shape region hardest: brackets, commas, `or`, `...`, bare/leading/trailing/doubled bars, whitespace-only segments, empty string. `rendered`/`marks` hold there too. Confirmed the docs' own worked example: 'list[int] | None' -> real 6 nodes [T,F,T,F,F,T], and `marks` gives exactly that (the bar-only `kinds` gives 3, which is why `kinds` is correctly NOT any postcondition -- de-gating it WOULD have been unfaithful, and the bundle does not do that).\n- `sep_end`'s hand-ordered 4-way alternation could mis-model the regex's leftmost-then-preference semantics. Exhaustive length<=5 over {|,space,o,r,[,',','.',a} is precisely the stress case for this and finds nothing.\n- Separator payload: the spec models each literal node as the UNTRIMMED span with padding. Verified against the real node text ('x  |  y' -> literal carries '  |  '; '[ a ]' -> '[ ' and ' ]'). The refinement.md note that the old `seg_text`-equals-carried-text comparison was REMOVED because it is false, and replaced by the untrimmed span, matches what the real function does -- that is a correctly-repaired model, not a drifted one.\n- One narrow observation, NOT a defect: mapping.md \u00a72 words the -1 marker as `isinstance(node, addnodes.pending_xref)`. The real call sites pass rolename=None (PyField.rolename and PyTypedField.rolename are both None), and under rolename=None docfields.py:68 short-circuits so the xref branch returns a plain emphasis, making the isinstance test degenerate (measured: 4836/5000 mismatches under that literal reading). This does NOT make the spec unfaithful: mapping.md and refinement.md both bind the marker to the BRANCH (\"the `make_xref` branch, python.py:321\" / \"the `contnode or innernode` branch, python.py:319\"), and under that branch reading the stream is exact at rolename in {'class', None, ''} -- 44,681 inputs each, 0 bad. The real change under specification is which pieces reach which branch, and the spec pins that correctly. The isinstance phrasing is a bridge-wording imprecision in the conformance harness's type bridge, not an input on which the modeled function disagrees with the real callee.\n\nDIRECTION-OF-COMPARISON GUARD (per the brief): I did NOT report the patch delta as a divergence. Confirmed the model describes the FIXED behavior by re-running against the BASE (unpatched) delims: model != base on 'int | str', 'a|b', 'list[int] | None'. So the spec senses the change (G-DIFF holds) and the reference I compared against was the patched worktree throughout.\n\nCONCLUSION: no diverging input exists that I could find; the spec is neither too strong nor drifted from real repo behavior. Note that a FAITHFUL verdict here bounds only this gate -- I did not assess spec strength/weakness (G-PANEL-1's lane), and the refinement.md admission that the meta.json G-CONF stamp predates the domain-free kind obligation and is due a re-run is a records-freshness matter for the gate, orthogonal to faithfulness. My independent re-measurement above supersedes it on the substance: the obligations hold on the full domain.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n; G-PANEL-3 (leakage): pass \u2014 SCOPE: no relaxation to inherit. I checked directly rather than trusting verdict.md's narration: `'relaxed_leakage' in json.load(nagini/meta.json)` -> False (key list is additional_change_sites/axioms/base_commit/changed_files/deep_model_references/float_encoding/gates/instance_id/modeled_functions/patch_diff/prepatch_models/region_hashes/repo/schema_version/string_modeling/version), and `find benchmark-verified/sphinx-doc__sphinx-9258/ -iname '*RELAX*'` -> empty. So there is no unavoidability argument to re-derive and no disposition asserted at me; this is a plain leakage judgement. (Note: verdict.md contains the string 'relaxed_leakage' only inside its own prior SCOPE paragraph, duplicated three times -- an appended-record artifact, not a relaxation claim.)\n\nDECISIVE MEASUREMENT -- spec views coincide across the patch boundary. I built both views myself with markers.spec_view(src, get_backend('nagini')): model.py -> 549 lines, model_prepatch.py -> 549 lines, and `diff` reports them BYTE-IDENTICAL (sha256 5c31a88a40bef25e...). markers.same_spec(model.py, model_prepatch.py, nagini) -> True and markers.spec_signature equality -> True. A spec view that is bit-for-bit the same on the gold and pre-patch models carries zero bits discriminating one from the other, so there is no line that could be pointed at as leaking the edit. The whole gold/prepatch delta lives inside elided `# impl-start/# impl-end` regions.\n\nGOLD-LINE / PATH / SYMBOL SCREEN, run with a live control. leakage.screen(model.py, nagini backend, instance.patch, instance.problem_statement, instance.test_patch) -> passed=True, hard_failures=[], warnings=[]. Control: I injected the gold line `delims = r'(\\s*[\\[\\]\\(\\),](?:\\s*or\\s)?\\s*|\\s+or\\s+|\\s*\\|\\s*|\\.\\.\\.)'` into the module docstring (spec region) and re-ran -> passed=False, hard_failures=['L1: gold-patch line reproduced: ...'], so the screen is actually sensitive on this bundle and its pass is a measurement, not a default. Independently, whitespace-normalized containment of BOTH the added and the removed patch line against the view -> False/False. Token counts in the 549-line view: sphinx/domains/python.py 0, sphinx.domains.python 0, make_xrefs 0, make_xref 0, delims 0, delims_re 0, sub_targets 0, innernode 0, contnode 0, rolename 0, TextlikeNode 0, re.split 0, re.compile 0, '(?:' 0, '\\s*' 0, pending_xref 0, emphasis 0.\n\nEDIT-FRAMING: grep -iE over the view for added|adding|newly|no longer|used to|previously|regression|bug|fix(ed|es)|patch|broken|incorrectly|wrongly|prior to -> ZERO hits. The docstring states the bar behaviour as a required property ('must produce ... k cross-references interleaved with k-1 literal separators') and states the forbidden reading as a property of the spec, not as a before/after. model_prepatch.py's defect-narrating comments sit inside impl regions and are elided -- which is exactly why the two views coincide.\n\nWHY NAMING THE BAR IS NOT BEYOND problem_statement. The bar is the public ask verbatim: the problem_statement is titled '[RFE] Support union types specification using | (vertical bar/pipe)' and shows ':type text: bytes | str'. Omitting it would make the spec unfaithful, not discreet. I then checked that the view's other three separator tokens are not gold-only knowledge: `git show 06107f838c28ab6ca6bfc2cc208e15997fcb2146:sphinx/domains/python.py` from repos/sphinx-doc_sphinx.git (read-only, no worktree written) shows the PRE-patch line 307 already carries the bracket/comma-with-optional-`or`, whitespace-bounded `or`, and three-dot tokens. So `sep_end`'s documented four-token try-order names one public-from-the-issue token and three public-from-base_commit tokens, with no ordering privilege marking which is the one to add.\n\nNO BUNDLE-DIRECTED-AT-REVIEWER TEXT: leakage.reviewer_directed() over every .md/.json/.py in nagini/ -> zero hits, and a manual grep of refinement.md, mapping.md, axiom_check.py, conformance_check.py, model.py for auditor|reviewer|panel|G-PANEL|honest verdict|do not submit|recording convention|attacker -> nothing. No file attempts to tell me what to record.\n\nOne observation, not a finding at this layer: refinement.md:25-26 and :81-82 quote the raw before/after `delims` regex, i.e. the gold edit in full. That is expected for a refinement/mapping document (the human-facing proof-obligation mapping) and it is NOT part of the spec view a solver consumes -- spec_view is computed from model.py alone, and refinement.md is read by the audit/score/integrity paths, not handed to the implementer. Flagging it so the record shows I looked at it rather than only at model.py.\n\nCONCLUSION: NO-LEAKAGE. Byte-identical pre/post spec views is the decisive fact; the mechanical screen passes with a demonstrated-sensitive control; every separator fact in the view is derivable from problem_statement plus the base_commit source. hints_text was never consulted (I confirmed its length only, 1450 chars, and did not read it).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "gate": "G-PANEL",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "rederived_at": "2026-08-18T00:38:52+00:00",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-18T00:38:50+00:00",
+      "code_version": "266e19fad",
+      "harness_digest": "9c8459201672",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f",
+        "properties.py": "3947c3f444918888e557485b80058323c895fb64da318ffbf6825af4bfbcc3ab"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T04:03:14+00:00",
+      "code_version": "65676836b-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK GOAL: find an input where the modeled function disagrees with the REAL repo callee (patch.diff APPLIED, per the brief). Result: no such input found across ~490k machine-checked inputs, including exhaustive coverage of every string up to length 5 over a delimiter-dense alphabet. Verdict FAITHFUL.\n\nSETUP (all in /tmp; bundle not modified). Worktree at base_commit 06107f838 with patch.diff applied -- confirmed `git diff` is exactly the one-line delims change and `grep` shows python.py:307 carries `\\s*\\|\\s*`. Built  (python3.10 + docutils 0.23) and a `types.Union` shim (the repo guards on sys.version_info > (3,10)) so the REAL sphinx.domains.python module IMPORTS and its real method is CALLED -- not transliterated. Startup guards replicated: `inspect.getsource` contains the patched alternative, and `PyField.make_xrefs is PyXrefMixin.make_xrefs`. I independently re-transcribed model.py's whole pure region (is_space, strip_left/right, seg_text, first_bar, no_other_sep, well_formed, kinds, sep_end, next_sep, rendered, marks) into mdl.py rather than reusing the bundle's conformance_check.py shadow, so the comparison does not inherit a mis-copy from the bundle's own harness.\n\nORACLE: node text is OBSERVED, not assumed -- a recording stand-in is passed as `innernode` and the k-th node's text is read off the k-th call, with `len(calls) == len(nodes)` asserted on EVERY input (never tripped). Node kind read from the source branch actually taken (python.py:319 literal vs 321 xref).\n\nEVIDENCE (0 divergences everywhere):\n1. `is_space` == regex `\\s` over the FULL Unicode range 0..0x10FFFF: 0 mismatches (1,114,112 code points). This was the previously-recorded divergence class (non-ASCII whitespace beside a bar); it is genuinely closed at the source, not excluded from the domain.\n2. Exhaustive length 0..3 over 14 chars + 200k random over a 29-token alphabet incl. TAB/NL/VT/FF/U+001C/U+001D/U+001E/U+001F/NEL/NBSP/U+2000-200A/U+2028/U+202F/U+205F/IDEOGRAPHIC SPACE: 202,955 inputs, 0 bad on BOTH `rendered` (stream: node count + per-node kind + per-node exact text) and `marks` (kinds).\n3. Exhaustive length 0..5 over the delimiter-dense alphabet {| , space, o, r, [, ',', '.', a}: 37,449 inputs, 0 bad. This is total coverage of the tokeniser's interaction space at small length -- adjacent/overlapping delimiters, ' or ' straddling a bar, '..' vs '...', bracket+optional-`or`, leading/trailing/doubled bars.\n4. Dot/tilde stratum: 82,801 inputs with 34,470 carrying a '.'/'~'-prefixed piece, 0 bad. The `make_xref` callee's display rewrite (python.py:293-301) is a genuine DOWNSTREAM rewrite of the piece, disclosed in mapping.md; the modeled observable (the piece handed to the branch) is unaffected, which I confirmed by measurement, not by taking the doc's word.\n5. Long-token stress: 120,000 inputs built from 34 multi-char tokens up to 18 tokens deep, 0 bad.\n6. Argument-configuration sweep: 24,716 inputs x 3 field classes actually registered in PyObject.doc_field_types (PyField, PyTypedField, PyGroupedField) x 4 innernode factories actually passed at the real docfields.py call sites (nodes.emphasis, nodes.Text, literal_strong, literal_emphasis) x contnode in {None, Text(target)} = 24 configurations, 0 bad in all 24. So the model being a function of `target` ALONE is not an over-abstraction: `split_contnode`/`innernode` do not perturb the tokenisation the spec pins.\n\nTOO-STRONG CHECKS (the specific ways this spec could over-claim, each probed and each clean):\n- The two obligations are domain-FREE (no `well_formed` precondition on render_nodes or split_render). A domain-free postcondition is the strongest place a faithfulness break can hide, so I fuzzed the off-shape region hardest: brackets, commas, `or`, `...`, bare/leading/trailing/doubled bars, whitespace-only segments, empty string. `rendered`/`marks` hold there too. Confirmed the docs' own worked example: 'list[int] | None' -> real 6 nodes [T,F,T,F,F,T], and `marks` gives exactly that (the bar-only `kinds` gives 3, which is why `kinds` is correctly NOT any postcondition -- de-gating it WOULD have been unfaithful, and the bundle does not do that).\n- `sep_end`'s hand-ordered 4-way alternation could mis-model the regex's leftmost-then-preference semantics. Exhaustive length<=5 over {|,space,o,r,[,',','.',a} is precisely the stress case for this and finds nothing.\n- Separator payload: the spec models each literal node as the UNTRIMMED span with padding. Verified against the real node text ('x  |  y' -> literal carries '  |  '; '[ a ]' -> '[ ' and ' ]'). The refinement.md note that the old `seg_text`-equals-carried-text comparison was REMOVED because it is false, and replaced by the untrimmed span, matches what the real function does -- that is a correctly-repaired model, not a drifted one.\n- One narrow observation, NOT a defect: mapping.md \u00a72 words the -1 marker as `isinstance(node, addnodes.pending_xref)`. The real call sites pass rolename=None (PyField.rolename and PyTypedField.rolename are both None), and under rolename=None docfields.py:68 short-circuits so the xref branch returns a plain emphasis, making the isinstance test degenerate (measured: 4836/5000 mismatches under that literal reading). This does NOT make the spec unfaithful: mapping.md and refinement.md both bind the marker to the BRANCH (\"the `make_xref` branch, python.py:321\" / \"the `contnode or innernode` branch, python.py:319\"), and under that branch reading the stream is exact at rolename in {'class', None, ''} -- 44,681 inputs each, 0 bad. The real change under specification is which pieces reach which branch, and the spec pins that correctly. The isinstance phrasing is a bridge-wording imprecision in the conformance harness's type bridge, not an input on which the modeled function disagrees with the real callee.\n\nDIRECTION-OF-COMPARISON GUARD (per the brief): I did NOT report the patch delta as a divergence. Confirmed the model describes the FIXED behavior by re-running against the BASE (unpatched) delims: model != base on 'int | str', 'a|b', 'list[int] | None'. So the spec senses the change (G-DIFF holds) and the reference I compared against was the patched worktree throughout.\n\nCONCLUSION: no diverging input exists that I could find; the spec is neither too strong nor drifted from real repo behavior. Note that a FAITHFUL verdict here bounds only this gate -- I did not assess spec strength/weakness (G-PANEL-1's lane), and the refinement.md admission that the meta.json G-CONF stamp predates the domain-free kind obligation and is due a re-run is a records-freshness matter for the gate, orthogonal to faithfulness. My independent re-measurement above supersedes it on the substance: the obligations hold on the full domain.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T03:39:33+00:00",
+      "code_version": "69dfa6a4e-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE: no relaxation to inherit. I checked directly rather than trusting verdict.md's narration: `'relaxed_leakage' in json.load(nagini/meta.json)` -> False (key list is additional_change_sites/axioms/base_commit/changed_files/deep_model_references/float_encoding/gates/instance_id/modeled_functions/patch_diff/prepatch_models/region_hashes/repo/schema_version/string_modeling/version), and `find benchmark-verified/sphinx-doc__sphinx-9258/ -iname '*RELAX*'` -> empty. So there is no unavoidability argument to re-derive and no disposition asserted at me; this is a plain leakage judgement. (Note: verdict.md contains the string 'relaxed_leakage' only inside its own prior SCOPE paragraph, duplicated three times -- an appended-record artifact, not a relaxation claim.)\n\nDECISIVE MEASUREMENT -- spec views coincide across the patch boundary. I built both views myself with markers.spec_view(src, get_backend('nagini')): model.py -> 549 lines, model_prepatch.py -> 549 lines, and `diff` reports them BYTE-IDENTICAL (sha256 5c31a88a40bef25e...). markers.same_spec(model.py, model_prepatch.py, nagini) -> True and markers.spec_signature equality -> True. A spec view that is bit-for-bit the same on the gold and pre-patch models carries zero bits discriminating one from the other, so there is no line that could be pointed at as leaking the edit. The whole gold/prepatch delta lives inside elided `# impl-start/# impl-end` regions.\n\nGOLD-LINE / PATH / SYMBOL SCREEN, run with a live control. leakage.screen(model.py, nagini backend, instance.patch, instance.problem_statement, instance.test_patch) -> passed=True, hard_failures=[], warnings=[]. Control: I injected the gold line `delims = r'(\\s*[\\[\\]\\(\\),](?:\\s*or\\s)?\\s*|\\s+or\\s+|\\s*\\|\\s*|\\.\\.\\.)'` into the module docstring (spec region) and re-ran -> passed=False, hard_failures=['L1: gold-patch line reproduced: ...'], so the screen is actually sensitive on this bundle and its pass is a measurement, not a default. Independently, whitespace-normalized containment of BOTH the added and the removed patch line against the view -> False/False. Token counts in the 549-line view: sphinx/domains/python.py 0, sphinx.domains.python 0, make_xrefs 0, make_xref 0, delims 0, delims_re 0, sub_targets 0, innernode 0, contnode 0, rolename 0, TextlikeNode 0, re.split 0, re.compile 0, '(?:' 0, '\\s*' 0, pending_xref 0, emphasis 0.\n\nEDIT-FRAMING: grep -iE over the view for added|adding|newly|no longer|used to|previously|regression|bug|fix(ed|es)|patch|broken|incorrectly|wrongly|prior to -> ZERO hits. The docstring states the bar behaviour as a required property ('must produce ... k cross-references interleaved with k-1 literal separators') and states the forbidden reading as a property of the spec, not as a before/after. model_prepatch.py's defect-narrating comments sit inside impl regions and are elided -- which is exactly why the two views coincide.\n\nWHY NAMING THE BAR IS NOT BEYOND problem_statement. The bar is the public ask verbatim: the problem_statement is titled '[RFE] Support union types specification using | (vertical bar/pipe)' and shows ':type text: bytes | str'. Omitting it would make the spec unfaithful, not discreet. I then checked that the view's other three separator tokens are not gold-only knowledge: `git show 06107f838c28ab6ca6bfc2cc208e15997fcb2146:sphinx/domains/python.py` from repos/sphinx-doc_sphinx.git (read-only, no worktree written) shows the PRE-patch line 307 already carries the bracket/comma-with-optional-`or`, whitespace-bounded `or`, and three-dot tokens. So `sep_end`'s documented four-token try-order names one public-from-the-issue token and three public-from-base_commit tokens, with no ordering privilege marking which is the one to add.\n\nNO BUNDLE-DIRECTED-AT-REVIEWER TEXT: leakage.reviewer_directed() over every .md/.json/.py in nagini/ -> zero hits, and a manual grep of refinement.md, mapping.md, axiom_check.py, conformance_check.py, model.py for auditor|reviewer|panel|G-PANEL|honest verdict|do not submit|recording convention|attacker -> nothing. No file attempts to tell me what to record.\n\nOne observation, not a finding at this layer: refinement.md:25-26 and :81-82 quote the raw before/after `delims` regex, i.e. the gold edit in full. That is expected for a refinement/mapping document (the human-facing proof-obligation mapping) and it is NOT part of the spec view a solver consumes -- spec_view is computed from model.py alone, and refinement.md is read by the audit/score/integrity paths, not handed to the implementer. Flagging it so the record shows I looked at it rather than only at model.py.\n\nCONCLUSION: NO-LEAKAGE. Byte-identical pre/post spec views is the decisive fact; the mechanical screen passes with a demonstrated-sensitive control; every separator fact in the view is derivable from problem_statement plus the base_commit source. hints_text was never consulted (I confirmed its length only, 1450 chars, and did not read it).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:52:42+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 181.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reads",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 243.3
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 166.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-single-xref",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 201.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-no-sep",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 202.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-all-xref",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 138.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-shape-guard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 209.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-stream-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 187.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-stream-reads",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 255.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-markers-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 129.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-trim-payload",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 90.3
+          },
+          {
+            "expect": "reject",
+            "id": "atk-indomain-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 141.4
+          },
+          {
+            "expect": "reject",
+            "id": "atk-tail-shift",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 138.2
+          },
+          {
+            "expect": "reject",
+            "id": "atk-echo-anchor",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 130.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-node-remerge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 128.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-stream-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 112.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 2,
+          "uniqueness": 12
+        },
+        "manifest_sha256": "3947c3f444918888e557485b80058323c895fb64da318ffbf6825af4bfbcc3ab",
+        "n_cases": 16,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 16 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f",
+        "properties.py": "3947c3f444918888e557485b80058323c895fb64da318ffbf6825af4bfbcc3ab"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T04:41:22+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "f8c61c37c38ee283cd6905fb7ffeae0a8ade3eabd377bb7c3f96afdec27193d3",
+        "patch.diff": "d2e286c77a107834927d2a38438dc8c59609034a5116588b2f10620ba7f80aef"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T10:53:30+00:00",
+      "code_version": "15a93b535-dirty",
+      "data": {
+        "wall_time_s": 206.7
+      },
+      "detail": "verified in 206.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "note": "Raised from the 300s default because the solution carries TWO obligations, both over the unrestricted input domain: render_nodes' whole-node-stream sequence equality against the `rendered` fold, and split_render's node-kind equality against the `marks` fold. The cap also governs G-PBT's per-case timeout (max(SBU_PBT_VERIFY_TIMEOUT, bundle.verify_timeout())), where the battery's 16 cases run 8-wide, so a 300s cap would report the positive controls as TIMED-OUT -- a non-measurement read as a battery failure.",
+      "sources": {
+        "model.py": "3b1ad37841d2c919495a97f18a6b6eb039ba9af95f33925e92a1ee3ef1cd845f"
+      },
+      "status": "pass",
+      "timeout_seconds": 1200
+    }
+  },
+  "instance_id": "sphinx-doc__sphinx-9258",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; output List[Node] -> List[int] node STREAM, laid out as `<carried code points> <kind marker>` per node with marker -1 = cross-reference, -2 = literal separator, closed by -3; specification over PSeq[int]. Code points are non-negative, so no marker can be read as carried text and the stream determines the node list (count, per-node kind, per-node exact payload) uniquely.",
+      "model_symbol": "render_nodes",
+      "repo_location": "sphinx/domains/python.py:304-325 (changed line 307)",
+      "repo_symbol": "sphinx.domains.python.PyXrefMixin.make_xrefs",
+      "role": "modeled changed function, PRIMARY obligation: on EVERY type specification (no domain restriction), produce the whole ordered node stream -- how many nodes, the kind of each, and the exact text each one carries -- for the full separator vocabulary the real regex splits on (padded bar, bracket/comma with optional `or`, whitespace-bounded `or`, three-dot run)."
+    },
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; output List[Node] -> List[bool] of node kinds (True=cross-reference, False=literal separator); specification over PSeq[int]",
+      "model_symbol": "split_render",
+      "repo_location": "sphinx/domains/python.py:304 (changed line 307)",
+      "repo_symbol": "sphinx.domains.python.PyXrefMixin.make_xrefs",
+      "role": "modeled changed function, KIND-ONLY reading (retained, strictly weaker than render_nodes, and like it stated on EVERY type specification with no domain restriction): for the full separator vocabulary the real regex splits on (padded bar, bracket/comma with optional `or`, whitespace-bounded `or`, three-dot run), produce one node per piece and pin its kind -- a cross-reference per stretch of type-name text, a literal per separator token -- so both the node COUNT and 'a separator is never rendered as a link' are required of a bracket/comma/`or`/ellipsis specification exactly as of a bar one."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "TWO postconditions, one per obligation. (1) split_render's ToSeq(Result()) == marks(ToSeq(target), 0): for any bar-containing input, e.g. the F2P 'int | str', marks is [True, False, True] but the impl returns [True]. (2) sep_end_idx's Result() == sep_end(ToSeq(s), i): on any padded bar the spec-region `sep_end` returns the token end while the reverted impl returns -1, so the render_nodes proof loses its tokeniser and the stream equality ToSeq(Result()) == rendered(ToSeq(target), 0) is unprovable. Verification failed in 117.3s.",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "make_xrefs treating the vertical bar as a type-separator (the added \\s*\\|\\s* delimiter)",
+      "reverted_to": "pre-patch delimiter set without the bar, in BOTH impl regions: sep_end_idx (the tokeniser both obligations scan with) no longer recognises a padded bar as a separator token, and split_render's scan is replaced by a single-node emission"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "f960ec99f340b49ac6f0874582154fd12a70fc75791144738f49d706917582ed",
+    "impl": "0283c6ab9f2747b8fe77d3223ee35f93208e9562b6da72c39dc5f104b51005e7",
+    "invariants": "58dccbac6130be9a48201eb92c9d2ef700fa1ecb843b983212c5ac41e82e5ba0",
+    "post-conditions": "8b43be7d5732261ed556a4a751b7bdf6a50706b21621a67d0a1421b445e2f7a8",
+    "pre-conditions": "901f19941bba9262216f8d9bcf2d043c6d2fa7869df0f0e02d311434ec49adcc",
+    "pure": "8a1b78b45940f3fdff1e8d84d82a60106267a40bd027caa95981cf93099ba7f5",
+    "spec_view": "5c31a88a40bef25eba9f5a78996cc7645ddaea58616776a706dd19ab0e965968"
+  },
+  "repo": "sphinx-doc/sphinx",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points (bar = 124, space = 32, brackets/comma = 91 93 40 41 44, `or` = 111 114, dot = 46); specification carried by PSeq[int] via ToSeq. The PRIMARY obligation is a whole-node-stream sequence equality against the front-recursive `rendered` fold, whose recursion is driven by `next_sep` (first index where a separator token starts) and `sep_end` (one past that token, or -1) and which is total -- no domain restriction; proven by the telescoping loop invariant ToSeq(out) + rendered(s, i) == rendered(s, 0), with per-node payload copied by `copy_span` and node kinds encoded as the negative markers -1/-2/-3 that non-negative code points cannot collide with. The retained kind-only obligation is equally total: it proves ToSeq(result) + marks(s, i) == marks(s, 0) with no domain restriction, `marks` being the same next_sep/sep_end case analysis with the carried text dropped. The bar-only readings kinds/first_bar/seg_text (with total front-recursive strip_left/strip_right) are retained as validated pure functions and constrain nothing.",
+  "version": "4.1"
+}

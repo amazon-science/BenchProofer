@@ -1,0 +1,128 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site_title }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/vendor/pygments.css">
+  <link rel="stylesheet" href="/static/app.css?v={{ static_v }}">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <span class="brand"><a href="/">{{ site_title }}</a><span class="sub">{% if bk is defined and bk %}{{ benchmark_label(bm) }} · {{ backend_labels.get(bk, bk) }}{% endif %}</span></span>
+    {# benchmark x backend chooser, as a true matrix over the FORMAL backends:
+
+                total  nagini  velvet  lean   |  ears
+       verified     n       n       n     n   |     n
+       pro          n       n       n     n   |     n
+
+       Backend names head the columns, benchmarks label the rows, and each cell
+       is that cell's fully-green count (a link to the board). A CSS grid,
+       emitted row-major, so the columns line up across rows regardless of
+       label/number width. Backends WITHOUT a formal verifier live in a separate
+       single-column box to the right of the matrix, deliberately set apart:
+       their green means less.
+
+       EVERY number here drills down to the BOARD IT COUNTS: a backend cell
+       opens that cell's instance list, and the totals column opens the row's
+       full (unfiltered) list on the current backend. A count rendered as bare
+       text is one bug; a count that opens an instance page rather than the board
+       it counts is the other.
+
+       Switching backend WITHOUT losing the instance is the column head (the
+       backend name): ids are shared across backends within one benchmark, so
+       that link can carry the instance of the row being viewed. Switching
+       benchmark row still goes to that row's index, since ids don't cross rows.
+
+       The split comes from settings, but EVERY configured backend must reach the
+       chooser as a clickable cell: resolve the formal list against the full
+       backend list, then treat anything the split does not cover as an extra.
+       Otherwise a split that goes missing or falls behind the backend list
+       collapses the header to a totals-only column with nothing to click.
+
+       Backend tracks are minmax(max-content, 1fr), not a bare 1fr: the matrix
+       lives in a clipping flex item, so a track that may resolve below its
+       content width is a track the header can squeeze out of sight (app.css
+       carries the other half of that fix). #}
+    {% set formal = formal_backends if formal_backends is defined and formal_backends else backends %}
+    {% set declared_extra = (extra_backends if extra_backends is defined and extra_backends else []) | list %}
+    {% set extra = declared_extra + (backends | reject('in', formal) | reject('in', declared_extra) | list) %}
+    {# the cell a bare benchmark/backend link falls back to, without naming one #}
+    {% set this_bm = bm if bm is defined and bm else (default_benchmark if default_benchmark is defined and default_benchmark else benchmarks|first) %}
+    {% set this_bk = bk if bk is defined and bk else (default_backend if default_backend is defined and default_backend else backends|first) %}
+    {# the same-instance switch, as a path SUFFIX: an instance page sets
+       toggle_iid, and ids are shared across backends within one benchmark, so
+       appending it to /<this_bm>/<backend>/ opens the same instance under that
+       backend. Empty on every other page, which makes the same expression the
+       plain board link -- no second branch to keep in step. #}
+    {% set keep = 'i/' ~ toggle_iid if toggle_iid is defined and toggle_iid else '' %}
+    <nav class="bk-matrix" aria-label="benchmark and backend chooser"
+         style="grid-template-columns:auto auto repeat({{ formal|length }}, minmax(max-content, 1fr))">
+      <span class="bk-corner"></span>
+      <span class="bk-colhead bk-total-head" title="instances in the benchmark">total</span>
+      {% for b in formal %}
+        <a href="/{{ this_bm }}/{{ b }}/{{ keep }}"
+           class="bk-colhead {{ 'active-col' if bk is defined and b == bk }}"
+           title="{{ backend_labels.get(b, b) }}{% if keep %} · this instance on {{ b }}{% endif %}">{{ b }}</a>
+      {% endfor %}
+      {% for b_m in benchmarks %}
+        {% set gc = green_counts(b_m) %}
+        {% set n = instance_counts(b_m) %}
+        {% set same_row = bm is defined and b_m == bm %}
+        <span class="bk-rowlab {{ 'active-row' if same_row }}"
+              title="{{ benchmark_label(b_m) }}">{{ b_m }}</span>
+        <a href="/{{ b_m }}/{{ this_bk }}/"
+           class="bk-total {{ 'active-row' if same_row }}"
+           title="{{ benchmark_label(b_m) }}: all {{ n }} instances">{{ n }}</a>
+        {% for b in formal %}
+          <a href="/{{ b_m }}/{{ b }}/"
+             class="bk-cell {{ 'active-row' if same_row }} {{ 'active' if same_row and bk is defined and b == bk }}"
+             title="{{ benchmark_label(b_m) }} · {{ b }}: {{ gc[b] }} fully-green of {{ n }}"><span class="bk-count">{{ gc[b] }}</span></a>
+        {% endfor %}
+      {% endfor %}
+    </nav>
+    {% for b in extra %}
+    <nav class="bk-matrix bk-extra" aria-label="{{ b }} chooser (no formal verifier)"
+         style="grid-template-columns:minmax(max-content, 1fr)">
+      <a href="/{{ this_bm }}/{{ b }}/{{ keep }}"
+         class="bk-colhead {{ 'active-col' if bk is defined and b == bk }}"
+         title="{{ backend_labels.get(b, b) }}: no formal verifier{% if keep %} · this instance on {{ b }}{% endif %}">{{ b }}</a>
+      {% for b_m in benchmarks %}
+        {% set gc = green_counts(b_m) %}
+        {% set n = instance_counts(b_m) %}
+        {% set same_row = bm is defined and b_m == bm %}
+        <a href="/{{ b_m }}/{{ b }}/"
+           class="bk-cell {{ 'active-row' if same_row }} {{ 'active' if same_row and bk is defined and b == bk }}"
+           title="{{ benchmark_label(b_m) }} · {{ b }}: {{ gc[b] }} fully-green of {{ n }}"><span class="bk-count">{{ gc[b] }}</span></a>
+      {% endfor %}
+    </nav>
+    {% endfor %}
+    <nav>
+      <a href="/">Overview</a>
+      <a href="/{{ this_bm }}/{{ this_bk }}/">Instances</a>
+      {# only when the routes will answer: the panel 404s with the feature off #}
+      {% if comments_enabled %}<a href="/comments">Comments</a>{% endif %}
+    </nav>
+  </header>
+  {% block content %}{% endblock %}
+  <script>
+  // The commenter's name, remembered client-side: there are no accounts, so
+  // authorship is self-asserted. ONE copy for the whole site: every page that
+  // takes a name renders `.author-field`, and every resolve/reopen form renders
+  // the hidden `.author-hidden` that posts it back.
+  (function(){
+    const KEY="viz_author";
+    document.querySelectorAll(".author-field").forEach(function(el){
+      const saved=localStorage.getItem(KEY); if(saved) el.value=saved;
+      el.addEventListener("change",function(){localStorage.setItem(KEY, el.value)});
+    });
+    document.querySelectorAll(".author-hidden").forEach(function(el){
+      el.value = localStorage.getItem(KEY) || "anonymous";
+    });
+  })();
+  </script>
+</body>
+</html>

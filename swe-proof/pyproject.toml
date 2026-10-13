@@ -1,0 +1,98 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "swebench-unified"
+version = "0.1.0"
+description = "An adaptable pipeline that builds, gates and evaluates formally verified twins of SWE-bench-style benchmarks, over four specification backends (nagini, velvet, lean, ears); ships the twins of SWE-bench Verified and the SWE-bench Pro Python subset. See docs/architecture.md."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "CC-BY-NC-4.0" }   # ../LICENSE.txt covers the whole repository
+authors = [{ name = "George M" }]
+dependencies = [
+    "swebench==4.1.0",
+    "datasets>=2.19",
+    "huggingface-hub>=0.23",
+    "unidiff>=0.7",
+    "hypothesis>=6.100",
+    "claude-agent-sdk>=0.2.88",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "httpx>=0.27",
+]
+# frontier-model evaluation harness (swebench_unified.eval)
+eval = [
+    "boto3>=1.34",
+    "openai>=1.40",
+    "aws-bedrock-token-generator>=1.0",
+]
+# figures from saved eval artifacts; the analysis scripts import these lazily,
+# so an eval-only install needs no plotting stack
+figures = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+]
+# documents the pin only: install in the nagini conda env, not here
+verifier-nagini = [
+    "nagini==1.2.0",
+]
+# review & visualization site (viz/)
+viz = [
+    "fastapi>=0.111",
+    "python-multipart>=0.0.18",   # fastapi needs it to parse the comment form
+    "uvicorn>=0.29",
+    "jinja2>=3.1",
+    "markdown-it-py>=3.0",
+    "nh3>=0.2",
+    "pygments>=2.17",
+    "boto3>=1.34",
+]
+
+[project.scripts]
+swebench-unified = "swebench_unified.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/swebench_unified"]
+
+[tool.pytest.ini_options]
+# The import roots both suites need. pytest resolves these against the rootdir
+# (the directory holding this file), not the cwd, so `pytest tests` and
+# `pytest /abs/path/to/tests` from anywhere see the same modules: `src` for the
+# `swebench_unified` package, and `scripts` for the release and ops tools the
+# tests import by bare module name (green_check, release_gate,
+# verdict_prose_lint, ...) because those are programs, not library modules. No
+# count here: the set changes with every tool added or retired, and a number in a
+# comment is only ever right on the day it is written.
+# `.` is the root the `viz.backend.render` import in tests/test_verdict_prose_lint.py
+# names; without it that import resolves only when the cwd happens to be this
+# directory, so `python -m pytest /abs/path/to/tests` failed from anywhere else.
+# Test modules therefore import at the top of the file and never edit sys.path.
+pythonpath = ["src", "scripts", "."]
+# The two suites, so a bare `pytest` means "the tests" and not "everything under
+# the rootdir". Without this it also walks the run outputs a real run leaves
+# behind (experiments/) and the bundle corpora, and pytest collects any
+# `test*.txt` it finds as a doctest file -- an evaluation log named
+# test_output.txt then fails collection, which reads as a broken test suite.
+testpaths = ["tests", "viz/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# The corpora are frozen published artifacts, not this repo's source: their
+# `properties.py` batteries and attack bodies are the evidence a verdict is
+# proved from, so they are never reformatted. Excluding them is what makes a
+# bare `ruff check` (no path arguments) mean the same thing as the pathed one.
+extend-exclude = ["benchmark-verified", "benchmark-pro"]
+
+[tool.ruff.lint]
+# Pinned so `ruff check` means the same thing on every ruff version: real
+# defects only (pyflakes F + pycodestyle errors E4/E7/E9) plus E501 line
+# length. Style/import-order/preview opinions are deliberately out of scope.
+# E4 includes E402, which the `# noqa: E402` comments on the deliberate
+# `sys.path.insert`-before-import sites document one by one — keep them.
+select = ["E4", "E7", "E9", "F", "E501"]

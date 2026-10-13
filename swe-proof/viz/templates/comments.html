@@ -1,0 +1,61 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{% extends "base.html" %}
+{% block title %}All comments · review{% endblock %}
+{% block content %}
+<div class="wrap">
+  <h1 style="font-size:1.3rem;margin:0 0 4px">All comments &amp; flags</h1>
+  <p class="muted" style="margin:0 0 16px">Every flag across all instances. Anyone can mark a thread resolved or reopen it.</p>
+
+  <div class="filters">
+    <form method="get" action="/comments" class="filters" style="margin:0">
+      <select name="benchmark" onchange="this.form.submit()">
+        <option value="">all benchmarks</option>
+        {% for b in benchmarks %}<option value="{{ b }}" {{ 'selected' if benchmark_filter==b }}>{{ benchmark_label(b) }}</option>{% endfor %}
+      </select>
+      <select name="backend" onchange="this.form.submit()">
+        <option value="">all backends</option>
+        {% for b in backends %}<option value="{{ b }}" {{ 'selected' if backend_filter==b }}>{{ b }}</option>{% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()">
+        <option value="">all statuses</option>
+        <option value="pending" {{ 'selected' if status=='pending' }}>pending</option>
+        <option value="resolved" {{ 'selected' if status=='resolved' }}>resolved</option>
+      </select>
+      <select name="flag" onchange="this.form.submit()">
+        <option value="">all flag types</option>
+        {% for fl in flags %}<option value="{{ fl }}" {{ 'selected' if flag==fl }}>{{ fl }}</option>{% endfor %}
+      </select>
+      <span class="muted" style="margin-left:auto">{{ threads|length }} thread(s)</span>
+    </form>
+  </div>
+
+  {% if not threads %}<div class="empty">No comments match.</div>{% endif %}
+  {% for t in threads %}
+    <div class="cmt {{ 'maintainer' if t.author|lower in maintainers }}">
+      <div class="meta">
+        <a href="/{{ t.benchmark }}/{{ t.backend }}/i/{{ t.instance_id }}#comments" style="font-weight:650">{{ t.instance_id }}</a>
+        <span class="pill {{ 'bad' if t.unknown_benchmark else 'neutral' }}"
+              {% if t.unknown_benchmark %}title="unrecognized benchmark key: this thread's dataset can't be resolved"{% endif %}>{{ t.benchmark }}</span>
+        <span class="pill violet">{{ t.backend }}</span>
+        <span class="faint">{{ t.repo }}</span>
+        <span>· {{ t.author }}</span>
+        <span>· {{ t.created_at | ts }}</span>
+        {% if t.flag %}<span class="flag-tag">{{ t.flag }}</span>{% endif %}
+        {% if t.n_replies %}<span class="muted">{{ t.n_replies }} repl{{ 'y' if t.n_replies==1 else 'ies' }}</span>{% endif %}
+        <span class="status-{{ t.status }}" style="margin-left:auto">{{ t.status }}{% if t.status=='resolved' and t.resolved_by %} by {{ t.resolved_by }}{% endif %}</span>
+      </div>
+      <div class="md">{{ t.body | md | safe }}</div>
+      <div class="row" style="margin-top:8px">
+        <form method="post" action="/{{ t.benchmark }}/{{ t.backend }}/comment/{{ t.id }}/status" style="display:inline">
+          <input type="hidden" name="back" value="/comments?status={{ status }}&flag={{ flag }}&backend={{ backend_filter }}&benchmark={{ benchmark_filter }}">
+          <input type="hidden" name="who" class="author-hidden" value="">
+          <input type="hidden" name="status" value="{{ 'pending' if t.status=='resolved' else 'resolved' }}">
+          <button class="btn sm" type="submit">{{ 'reopen' if t.status=='resolved' else 'mark resolved' }}</button>
+        </form>
+        <a class="btn sm" href="/{{ t.benchmark }}/{{ t.backend }}/i/{{ t.instance_id }}#comments">open instance ↗</a>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

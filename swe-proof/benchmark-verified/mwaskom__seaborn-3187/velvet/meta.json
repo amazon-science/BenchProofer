@@ -1,0 +1,1445 @@
+{
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): sound on boundary (incl. the 2^53 guard boundary) + 60k fuzz + 2k guard-boundary integer tick sets, all within |t| <= 2^53; non-vacuous (default config misreads); guard necessary (misreads witnessed just above 2^53)",
+      "encoded_property": "renderTicks_length: one label per tick (any mode); renderTicks_faithful: with useOffset=False AND scientific=False AND every tick in the float-exact integer range (|t| <= 2^53 = 9007199254740992, the axiom's explicit guard), labelValue(label_i) == tick_i",
+      "kind": "A-consumed",
+      "models": "matplotlib.ticker.ScalarFormatter (format_ticks) + float(text) read-back",
+      "name": "renderTicks / labelValue"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "renderLog_length: one label per tick; label values unconstrained; the spec pins the log path's output to renderLog verbatim (legendEntries: isLog = true -> labels = renderLog ticks)",
+      "kind": "A-consumed",
+      "models": "matplotlib.ticker.LogFormatter (the LogLocator branch of locator_to_legend_entries)",
+      "name": "renderLog"
+    }
+  ],
+  "base_commit": "22cdfb0c93f8ec78492d87edb810f10cb7f57a31",
+  "changed_files": [
+    "seaborn/_core/scales.py",
+    "seaborn/utils.py"
+  ],
+  "conf_skip": true,
+  "conf_skip_reason": "impl region all-A-tagged: the computed labels are the axiomatized renderer callee's output verbatim; the only R/I content is the config constants (offsetMode=scaleMode=false) + the isLog branch, no input-dependent transformation of label contents to fuzz. Discriminating fact (both-off => faithful, default => not) is validated by G-AX.",
+  "deep_model_references": [],
+  "float_modeling": "tick values modeled as Int restricted to the float-exact range |t| <= 2^53 (methods' require + faithfulness axiom guard; F2P data levels are integer-valued ~1e8, far inside); only order/magnitude faithfulness (label reads back to its tick, > 1e7) is pinned - exact on Int within the guard, avoids IEEE noise",
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:49:52+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK (matplotlib 3.7.2): renderTicks_length + sharedTerm_none hold over 16 renderer configurations x 18 boundary tick lists x 4 switch settings and 6000 fuzzed float tick lists (0 violations), and each configuration rebuilds to byte-identical labels, so RendererConfig is a faithful handle; renderLog_length holds on 7 log installations x 3 log tick lists, renderLog reproduces the modeled site's own log-path labels byte-for-byte on 1173 (interval, tick list) pairs the site itself produced (0 disagreements) where a ticks-only model of it disagrees on 63 of them and 6 of the 75 distinct tick lists print more than one label list (so the handle argument is load-bearing, witnessed 10 times directly, e.g. ticks=[100.0, 10000.0, 1000000.0, 100000000.0] prints ['100', '10000', '1e+06', '1e+08'] on log_view_1_1e5 and ['100', '1e4', '1e+06', '1e+08'] on log_view_1_1e6), and the site's numeric arm is reproduced too: the replica equals the site on 173 installs and renderTicks equals the site's own set_locs-then-call sequence on 692 configuration/switch combinations; sharedTerm_hoists witnessed 32 times inside the domain with both switches on -- the axiom's conjunction, both halves (e.g. cfg=plain om=True sm=True reports '+1e8' separately and prints '0'), plus 64 further hoisting observations at one-switch settings -- so the clause is not idle; of all 16 Formatter subclasses in matplotlib.ticker + matplotlib.dates the two mode questions never disagree and exactly one (ScalarFormatter) answers yes, so 15 land on the modesAvailable = false arm, and the 9 instantiated ones each print one label per tick, hoist nothing for the tick lists they are driven with, and are left byte-identical by the site (labels = ownLabels) -- which is that arm's whole obligation and is span-independent: the two date renderers were driven at 10 (span, renderer) settings from an hour to four years, neither guard question ever answers yes, and labels = ownLabels held on every one INCLUDING the 4 where the renderer does report a term separately (the arm claims nothing about that term, because the site cannot influence it there); where the tests look, both-off labels stand for their own ticks (42 cfg/tick combinations) while every hoisting setting misreads (102), and 6 combinations print typeset labels that no numeric reading parses at all -- which is why the specification constrains the separately-reported term rather than the label text. G-AX DOMAIN: the two renderers are PARTIAL and the model says so. `renders` held on 34824 of the 38652 (cfg, switches, ticks) observations checked and failed on 3828; `rendersLog` held on 8633 of 9309 and failed on 676. Every guarded fact was asserted on every in-domain observation (0 violations) and every refusal was reproduced on a second call, so the domain is a function of the arguments. It is INHABITED: cfg=log_view_1_1e5 with ticks [1.0, 100.0, 10000.0] renders ['1', '100', '10000'] numerically and ['1', '100', '10000'] logarithmically (renders_nonvacuous). It is NOT IDLE: 494 observations lie outside it, the boundary is a pair differing only in the interval span -- (-9e307, 9e307) with ticks [0.0] and both switches off yields nothing (OverflowError: cannot convert float infinity to integer) while (-8e307, 8e307) yields (['0'], '') -- it depends on the SWITCHES (cfg=x_view_full ticks=[1e+300] yields nothing with both off and (['1'], '1e300') with the multiplicative one on), and the two renderers' domains differ (cfg=x_view_full ticks=[1e+300]: the log renderer yields ['1e+300'] where the numeric one with both switches off yields nothing). And it does not duck any reachable input: all 1173 ordinary (configuration, tick list, switch setting) observations -- every install the site can make crossed with every tick list it really produces, the instance's own F2P/P2P levels among them -- lie inside it with NO exclusions, all 793 (installation, tick list) pairs the two modeled sites produced on their own grids lie inside it too, and in the excluded region the sites produce no legend at all rather than a misleading one (4 escapes measured, e.g. ('site_B', (-1.7976931348623157e+308, 1.7976931348623157e+308), 'OverflowError: cannot convert float infinity to integer')).",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "axiom_check.py": "6a66f20e27675958066b0c58dd092e4dc48f0f358060e847b7ce91c02c612398"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:06:58+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "conf_skipped": true
+      },
+      "detail": "no-RI-content (impl region all-A-tagged)",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:07:42+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "Solution_prepatch.lean": "82c4b9e9facc552d52d8395ff077617c24627d47994f2b9eeaa341a263223c95"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T14:40:16+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 26 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 26 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 26 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 19 | `atk_01_prepatch.lean`, `atk_02_carrier_int_reencode.lean`, `atk_03_partial_domain_nan.lean`, `atk_04_boundary_short_list.lean`, `atk_05_ungrounded_oracle.lean`, `atk_06_swapped_arms.lean`, `atk_07_log_path_substituted.lean`, `atk_08_padded_argument.lean`, `atk_09_sharedterm_oracle.lean`, +10 more |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_17_alias_echo_modes_arm.lean`, `atk_18_domain_escape_noswitch_arm.lean`, `atk_19_domain_escape_logrenderer.lean`, `atk_23_dblguard_oracle_bothon.lean`, `atk_24_dblguard_oracle_offsetonly.lean`, `atk_25_dblguard_oracle_scionly.lean`, `atk_26_maximal_dblguard_oracle.lean` |\n\n**Non-vacuity.** The positive control `pos_gold.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T14:42:44+00:00",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "properties.py": "0740cebeba1dc2817457f5585b9f12f10a434ca7e9f6bc7fca07e96d692588b6"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:07:51+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "Solution_prepatch.lean": "82c4b9e9facc552d52d8395ff077617c24627d47994f2b9eeaa341a263223c95"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:07:51+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "b78389ec40b0d6a5165c1952fb63dad252732402544c4eeb82dc2807d4bcee9c",
+          "impl": "13599b21322ac797a4905dd3670f60fda4905ebb3c877004d920a2ba7b9c332f",
+          "spec_view": "52b6628ec3ee941b332be88566c25f0f59f8a6d66f57d780557e3be70c926c5c"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:07:52+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "instance.json": "559bd933c7b7eeefa22c3437534cc993feebfa3794b56aee60d40b77643e4aed"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:07:52+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:08:41+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "judged": 11,
+        "killed": 11,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 11,
+        "unjudged": []
+      },
+      "detail": "killed 11/11 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T13:34:55+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 26 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "VERDICT: FAITHFUL. I could not construct any input on which the modeled functions disagree with the real patched callees. ~390,000 measured observations across the two axiom families, both real sites driven end-to-end, and the domain predicates checked for correspondence in BOTH directions (no in-domain violation, and no case where a `require` was false yet the real site still returned a legend).\n\nThis run supersedes the retained Role-3 UNFAITHFUL record in verdict.md. That finding was correct against the revision it audited (unguarded total axioms, mapping.md then affirmatively claiming \"no modeled sub-domain\"). The SHIPPED spec has since been repaired exactly as that finding recommended: `renders` and `rendersLog` are now opaque domain predicates, all four renderer facts are stated only inside them, `renders_nonvacuous` blocks vacuity, and each method carries the domain of the renderer its own arm calls at the setting that arm uses. I re-drove the cited counterexamples (public objects API with norm=(-M,M).tick(at=[0.0]); locator_to_legend_entries(FixedLocator([-M,M]), (-M,M), float); the bare axiom binding f.axis=DummyAxis(-M,M) then format_ticks([0.0])) and confirmed they all still raise OverflowError in the repo \u2014 but they now fall outside the modeled domain, so they no longer witness a disagreement. Per the retained-labels rule I re-judged rather than echoing the stored verdict, and the reject lane does not survive re-measurement.\n\nThe three modelling decisions I tried hardest to break all held, and each is load-bearing rather than decorative:\n  * `renderLog` taking `cfg` \u2014 CORRECT and necessary. I independently reproduced the interval dependence ([1,100,10000] -> ['1','100','10000'] at view (1,1e5) vs ['1','100','1e4'] at (1,1.5e5)); LogFormatter.__call__ reads self.axis.get_view_interval() and _pprint_val's ladder switches at d=1e5. A ticks-only model would be the unfaithful one.\n  * one `modesAvailable` Bool for two `hasattr` guards \u2014 CONFIRMED. Enumerating Formatter subclasses across matplotlib.ticker, .dates, .category and .projections.polar in 3.7.2 gives 19 classes; ScalarFormatter is the ONLY one with both setters and EXACTLY ZERO have precisely one, so the two guards at scales.py:385-388 can never disagree. EngFormatter's bases are (Formatter,) in this version with hasattr False/False, so it correctly lands on the false arm \u2014 the near-miss mapping.md flags is real and correctly resolved.\n  * `sharedTerm cfg false false ticks = \"\"` rather than a numeric read-back \u2014 CORRECT. I confirmed mathtext/usetex installs print labels no numeric parse accepts while still hoisting nothing, so a read-back obligation would have been FALSE of the real code. This is the rare case where the weaker-looking clause is the faithful one.\n\nTWO NON-DEFECT OBSERVATIONS, recorded for the ledger and explicitly NOT the basis of any verdict:\n\n1. LATENT G-AX BRITTLENESS (axiom_check.py, not Solution.lean). check_alt_renderers assertion (e) asserts `own_fmt.get_offset() == \"\"` for every non-ScalarFormatter renderer, justified in the docstring as \"these renderers hoist nothing to begin with\". That is FALSE of ConciseDateFormatter in general \u2014 it is only true of the tick list axiom_check happens to pass it (`days = [1.0, 32.0, 60.0, 91.0]`, a multi-month span). Measured at the REAL patched site A via Temporal().label(concise=True): a one-day span gives get_offset() == '2020-Jan-02', a one-month span '2020-Jan', a one-hour span '2020-Jan-01'. ConciseDateFormatter.format_ticks sets self.offset_string from offsetfmts[level] whenever show_offset holds, and only suppresses it when the year appears in the ticks themselves. So the same assertion would FAIL if the fixture used a narrower date span.\n   Why this is NOT a spec faithfulness break: assertion (e) is a G-AX-internal convenience check, not one of the eight Solution.lean axioms. The `modesAvailable = false` arm's actual obligation is `labels = ownLabels`, and that clause HELD on every date configuration I drove (one hour / one day / one month / one year, concise True and False, ConciseDateFormatter and AutoDateFormatter \u2014 8/8, ownLabels == labels in every case), because that arm calls neither setter and is genuinely inert. The spec is silent about the hoisted term on that arm, which is the honest thing to be: a ConciseDateFormatter legend really does lose its offset string, but that is pre-existing repo behavior the patch does not touch and the spec does not claim otherwise. Recommend widening axiom_check.py's date fixture to a sub-month span and either dropping assertion (e) or restating it as \"hoists nothing FOR THIS TICK LIST\" \u2014 otherwise a future fixture change turns a passing gate red for a reason unrelated to the spec.\n\n2. STALE meta.json (bookkeeping, pre-existing, independently reported by the retained Role-3 record). `float_modeling`, `axioms[0].encoded_property` and `modeled_functions[*].carrier_type` still describe the SUPERSEDED carrier ('tick values modeled as Int restricted to |t| <= 2^53', a `renderTicks_faithful` / `labelValue` read-back axiom, 'List Int'). The frozen Solution.lean has `ticks : List Float` with no 2^53 guard and no read-back axiom; its axioms are RendererConfig / renderTicks / sharedTerm / renders / renderTicks_length / sharedTerm_none / sharedTerm_hoists / renderLog / rendersLog / renderLog_length / renders_nonvacuous. mapping.md 2 documents the Int revision being refuted by G-EQ. Prose/metadata drift only \u2014 I audited the live Lean, which is what ships. Note meta.json is a gate-owned ledger, so this wants a gate-side restamp rather than a hand edit.\n\nENVIRONMENT NOTE: the host matplotlib is 3.10.9, which differs from the oracle's pin. Every measurement above was taken inside the instance's own container at matplotlib 3.7.2; I verified the version at the top of each probe. The ConciseDateFormatter get_offset behavior in observation 1 reproduces in BOTH versions, so it is not a host artifact.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LEAKAGE / GOLD-RECONSTRUCTION, mwaskom__seaborn-3187 velvet. Verdict NO-LEAKAGE. Reviewing the SHIPPED Solution.lean sha 6d339e20ea69...; every load-bearing claim below is my own measurement.\n\nNO RELAXATION CLAIM TO ADJUDICATE -- so this is a STRICT review with no facet carve-out. meta.json has no `relaxed_leakage` key (top-level keys: axioms, base_commit, changed_files, conf_skip, conf_skip_reason, deep_model_references, float_modeling, gates, instance_id, modeled_functions, patch_is_gold, pbt_audit, region_hashes, repo, schema_version, spec_provenance, version) and `find -iname '*relax*'` over the instance dir returns nothing -- no RELAXED_LEAKAGE.md. The three `relaxed_leakage` substring hits in meta.json are inside PRIOR G-PANEL-3 note text (gates.G-PANEL-3.note and the G-PANEL rollup detail) asserting the key's absence; they are a stamped record of an earlier role, not a claim addressed to me, and I did not inherit their disposition -- I re-derived the unavoidability argument from scratch below.\n\nNO BUNDLE FILE ADDRESSES ME. `leakage.reviewer_directed()` over all 11 .md files under the instance (velvet/lean/nagini/ears x refinement/mapping/verdict + ears/requirements.md): zero hits on every one. No file tells me how to record or which verdict is honest. Nothing to report as steering.\n\nSPEC REGION BYTE-IDENTICAL. `markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend.language)` = True, and `spec_view` of the two files is string-identical (13694 chars). The only diff between the files is inside the elided impl region: `offsetMode/scaleMode := false` -> `true` at both sites plus their comments. The prepatch's `-- PRE-PATCH BUG:` narration is fully elided -- measured on the PREPATCH spec view: 'PRE-PATCH' 0, 'BUG' 0, 'bug' 0, 'fix' 0. So the artifact I judge is one text and it carries no pre/post tell.\n\nMECHANICAL SCREEN. `leakage.screen(Solution.lean, VelvetBackend.language, patch.diff, problem_statement)` -> passed=True, hard_failures=[], warnings=[]. I treated that as necessary-not-sufficient and screened the vocabulary myself, because G-LEAK's symbol rule only harvests def/class names from changed lines and this gold patch adds no def/class -- so the two setter names are NOT covered by it. Counts over the spec view: set_useOffset 0, useOffset 0, set_scientific 0, scientific 0, ScalarFormatter 0, LogFormatter 0, format_ticks 0, formatter 0, locator 0, matplotlib 0, seaborn 0, scales.py 0, utils.py 0. No patched path, no patched module dotted path, no diff marker, no gold line >=8 normalized chars. Hidden-test constants: `1e8`/`1e7` (the FAIL_TO_PASS assertions `np.add(xy['x'], 1e8)` / `float(text.get_text()) > 1e7`) -> 0 occurrences in the spec view. The ears/verdict.md advisory about \"spec prose reproducing hidden-test constants 1e8/1e7\" does NOT apply here: 0 hits in the velvet spec view and 0 in ears/requirements.md as shipped.\n\nDISCRIMINATOR IS LOAD-BEARING -- the strip-and-reverify test, run for real with scripts/lean_verify.sh (600s cap):\n  (post) Solution.lean as shipped -> exit 0.\n  (B) prepatch impl + spec with the `sharedTerm cfg offsetMode scaleMode ticks = \"\"` conjunct REMOVED from both `ensures` (domain `require`s widened to `renders cfg true true ticks` so the length obligation is dischargeable at the setting that impl uses; proofs witness true/true) -> exit 0. The prepatch impl VERIFIES once the conjunct is gone.\n  (C) VACUITY CONTROL: identical widened `require`s, conjunct KEPT -> exit 1, unsolved goals at both `prove_correct` sites (202:27 and 259:28). So B's pass is not an artifact of the widened domain; the `sharedTerm = \"\"` conjunct is the ONLY clause rejecting the prepatch impl.\nHence the discriminating clause cannot be dropped, and stating it in the fragment forces the two switches to appear as parameters of `renderTicks`/`sharedTerm`. The abstract two-switch model is compelled by spec strength, not chosen to hint.\n\nWHAT THE PUBLIC STATEMENT ALREADY GIVES. problem_statement (never hints_text) names: `offset` x6, `formatter` x6, `ScalarFormatter` x3, `mpl.rcParams['axes.formatter.useoffset']`, the offset_threshold rcParam, \"formatted without their multiplicative offset value\", \"in the order of 1E6\", a direct GitHub permalink to scales.py L377-L382 (the modeled site), and \"The issue also reproduces ... using `scatterplot`\" -- which is what makes the TWO-SITE split (objects `legendLabels` + classic function-level `legendEntries`) public. So the additive facet, the callee class, the site, and the two-interface structure are all already solver-visible; the word \"multiplicative\" is public verbatim, covering the power-of-ten switch. The spec view says strictly less about the repo than the statement does: it names no class, no setter, no file, no line.\n\nTWO PROSE POINTS I WEIGHED AND DID NOT RAISE AS LEAKAGE:\n  (i) \"that path is not touched\" (legendEntries docstring, log arm) is phrased about the edit rather than behavior. It conveys nothing beyond the formal clause on the next lines, `ensures isLog = true -> labels = renderLog cfg ticks`, which is a required frame pin -- without it the log arm is unconstrained and the spec is too weak (refinement.md B2 records G-PANEL-2 refuting a weaker ticks-only version of exactly this clause). Zero gold-reconstruction content beyond a clause a faithful spec must state; recommend rewording to \"is unchanged\" on any future prose pass, non-blocking.\n  (ii) The identifier `offsetMode` embeds \"offset\", which is public in the statement 6 times, so it is screened out by the problem_statement carve-out; `scaleMode` echoes no repo symbol (the real setter is `set_scientific`).\n\nTWO PROCESS NOTES for the gate operator, neither affecting this verdict:\n  - meta.json `region_hashes.spec_view` = d5467361...; recomputed from the shipped file = 52b6628e... (axioms and impl likewise disagree). This is CORPUS-WIDE, not instance-specific: I sampled 40 benchmark-verified/*/velvet bundles and got 0 matches / 40 mismatches, so the stored region_hashes are stale or computed under a different convention fleet-wide -- an infrastructure item, not a spec defect here.\n  - Every G-PANEL-* role record (incl. the prior G-PANEL-3 pass) is stamped against Solution.lean sha 6524c567..., while the shipped file and all of G-AX/G-DIFF/G-GOLD/G-HYGIENE/G-LEAK/G-MUT/G-VERIFY are 6d339e20.... The panel lane had not previously judged the shipped text; this submission does. G-PANEL is failing only because G-PANEL-2 (faithfulness) failed on an OverflowError inside the modeled region -- a domain/faithfulness matter in that lane, and per the rollup convention a failing G-PANEL means re-audit, not repair. It is orthogonal to leakage and does not undermine any gate this NO-LEAKAGE rests on (G-VERIFY pass, G-DIFF prepatch-fails pass, G-AX pass, G-LEAK pass, all four stamped against the shipped 6d339e20).\n\nCONCLUSION: no gold-diff line, no diff marker, no patched file/module path, no patched repo symbol in identifier or comment, no bug->fix narration, no hidden-test constant, and the one mechanism-shaped statement in the spec view is a load-bearing discriminator proven unavoidable by the B/C pair above. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 26 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 VERDICT: FAITHFUL. I could not construct any input on which the modeled functions disagree with the real patched callees. ~390,000 measured observations across the two axiom families, both real sites driven end-to-end, and the domain predicates checked for correspondence in BOTH directions (no in-domain violation, and no case where a `require` was false yet the real site still returned a legend).\n\nThis run supersedes the retained Role-3 UNFAITHFUL record in verdict.md. That finding was correct against the revision it audited (unguarded total axioms, mapping.md then affirmatively claiming \"no modeled sub-domain\"). The SHIPPED spec has since been repaired exactly as that finding recommended: `renders` and `rendersLog` are now opaque domain predicates, all four renderer facts are stated only inside them, `renders_nonvacuous` blocks vacuity, and each method carries the domain of the renderer its own arm calls at the setting that arm uses. I re-drove the cited counterexamples (public objects API with norm=(-M,M).tick(at=[0.0]); locator_to_legend_entries(FixedLocator([-M,M]), (-M,M), float); the bare axiom binding f.axis=DummyAxis(-M,M) then format_ticks([0.0])) and confirmed they all still raise OverflowError in the repo \u2014 but they now fall outside the modeled domain, so they no longer witness a disagreement. Per the retained-labels rule I re-judged rather than echoing the stored verdict, and the reject lane does not survive re-measurement.\n\nThe three modelling decisions I tried hardest to break all held, and each is load-bearing rather than decorative:\n  * `renderLog` taking `cfg` \u2014 CORRECT and necessary. I independently reproduced the interval dependence ([1,100,10000] -> ['1','100','10000'] at view (1,1e5) vs ['1','100','1e4'] at (1,1.5e5)); LogFormatter.__call__ reads self.axis.get_view_interval() and _pprint_val's ladder switches at d=1e5. A ticks-only model would be the unfaithful one.\n  * one `modesAvailable` Bool for two `hasattr` guards \u2014 CONFIRMED. Enumerating Formatter subclasses across matplotlib.ticker, .dates, .category and .projections.polar in 3.7.2 gives 19 classes; ScalarFormatter is the ONLY one with both setters and EXACTLY ZERO have precisely one, so the two guards at scales.py:385-388 can never disagree. EngFormatter's bases are (Formatter,) in this version with hasattr False/False, so it correctly lands on the false arm \u2014 the near-miss mapping.md flags is real and correctly resolved.\n  * `sharedTerm cfg false false ticks = \"\"` rather than a numeric read-back \u2014 CORRECT. I confirmed mathtext/usetex installs print labels no numeric parse accepts while still hoisting nothing, so a read-back obligation would have been FALSE of the real code. This is the rare case where the weaker-looking clause is the faithful one.\n\nTWO NON-DEFECT OBSERVATIONS, recorded for the ledger and explicitly NOT the basis of any verdict:\n\n1. LATENT G-AX BRITTLENESS (axiom_check.py, not Solution.lean). check_alt_renderers assertion (e) asserts `own_fmt.get_offset() == \"\"` for every non-ScalarFormatter renderer, justified in the docstring as \"these renderers hoist nothing to begin with\". That is FALSE of ConciseDateFormatter in general \u2014 it is only true of the tick list axiom_check happens to pass it (`days = [1.0, 32.0, 60.0, 91.0]`, a multi-month span). Measured at the REAL patched site A via Temporal().label(concise=True): a one-day span gives get_offset() == '2020-Jan-02', a one-month span '2020-Jan', a one-hour span '2020-Jan-01'. ConciseDateFormatter.format_ticks sets self.offset_string from offsetfmts[level] whenever show_offset holds, and only suppresses it when the year appears in the ticks themselves. So the same assertion would FAIL if the fixture used a narrower date span.\n   Why this is NOT a spec faithfulness break: assertion (e) is a G-AX-internal convenience check, not one of the eight Solution.lean axioms. The `modesAvailable = false` arm's actual obligation is `labels = ownLabels`, and that clause HELD on every date configuration I drove (one hour / one day / one month / one year, concise True and False, ConciseDateFormatter and AutoDateFormatter \u2014 8/8, ownLabels == labels in every case), because that arm calls neither setter and is genuinely inert. The spec is silent about the hoisted term on that arm, which is the honest thing to be: a ConciseDateFormatter legend really does lose its offset string, but that is pre-existing repo behavior the patch does not touch and the spec does not claim otherwise. Recommend widening axiom_check.py's date fixture to a sub-month span and either dropping assertion (e) or restating it as \"hoists nothing FOR THIS TICK LIST\" \u2014 otherwise a future fixture change turns a passing gate red for a reason unrelated to the spec.\n\n2. STALE meta.json (bookkeeping, pre-existing, independently reported by the retained Role-3 record). `float_modeling`, `axioms[0].encoded_property` and `modeled_functions[*].carrier_type` still describe the SUPERSEDED carrier ('tick values modeled as Int restricted to |t| <= 2^53', a `renderTicks_faithful` / `labelValue` read-back axiom, 'List Int'). The frozen Solution.lean has `ticks : List Float` with no 2^53 guard and no read-back axiom; its axioms are RendererConfig / renderTicks / sharedTerm / renders / renderTicks_length / sharedTerm_none / sharedTerm_hoists / renderLog / rendersLog / renderLog_length / renders_nonvacuous. mapping.md 2 documents the Int revision being refuted by G-EQ. Prose/metadata drift only \u2014 I audited the live Lean, which is what ships. Note meta.json is a gate-owned ledger, so this wants a gate-side restamp rather than a hand edit.\n\nENVIRONMENT NOTE: the host matplotlib is 3.10.9, which differs from the oracle's pin. Every measurement above was taken inside the instance's own container at matplotlib 3.7.2; I verified the version at the top of each probe. The ConciseDateFormatter get_offset behavior in observation 1 reproduces in BOTH versions, so it is not a host artifact.; G-PANEL-3 (leakage): pass \u2014 LEAKAGE / GOLD-RECONSTRUCTION, mwaskom__seaborn-3187 velvet. Verdict NO-LEAKAGE. Reviewing the SHIPPED Solution.lean sha 6d339e20ea69...; every load-bearing claim below is my own measurement.\n\nNO RELAXATION CLAIM TO ADJUDICATE -- so this is a STRICT review with no facet carve-out. meta.json has no `relaxed_leakage` key (top-level keys: axioms, base_commit, changed_files, conf_skip, conf_skip_reason, deep_model_references, float_modeling, gates, instance_id, modeled_functions, patch_is_gold, pbt_audit, region_hashes, repo, schema_version, spec_provenance, version) and `find -iname '*relax*'` over the instance dir returns nothing -- no RELAXED_LEAKAGE.md. The three `relaxed_leakage` substring hits in meta.json are inside PRIOR G-PANEL-3 note text (gates.G-PANEL-3.note and the G-PANEL rollup detail) asserting the key's absence; they are a stamped record of an earlier role, not a claim addressed to me, and I did not inherit their disposition -- I re-derived the unavoidability argument from scratch below.\n\nNO BUNDLE FILE ADDRESSES ME. `leakage.reviewer_directed()` over all 11 .md files under the instance (velvet/lean/nagini/ears x refinement/mapping/verdict + ears/requirements.md): zero hits on every one. No file tells me how to record or which verdict is honest. Nothing to report as steering.\n\nSPEC REGION BYTE-IDENTICAL. `markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend.language)` = True, and `spec_view` of the two files is string-identical (13694 chars). The only diff between the files is inside the elided impl region: `offsetMode/scaleMode := false` -> `true` at both sites plus their comments. The prepatch's `-- PRE-PATCH BUG:` narration is fully elided -- measured on the PREPATCH spec view: 'PRE-PATCH' 0, 'BUG' 0, 'bug' 0, 'fix' 0. So the artifact I judge is one text and it carries no pre/post tell.\n\nMECHANICAL SCREEN. `leakage.screen(Solution.lean, VelvetBackend.language, patch.diff, problem_statement)` -> passed=True, hard_failures=[], warnings=[]. I treated that as necessary-not-sufficient and screened the vocabulary myself, because G-LEAK's symbol rule only harvests def/class names from changed lines and this gold patch adds no def/class -- so the two setter names are NOT covered by it. Counts over the spec view: set_useOffset 0, useOffset 0, set_scientific 0, scientific 0, ScalarFormatter 0, LogFormatter 0, format_ticks 0, formatter 0, locator 0, matplotlib 0, seaborn 0, scales.py 0, utils.py 0. No patched path, no patched module dotted path, no diff marker, no gold line >=8 normalized chars. Hidden-test constants: `1e8`/`1e7` (the FAIL_TO_PASS assertions `np.add(xy['x'], 1e8)` / `float(text.get_text()) > 1e7`) -> 0 occurrences in the spec view. The ears/verdict.md advisory about \"spec prose reproducing hidden-test constants 1e8/1e7\" does NOT apply here: 0 hits in the velvet spec view and 0 in ears/requirements.md as shipped.\n\nDISCRIMINATOR IS LOAD-BEARING -- the strip-and-reverify test, run for real with scripts/lean_verify.sh (600s cap):\n  (post) Solution.lean as shipped -> exit 0.\n  (B) prepatch impl + spec with the `sharedTerm cfg offsetMode scaleMode ticks = \"\"` conjunct REMOVED from both `ensures` (domain `require`s widened to `renders cfg true true ticks` so the length obligation is dischargeable at the setting that impl uses; proofs witness true/true) -> exit 0. The prepatch impl VERIFIES once the conjunct is gone.\n  (C) VACUITY CONTROL: identical widened `require`s, conjunct KEPT -> exit 1, unsolved goals at both `prove_correct` sites (202:27 and 259:28). So B's pass is not an artifact of the widened domain; the `sharedTerm = \"\"` conjunct is the ONLY clause rejecting the prepatch impl.\nHence the discriminating clause cannot be dropped, and stating it in the fragment forces the two switches to appear as parameters of `renderTicks`/`sharedTerm`. The abstract two-switch model is compelled by spec strength, not chosen to hint.\n\nWHAT THE PUBLIC STATEMENT ALREADY GIVES. problem_statement (never hints_text) names: `offset` x6, `formatter` x6, `ScalarFormatter` x3, `mpl.rcParams['axes.formatter.useoffset']`, the offset_threshold rcParam, \"formatted without their multiplicative offset value\", \"in the order of 1E6\", a direct GitHub permalink to scales.py L377-L382 (the modeled site), and \"The issue also reproduces ... using `scatterplot`\" -- which is what makes the TWO-SITE split (objects `legendLabels` + classic function-level `legendEntries`) public. So the additive facet, the callee class, the site, and the two-interface structure are all already solver-visible; the word \"multiplicative\" is public verbatim, covering the power-of-ten switch. The spec view says strictly less about the repo than the statement does: it names no class, no setter, no file, no line.\n\nTWO PROSE POINTS I WEIGHED AND DID NOT RAISE AS LEAKAGE:\n  (i) \"that path is not touched\" (legendEntries docstring, log arm) is phrased about the edit rather than behavior. It conveys nothing beyond the formal clause on the next lines, `ensures isLog = true -> labels = renderLog cfg ticks`, which is a required frame pin -- without it the log arm is unconstrained and the spec is too weak (refinement.md B2 records G-PANEL-2 refuting a weaker ticks-only version of exactly this clause). Zero gold-reconstruction content beyond a clause a faithful spec must state; recommend rewording to \"is unchanged\" on any future prose pass, non-blocking.\n  (ii) The identifier `offsetMode` embeds \"offset\", which is public in the statement 6 times, so it is screened out by the problem_statement carve-out; `scaleMode` echoes no repo symbol (the real setter is `set_scientific`).\n\nTWO PROCESS NOTES for the gate operator, neither affecting this verdict:\n  - meta.json `region_hashes.spec_view` = d5467361...; recomputed from the shipped file = 52b6628e... (axioms and impl likewise disagree). This is CORPUS-WIDE, not instance-specific: I sampled 40 benchmark-verified/*/velvet bundles and got 0 matches / 40 mismatches, so the stored region_hashes are stale or computed under a different convention fleet-wide -- an infrastructure item, not a spec defect here.\n  - Every G-PANEL-* role record (incl. the prior G-PANEL-3 pass) is stamped against Solution.lean sha 6524c567..., while the shipped file and all of G-AX/G-DIFF/G-GOLD/G-HYGIENE/G-LEAK/G-MUT/G-VERIFY are 6d339e20.... The panel lane had not previously judged the shipped text; this submission does. G-PANEL is failing only because G-PANEL-2 (faithfulness) failed on an OverflowError inside the modeled region -- a domain/faithfulness matter in that lane, and per the rollup convention a failing G-PANEL means re-audit, not repair. It is orthogonal to leakage and does not undermine any gate this NO-LEAKAGE rests on (G-VERIFY pass, G-DIFF prepatch-fails pass, G-AX pass, G-LEAK pass, all four stamped against the shipped 6d339e20).\n\nCONCLUSION: no gold-diff line, no diff marker, no patched file/module path, no patched repo symbol in identifier or comment, no bug->fix narration, no hidden-test constant, and the one mechanism-shaped statement in the spec view is a load-bearing discriminator proven unavoidable by the B/C pair above. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T14:42:44+00:00",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T14:42:43+00:00",
+      "code_version": "8452d15b9-dirty",
+      "harness_digest": "987dad713899",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 26 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 26 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 19 | `atk_01_prepatch.lean`, `atk_02_carrier_int_reencode.lean`, `atk_03_partial_domain_nan.lean`, `atk_04_boundary_short_list.lean`, `atk_05_ungrounded_oracle.lean`, `atk_06_swapped_arms.lean`, `atk_07_log_path_substituted.lean`, `atk_08_padded_argument.lean`, `atk_09_sharedterm_oracle.lean`, +10 more |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_17_alias_echo_modes_arm.lean`, `atk_18_domain_escape_noswitch_arm.lean`, `atk_19_domain_escape_logrenderer.lean`, `atk_23_dblguard_oracle_bothon.lean`, `atk_24_dblguard_oracle_offsetonly.lean`, `atk_25_dblguard_oracle_scionly.lean`, `atk_26_maximal_dblguard_oracle.lean` |\n\n**Non-vacuity.** The positive control `pos_gold.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "properties.py": "0740cebeba1dc2817457f5585b9f12f10a434ca7e9f6bc7fca07e96d692588b6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T13:50:23+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "harness_digest": "987dad713899",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "VERDICT: FAITHFUL. I could not construct any input on which the modeled functions disagree with the real patched callees. ~390,000 measured observations across the two axiom families, both real sites driven end-to-end, and the domain predicates checked for correspondence in BOTH directions (no in-domain violation, and no case where a `require` was false yet the real site still returned a legend).\n\nThis run supersedes the retained Role-3 UNFAITHFUL record in verdict.md. That finding was correct against the revision it audited (unguarded total axioms, mapping.md then affirmatively claiming \"no modeled sub-domain\"). The SHIPPED spec has since been repaired exactly as that finding recommended: `renders` and `rendersLog` are now opaque domain predicates, all four renderer facts are stated only inside them, `renders_nonvacuous` blocks vacuity, and each method carries the domain of the renderer its own arm calls at the setting that arm uses. I re-drove the cited counterexamples (public objects API with norm=(-M,M).tick(at=[0.0]); locator_to_legend_entries(FixedLocator([-M,M]), (-M,M), float); the bare axiom binding f.axis=DummyAxis(-M,M) then format_ticks([0.0])) and confirmed they all still raise OverflowError in the repo \u2014 but they now fall outside the modeled domain, so they no longer witness a disagreement. Per the retained-labels rule I re-judged rather than echoing the stored verdict, and the reject lane does not survive re-measurement.\n\nThe three modelling decisions I tried hardest to break all held, and each is load-bearing rather than decorative:\n  * `renderLog` taking `cfg` \u2014 CORRECT and necessary. I independently reproduced the interval dependence ([1,100,10000] -> ['1','100','10000'] at view (1,1e5) vs ['1','100','1e4'] at (1,1.5e5)); LogFormatter.__call__ reads self.axis.get_view_interval() and _pprint_val's ladder switches at d=1e5. A ticks-only model would be the unfaithful one.\n  * one `modesAvailable` Bool for two `hasattr` guards \u2014 CONFIRMED. Enumerating Formatter subclasses across matplotlib.ticker, .dates, .category and .projections.polar in 3.7.2 gives 19 classes; ScalarFormatter is the ONLY one with both setters and EXACTLY ZERO have precisely one, so the two guards at scales.py:385-388 can never disagree. EngFormatter's bases are (Formatter,) in this version with hasattr False/False, so it correctly lands on the false arm \u2014 the near-miss mapping.md flags is real and correctly resolved.\n  * `sharedTerm cfg false false ticks = \"\"` rather than a numeric read-back \u2014 CORRECT. I confirmed mathtext/usetex installs print labels no numeric parse accepts while still hoisting nothing, so a read-back obligation would have been FALSE of the real code. This is the rare case where the weaker-looking clause is the faithful one.\n\nTWO NON-DEFECT OBSERVATIONS, recorded for the ledger and explicitly NOT the basis of any verdict:\n\n1. LATENT G-AX BRITTLENESS (axiom_check.py, not Solution.lean). check_alt_renderers assertion (e) asserts `own_fmt.get_offset() == \"\"` for every non-ScalarFormatter renderer, justified in the docstring as \"these renderers hoist nothing to begin with\". That is FALSE of ConciseDateFormatter in general \u2014 it is only true of the tick list axiom_check happens to pass it (`days = [1.0, 32.0, 60.0, 91.0]`, a multi-month span). Measured at the REAL patched site A via Temporal().label(concise=True): a one-day span gives get_offset() == '2020-Jan-02', a one-month span '2020-Jan', a one-hour span '2020-Jan-01'. ConciseDateFormatter.format_ticks sets self.offset_string from offsetfmts[level] whenever show_offset holds, and only suppresses it when the year appears in the ticks themselves. So the same assertion would FAIL if the fixture used a narrower date span.\n   Why this is NOT a spec faithfulness break: assertion (e) is a G-AX-internal convenience check, not one of the eight Solution.lean axioms. The `modesAvailable = false` arm's actual obligation is `labels = ownLabels`, and that clause HELD on every date configuration I drove (one hour / one day / one month / one year, concise True and False, ConciseDateFormatter and AutoDateFormatter \u2014 8/8, ownLabels == labels in every case), because that arm calls neither setter and is genuinely inert. The spec is silent about the hoisted term on that arm, which is the honest thing to be: a ConciseDateFormatter legend really does lose its offset string, but that is pre-existing repo behavior the patch does not touch and the spec does not claim otherwise. Recommend widening axiom_check.py's date fixture to a sub-month span and either dropping assertion (e) or restating it as \"hoists nothing FOR THIS TICK LIST\" \u2014 otherwise a future fixture change turns a passing gate red for a reason unrelated to the spec.\n\n2. STALE meta.json (bookkeeping, pre-existing, independently reported by the retained Role-3 record). `float_modeling`, `axioms[0].encoded_property` and `modeled_functions[*].carrier_type` still describe the SUPERSEDED carrier ('tick values modeled as Int restricted to |t| <= 2^53', a `renderTicks_faithful` / `labelValue` read-back axiom, 'List Int'). The frozen Solution.lean has `ticks : List Float` with no 2^53 guard and no read-back axiom; its axioms are RendererConfig / renderTicks / sharedTerm / renders / renderTicks_length / sharedTerm_none / sharedTerm_hoists / renderLog / rendersLog / renderLog_length / renders_nonvacuous. mapping.md 2 documents the Int revision being refuted by G-EQ. Prose/metadata drift only \u2014 I audited the live Lean, which is what ships. Note meta.json is a gate-owned ledger, so this wants a gate-side restamp rather than a hand edit.\n\nENVIRONMENT NOTE: the host matplotlib is 3.10.9, which differs from the oracle's pin. Every measurement above was taken inside the instance's own container at matplotlib 3.7.2; I verified the version at the top of each probe. The ConciseDateFormatter get_offset behavior in observation 1 reproduces in BOTH versions, so it is not a host artifact.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-AX `pass` (the axiom battery). The account names `Solution.lean`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T13:34:55+00:00",
+      "code_version": "b302f06fa-dirty",
+      "harness_digest": "987dad713899",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LEAKAGE / GOLD-RECONSTRUCTION, mwaskom__seaborn-3187 velvet. Verdict NO-LEAKAGE. Reviewing the SHIPPED Solution.lean sha 6d339e20ea69...; every load-bearing claim below is my own measurement.\n\nNO RELAXATION CLAIM TO ADJUDICATE -- so this is a STRICT review with no facet carve-out. meta.json has no `relaxed_leakage` key (top-level keys: axioms, base_commit, changed_files, conf_skip, conf_skip_reason, deep_model_references, float_modeling, gates, instance_id, modeled_functions, patch_is_gold, pbt_audit, region_hashes, repo, schema_version, spec_provenance, version) and `find -iname '*relax*'` over the instance dir returns nothing -- no RELAXED_LEAKAGE.md. The three `relaxed_leakage` substring hits in meta.json are inside PRIOR G-PANEL-3 note text (gates.G-PANEL-3.note and the G-PANEL rollup detail) asserting the key's absence; they are a stamped record of an earlier role, not a claim addressed to me, and I did not inherit their disposition -- I re-derived the unavoidability argument from scratch below.\n\nNO BUNDLE FILE ADDRESSES ME. `leakage.reviewer_directed()` over all 11 .md files under the instance (velvet/lean/nagini/ears x refinement/mapping/verdict + ears/requirements.md): zero hits on every one. No file tells me how to record or which verdict is honest. Nothing to report as steering.\n\nSPEC REGION BYTE-IDENTICAL. `markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend.language)` = True, and `spec_view` of the two files is string-identical (13694 chars). The only diff between the files is inside the elided impl region: `offsetMode/scaleMode := false` -> `true` at both sites plus their comments. The prepatch's `-- PRE-PATCH BUG:` narration is fully elided -- measured on the PREPATCH spec view: 'PRE-PATCH' 0, 'BUG' 0, 'bug' 0, 'fix' 0. So the artifact I judge is one text and it carries no pre/post tell.\n\nMECHANICAL SCREEN. `leakage.screen(Solution.lean, VelvetBackend.language, patch.diff, problem_statement)` -> passed=True, hard_failures=[], warnings=[]. I treated that as necessary-not-sufficient and screened the vocabulary myself, because G-LEAK's symbol rule only harvests def/class names from changed lines and this gold patch adds no def/class -- so the two setter names are NOT covered by it. Counts over the spec view: set_useOffset 0, useOffset 0, set_scientific 0, scientific 0, ScalarFormatter 0, LogFormatter 0, format_ticks 0, formatter 0, locator 0, matplotlib 0, seaborn 0, scales.py 0, utils.py 0. No patched path, no patched module dotted path, no diff marker, no gold line >=8 normalized chars. Hidden-test constants: `1e8`/`1e7` (the FAIL_TO_PASS assertions `np.add(xy['x'], 1e8)` / `float(text.get_text()) > 1e7`) -> 0 occurrences in the spec view. The ears/verdict.md advisory about \"spec prose reproducing hidden-test constants 1e8/1e7\" does NOT apply here: 0 hits in the velvet spec view and 0 in ears/requirements.md as shipped.\n\nDISCRIMINATOR IS LOAD-BEARING -- the strip-and-reverify test, run for real with scripts/lean_verify.sh (600s cap):\n  (post) Solution.lean as shipped -> exit 0.\n  (B) prepatch impl + spec with the `sharedTerm cfg offsetMode scaleMode ticks = \"\"` conjunct REMOVED from both `ensures` (domain `require`s widened to `renders cfg true true ticks` so the length obligation is dischargeable at the setting that impl uses; proofs witness true/true) -> exit 0. The prepatch impl VERIFIES once the conjunct is gone.\n  (C) VACUITY CONTROL: identical widened `require`s, conjunct KEPT -> exit 1, unsolved goals at both `prove_correct` sites (202:27 and 259:28). So B's pass is not an artifact of the widened domain; the `sharedTerm = \"\"` conjunct is the ONLY clause rejecting the prepatch impl.\nHence the discriminating clause cannot be dropped, and stating it in the fragment forces the two switches to appear as parameters of `renderTicks`/`sharedTerm`. The abstract two-switch model is compelled by spec strength, not chosen to hint.\n\nWHAT THE PUBLIC STATEMENT ALREADY GIVES. problem_statement (never hints_text) names: `offset` x6, `formatter` x6, `ScalarFormatter` x3, `mpl.rcParams['axes.formatter.useoffset']`, the offset_threshold rcParam, \"formatted without their multiplicative offset value\", \"in the order of 1E6\", a direct GitHub permalink to scales.py L377-L382 (the modeled site), and \"The issue also reproduces ... using `scatterplot`\" -- which is what makes the TWO-SITE split (objects `legendLabels` + classic function-level `legendEntries`) public. So the additive facet, the callee class, the site, and the two-interface structure are all already solver-visible; the word \"multiplicative\" is public verbatim, covering the power-of-ten switch. The spec view says strictly less about the repo than the statement does: it names no class, no setter, no file, no line.\n\nTWO PROSE POINTS I WEIGHED AND DID NOT RAISE AS LEAKAGE:\n  (i) \"that path is not touched\" (legendEntries docstring, log arm) is phrased about the edit rather than behavior. It conveys nothing beyond the formal clause on the next lines, `ensures isLog = true -> labels = renderLog cfg ticks`, which is a required frame pin -- without it the log arm is unconstrained and the spec is too weak (refinement.md B2 records G-PANEL-2 refuting a weaker ticks-only version of exactly this clause). Zero gold-reconstruction content beyond a clause a faithful spec must state; recommend rewording to \"is unchanged\" on any future prose pass, non-blocking.\n  (ii) The identifier `offsetMode` embeds \"offset\", which is public in the statement 6 times, so it is screened out by the problem_statement carve-out; `scaleMode` echoes no repo symbol (the real setter is `set_scientific`).\n\nTWO PROCESS NOTES for the gate operator, neither affecting this verdict:\n  - meta.json `region_hashes.spec_view` = d5467361...; recomputed from the shipped file = 52b6628e... (axioms and impl likewise disagree). This is CORPUS-WIDE, not instance-specific: I sampled 40 benchmark-verified/*/velvet bundles and got 0 matches / 40 mismatches, so the stored region_hashes are stale or computed under a different convention fleet-wide -- an infrastructure item, not a spec defect here.\n  - Every G-PANEL-* role record (incl. the prior G-PANEL-3 pass) is stamped against Solution.lean sha 6524c567..., while the shipped file and all of G-AX/G-DIFF/G-GOLD/G-HYGIENE/G-LEAK/G-MUT/G-VERIFY are 6d339e20.... The panel lane had not previously judged the shipped text; this submission does. G-PANEL is failing only because G-PANEL-2 (faithfulness) failed on an OverflowError inside the modeled region -- a domain/faithfulness matter in that lane, and per the rollup convention a failing G-PANEL means re-audit, not repair. It is orthogonal to leakage and does not undermine any gate this NO-LEAKAGE rests on (G-VERIFY pass, G-DIFF prepatch-fails pass, G-AX pass, G-LEAK pass, all four stamped against the shipped 6d339e20).\n\nCONCLUSION: no gold-diff line, no diff marker, no patched file/module path, no patched repo symbol in identifier or comment, no bug->fix narration, no hidden-test constant, and the one mechanism-shaped statement in the spec view is a load-bearing discriminator proven unavoidable by the B/C pair above. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:12:21+00:00",
+      "code_version": "9456274ba-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-inline-mode-constants",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-guard-flip",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-labels-branch-guard-flip",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-alt-path-empty-literal",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-own-labels-length-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-render-domain-reaches-the-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.0
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [5.0] = renderTicks cfg o s [5.0] but is expected to have type renderTicks cfg true true [5.0] = renderTicks cfg o s [5.0] in the application h o s ho",
+            "id": "weak-both-modes-enabled",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.1,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [100000000.0, 100000002.5] = renderTicks cfg o s [100000000.0, 100000002.5] but is expected to have type renderTicks cfg true false [100000000.0, 100000002.5] = renderTicks cfg o s [100000000.0, 100000002.5] in the application h o s ho",
+            "id": "weak-additive-mode-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [12340000.0, 12350000.0] = renderTicks cfg o s [12340000.0, 12350000.0] but is expected to have type renderTicks cfg false true [12340000.0, 12350000.0] = renderTicks cfg o s [12340000.0, 12350000.0] in the application h o s ho",
+            "id": "weak-multiplicative-mode-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.1,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rewrite` failed: Did not find an occurrence of the pattern ticks.all fun t => t == t.floor in the target expression renderTicks cfg false false ticks = renderTicks cfg o s ticks",
+            "id": "weak-modes-off-only-for-whole-number-ticks",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.1,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [1.0, 2.0] = renderTicks cfg o s [1.0, 2.0] but is expected to have type renderTicks cfg false false [1.0, 2.0].reverse = renderTicks cfg o s [1.0, 2.0] in the application h o s ho",
+            "id": "weak-permuted-tick-argument",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "`simp` made no progress",
+            "id": "weak-drops-an-entry",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "`simp` made no progress",
+            "id": "weak-duplicates-entries",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [0.2, 0.22] = renderTicks cfg o s [0.2, 0.22] but is expected to have type List.take [0.2, 0.22].length (renderTicks cfg false false ([0.2, 0.22] ++ [9007199254740992.0])) = renderTicks cfg o s [0.2, 0.22] in the application h o s ho",
+            "id": "weak-labels-pads-the-tick-argument",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [0.25] = renderTicks cfg o s [0.25] but is expected to have type renderTicks sharedTerm_hoists.choose false false [0.25] = renderTicks cfg o s [0.25] in the application h o s ho",
+            "id": "weak-labels-uses-another-renderer-handle",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 10.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument rfl has type ?m.38 = ?m.38 but is expected to have type NonDetT.run (if false = true then do let __discr \u2190 pickSuchThat (List String) fun labels => typeWithName (labels = renderTicks cfg false false [1.0, 2.0]) (Lean.Name.anonymous.mkStr \"choice_1\") pure __discr else pure [\"a\", \"b\"]) = DivM.res [\"a\", \"b\"].reverse",
+            "id": "weak-labels-no-modes-path-renumbered",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [3.0, 4.0] = renderTicks cfg o s [3.0, 4.0] but is expected to have type [\"a\", \"b\"] = renderTicks cfg o s [3.0, 4.0] in the application h o s ho",
+            "id": "weak-labels-guard-ignored",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [42.0] = renderTicks cfg o s [42.0] but is expected to have type renderTicks cfg true true [42.0] = renderTicks cfg o s [42.0] in the application h o s ho",
+            "id": "weak-entries-modes-enabled",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [0.2, 0.24] = renderTicks cfg o s [0.2, 0.24] but is expected to have type List.take [0.2, 0.24].length (renderTicks cfg false false ([0.2, 0.24] ++ [9007199254740992.0])) = renderTicks cfg o s [0.2, 0.24] in the application h o s ho",
+            "id": "weak-entries-pads-the-tick-argument",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument rfl has type ?m.34 = ?m.34 but is expected to have type NonDetT.run (if True then do let __discr \u2190 pickSuchThat (List String) fun labels => typeWithName (labels = renderLog cfg [5.0]) (Lean.Name.anonymous.mkStr \"choice_1\") pure __discr else do let __discr \u2190",
+            "id": "weak-alt-path-substitutes-renderer",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument ho has type renderTicks cfg false false [3.0, 4.0] = renderTicks cfg o s [3.0, 4.0] but is expected to have type renderLog cfg [3.0, 4.0] = renderTicks cfg o s [3.0, 4.0] in the application h o s ho",
+            "id": "weak-selector-ignored",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.1,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument rfl has type ?m.47 = ?m.47 but is expected to have type NonDetT.run (if True then do let __discr \u2190 pickSuchThat (List String) fun labels => typeWithName (labels = renderLog cfg [1.0, 2.0]) (Lean.Name.anonymous.mkStr \"choice_1\") pure __discr else do let __discr \u2190",
+            "id": "weak-alt-path-permutes-argument",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "`simp` made no progress",
+            "id": "weak-entries-drops-an-entry",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "`simp` made no progress",
+            "id": "weak-entries-duplicates",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rewrite` failed: Did not find an occurrence of the pattern Loop.forIn.loop ?m.119 1 in the target expression (NonDetT.bind (pickSuchThat (List String) fun labels => typeWithName (labels = renderTicks cfg false false ticks) (Lean.Name.anonymous.mkStr \"choice_1\")) fun __discr => pure __discr).run = DivM.res labels",
+            "id": "weak-labels-spins-before-rendering",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 4,
+          "uniqueness": 19
+        },
+        "manifest_sha256": "59b9b8e78d119807ac4b19645999853868c3d249085d6668c39762ac8b6043c1",
+        "n_cases": 25,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 25 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2",
+        "properties.py": "59b9b8e78d119807ac4b19645999853868c3d249085d6668c39762ac8b6043c1"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T06:31:48+00:00",
+      "code_version": "ee00acecd-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "cc9658273d25",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "559bd933c7b7eeefa22c3437534cc993feebfa3794b56aee60d40b77643e4aed",
+        "patch.diff": "578f98370810261561a8936dd7202e8c6644ef8d9ae52a54578a680f3cb4fc1f"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:06:58+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "wall_time_s": 4.0
+      },
+      "detail": "verified in 4.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "6d339e20ea69a430faacc68a3093e80235a2e86ee03a3d8450d43ca9d16ea5d2"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "mwaskom__seaborn-3187",
+  "modeled_functions": [
+    {
+      "carrier_type": "List Int (|t| <= 2^53, tick positions) -> List String (labels); faithfulness read back via labelValue",
+      "model_symbol": "legendLabels",
+      "repo_location": "seaborn/_core/scales.py:377-382",
+      "repo_symbol": "seaborn._core.scales.Continuous._setup (legend branch)"
+    },
+    {
+      "carrier_type": "Bool (isLog) x List Int (|t| <= 2^53) -> List String; ScalarFormatter branch faithful, LogFormatter branch pinned to renderLog output (length via renderLog_length)",
+      "model_symbol": "legendEntries",
+      "repo_location": "seaborn/utils.py:687-710",
+      "repo_symbol": "seaborn.utils.locator_to_legend_entries"
+    }
+  ],
+  "patch_is_gold": true,
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "A",
+        "kind": "statement-integrity",
+        "outcome": "PASS, no finding. Programmatically diffed spec_view(frozen) against spec_view(variant) for all 25 cases and ran variant_problems on each: every case scope_problems=[] and spec_view identical. No prove_correct header is reformatted, weakened or restated anywhere. Byte-identity of both frozen tactic bodies is additionally enforced at LOAD for 24 of 25 cases, with the single reproving case's replacement script pinned by exact text and screened for sorry/admit/native_decide/axiom/opaque."
+      },
+      {
+        "id": "B",
+        "kind": "witness-rediscrimination",
+        "outcome": "PASS for all 19 reject cases. Rebuilt every witness myself through the gate's own witness_file() and consistency_probe(): rival_exit=0, gold_exit=1, probe_exit=1 in every case. Read every gold log in full; none matches any of the four stuck-reduction screens (no stuck decide, no 'Dependent elimination failed', no missing Decidable instance, no 'forIn Lean.Loop.mk' unification failure). The obligations are loop-free and no witness asks the kernel to decide a Float."
+      },
+      {
+        "id": "B-prime",
+        "kind": "forgery-test",
+        "outcome": "PASS, decisively, for all 19. Every gold_signature here is an 'Application type mismatch' or 'unsolved goals' rather than a plain evaluation, so the forgery test was mandatory on all of them. I authored 19 flipped-claim witnesses asserting the AFFIRMATIVE of exactly what each witness negates. ALL 19 INVERT: forgery gold exit 0, forgery rival exit 1. Gold's exit code therefore demonstrably tracks the claim, so no case's rejection rests on a tactic mismatch that any claim would hit."
+      },
+      {
+        "id": "C",
+        "kind": "rival-is-wrong-not-merely-different",
+        "outcome": "PASS, no vacuous rival found among the 19, and this was measured rather than argued: the forgery inversion is exactly the observable-difference test \u2014 a rival definitionally equal to gold on this carrier would satisfy the affirmative too and the forgery would NOT invert. All 19 inverted. (Contrast the vacuity-control rival I built in attack F, which does NOT invert and which I therefore did NOT ship.)"
+      },
+      {
+        "id": "D",
+        "kind": "spec-too-weak-probe",
+        "outcome": "NO HOLE FOUND. Wrote 5 new wrong impls the battery lacks. D2 (post-process label text), D3 (numeric output on the P1-pinned arm), D4 (log arm post-processed) and D5 (labels := ownLabels on the numeric arm) were all REJECTED, exit 1 'unsolved goals'. D1 ('let labels :| labels.length = ticks.length', i.e. satisfy only the count) failed on 'failed to synthesize' \u2014 a Findable instance gap, so it is a TOOLING limitation and I record it as inconclusive as a spec probe rather than as a rejection."
+      },
+      {
+        "id": "E",
+        "kind": "spec-too-strong-probe",
+        "outcome": "NO SOUNDNESS HOLE. Wrote 3 new correct reshapes. E2 (match-dispatch instead of if/then/else) VERIFIES at exit 0 under the untouched frozen script \u2014 a genuine correct reshape the contract admits. E1 (linear-arm empty-list literal) and E3 (return raw ++ []) were rejected under the frozen script, which looked like a candidate hole; I RESOLVED BOTH BY BUILD rather than leaving them uncertain: rebuilt each with a reproved legendEntries/legendLabels script in the same style the battery already whitelists for pos-alt-path-empty-literal, and BOTH VERIFY (E1b exit 0, E3b exit 0). So the CONTRACT admits them and their earlier rejection was a frozen-tactic-script limitation, not SPEC-TOO-STRONG. No spec hole."
+      },
+      {
+        "id": "F",
+        "kind": "omission-re-derivation",
+        "outcome": "ONE UNDERPORT FOUND AND FIXED (divergence, see F-prime); the rest confirmed inexpressible by build. Checked the admissibility lane explicitly: this battery DOES carry kind='admissibility' (2 cases), unlike the 97 velvet ports that drop it, and I confirmed both are load-bearing with my own perturbation builds A1/A2/A3 rather than trusting the rationales. Also re-derived the sibling's admiss-self-call-vacuity-control rather than accepting a prose dismissal: built the frozen numeric arm with 'assert (with_name_prefix `vac False)', which IS rejected (exit 1, 'case \u00abvac_1: False\u00bb \u2026 \u22a2 False' with both requires in context) \u2014 so neither admissibility positive is vacuous \u2014 but it is UNSHIPPABLE as a case because the rival's observable behaviour is gold's: I measured that the affirmative witness elaborates against BOTH that rival and gold (exit 0 each), so no witness can discriminate. Recorded that control with its build in the manifest instead of fabricating a case."
+      },
+      {
+        "id": "F-prime",
+        "kind": "divergence-lane",
+        "outcome": "FINDING, FIXED. The bundle sets loom.semantics.termination \"total\", so the class is shippable, and the sibling ships nonterminating-build \u2014 yet the port recorded it as 'INAPPLICABLE \u2026 CLOSED BY THE SEMANTICS', i.e. UNDERPORTED. Measured the semantics first: F1b (loop with invariant+done_with but no decreasing) is refused by the elaborator itself ('Decreasing annotations are required in total correctness semantics'), and F2b with an Int measure produced a masking TYPE error ('has type \u2124 but is expected to have type Option \u2115'), so I used a Nat measure; F3 then gave the clean verdict 'unsolved goals / case \u00abdecreasing_1: spin\u00bb / \u22a2 False'. I then did the work the port did not: proved a witness is EXPRESSIBLE. A spinning DivM loop's divergence is provable on this carrier via Loop.forIn.loop.fixpoint_induct with admissible_pi_apply + admissible_flatOrder (probe G9, exit 0), and that lifts to a real witness against the rival (exit 0) that fails on gold (exit 1) with an inverting forgery. Landed as weak-labels-spins-before-rendering; the gate records it 'rejected (witness refutes the rival)'."
+      },
+      {
+        "id": "G",
+        "kind": "coverage-claims",
+        "outcome": "PASS. scripts/pbt_coverage.py --backend velvet --instances mwaskom__seaborn-3187 reports 'obl=2 cases=25 (+6/-19) binders=7 ok', 0 coverage findings, after my edit (it reported obl=2 cases=24 (+6/-18) binders=7 ok before). Checked that binder variation is MEANINGFUL rather than two spellings of one point: ticks moves across twelve distinct inputs varying LENGTH (1,2,3), MAGNITUDE (sub-unit to ~1e8), FRACTIONALITY (whole, one-decimal, two-decimal, half-integral \u2014 the facet an integer carrier could not express) and ORDER; both selectors are held at BOTH values by rivals rather than only by positives; and cfg is universally bound everywhere, which is the strongest available claim given it has no constructor."
+      },
+      {
+        "id": "H",
+        "kind": "prose-vs-manifest-audit",
+        "outcome": "MAJOR FINDING, FIXED. Compared every sibling ID the manifest cites against the sibling manifest's actual case list. 5 cited IDs DO NOT EXIST (pos-reshaped-locals, pos-raw-loc-grounded-oracle, admiss-self-call-fresh-list, partial-first-residual, partial-large-residual-collapse), cited 13 times including in 7 individual case rationales as '(Sibling: \u2026)' attributions. The table also claimed 'the sibling ships 8 SPEC cases' when it ships 20, leaving 17 real sibling cases entirely unaccounted. Rewrote the table against the real 20-case list, re-attributed all 7 inline citations to the real sibling case whose argument each carries, and added a load-time guard that raises if any cited ID is absent from the sibling manifest \u2014 verified live: 20 cited IDs, 0 bogus."
+      },
+      {
+        "id": "I",
+        "kind": "misquoted-build-evidence",
+        "outcome": "FINDING, FIXED. The divergence paragraph claimed the rejection goal is '\u22a2 spin < spin'; the actual measured goal is '\u22a2 False' on 'case \u00abdecreasing_1: spin\u00bb'. A build quoted in a manifest that does not match the build is the same defect class as a fabricated case ID, so I corrected it and added the two masking failure modes I hit (missing-clause elaborator refusal, Int-measure type error) so the next reader does not mistake either for the verdict."
+      }
+    ],
+    "audited_at": "weakgold",
+    "cases": [
+      {
+        "evidence": "soundness/verify -> verified [12.1s]. Attack A: spec_view(variant) byte-identical to spec_view(frozen), scope_problems=[]; both frozen prove_correct bodies present verbatim (load-time assertion, not prose). Obligation not neutered: the case inlines the two mode constants into the render call, so L1 and R1/\u2227N1 still discharge from the same axioms under the unmodified frozen script.",
+        "id": "pos-inline-mode-constants",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "soundness/verify -> verified [11.8s]. Attack A clean. Negates legendEntries' selector and exchanges the two branch bodies, so the reshape is behaviourally identical while the branch ORDER differs; frozen script unchanged, so a pass here is the contract admitting the reshape.",
+        "id": "pos-branch-guard-flip",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "soundness/verify -> verified [11.1s]. Attack A clean. Same argument on the OTHER obligation's selector, so neither contract is over-fit to its written branch order. Both frozen bodies verbatim.",
+        "id": "pos-labels-branch-guard-flip",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "soundness/verify -> verified [11.8s]. This is the one case allowed to reprove an obligation, and the exemption is tight rather than a hole: _REPROVES is a single-entry whitelist, the OTHER obligation's frozen body is still required verbatim, the replacement script is pinned by exact text in _LE_PROOF_EMPTY, and a load-time loop forbids it adding sorry/admit/native_decide/axiom/opaque. I read the replacement: it keeps the frozen script's two alternatives VERBATIM and inserts a third that closes [] = renderLog cfg ticks from renderLog_length on the arm's own require-supplied domain. The obligation is reproven, not weakened.",
+        "id": "pos-alt-path-empty-literal",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "admissibility/verify -> verified [19.4s]. Load-bearing CONFIRMED BY MY OWN BUILD, not by the rationale's claim: probe A1 perturbs the asserted count 3->4 and the build FAILS at exit 1 leaving 'case \u00abadm_1: (\u2026 = 4)\u00bb' open. So the in-region assert is genuinely discharged rather than vacuous. This battery carries the kind='admissibility' lane that 97 velvet ports drop.",
+        "id": "admiss-own-labels-length-input",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "admissibility/verify -> verified [13.0s]. Load-bearing CONFIRMED BY TWO OF MY OWN BUILDS: probe A2 perturbs the asserted setting to 'renders cfg true true ticks' and fails leaving 'case \u00abadm2_1: (renders cfg true true ticks)\u00bb' open with 'require_1 : renders cfg false false ticks' in context \u2014 exactly the error the rationale claims; probe A3 puts the same assert on the no-modes arm, which is handed nothing, and also fails. The domain precondition really does reach its own call at its own setting.",
+        "id": "admiss-render-domain-reaches-the-call",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected (witness refutes the rival) [13.7s]. Rebuilt: rival 0 / gold 1 / probe 1. FORGERY (mandatory \u2014 gold_signature is an Application type mismatch, not a plain evaluation): the affirmative of the same proposition gives gold 0 / rival 1, the exact inversion, so gold's exit code tracks the claim rather than a tactic mismatch. Rival is genuinely WRONG: it hands the renderer the abbreviating configuration, so no setting both reproduces its output and hoists nothing.",
+        "id": "weak-both-modes-enabled",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [8.9s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts (gold 0 / rival 1). A genuine NEAR-MISS \u2014 agrees with gold on every input with no shared additive term \u2014 so it carries its own witness at its own distinguishing input (two ticks at ~1e8 with a half-integral second position). Not definitionally equal to gold on this carrier.",
+        "id": "weak-additive-mode-only",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [10.2s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Attacks the OTHER switch in isolation, so the pair of toggles is discriminated individually rather than only jointly \u2014 checked that its witness does not discriminate the additive rival.",
+        "id": "weak-multiplicative-mode-only",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [10.8s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Notable and correct on this carrier: the guard is a Float predicate the kernel cannot decide, so the witness leaves ticks ABSTRACT and carries the guard's outcome as a hypothesis instead of evaluating it. Confirmed its gold log matches none of the four stuck-reduction screens.",
+        "id": "weak-modes-off-only-for-whole-number-ticks",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [9.5s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Attacks R1's ARGUMENT ORDER at an ascending pair whose permutation is observable, so the rejection is not reshape-noise.",
+        "id": "weak-permuted-tick-argument",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [9.5s]. Rebuilt: rival 0 / gold 1 / probe 1. One of the four COUNT cases: forgery gold 0 / rival 1 with rival error 'unsolved goals'. Refuted transparently via renderTicks_length; the domain hypothesis its rewrite consumes is satisfiable (opaque predicate, renders_nonvacuous) and the probe cannot derive False from it.",
+        "id": "weak-drops-an-entry",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [11.4s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts (count shape). Attacks L1 in the OPPOSITE direction from weak-drops-an-entry, so the count clause is pinned both ways rather than only downward.",
+        "id": "weak-duplicates-entries",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [9.3s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Genuinely wrong and genuinely distinct: right handle and faithful configuration, WRONG argument \u2014 invisible to L1, P1 and N1 alike, which is why it needs R1.",
+        "id": "weak-labels-pads-the-tick-argument",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [10.2s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Attacks the opaque HANDLE binder itself (right argument, right configuration, wrong handle) \u2014 the facet an impl cannot construct its way around.",
+        "id": "weak-labels-uses-another-renderer-handle",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [10.4s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. The only first-method rival holding modesAvailable at its FALSE value, so P1 (the pinned path) is attacked by a rival and not only defended by a positive. Reorders labels it must pass through \u2014 right labels, wrong positions, which no count or set-level check would catch.",
+        "id": "weak-labels-no-modes-path-renumbered",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [7.9s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Load-bearing in a way I verified is not redundant: it is correct on the guard's no-modes value and wrong on the other, so only a witness that MOVES the guard refutes it. This is the rival that would verify if the existential had been relaxed into a disjunction with P1 instead of a case split.",
+        "id": "weak-labels-guard-ignored",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [8.2s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Attacks N2 on the second obligation, which the first obligation's rivals never touch.",
+        "id": "weak-entries-modes-enabled",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [13.8s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. R2's argument, the second obligation's analogue of the padding attack.",
+        "id": "weak-entries-pads-the-tick-argument",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [12.6s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Attacks G2 with the WRONG renderer on the pinned log path; holds isLog at true, so that selector value is probed by a rival.",
+        "id": "weak-alt-path-substitutes-renderer",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [11.7s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Serves the log renderer on the LINEAR arm, so the second obligation's selector is attacked as a binder rather than as a configuration.",
+        "id": "weak-selector-ignored",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [11.3s]. Rebuilt: rival 0 / gold 1 / probe 1. Forgery inverts. Right renderer, wrong argument on the pinned path \u2014 the complement of weak-alt-path-substitutes-renderer, so G2 is attacked from both sides.",
+        "id": "weak-alt-path-permutes-argument",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [15.1s]. Rebuilt: rival 0 / gold 1 / probe 1. Count case; forgery gold 0 / rival 1 with rival error 'unsolved goals'. Attacks L2, the second obligation's count clause.",
+        "id": "weak-entries-drops-an-entry",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "rejected [10.0s]. Rebuilt: rival 0 / gold 1 / probe 1. Count case; forgery inverts. Completes the clause table: with it, every independent top-level clause (L1, P1, R1, N1, L2, G2, R2, N2) carries a rival built against it in isolation \u2014 which I verified against the case list rather than taking from the prose.",
+        "id": "weak-entries-duplicates",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "ADDED BY ME to close the divergence lane the port had recorded as 'INAPPLICABLE \u2026 CLOSED BY THE SEMANTICS'. The bundle sets loom.semantics.termination \"total\" with open TotalCorrectness, so a measure-free loop rival is genuinely REJECTED and the class is shippable, and the nagini sibling ships nonterminating-build. Gate result: rejected (witness refutes the rival) [10.8s], witness_checked=true, witness_subject='the frozen solution'. My builds: rival 0 / gold 1 / probe 1, and the FORGERY inverts (gold 0 / rival 1), so gold's exit code carries information about the claim. The witness does not merely assert non-verification \u2014 it PROVES divergence via Loop.forIn.loop.fixpoint_induct with Lean.Order.admissible_pi_apply + admissible_flatOrder at the flat order whose bottom is DivM.div, showing the rival's run has no result for any label list where gold's has one. All gate pre-checks pass independently: same_spec=True, variant_problems=[], witness_problems=[], witness_scope_problems=[], witness_anchor_problems=[].",
+        "id": "weak-labels-spins-before-rendering",
+        "verdict": "added-by-audit"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "D1_labels_reversed",
+            "kind": "wrong-impl (D, attacks V1 per-index pairing at the RESULT rather than the argument)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D2_one_label_blanked",
+            "kind": "wrong-impl (D, length-preserving corruption of a single label via `.set 0 \"\"`)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D3_alt_labels_reversed",
+            "kind": "wrong-impl (D, pinned path keeps the right renderer but reverses its output)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D4_faithful_only_short",
+            "kind": "wrong-impl (D, near-miss: abbreviation restored only for lists of length > 1, aimed at the LENGTH facet the existing magnitude-guarded rival leaves open)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D5_entries_long_only",
+            "kind": "wrong-impl (D, second method: modes on only when the list is long \u2014 the length-facet near-miss on obligation 2)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D6_ll_uses_renderlog",
+            "kind": "wrong-impl (D, first method served the alternative renderer, i.e. cross-wiring the two sites)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D7_map_toString",
+            "kind": "wrong-impl (D, the analogue of the DROPPED nagini positive pos-raw-loc-grounded-oracle: fabricate label text from the tick with no renderer call \u2014 tests whether the spec pins an answer key an impl could echo)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole, and this is the machine-checked form of the port's claim that the raw-echo shortcut is inexpressible/uncorrect here"
+          },
+          {
+            "id": "D8_erase_dups",
+            "kind": "wrong-impl (D, `.eraseDups` \u2014 length-shrinking only on inputs with repeated labels, a subtler count attack than the drop/duplicate pair)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D9_alt_postprocess",
+            "kind": "wrong-impl (D, pinned path post-processes the right renderer's labels with `++ \" \"`: length-preserving, renderer-preserving, so it defeats any spec pinning only 'some call to the right renderer')",
+            "outcome": "did NOT verify (exit 1) \u2014 G2 catches it; no hole"
+          },
+          {
+            "id": "D10_modes_on_when_empty",
+            "kind": "wrong-impl/vacuity probe (D, abbreviation switched on exactly when the list is EMPTY \u2014 observably identical to gold, since both clauses are vacuous at [], testing whether the spec is sensitive to an unobservable difference)",
+            "outcome": "did NOT verify under the frozen script (exit 1), and does NOT verify under two hand-written reproofs either (exit 1); a third reproof that case-splits on `ticks.isEmpty` DOES close it (exit 0). So the CONTRACT admits it (correctly \u2014 it is observably gold) and only the frozen script does not. Recorded as a script-generality limit, not a spec hole, and not shipped as a case."
+          },
+          {
+            "id": "D11_modes_on_at_boundary",
+            "kind": "wrong-impl (D, abbreviation switched on exactly AT the in-domain boundary magnitude 2^53 \u2014 aimed at the interaction between the domain edge and the fidelity clause, which no existing rival probes)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D12_first_label_from_last",
+            "kind": "wrong-impl (D, `.rotateLeft 1` \u2014 length-preserving permutation distinct from the shipped reversal, and it moves label 0 specifically)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole"
+          },
+          {
+            "id": "D13_alt_nonempty_substitute",
+            "kind": "wrong-impl (D, pinned path substitutes the other renderer only on NON-empty lists \u2014 the wrong sibling of the correct empty-list collapse, i.e. exactly the case where the substitution is observable)",
+            "outcome": "did NOT verify (exit 1) \u2014 no hole. This is the sharpest D probe: it shows G2 is not satisfiable by an impl that merely agrees with the pinned renderer at the empty list."
+          },
+          {
+            "id": "E1_modes_hoisted",
+            "kind": "correct reshape (E, mode constants hoisted above the branch in method 2)",
+            "outcome": "VERIFIES (exit 0) \u2014 no soundness hole"
+          },
+          {
+            "id": "E2_redundant_branch",
+            "kind": "correct reshape (E, method 1 wrapped in a branch whose two arms are identical)",
+            "outcome": "VERIFIES (exit 0) \u2014 no soundness hole"
+          },
+          {
+            "id": "E3_swapped_let_order",
+            "kind": "correct reshape (E, the two mode locals declared in the opposite order)",
+            "outcome": "VERIFIES (exit 0) \u2014 no soundness hole"
+          },
+          {
+            "id": "E5_match_on_selector",
+            "kind": "correct reshape (E, `match isLog with` instead of `if isLog then`)",
+            "outcome": "VERIFIES (exit 0) \u2014 no soundness hole"
+          },
+          {
+            "id": "E7_two_intermediates",
+            "kind": "correct reshape (E, result routed through two chained intermediate bindings)",
+            "outcome": "VERIFIES (exit 0) \u2014 no soundness hole"
+          },
+          {
+            "id": "E6_double_negated_modes",
+            "kind": "correct reshape (E, mode constants written `!(!false)` and `!true` \u2014 observably gold)",
+            "outcome": "does NOT verify under the frozen script (exit 1) but DOES verify once `Bool.not_not`/`Bool.not_true` are added to the rewrite set (exit 0). A script-generality limit, not a spec hole: the contract admits it. Not shipped (it would duplicate the argument of the case I did ship)."
+          },
+          {
+            "id": "E4_empty_collapse (the manifest's AUDIT NOTE reshape)",
+            "kind": "correct reshape (E) \u2014 THE DEFECT THIS AUDIT FOUND",
+            "outcome": "REPAIRED AND SHIPPED as pos-alt-path-empty-collapse. Confirmed the manifest's premise (frozen script leaves the goal open: exit 1) but REFUTED its conclusion that the reproof is unreachable ('six reproof attempts ... all failed'). Two of my own attempts also failed (exit 1) before the third closed it at exit 0. The missing step was `intro`-ing the vacuous `True \u2192` that the G2 clause leaves in front of the goal \u2014 none of the earlier attempts got past it \u2014 after which the collapse fact proves inline from the two length axioms. variant_scope clean, no new lemma/axiom/sorry/native_decide, legendLabels' frozen body untouched."
+          },
+          {
+            "id": "Fdemo_mutate_input",
+            "kind": "frame-lane expressibility demonstration (F, shadow the read-only `ticks` binder with an appended list \u2014 the nearest analogue of the sibling's two MANDATORY permission rivals)",
+            "outcome": "did NOT verify (exit 1), but it is rejected by the COUNT clause (`unsolved goals case ensures_2: labels.length = ticks.length`), i.e. as an ordinary wrong impl, not by any permission/frame mechanism. Confirms the port's VACUOUS ruling for the frame lane: there is no read-only input a rival can write THROUGH on this carrier, so the class has no counterpart and any substitute would be a relabelled uniqueness rival."
+          },
+          {
+            "id": "cross-witness non-redundancy (5 builds)",
+            "kind": "audit of the manifest's own non-redundancy claims",
+            "outcome": "ALL CONFIRMED, every build exit 1 (no other rival's witness discriminates the case in question): both-modes witness vs the small-ticks rival; substitute-renderer witness vs the permutes-argument rival; entries-duplicate and legendLabels-drop witnesses vs the entries-drop rival; and the two half-fix witnesses against each other's rivals."
+          },
+          {
+            "id": "stuck-reduction screen audit (13 gold logs)",
+            "kind": "carrier-limit check against all four of the gate's screens",
+            "outcome": "CLEAN \u2014 no gold log matches stuck `decide`, `Dependent elimination failed`, missing `Decidable` instance, or `forIn Lean.Loop.mk` unification. These obligations are loop-free, so the carrier decides what it is asked to decide and no case needs a witness_reference."
+          },
+          {
+            "id": "statement integrity (attack A, all 19 cases)",
+            "kind": "byte-for-byte diff of every variant against Solution.lean outside the impl regions",
+            "outcome": "CLEAN \u2014 no case reformats an obligation header, a `require`, an `ensures`, or an axiom; the only differences are inside `-- impl-start`/`-- impl-end` (plus, for the one whitelisted positive, its declared reproof of `legendEntries`)."
+          }
+        ],
+        "audited_at": "u4",
+        "cases": [
+          {
+            "evidence": "Rebuilt: exit 0. Byte-identical to Solution.lean everywhere outside the impl regions (mechanical diff), both frozen prove_correct bodies verbatim. Impl is a genuine reshape (named mode locals dropped, constants passed positionally, result routed through an intermediate binding) rather than the frozen body re-spelled, and it is faithful, so a verify is the correct outcome. Not trivially-the-frozen-impl: the frozen body's two `let` lines are gone.",
+            "id": "pos-inline-mode-constants",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "Rebuilt: exit 0. Guard negated and both arms exchanged, so each selector value still reaches the same renderer; all three clauses (L2, G2, V2) still have to discharge and the frozen tactic body closes it unchanged. Statement integrity clean.",
+            "id": "pos-branch-guard-flip",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "New case I landed to repair the defect below. Pinned path splits on the empty tick list and serves the OTHER renderer on that arm; both length axioms force a length-0 result there, and a list of length 0 IS [], so the two arms are observably equal and the impl is faithful. Built exit 0; variant_scope clean; legendLabels' frozen body untouched. This is the only positive whose reshape the FROZEN script cannot follow, so it is the only one that separates 'the contract admits this correct impl' from 'the frozen script happens to close it'.",
+            "id": "pos-alt-path-empty-collapse",
+            "verdict": "earns (ADDED BY THIS AUDIT)"
+          },
+          {
+            "evidence": "Rebuilt exit 0, both frozen proof bodies verbatim. LOAD-BEARING re-measured, not trusted: perturbing the asserted count 2->3 makes the case FAIL (exit 1, `simp_all made no progress`), and asserting the domain at 2^53+1 (one step outside) also FAILS (exit 1). So the assert is discharged by the domain fact rather than skipped. Discharges (D) at a concrete ~1e8 two-element list and pins its count, so the probed input is non-degenerate rather than the empty list.",
+            "id": "admiss-large-magnitude-input",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "Rebuilt exit 0. (D) is a SEPARATE require on the second obligation, so this is a distinct fact from the first method's probe. LOAD-BEARING re-measured: perturbing the asserted count 3->4 makes the case FAIL (exit 1, `simp_all made no progress`). Probes a third length and third magnitude inside the arm V2 guards.",
+            "id": "admiss-entries-linear-input",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "Rebuilt exit 0. Probes the INCLUSIVE bound at +/-2^53, both signs. LOAD-BEARING re-measured two independent ways: restating the bound as STRICT (`<`) at the same input FAILS (exit 1), and the single tick at 2^53+1 FAILS (exit 1). So the case marks where the domain actually stops rather than asserting something true everywhere. This is the strongest of the three admissibility probes: a bound off by one, written with `<`, or silently excluding negatives would be too strong at exactly this input and no other.",
+            "id": "admiss-domain-boundary-input",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1 (probe FAILED = hypotheses consistent). FORGERY: flipped claim (hypothesis restated about gold's both-modes-OFF configuration) VERIFIES on gold (exit 0) and FAILS on the rival (exit 1) \u2014 the exact reverse of the witness's pair, so gold's exit code tracks the claim. REVEAL: the projected hypothesis's real type is `labelValue (renderTicks false false [5])[0]! = [5][0]!` on gold vs `... (renderTicks true true [5]) ...` on the rival \u2014 the configurations differ, not the tactic. Rival observably wrong: the affirmative of V1 at [5] proves against gold (exit 0) and fails against the rival (exit 1).",
+            "id": "weak-both-modes-enabled",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. FORGERY flip: gold 0, rival 1. REVEAL: gold shows the both-off equation, rival shows `renderTicks true false ...` \u2014 the ADDITIVE switch in isolation. Affirmative of V1: gold 0, rival 1. Genuine near-miss, and NON-REDUNDANT by build: the multiplicative rival's witness does NOT discriminate this rival (exit 1), so the two half-fix cases are not two spellings of one point. Refuted at index 1 of a ~1e8 two-tick list.",
+            "id": "weak-additive-mode-only",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. FORGERY flip: gold 0, rival 1. REVEAL: rival shows `renderTicks false true ...`, the mirror half-fix. Affirmative of V1: gold 0, rival 1. NON-REDUNDANT: the additive rival's witness does NOT discriminate this one (exit 1). Together with the additive case this demonstrates both switches are independently load-bearing \u2014 the corpus failure mode where one of two toggles is never discriminated does not apply.",
+            "id": "weak-multiplicative-mode-only",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. FORGERY flip: gold 0, rival 1. REVEAL: the rival's hypothesis type shows its own value-dependent guard elaborated (`renderTicks (![100000000,100000001].all fun t => decide (t.natAbs < 10)) ...`), i.e. the abbreviating configuration is genuinely selected at this input. Affirmative of V1: gold 0, rival 1. Manifest's non-redundancy claim CONFIRMED by build: weak-both-modes-enabled's small-input witness ([5]) does NOT discriminate this rival (exit 1), because the rival agrees with gold on the whole small-tick sub-domain.",
+            "id": "weak-faithful-only-for-small-ticks",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1, no binders so no probe required. Gold's failure is a `rewrite` failure whose text names the CONCRETE claim (pattern `labelValue (renderTicks false false [1,2])[0]!` not found in a target over `[1,2].reverse`), and it MOVES with the claim: a mirror witness asserting the permuted pairing verifies on gold (exit 0) and fails on the rival (exit 1). REVEAL: h2 has type `... (renderTicks false false [1,2])[0]! = [1,2][0]!` on gold vs `... [1,2].reverse ...` on the rival. Plain-evaluation probe: gold's impl reduces to `renderTicks false false [1,2]` (exit 0) while the rival's does not (exit 1), so the rival is observably distinct. Attacks the ORDER facet no other rival touches.",
+            "id": "weak-permuted-tick-argument",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1, binds nothing. gold_signature is `simp made no progress` \u2014 not a plain evaluation, so the REVEAL probe was mandatory and is decisive: the projected hypothesis has type `True` on gold (simp PROVED the length equation there) versus the concrete FALSE arithmetic claim `[7,9].length - 1 = [7,9].length` on the rival. That pair is a genuine refutation, not a tactic mismatch. Flip probe: gold 1 / rival 1 with DIFFERENT error text (gold `simp made no progress`, rival an unsolved concrete goal). Affirmative of L1: gold 0, rival 1.",
+            "id": "weak-drops-an-entry",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1, binds nothing. REVEAL: hypothesis type `True` on gold vs `[7].length + [7].length = [7].length` on the rival. Affirmative of L1: gold 0, rival 1. Errs UPWARD where weak-drops-an-entry errs downward, so together they show L1 is a genuine EQUALITY rather than a one-sided bound. Refuted at the shortest non-empty input.",
+            "id": "weak-duplicates-entries",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. FORGERY flip: gold 0, rival 1. REVEAL: gold both-off vs rival `renderTicks true true [42]`. Affirmative of V2: gold 0, rival 1. Attacks the SECOND obligation's fidelity clause, which the first obligation's rivals leave entirely gold \u2014 without it a one-site fix would verify.",
+            "id": "weak-entries-modes-enabled",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. gold_signature is an `Application type mismatch` on `rfl` against an unreduced `if True then ...` term, so the forgery test was mandatory. FORGERY flip (claim gold's own pinned-path output): VERIFIES on gold (exit 0), fails on the rival (exit 1). Plain-evaluation probe settles it independently: gold's pinned path reduces to `DivM.res (renderLog [5])` (exit 0) while the rival's `rfl` fails because it reduces to a renderTicks call (exit 1). So the `if True` term is NOT a claim-independent blocker here \u2014 it reduces fine on gold. Affirmative of G2: gold 0, rival 1. Not matched by any of the gate's four stuck-reduction screens (checked).",
+            "id": "weak-alt-path-substitutes-renderer",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. FORGERY flip: gold 0, rival 1. REVEAL: gold shows `renderTicks false false [3,4]` vs rival `renderLog [3,4]` \u2014 the rival really does ignore the selector. Affirmative of V2: gold 0, rival 1. Complements weak-alt-path-substitutes-renderer by holding the selector at the LINEAR value, so the isLog binder is genuinely moved across both values by the battery.",
+            "id": "weak-selector-ignored",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1 / probe 1. Same `if True` signature class, so forgery-tested: FORGERY flip verifies on gold (exit 0), fails on the rival (exit 1); plain-evaluation probe reduces on gold (exit 0) and fails on the rival, whose term is over `renderLog [1,2].reverse` (exit 1). Affirmative of G2: gold 0, rival 1. Manifest's non-redundancy claim CONFIRMED: the substitute-renderer rival's witness does NOT discriminate this rival (exit 1), so G2 is shown to pin the renderer's ARGUMENT and not merely its identity.",
+            "id": "weak-alt-path-permutes-argument",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1, binds nothing. REVEAL: hypothesis type `True` on gold vs `[2,4,6].length - 1 = [2,4,6].length` on the rival. Affirmative of L2: gold 0, rival 1. Manifest's non-redundancy claim CONFIRMED by two builds: neither the second method's duplicate witness (exit 1) nor the first method's drop witness (exit 1) discriminates this rival. Only witness in the battery at length 3.",
+            "id": "weak-entries-drops-an-entry",
+            "verdict": "earns"
+          },
+          {
+            "evidence": "rival 0 / gold 1, binds nothing. REVEAL: hypothesis type `True` on gold vs `[7].length + [7].length = [7].length` on the rival. Affirmative of L2: gold 0, rival 1. Completes the both-directions pair on the second obligation's count clause.",
+            "id": "weak-entries-duplicates",
+            "verdict": "earns"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "SCRATCH: $SCRATCH (all rival modules, witness files, build logs, and run{1..10}.json). Nothing was written into the bundle or the repo root. ~130 real lean_verify.sh builds.\n\nVERDICT REASONING. All 18 original cases behaved as declared on re-run, statement integrity was clean, and every reject case survived the mandatory forgery test \u2014 so the uniqueness lane's SOUND was EARNED, and unusually well: on this carrier the flip test is decisive because gold's `if True`/type-mismatch signatures DO reduce (proved by plain-evaluation probes on both G2 cases), so none of the four known stuck-reduction traps applies. The battery is not hollow.\n\nTHE DEFECT (why REPAIRED, not SHIP). The manifest carried a written AUDIT NOTE claiming a CORRECT reshape could not be shipped as a soundness positive because 'six reproof attempts ... all failed'. That is precisely the excluded reason \u2014 'the proof was hard' is a finding, not a justification \u2014 and it was also false. I closed the reproof (exit 0) after two of my own attempts failed; the blocker was an un-`intro`ed vacuous `True \u2192` in front of the G2 goal, not anything about the spec. It is now shipped as `pos-alt-path-empty-collapse`, and it is the most valuable positive in the battery: the only one whose reshape the frozen tactic script cannot follow, so it is the only case that separates 'the contract admits this correct impl' from 'the frozen script happens to close it' \u2014 exactly the conflation this gate exists to catch on a tactic-proof backend. I also corrected a second false prose claim (that an admissibility case needed an extra `first`-alternative; all three in fact keep both frozen bodies verbatim, which I verified by rebuilding), fixed the case counts and accounting table, and appended a machine-checked audit record.\n\nMECHANISM NOTE ON THE EDIT. Landing this case required relaxing the manifest's own load-time invariant that EVERY variant keep both frozen proof bodies verbatim. I did not simply delete the check: it is now a two-entry whitelist (`_REPROVES`) naming the one case and the one obligation it reproves, the replacement script is pinned by exact text, the case must still carry the OTHER obligation's frozen body, all 18 other cases are still held to both, and a separate loop rejects any assumption token in the exempt case. This is admissible under the backend's rules \u2014 velvet's `variant_scope` pins each obligation's existence and its statement, not its tactic body \u2014 and the gate's own scope check agrees (19/19 scope-ok). The frozen artifacts were not touched: `git status` shows only properties.py and the gate's own meta.json stamp modified.\n\nNO SPEC DEFECT. 13 new wrong impls (D) all failed to verify, including the sharpest one (D13: the pinned path substituting the other renderer only where the substitution is OBSERVABLE, i.e. on non-empty lists \u2014 this is what shows G2 is not satisfied by mere agreement at the empty list). 5 new correct reshapes (E) verify under the frozen script. Two observably-gold impls (D10, E6) are rejected by the frozen SCRIPT while the CONTRACT admits them; both are script-generality limits of the same family as the case I shipped, and neither is a spec hole, so `spec_holes` is empty.\n\nADVISORY. scripts/pbt_coverage.py reports `obl=2 cases=18 (+5/-13) binders=3 ok`, 0 findings (run before my edit). I checked the binder variation is MEANINGFUL rather than two spellings of one point: the ten witness inputs move length (1/2/3), magnitude (single digit to ~1e8), order (an ascending pair whose permutation is observable), the refuted index (0 and 1), and `isLog` across both values \u2014 and I confirmed by cross-building that no near-miss rival is discriminated by another rival's witness, which is the property a coverage count cannot see.",
+        "omissions_reviewed": [
+          {
+            "evidence": "DEMONSTRATED, not argued. The sibling's second positive is its 'honest cheapest impl': skip the renderer and emit the raw tick, which ITS spec must accept because a residual-is-zero axiom makes the modeled label value equal the tick outright. Here the labels are `String` and `renderTicks`/`labelValue` are opaque, so no computable function of a tick is provably a correct label \u2014 there is no raw-value shortcut that is CORRECT to certify as a positive. I built the nearest thing (`ticks.map toString`, probe D7) and it does NOT verify (exit 1), which is the machine-checked form of the claim: the analogue is a WRONG impl here, not a correct one, so it cannot be ported as a positive. The soundness question it raises for the sibling (is the spec pinned to an ungrounded answer key an impl could echo?) is answered structurally here: the clauses pin read-back values and counts against the INPUT ticks, and G2 pins one path to the untouched renderer's own output.",
+            "nagini_case": "pos-raw-loc-grounded-oracle",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "DEMONSTRATED. Mandatory on the sibling because its tick list is held at a fractional heap permission a rival can illegally write through, so the rejection there comes from the PERMISSION system rather than the contract. This carrier is referentially transparent: `ticks` and `isLog` are immutable values, neither method declares a `mut` binder, there is no heap and no aliasing. I built the nearest analogue anyway (Fdemo_mutate_input, shadowing `ticks` with an appended list): it fails (exit 1) but by the COUNT clause `labels.length = ticks.length`, i.e. as an ordinary uniqueness rival, with no permission mechanism involved. So a 'frame' case here would be a relabelled count rival and would attest to nothing the count rivals do not already cover.",
+            "nagini_case": "frame-append-to-locs",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Same demonstration as frame-append-to-locs, and the element-store form is even further out of reach: there is no in-place element assignment on an immutable `List Int` binder to express. No read-only input can be written through on this carrier, so no substitute probe was fabricated \u2014 correctly.",
+            "nagini_case": "frame-store-into-locs",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Out of this gate's scope by construction, not a judgment call: G-PBT ignores AXIOM_TESTS entirely, and the axiom lane belongs to G-AX (axiom_check.py, which validates the length and faithfulness facts against the real renderer including the necessity of the float-exact guard). `AXIOM_TESTS = []` here is correct.",
+            "nagini_case": "AXIOM_TESTS (ax-residual-offset-sound, ax-residual-offset-containment)",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Correctly omitted and NOT re-derived per instructions. This bundle sets `loom.semantics.termination \"partial\"`, under which a non-terminating impl satisfies every ensures vacuously and VERIFIES, so no witness refuting it can exist and there is nothing to ship as a reject case. This is the already-recorded finding in the corpus-wide termination-semantics finding (measured on all 401 `partial` bundles), so it is cited rather than re-measured, and it is NOT reported as a new spec hole. I did check that the manifest cites the finding rather than giving the wrong reason ('vacuous on a referentially transparent carrier') \u2014 it cites it correctly.",
+            "nagini_case": "DIVERGENCE lane (not a numbered sibling case; the corpus-wide non-termination hole)",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Expanded 1 -> 3 here, and the expansion is justified rather than padding: (D) is a separate `require` on EACH of the two obligations and it is an inclusive bound with an edge. All three keep both frozen proof bodies byte-identical, and all three are LOAD-BEARING by my own measurement (false count => FAIL; 2^53+1 => FAIL; strict bound at the boundary => FAIL). The admissibility lane that 97 velvet ports drop entirely is present and real here.",
+            "nagini_case": "admiss-self-call-fresh-list",
+            "verdict": "ported (not omitted) \u2014 reviewed for neutering"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "forgery_error": "flipped claim (hypothesis about renderTicks false false, i.e. gold's own configuration) VERIFIED on gold with NO error, exit 0; the same flip against the rival exits 1 with 'Application type mismatch: The argument hall (renderTicks true true [5]) rfl 0 ?m.63 has type labelValue (renderTicks true true [5])[0]! = [5][0]! but is expected to have type labelValue (renderTicks false false [5])[0]! = 5'. Type-reveal pair: gold 'has type labelValue (renderTicks false false [5])[0]! = [5][0]!' vs rival 'has type labelValue (renderTicks true true [5])[0]! = [5][0]!'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-both-modes-enabled",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip VERIFIED on gold (exit 0, no error); flip on rival exit 1: 'Application type mismatch: The argument hall (renderTicks true false [100000000, 100000001]) rfl 1 ?m.75 has type labelValue (renderTicks true false [100000000, 100000001])[1]! = [100000000, 100000001][1]! but is expected to have type ...(renderTicks false false...)'. Reveal: gold 'renderTicks false false' vs rival 'renderTicks true false'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-additive-mode-only",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip VERIFIED on gold (exit 0); flip on rival exit 1: 'Application type mismatch: The argument hall (renderTicks false true [12340000, 12350000]) rfl 0 ?m.75 has type labelValue (renderTicks false true [12340000, 12350000])[0]! = [12340000, 12350000][0]!'. Reveal: gold 'renderTicks false false' vs rival 'renderTicks false true'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-multiplicative-mode-only",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip VERIFIED on gold (exit 0); flip on rival exit 1: 'Application type mismatch: The argument hall (renderTicks (![100000000, 100000001].all fun t => decide (t.natAbs < 10)) (![100000000, 100000001].all fun t => decide (t.natAbs < 10)) [100000000, 100000001]) rfl 0 ?m.75 ...' \u2014 the rival's value-dependent guard is visible in the type, confirming the abbreviating configuration is selected at this input.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-faithful-only-for-small-ticks",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "MIRROR forgery (same witness form, pairing claim permuted so it is TRUE of gold) VERIFIED on gold exit 0; against the rival exit 1: 'Tactic `rewrite` failed: Did not find an occurrence of the pattern labelValue (renderTicks false false [1, 2].reverse)[0]! in the target expression labelValue (renderTicks false false [1, 2])[0]! = [1, 2][0]!'. Note the pattern named in the error SWAPS with the claim, which is what makes gold's original error informative. Plain-evaluation probe: gold reduces (exit 0), rival does not (exit 1). Reveal: h2 gold 'labelValue (renderTicks false false [1, 2])[0]! = [1, 2][0]!' vs rival 'labelValue (renderTicks false false [1, 2].reverse)[0]! = [1, 2][0]!'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-permuted-tick-argument",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "TYPE-REVEAL (the admissible form for a `simp made no progress` signature): on gold 'Type mismatch h2 has type True of sort `Prop`' \u2014 simp PROVED the length equation for gold \u2014 versus on the rival 'Type mismatch h2 has type [7, 9].length - 1 = [7, 9].length of sort `Prop`', a concrete false arithmetic claim. Claim-flip build additionally exits 1 on BOTH sides but with DIFFERENT text (gold '`simp` made no progress'; rival 'unsolved goals hall : ...'), so the error moves with the claim.",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-drops-an-entry",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "TYPE-REVEAL: gold 'Type mismatch h2 has type True of sort `Prop`' vs rival 'Type mismatch h2 has type [7].length + [7].length = [7].length of sort `Prop`'. Genuine refutation, not a tactic mismatch.",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-duplicates-entries",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip VERIFIED on gold (exit 0); flip on rival exit 1: 'Application type mismatch: The argument hall (renderTicks true true [42]) rfl 0 ?m.63 has type labelValue (renderTicks true true [42])[0]! = [42][0]! but is expected to have type labelValue (renderTicks false false [42])[0]! = 42'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-entries-modes-enabled",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip (claiming gold's own pinned-path output) VERIFIED on gold exit 0; on the rival exit 1: 'Application type mismatch: The argument rfl has type ?m.34 = ?m.34 but is expected to have type NonDetT.run (if True then ... typeWithName (labels = renderTicks false false [5]) ...'. Independently, a plain-evaluation probe shows gold's pinned path DOES reduce ('(legendEntries true [5]).run = DivM.res (renderLog [5])' closes by rfl, exit 0) while the rival's fails, so the unreduced `if True` in gold's original signature is not a claim-independent blocker.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-alt-path-substitutes-renderer",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip VERIFIED on gold (exit 0); flip on rival exit 1: 'Application type mismatch: The argument hall (renderLog [3, 4]) rfl 0 ?m.75 has type labelValue (renderLog [3, 4])[0]! = [3, 4][0]! but is expected to have type labelValue (renderTicks false false [3, 4])[0]! = 3'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-selector-ignored",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip VERIFIED on gold exit 0; on rival exit 1: 'Application type mismatch: The argument rfl has type ?m.46 = ?m.46 but is expected to have type NonDetT.run (if True then ... typeWithName (labels = renderLog [1, 2].reverse) ...'. Plain-evaluation probe: gold reduces to DivM.res (renderLog [1,2]) exit 0; rival exit 1 with 'Tactic `rfl` failed: ... typeWithName (labels = renderLog [1, 2].reverse)'.",
+            "forgery_exit": 0,
+            "gold_exit": 1,
+            "id": "weak-alt-path-permutes-argument",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "TYPE-REVEAL: gold 'Type mismatch h2 has type True of sort `Prop`' vs rival 'Type mismatch h2 has type [2, 4, 6].length - 1 = [2, 4, 6].length of sort `Prop`'.",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-entries-drops-an-entry",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "TYPE-REVEAL: gold 'Type mismatch h2 has type True of sort `Prop`' vs rival 'Type mismatch h2 has type [7].length + [7].length = [7].length of sort `Prop`'.",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-entries-duplicates",
+            "probe_exit": null,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 13
+      }
+    ],
+    "notes": "VERDICT: REPAIRED. The recorded SOUND was largely EARNED on the verifier-facing side \u2014 all 24 original cases behave for the right reason, and I confirmed that with 90+ of my own builds rather than by reading the rationales. The strongest evidence is the forgery sweep: for all 19 reject cases the affirmative of exactly the negated proposition inverts the pair (gold 0 / rival 1), which is the sharpest available proof that gold's exit code carries information about the claim rather than reflecting a tactic mismatch. Attack A found no neutered obligation; attacks D and E found no spec hole in either direction, and I closed out both apparent SPEC-TOO-STRONG candidates (E1, E3) by BUILD \u2014 each verifies under a reproved script, so the contract admits them and only the frozen tactic script did not, which is not a spec defect. spec_holes is empty because none survived; the frozen artifact needed no change and got none.\n\nTwo real defects made the SOUND partly hollow, both now fixed in properties.py.\n\n(1) AN UNDERPORTED LANE. The port dismissed divergence as 'INAPPLICABLE \u2026 CLOSED BY THE SEMANTICS'. Under this bundle's \"total\" termination semantics that class is shippable, and the sibling ships nonterminating-build. The port's implicit claim was that no witness could be built \u2014 the excuse that has been measured wrong repeatedly. It is wrong here too: divergence of a spinning DivM loop is provable on this carrier from Loom's own fixpoint induction, and that lifts to a gate-valid witness. The new case is the only rival in the battery whose rejection source is the termination obligation, and it is exactly the rival no value clause can catch \u2014 its render call is byte-for-byte gold's, so L1, R1 and N1 all HOLD of it; what fails is that the run has no result. Without it, every ensures clause in this spec could be discharged by a body that produces no legend, and nothing in the battery said otherwise.\n\n(2) FABRICATED PROVENANCE. The accounting table \u2014 the one part of a battery no build can falsify \u2014 cited 5 sibling case IDs that do not exist, 13 times, including as '(Sibling: \u2026)' attributions inside 7 case rationales, while undercounting the sibling as shipping 8 SPEC cases against its real 20 and leaving 17 real cases unaccounted. Each fabricated citation made a case look like a ported argument with a traceable ancestor when the ancestor was invented. This is the exact defect class the audit brief calls a rationale claiming something the manifest never demonstrates, and prose is where it hides because no gate reads it. I rebuilt the table against the real 20-case list, re-attributed all 7 inline citations to the real sibling case whose argument each actually carries, and added a load-time guard that reads the sibling manifest and raises on any unknown cited ID \u2014 so this cannot silently recur. Verified live: 20 cited IDs, 0 bogus. I also corrected a misquoted build (the divergence goal was quoted as '\u22a2 spin < spin'; it is '\u22a2 False'), since a manifest quoting a build that did not happen is the same defect as a fabricated ID.\n\nONE THING I DELIBERATELY DID NOT SHIP, to avoid the mirror error. The sibling's admiss-self-call-vacuity-control looked like a second landable omission. Its rival IS rejected here (assert False, exit 1, '\u22a2 False' with both requires in context) \u2014 and that build is worth recording, because it independently confirms neither admissibility positive is vacuous. But it cannot be a reject CASE: an assert is a proof obligation, not a statement that changes the run, so the rival is observably gold, and I measured the affirmative witness elaborating against BOTH (exit 0 each). Shipping it would have added a case whose rejection attests to a discharge failure rather than to the spec \u2014 a false pass of exactly the kind this audit exists to catch. It is recorded as evidence, classified inexpressible, and not fabricated into a case.\n\nRESIDUAL UNCERTAINTY, stated rather than folded away: attack D's probe D1 (satisfy only the count clause vi",
+    "omissions_reviewed": [
+      {
+        "evidence": "PORTED, not omitted \u2014 as pos-inline-mode-constants (verified, exit 0). The sibling's 'compute the rendering once, drop the intermediates' reshape. I corrected the manifest, which had attributed this to a non-existent 'pos-reshaped-locals'.",
+        "nagini_case": "pos-precomputed-sequence",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED in substance as the two branch-flip positives (pos-branch-guard-flip, pos-labels-branch-guard-flip), both verified. The sibling's argument is 'the spec must not be over-fit to the gold guard FORM'; the frozen impls here are loop-free, so the guard whose form can vary is the selector, and each obligation's selector gets its own flip. A literal loop-guard variant is not expressible against a loop-free body.",
+        "nagini_case": "pos-different-loop-guard",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as admiss-own-labels-length-input (verified; load-bearing confirmed by my A1 perturbation build). Same 'a legitimate input is admissible' argument. The manifest had attributed this to a non-existent 'admiss-self-call-fresh-list'; corrected.",
+        "nagini_case": "admiss-self-call-arrived-state-nondefault-convention",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Re-derived by build rather than accepted as prose. The analogue \u2014 frozen numeric arm plus 'assert (with_name_prefix `vac False)' \u2014 IS rejected (exit 1, 'case \u00abvac_1: False\u00bb \u2026 \u22a2 False', both requires in context), which delivers the sibling's actual purpose: it confirms the admissibility call site is feasible and the positives are not vacuous. It cannot SHIP as a reject case because an assert is a proof obligation, not a statement that changes the run, so the rival is observably gold: I measured the affirmative witness elaborating against BOTH the rival and gold (exit 0 each), meaning no witness can discriminate and any case here would attest to a discharge failure rather than to the spec. Recorded in the manifest with its build.",
+        "nagini_case": "admiss-self-call-vacuity-control",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-additive-mode-only (rejected; rival 0/gold 1/probe 1, forgery inverts). One abbreviation still enabled. The manifest had attributed this to a non-existent 'partial-first-residual'; corrected.",
+        "nagini_case": "left-residual-enabled",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-multiplicative-mode-only (rejected, forgery inverts). The sibling's order-of-operations rival delivers the state half but not the label half; here the analogous defect is a rendering taken at a mode the spec pins against, since this backend has no mutable formatter state to leave behind.",
+        "nagini_case": "render-then-disable",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-both-modes-enabled (rejected, forgery inverts). The rendering is taken at the mode the spec pins against \u2014 the same hard-wired-wrong-mode argument.",
+        "nagini_case": "mode-token-swap",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-labels-uses-another-renderer-handle (rejected, forgery inverts). The sibling's point is that no privately written value is provably the renderer's text; here the handle is opaque and unconstructible, so the analogous rival reads labels off a different handle.",
+        "nagini_case": "private-route-raw-tick",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-labels-guard-ignored (rejected, forgery inverts). Echoes the guard rather than honouring it \u2014 and it is the rival that would verify if the existential had been relaxed into a disjunction with P1 instead of a case split.",
+        "nagini_case": "convention-echo",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-labels-no-modes-path-renumbered (rejected, forgery inverts). The sibling falsifies a guarded clause's guard; here the pinned no-modes path is rewritten, which P1 catches only because it is an equality rather than a permission to emit something of the right length.",
+        "nagini_case": "convention-rewrite",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED twice, as weak-labels-pads-the-tick-argument and weak-entries-pads-the-tick-argument (both rejected, both forgeries invert). The wrong-domain / wrong-set rendering argument, once per obligation.",
+        "nagini_case": "other-tick-set",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED twice, as weak-permuted-tick-argument and weak-alt-path-permutes-argument (both rejected, forgeries invert). The ordering probe, at ascending pairs whose permutation is observable.",
+        "nagini_case": "rotated-labels",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-alt-path-substitutes-renderer (rejected, forgery inverts). The sibling moves the interval the oracle is read at; here the installation interval is folded into the opaque handle (mapping.md: RendererConfig IS the formatter as installed, including its axis view interval), so it is not separately writable and the analogous rival substitutes the renderer on the pinned path.",
+        "nagini_case": "interval-rewrite",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-selector-ignored (rejected, forgery inverts). Oracle-echo at a range of the rival's own choosing becomes, on this carrier, serving the wrong renderer on the linear arm \u2014 the interval is inside the opaque handle and cannot be perturbed independently.",
+        "nagini_case": "other-interval",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-entries-modes-enabled (rejected, forgery inverts). The sibling recomputes the range from data in hand instead of reading it where the callee reads it; the carrier analogue is a rival that renders at its own mode rather than the one the display clause pins.",
+        "nagini_case": "interval-from-ticks",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED as weak-modes-off-only-for-whole-number-ticks (rejected, forgery inverts). 'Correct only where the tests happen to look'. This is the case Float ticks make possible \u2014 an integer-only carrier would have admitted the whole-number-only rival \u2014 and its witness conditions on the guard as a hypothesis because the kernel cannot decide a Float. The manifest had attributed this to a non-existent 'partial-large-residual-collapse'; corrected.",
+        "nagini_case": "partial-domain-empty-tick-set",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "PORTED twice, as weak-drops-an-entry and weak-entries-drops-an-entry (both rejected; count-shape forgeries invert with rival error 'unsolved goals').",
+        "nagini_case": "partial-drop-last",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Genuinely vacuous, and the reason is structural rather than an excuse. The sibling's rival writes through a tick list held at a fractional heap permission, so its rejection comes from the permission system. This backend is referentially transparent: no binder is mut, there is no heap and no aliasing, so there is no read-only input a rival could write through. Confirmed against Solution.lean \u2014 neither method declares a mut binder.",
+        "nagini_case": "frame-append-to-locs",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same as frame-append-to-locs: no heap, no aliasing, no mut binder, so no permission-violation rival exists to build and no substitute was fabricated.",
+        "nagini_case": "frame-store-into-locs",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "THIS IS THE FINDING, and it is now fixed rather than merely reported. The port recorded the divergence class as inapplicable and closed by the semantics; under loom.semantics.termination \"total\" it is instead SHIPPABLE. What would land it \u2014 and what I did land \u2014 is: (1) a rival that brings its own Nat-measured spinning loop ahead of an otherwise gold numeric arm, since the frozen bodies are loop-free and the elaborator refuses a MISSING decreasing clause outright; and (2) the part the port treated as impossible, a witness that PROVES divergence instead of merely observing non-verification \u2014 Loop.forIn.loop.fixpoint_induct with Lean.Order.admissible_pi_apply + admissible_flatOrder at the flat order whose bottom is DivM.div. Landed as weak-labels-spins-before-rendering; gate records 'rejected (witness refutes the rival)'; rival 0 / gold 1 / probe 1 with an inverting forgery.",
+        "nagini_case": "nonterminating-build",
+        "verdict": "expressible"
+      },
+      {
+        "evidence": "Correctly out of lane. The axiom lane belongs to G-AX (axiom_check.py validates the length facts, the both-modes-off no-hoisting fact and its non-vacuity against the real renderer), and pbt_gate.py ignores AXIOM_TESTS entirely, so this is not a G-PBT omission. AXIOM_TESTS = [] is right here.",
+        "nagini_case": "ax-rendered-labels-sound",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same as ax-rendered-labels-sound: G-AX's lane, not this gate's. Verified pbt_gate.py does not read AXIOM_TESTS.",
+        "nagini_case": "ax-rendered-labels-containment",
+        "verdict": "inexpressible"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "forgery_error": "gold: no error (success). rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-both-modes-enabled",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-additive-mode-only",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-multiplicative-mode-only",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument' || independent replication (this audit, 33 builds): witness as-is gold 1 / rival 0, reproducing the recorded gold_signature verbatim. FLIP = h names GOLD's configuration (`renderTicks cfg false false ticks` in place of `true true`), with the guard-normalizing `rw [hg, Bool.not_false] at ho` dropped because that step exists only to reduce the RIVAL's `!(ticks.all ...)` modes: gold 0 (no error), rival 1 with 'The argument ho has type renderTicks cfg (!ticks.all fun t => t == t.floor) (!ticks.all fun t => t == t.floor) ticks = renderTicks cfg o s ticks but is expected to have type renderTicks cfg false false ticks = renderTicks cfg o s ticks'. Gold's own as-is message is a type reveal in the same direction (`ho : renderTicks cfg false false ticks = renderTicks cfg o s ticks`, `hs : sharedTerm cfg o s ticks = \"\"`), so gold satisfies (R1)/(N1) faithfully and the rival's guard simply is not there to rewrite. Control build: keeping the rival-specific `rw` while flipping only the modes fails on gold with the IDENTICAL rewrite message (1) but on the rival with a DIFFERENT one ('ho has type renderTicks cfg true true ticks = ...', 1), so the `rw` line alone is rival-shape-specific and the minimal flip above is what decides the case. World (a).",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-modes-off-only-for-whole-number-ticks",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-permuted-tick-argument",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'unsolved goals' (count case)",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-drops-an-entry",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'unsolved goals' (count case)",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-duplicates-entries",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument' || independent replication (this audit, 33 builds): witness as-is gold 1 / rival 0. FLIP = h's separating term replaced by GOLD's own output `renderTicks cfg false false [0.2, 0.22]` (pad `++ [9007199254740992.0]` and `.take` dropped), tactic body byte-identical: gold 0 (no error), rival 1 with 'The argument ho has type List.take [0.2, 0.22].length (renderTicks cfg false false ([0.2, 0.22] ++ [9007199254740992.0])) = renderTicks cfg o s [0.2, 0.22] but is expected to have type renderTicks cfg false false [0.2, 0.22] = renderTicks cfg o s [0.2, 0.22]'. The two reveals are exact mirrors: gold's `ho` is the UNPADDED equation, the rival's the padded-and-truncated one. World (a).",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-labels-pads-the-tick-argument",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument' || independent replication (this audit, 33 builds): witness as-is gold 1 / rival 0. FLIP = h's renderer handle changed from the foreign `sharedTerm_hoists.choose` to GOLD's installed `cfg`, tactic body byte-identical: gold 0 (no error), rival 1 with 'The argument ho has type renderTicks sharedTerm_hoists.choose false false [0.25] = renderTicks cfg o s [0.25] but is expected to have type renderTicks cfg false false [0.25] = renderTicks cfg o s [0.25]'. Which HANDLE appears in `ho` tracks the impl, so the as-is gold failure is the handle claim being false of gold. World (a).",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-labels-uses-another-renderer-handle",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument' || independent replication (this audit, 33 builds): the `?m.38 = ?m.38` rfl is NOT unconstrained. The expected type printed beside it is fully concrete and ends `= DivM.res [\"a\", \"b\"].reverse` -- gold's run term against the REVERSED labels the witness claims. FLIP = drop the `.reverse` from h so the labels metavariable is assigned gold's actual `[\"a\", \"b\"]`, tactic body `simp only [legendLabels]; intro hall; exact h (hall _ rfl)` byte-identical: the same `rfl` CLOSES on gold, exit 0. On the rival the flip exits 1 and the two terms have SWAPPED -- 'The argument rfl has type ?m.37 = ?m.37 but is expected to have type NonDetT.run (if false = true then ... else pure [\"a\", \"b\"].reverse) = DivM.res [\"a\", \"b\"]' -- the `.reverse` now sits in the impl's else-branch and is gone from the claim. Independent plain-evaluation probe `(legendLabels false cfg [\"a\", \"b\"] [1.0, 2.0]).run = DivM.res [\"a\", \"b\"]` by `simp only [legendLabels]; rfl`: gold 0, rival 1 ('Tactic `rfl` failed: The left-hand side ... else pure [\"a\", \"b\"].reverse is not definitionally equal to the right-hand side DivM.res [\"a\", \"b\"]'). Gold's no-modes path therefore DOES reduce and returns ownLabels unchanged; the metavariable pair is only how Lean prints an unassigned `rfl`. World (a), not hollow.",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-labels-no-modes-path-renumbered",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument' || independent replication (this audit, 33 builds): witness as-is gold 1 / rival 0. FLIP = h's left side changed from the literal ownLabels `[\"a\", \"b\"]` the rival returns to GOLD's own `renderTicks cfg false false [3.0, 4.0]`, tactic body byte-identical: gold 0 (no error), rival 1 with 'The argument ho has type [\"a\", \"b\"] = renderTicks cfg o s [3.0, 4.0] but is expected to have type renderTicks cfg false false [3.0, 4.0] = renderTicks cfg o s [3.0, 4.0]' -- the exact mirror of gold's as-is message, so the failing side is decided by WHICH list the impl returns on the modesAvailable = true arm. World (a).",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-labels-guard-ignored",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-entries-modes-enabled",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument' || independent replication (this audit, 33 builds): witness as-is gold 1 / rival 0. FLIP = h's separating term replaced by GOLD's own `renderTicks cfg false false [0.2, 0.24]` (pad and `.take` dropped), tactic body byte-identical including `simp only [legendEntries]`: gold 0 (no error), rival 1 with 'The argument ho has type List.take [0.2, 0.24].length (renderTicks cfg false false ([0.2, 0.24] ++ [9007199254740992.0])) = renderTicks cfg o s [0.2, 0.24] but is expected to have type renderTicks cfg false false [0.2, 0.24] = renderTicks cfg o s [0.2, 0.24]'. Same mirror reveal as its legendLabels sibling, on the second method's linear arm (R2). World (a).",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-entries-pads-the-tick-argument",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-alt-path-substitutes-renderer",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-selector-ignored",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'Application type mismatch: The argument'",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-alt-path-permutes-argument",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'unsolved goals' (count case)",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-entries-drops-an-entry",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error. rival: 'unsolved goals' (count case)",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-entries-duplicates",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold: no error (the affirmative '\u2203 labels, run = DivM.res labels \u2227 labels.length = ticks.length' is PROVEN of gold via renderTicks_length). rival: 'Tactic `rfl` failed: The left-hand side'. Gold's own witness-side error was 'Tactic `rewrite` failed: Did not find an occurrence of the pattern Loop.forIn.loop ?m 1' \u2014 i.e. gold has no loop to rewrite, which is precisely the semantic difference claimed, and the forgery inversion proves that exit code carried information rather than being a shape mismatch. || independent replication (this audit, 33 builds): witness as-is gold 1 / rival 0. The claim is the NEGATIVE 'no result exists', so the FLIP is the opposite proposition on the same subject: `\u2203 labels, (legendLabels true cfg own ticks).run = DivM.res labels \u2227 labels.length = ticks.length`, closed by `refine \u27e8renderTicks cfg false false ticks, ?_, renderTicks_length cfg false false ticks hren\u27e9; simp only [legendLabels]; rfl`. Gold 0 -- gold's run REDUCES to a result, so the divergence claim is genuinely false of gold -- and rival 1 with 'Tactic `rfl` failed: The left-hand side NonDetT.run (if True then do let _ \u2190 forIn Lean.Loop.mk 1 fun x r => do invariantGadget [r.erase = 1] ... is not definitionally equal to the right-hand side DivM.res (renderTicks cfg false false ticks)'. The rival's run term carries the `forIn Lean.Loop.mk 1` the as-is witness rewrites away with its `spin` lemma and gold's carries no loop at all, which is exactly why gold's as-is message is 'Did not find an occurrence of the pattern Loop.forIn.loop ?m.119 1'. World (a).",
+        "forgery_exit": "gold 0 / rival 1",
+        "gold_exit": 1,
+        "id": "weak-labels-spins-before-rendering",
+        "probe_exit": 1,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 19
+  },
+  "region_hashes": {
+    "axioms": "d6a87fdc6562f725dac8c51a46f22c27617750abc75c8cf89f8299bf60351266",
+    "impl": "6e27227f6dbc3d38011d1d8c19f0d31ef0457cf1fe2460e3ebf45e221f9834f2",
+    "spec_view": "d5467361271df8bbe6b7ac4ba42f35949af5f7247adad413bf603e267cd2ff2a"
+  },
+  "repo": "mwaskom/seaborn",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "version": "0.12"
+}

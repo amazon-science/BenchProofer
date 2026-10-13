@@ -1,0 +1,501 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "unchanged consumer of the FK collation; captured structurally as the A-reference pure predicate emits_collation_clause and the consequence postcondition (1') of reported_reference_parameters; G-AX checks real column_sql COLLATE emission",
+      "repo_location": "django/db/backends/base/schema.py:282-283",
+      "repo_symbol": "BaseDatabaseSchemaEditor._iter_column_sql COLLATE branch"
+    },
+    {
+      "handling": "same propagation behaviour on the related-FK alter path (uses _alter_column_collation_sql when rel collation differs); no independently-observable behaviour on the SQLite eval backend beyond references_need_rebuild + reported_reference_parameters",
+      "repo_location": "django/db/backends/base/schema.py:1038-1056",
+      "repo_symbol": "BaseDatabaseSchemaEditor._alter_field rels_to_update collation branch"
+    },
+    {
+      "handling": "test-skip bookkeeping for an Oracle limitation (#33671); no behaviour on the SQLite eval backend; not modeled",
+      "repo_location": "django/db/backends/oracle/features.py:104-110",
+      "repo_symbol": "oracle DatabaseFeatures.django_test_skips entry"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "694cf458f16b8d340a3195244196980b2dec34fd",
+  "changed_files": [
+    "django/db/models/fields/related.py",
+    "django/db/backends/base/schema.py",
+    "django/db/backends/sqlite3/schema.py",
+    "django/db/backends/oracle/features.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real ForeignKey.db_parameters over 6 boundary + 120 fuzz collation identities; asserts 'collation' present == target collation; COLLATE-emission tracking via real column_sql",
+      "encoded_property": "the FK's reported parameters carry the referenced column's collation (key present, value equal), plus the FK's own type and check; emits a COLLATE clause iff the target declares a non-empty collation",
+      "kind": "A-reference",
+      "models": "ForeignKey.db_parameters (gold-patched)",
+      "name": "reported_reference_parameters",
+      "provenance": "django/db/models/fields/related.py:1182 post-patch returns {type, check, collation: target_field.db_parameters(connection).get('collation')}; pre-patch returned {type, check} only",
+      "role": "deep model (impl region) of the changed db_parameters; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the gold-patched base-schema source contains the exact disjunction; validates the full 3x3x3x3 (type x collation) identity truth table incl. the pure-collation-change case",
+      "encoded_property": "rebuild iff (old_type != new_type) or (old_collation != new_collation); a pure collation change triggers a rebuild",
+      "kind": "A-reference",
+      "models": "BaseDatabaseSchemaEditor._alter_field re-derive trigger (and sqlite3 mirror)",
+      "name": "references_need_rebuild",
+      "provenance": "django/db/backends/base/schema.py:826-833 (drop_foreign_keys) and sqlite3/schema.py:458, both gaining the 'or (old_collation != new_collation)' disjunct",
+      "role": "deep model (impl region) of the changed decision; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real schema_editor.column_sql COLLATE token presence tracks the referenced column's collation",
+      "encoded_property": "a column SQL emits a COLLATE clause iff its params declare a non-empty collation",
+      "kind": "A-reference",
+      "models": "BaseDatabaseSchemaEditor._iter_column_sql COLLATE branch",
+      "name": "emits_collation_clause",
+      "provenance": "django/db/backends/base/schema.py:282-283 (if collation := field_db_params.get('collation'): yield self._collate_sql(collation))",
+      "role": "pure-region predicate; the create-time consequence of reported_reference_parameters"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:10:04+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep reported_reference_parameters (A-reference) == real ForeignKey.db_parameters (collation propagated from target) over 6 boundary + 120 fuzz model pairs incl. COLLATE-emission tracking; deep references_need_rebuild (A-reference) == real base-schema (old_type!=new_type) or (old_collation!=new_collation) over the full 3x3x3x3 identity truth table.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "3d08366bdd4c0806293928d6060e03dcbd556b1ff461348498e70ce62529188a",
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:10:15+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 101606,
+          "disagreements": 0,
+          "seed": 156290,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101606, \"disagreements\": 0, \"seed\": 156290, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "bcd39bffa7951c0a50462abd153cb354c1d9646ca371d50879c8d2937b8479b5",
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:19:35+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f",
+        "model_prepatch.py": "08eb412261ca06a1bed9c4a411ccecfe1653d23732eb0e8c3d60228e8222ba04",
+        "model_prepatch_2.py": "e9888ba2e8fd6eab81b4e96d44c40988dd5cdcdc7ba62587aeea09470b44cf99"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T16:35:42+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `atk_pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:20:48+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f",
+        "model_prepatch.py": "08eb412261ca06a1bed9c4a411ccecfe1653d23732eb0e8c3d60228e8222ba04",
+        "model_prepatch_2.py": "e9888ba2e8fd6eab81b4e96d44c40988dd5cdcdc7ba62587aeea09470b44cf99"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:09:58+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "621ecdf648be5a864fe68f63fb21771b3892c9e15e03b9aef8cacb40f91b4781",
+          "impl": "39ecff248dad433d57090754bfeca0e107de24d39bed51940ff022fc8a9dbfa6",
+          "post-conditions": "897147e4dbb9ae4228be78a20869af1cda6337f5d543d462ba4e857843a561cb",
+          "pre-conditions": "fbe53ec1d37be8c5b85b7687d0ee7aa735538086939e1788fc4021b3cbedaa7f",
+          "pure": "d303c5aebbfa8445e43a52d4d600b80a2a24d30c9f802c2b727bd9b83aef488c",
+          "spec_view": "3a335c2943d1cf4d4c0353764c43b19c70a8ba5ae4db54d27ce59851597aa458"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:09:59+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "af53972073d450c6c8429d8691fa477ecfe1ebd98f45f32a35afad347f2e581a",
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:10:00+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:28:51+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T16:35:44+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness break attack: no divergence found. Two deep-modeled functions, both spelled out (no consumed axiom).\n\nSETUP: worktree $SCRATCH is at base_commit 694cf458f16b8d340a3195244196980b2dec34fd with the gold patch applied to the working tree. Model verifies under pinned Nagini (10.53s). axiom_check.py (G-AX) runs green against the gold-patched worktree.\n\n(1) reported_reference_parameters <-> ForeignKey.db_parameters (related.py:1182 gold): real code returns {\"type\": self.db_type(connection), \"check\": self.db_check(connection), \"collation\": target_db_parameters.get(\"collation\")}. Model impl writes exactly type=own_type, check=own_check, collation=target_params[key_collation()], and postconditions pin the 3-entry dict + collation==target collation + emits-COLLATE-iff-target-declares. The precondition `key_collation() in target_params` narrows the domain, but this is a legitimate modeling boundary, NOT a disagreement: the FK's target_field is a CharField/TextField whose db_parameters (fields/__init__.py:1185-1188, 2369-2372) ALWAYS sets db_params[\"collation\"]=self.db_collation (key present, value None when no collation). On that domain, target_params[key_collation()] == .get(\"collation\"), so model output == real output for present-key (incl. none_value<->None). Integer-PK targets (absent key) are excluded by precondition, not mis-modeled. No in-domain input diverges.\n\n(2) references_need_rebuild <-> _alter_field re-derive trigger (base/schema.py:826-833 gold + sqlite3/schema.py:458): model returns differs(old_type,new_type) or differs(old_collation,new_collation) = (old_type!=new_type) or (old_collation!=new_collation), byte-identical to the gold disjunction. Postconditions fully characterize the truth table (type-change=>rebuild, collation-change=>rebuild, neither=>no rebuild). G-AX validates the full 3x3x3x3 grid incl. the discriminating pure-collation-change case. No divergence.\n\nSpec is not too strong: it is exactly the gold post-patch behavior, refined by the documented int/dict abstraction. The only narrowing (collation-key present) is a faithful modeling boundary matching the real FK-target field types, and model_prepatch(_2) correctly FAIL the discriminating postconditions (G-DIFF), so the spec is not spuriously satisfiable by the pre-patch impl. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Independent audit confirms NO-LEAKAGE. (1) Spec region intact: markers.region_hashes spec_view == recorded e6b71fc0848332e482cf7571806fb8374babb1868aab181c9e6011d547c669a9. (2) Mechanical screen reproduced independently: swebench_unified.leakage.screen(model.py, nagini, gold patch, problem_statement) => passed=True, hard_failures=[], warnings=[]. (3) Spec view is elided model.py only: docstring + pure helpers (key_type/key_check/key_collation/none_value/differs/emits_collation_clause) + pre/post-conditions for reported_reference_parameters and references_need_rebuild; both impl regions replaced by '...'. No patched file path (related.py/base/schema.py/sqlite3/schema.py absent), no patched repo symbol (db_parameters/_alter_field/db_type/db_check/DatabaseFeatures) in any identifier or comment, no gold phrasing ('.get(\"collation\")', 'old_type != new_type'), no diff markers, no bug/fix narration. Auditor artifacts (refinement.md/mapping.md/meta.json) that DO quote gold hunks and name repo symbols are NOT part of the consumer spec view, so they cannot leak. (4) Semantic check: every substantive spec claim is derivable from the PUBLIC problem_statement, not the gold edit. The issue verbatim states 'The collation of the pk must match the collation of the fk otherwise an error will occur', shows the failing vs fixed 'MODIFY ... COLLATE' SQL side by side, and is framed around altering a PK's db_collation and the referencing FK columns. The spec abstracts this into three behavioral facts: reported reference params carry the referenced column's collation alongside type/check; a column emits a collation clause iff its params declare a non-empty collation (create-time consequence); re-derivation triggers when type OR collation differs (alter-time consequence). The 'type OR collation differs' trigger \u2014 the detail closest to the specific disjunction edit \u2014 is a behavioral consequence a solver infers from the public issue, not a pointer to the repo edit location. Vocabulary is deliberately abstract and never echoes patched symbols/files/diff text; docstring is explicitly 'stated as desired behaviour, not as an edit.' No spec-view line reconstructs the gold edit beyond the public problem_statement. (G-PANEL-2 empty-collation faithfulness fail is a separate, non-leakage concern outside this role.)",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness break attack: no divergence found. Two deep-modeled functions, both spelled out (no consumed axiom).\n\nSETUP: worktree $SCRATCH is at base_commit 694cf458f16b8d340a3195244196980b2dec34fd with the gold patch applied to the working tree. Model verifies under pinned Nagini (10.53s). axiom_check.py (G-AX) runs green against the gold-patched worktree.\n\n(1) reported_reference_parameters <-> ForeignKey.db_parameters (related.py:1182 gold): real code returns {\"type\": self.db_type(connection), \"check\": self.db_check(connection), \"collation\": target_db_parameters.get(\"collation\")}. Model impl writes exactly type=own_type, check=own_check, collation=target_params[key_collation()], and postconditions pin the 3-entry dict + collation==target collation + emits-COLLATE-iff-target-declares. The precondition `key_collation() in target_params` narrows the domain, but this is a legitimate modeling boundary, NOT a disagreement: the FK's target_field is a CharField/TextField whose db_parameters (fields/__init__.py:1185-1188, 2369-2372) ALWAYS sets db_params[\"collation\"]=self.db_collation (key present, value None when no collation). On that domain, target_params[key_collation()] == .get(\"collation\"), so model output == real output for present-key (incl. none_value<->None). Integer-PK targets (absent key) are excluded by precondition, not mis-modeled. No in-domain input diverges.\n\n(2) references_need_rebuild <-> _alter_field re-derive trigger (base/schema.py:826-833 gold + sqlite3/schema.py:458): model returns differs(old_type,new_type) or differs(old_collation,new_collation) = (old_type!=new_type) or (old_collation!=new_collation), byte-identical to the gold disjunction. Postconditions fully characterize the truth table (type-change=>rebuild, collation-change=>rebuild, neither=>no rebuild). G-AX validates the full 3x3x3x3 grid incl. the discriminating pure-collation-change case. No divergence.\n\nSpec is not too strong: it is exactly the gold post-patch behavior, refined by the documented int/dict abstraction. The only narrowing (collation-key present) is a faithful modeling boundary matching the real FK-target field types, and model_prepatch(_2) correctly FAIL the discriminating postconditions (G-DIFF), so the spec is not spuriously satisfiable by the pre-patch impl. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Independent audit confirms NO-LEAKAGE. (1) Spec region intact: markers.region_hashes spec_view == recorded e6b71fc0848332e482cf7571806fb8374babb1868aab181c9e6011d547c669a9. (2) Mechanical screen reproduced independently: swebench_unified.leakage.screen(model.py, nagini, gold patch, problem_statement) => passed=True, hard_failures=[], warnings=[]. (3) Spec view is elided model.py only: docstring + pure helpers (key_type/key_check/key_collation/none_value/differs/emits_collation_clause) + pre/post-conditions for reported_reference_parameters and references_need_rebuild; both impl regions replaced by '...'. No patched file path (related.py/base/schema.py/sqlite3/schema.py absent), no patched repo symbol (db_parameters/_alter_field/db_type/db_check/DatabaseFeatures) in any identifier or comment, no gold phrasing ('.get(\"collation\")', 'old_type != new_type'), no diff markers, no bug/fix narration. Auditor artifacts (refinement.md/mapping.md/meta.json) that DO quote gold hunks and name repo symbols are NOT part of the consumer spec view, so they cannot leak. (4) Semantic check: every substantive spec claim is derivable from the PUBLIC problem_statement, not the gold edit. The issue verbatim states 'The collation of the pk must match the collation of the fk otherwise an error will occur', shows the failing vs fixed 'MODIFY ... COLLATE' SQL side by side, and is framed around altering a PK's db_collation and the referencing FK columns. The spec abstracts this into three behavioral facts: reported reference params carry the referenced column's collation alongside type/check; a column emits a collation clause iff its params declare a non-empty collation (create-time consequence); re-derivation triggers when type OR collation differs (alter-time consequence). The 'type OR collation differs' trigger \u2014 the detail closest to the specific disjunction edit \u2014 is a behavioral consequence a solver infers from the public issue, not a pointer to the repo edit location. Vocabulary is deliberately abstract and never echoes patched symbols/files/diff text; docstring is explicitly 'stated as desired behaviour, not as an edit.' No spec-view line reconstructs the gold edit beyond the public problem_statement. (G-PANEL-2 empty-collation faithfulness fail is a separate, non-leakage concern outside this role.)",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `atk_pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness break attack: no divergence found. Two deep-modeled functions, both spelled out (no consumed axiom).\n\nSETUP: worktree $SCRATCH is at base_commit 694cf458f16b8d340a3195244196980b2dec34fd with the gold patch applied to the working tree. Model verifies under pinned Nagini (10.53s). axiom_check.py (G-AX) runs green against the gold-patched worktree.\n\n(1) reported_reference_parameters <-> ForeignKey.db_parameters (related.py:1182 gold): real code returns {\"type\": self.db_type(connection), \"check\": self.db_check(connection), \"collation\": target_db_parameters.get(\"collation\")}. Model impl writes exactly type=own_type, check=own_check, collation=target_params[key_collation()], and postconditions pin the 3-entry dict + collation==target collation + emits-COLLATE-iff-target-declares. The precondition `key_collation() in target_params` narrows the domain, but this is a legitimate modeling boundary, NOT a disagreement: the FK's target_field is a CharField/TextField whose db_parameters (fields/__init__.py:1185-1188, 2369-2372) ALWAYS sets db_params[\"collation\"]=self.db_collation (key present, value None when no collation). On that domain, target_params[key_collation()] == .get(\"collation\"), so model output == real output for present-key (incl. none_value<->None). Integer-PK targets (absent key) are excluded by precondition, not mis-modeled. No in-domain input diverges.\n\n(2) references_need_rebuild <-> _alter_field re-derive trigger (base/schema.py:826-833 gold + sqlite3/schema.py:458): model returns differs(old_type,new_type) or differs(old_collation,new_collation) = (old_type!=new_type) or (old_collation!=new_collation), byte-identical to the gold disjunction. Postconditions fully characterize the truth table (type-change=>rebuild, collation-change=>rebuild, neither=>no rebuild). G-AX validates the full 3x3x3x3 grid incl. the discriminating pure-collation-change case. No divergence.\n\nSpec is not too strong: it is exactly the gold post-patch behavior, refined by the documented int/dict abstraction. The only narrowing (collation-key present) is a faithful modeling boundary matching the real FK-target field types, and model_prepatch(_2) correctly FAIL the discriminating postconditions (G-DIFF), so the spec is not spuriously satisfiable by the pre-patch impl. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Independent audit confirms NO-LEAKAGE.\n\n(1) Spec region intact: markers.region_hashes spec_view == recorded e6b71fc0848332e482cf7571806fb8374babb1868aab181c9e6011d547c669a9.\n\n(2) Mechanical screen reproduced independently: swebench_unified.leakage.screen(model.py, nagini, gold patch, problem_statement) => passed=True, hard_failures=[], warnings=[].\n\n(3) Spec view is elided model.py only: docstring + pure helpers (key_type/key_check/key_collation/none_value/differs/emits_collation_clause) + pre/post-conditions for reported_reference_parameters and references_need_rebuild; both impl regions replaced by '...'. No patched file path (related.py/base/schema.py/sqlite3/schema.py absent), no patched repo symbol (db_parameters/_alter_field/db_type/db_check/DatabaseFeatures) in any identifier or comment, no gold phrasing ('.get(\"collation\")', 'old_type != new_type'), no diff markers, no bug/fix narration. Auditor artifacts (refinement.md/mapping.md/meta.json) that DO quote gold hunks and name repo symbols are NOT part of the consumer spec view, so they cannot leak.\n\n(4) Semantic check: every substantive spec claim is derivable from the PUBLIC problem_statement, not the gold edit. The issue verbatim states 'The collation of the pk must match the collation of the fk otherwise an error will occur', shows the failing vs fixed 'MODIFY ... COLLATE' SQL side by side, and is framed around altering a PK's db_collation and the referencing FK columns. The spec abstracts this into three behavioral facts: reported reference params carry the referenced column's collation alongside type/check; a column emits a collation clause iff its params declare a non-empty collation (create-time consequence); re-derivation triggers when type OR collation differs (alter-time consequence).\n\nThe 'type OR collation differs' trigger \u2014 the detail closest to the specific disjunction edit \u2014 is a behavioral consequence a solver infers from the public issue, not a pointer to the repo edit location. Vocabulary is deliberately abstract and never echoes patched symbols/files/diff text; docstring is explicitly 'stated as desired behaviour, not as an edit.' No spec-view line reconstructs the gold edit beyond the public problem_statement. (G-PANEL-2 empty-collation faithfulness fail is a separate, non-leakage concern outside this role.)\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:34:28+00:00",
+      "code_version": "d061dd586-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-fn1-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-fn1-temp",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-fn2-branch",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fn1-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-write-target",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.6
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn1-drop-collation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn1-wrong-collation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.4
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn1-empty-collation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn1-spurious-entry",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn2-type-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn2-collation-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.3
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn2-and",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn2-const-true",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-fn2-const-false",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 10
+        },
+        "manifest_sha256": "748d808b73e033d7ea004958738a1818051548d6c552d21e6f0a892a800d0b42",
+        "n_cases": 14,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 14 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f",
+        "properties.py": "748d808b73e033d7ea004958738a1818051548d6c552d21e6f0a892a800d0b42"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:34:34+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:29:02+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 11.0
+      },
+      "detail": "verified in 11.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b885a7791e5231f97ded28be913e93726f94221510dc0ddf1bb505f011be431f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15629",
+  "modeled_functions": [
+    {
+      "carrier_type": "db_parameters dict -> Dict[int,int] keyed by constant tokens (type/check/collation); collation/type identities are int with none_value() sentinel; key membership distinguishes absent vs present-empty",
+      "model_symbol": "reported_reference_parameters",
+      "repo_location": "django/db/models/fields/related.py:1182",
+      "repo_symbol": "django.db.models.fields.related.ForeignKey.db_parameters",
+      "role": "modeled changed function (root cause): the relational field reports the referenced column's collation alongside its own type and check"
+    },
+    {
+      "carrier_type": "collation/type identities as int; the modeled sub-expression is the changed (old_type!=new_type) or (old_collation!=new_collation) disjunction (unchanged guards out of scope)",
+      "model_symbol": "references_need_rebuild",
+      "repo_location": "django/db/backends/base/schema.py:826-833; django/db/backends/sqlite3/schema.py:458",
+      "repo_symbol": "BaseDatabaseSchemaEditor._alter_field drop/re-derive trigger (mirrored in sqlite3 SchemaEditor._alter_field)",
+      "role": "modeled changed decision: columns referencing an altered column are re-derived when its type OR its collation differs"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition key_collation() in Result() (the FK omits the collation entry)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "ForeignKey.db_parameters collation propagation",
+      "reverted_to": "pre-patch impl returning only {type, check} (no collation key)"
+    },
+    {
+      "fails_on": "postcondition Implies(differs(old_collation, new_collation), Result()) (a pure collation change is missed)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "_alter_field re-derive trigger (collation disjunct)",
+      "reverted_to": "pre-patch type-only trigger (return differs(old_type, new_type))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "621ecdf648be5a864fe68f63fb21771b3892c9e15e03b9aef8cacb40f91b4781",
+    "impl": "39ecff248dad433d57090754bfeca0e107de24d39bed51940ff022fc8a9dbfa6",
+    "post-conditions": "897147e4dbb9ae4228be78a20869af1cda6337f5d543d462ba4e857843a561cb",
+    "pre-conditions": "f20da2bb7aaeade25dc9357d2a1ef179f64ce9ea92e93899abd4360912415d28",
+    "pure": "d303c5aebbfa8445e43a52d4d600b80a2a24d30c9f802c2b727bd9b83aef488c",
+    "spec_view": "e6b71fc0848332e482cf7571806fb8374babb1868aab181c9e6011d547c669a9"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none (no string is decomposed); db_parameters dicts -> Dict[int,int] keyed by constant tokens; collation/type identities as int with none_value() sentinel and dict-membership for absent-vs-present-empty",
+  "version": "4.1"
+}

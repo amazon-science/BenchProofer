@@ -1,0 +1,472 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "carried verbatim in patch.diff; the inline-replacement branch is the no-subquery counterpart of decision #2 and is exercised by the same masking postcondition (an annotated column survives iff added-or-referenced)",
+      "repo_location": "django/db/models/sql/query.py:444-448 (existing_annotations dict), 534-549 (inline replacements + set_annotation_mask(added_aggregate_names))",
+      "repo_symbol": "Query.get_aggregation: existing_annotations + Ref-inlining replacement block (no-subquery branch)"
+    },
+    {
+      "handling": "behaviourally inert for the three F2P pruning tests (none filter on a summarized aggregate); carried verbatim in patch.diff so G-RESOLVE is exact; not part of the modelled behavioural core (refinement.md E, mapping.md 4)",
+      "repo_location": "django/db/models/sql/query.py:1214/1363/1557, django/db/models/query_utils.py:90/359",
+      "repo_symbol": "summarize flag threading: build_filter / _add_q / solve_lookup_type / Q.resolve_expression / refs_expression"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "321ecb40f4da842926e1bc07e11df4aabe53ca4b",
+  "changed_files": [
+    "django/db/models/expressions.py",
+    "django/db/models/query_utils.py",
+    "django/db/models/sql/query.py",
+    "django/db/models/sql/where.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts set(collect_refs(flatten(tree))) == real get_refs(tree) and per-alias membership over 12 boundary (incl. nested Ref-in-source: Ref(outer, Ref(inner, ...)) real get_refs=={outer}) + 5000 fuzz real Django expression trees whose Ref sources are themselves Ref-bearing subtrees (so the leaf-vs-recurse divergent region is actually exercised); also asserts the front-recursive collect_refs transcription mirrors the model fold (no hand-copy drift); in-container, RC=0 against gold-patched Django",
+      "encoded_property": "collect_refs(flatten(tree)): the references reachable from an expression; a Ref is a LEAF contributing ONLY its own referent code (its source subtree is NOT descended into, matching Ref.get_refs()=={self.refs}), any other node contributes the union of its sub-expressions' references; the decision observes only set membership, so set(collect_refs(flatten(tree))) == get_refs(tree)",
+      "kind": "A-reference",
+      "models": "get_refs() (the recursive reference-gatherer the gold patch ADDS): BaseExpression.get_refs, Ref.get_refs, WhereNode.get_refs",
+      "name": "collect_refs",
+      "provenance": "django/db/models/expressions.py:408 (BaseExpression.get_refs), :1176 (Ref.get_refs returns {self.refs}); django/db/models/sql/where.py:230 (WhereNode.get_refs) \u2014 all post-patch",
+      "role": "deep model (pure region) of the new recursive reference-gatherer consumed by decision #2; NOT a consumed axiom \u2014 there is no get_refs @ContractOnly axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:13:54+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: collect_refs deep model (== real get_refs, Ref-as-leaf) sound on 12 boundary (incl. nested Ref-in-source) + 5000 fuzz expression trees whose Ref sources are themselves Ref-bearing subtrees; the front-recursive transcription mirrors the model fold; the wrapping (selected-AND-summary, grounded in annotation_select) and masking discriminators agree with real Django semantics on all F2P scenarios incl. the alias-only-aggregate source case.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "a66380135706fab07224eb98ee86e4a39567823a1eed10fd8cca8697c7a43fcf",
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:15:02+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 42,
+          "comparisons": 550794,
+          "derived_form_not_taken": 26102,
+          "derived_form_taken": 73898,
+          "disagreements": 0,
+          "inner_mask_probes": 73898,
+          "oracle": "called: real patched Query.get_aggregation (django/db/models/sql/query.py) + real get_refs",
+          "probes": 100000,
+          "seed": 16263,
+          "shadow": "direct (contract-stripped impl region of model.py)",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"probes\": 100000, \"comparisons\": 550794, \"boundary\": 42, \"derived_form_taken\": 73898, \"derived_form_not_taken\": 26102, \"inner_mask_probes\": 73898, \"disagreements\": 0, \"seed\": 16263, \"oracle\": \"called: real patched Query.get_aggregation (django/db/models/sql/query.py) + real get_refs\", \"shadow\": \"direct (contract-stripped impl region of model.py)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "a61c4b1e61648514160a565a9206f1357cb56219a74456cada92a537e31936e7",
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:26:48+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed",
+          "model_prepatch_3.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed; model_prepatch_3.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e",
+        "model_prepatch.py": "ad97a437d08d4b7a88d0da9af02db6b649232d523eaa8dd11fa9143d74d1b384",
+        "model_prepatch_2.py": "65af73580fa5850c299575e8f79f2826c4444645b90a2e6b4d9adac58b72eab7",
+        "model_prepatch_3.py": "ed12e546818f9e93c3df8fc857739146ce9ab294c38dbbb97ea2b112438c95fc"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T08:38:10+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1.py`, `atk3.py`, `atk4.py`, `atk5.py`, `atk6.py`, `atk8.py`, `atk9.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk2.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:28:49+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e",
+        "model_prepatch.py": "ad97a437d08d4b7a88d0da9af02db6b649232d523eaa8dd11fa9143d74d1b384",
+        "model_prepatch_2.py": "65af73580fa5850c299575e8f79f2826c4444645b90a2e6b4d9adac58b72eab7",
+        "model_prepatch_3.py": "ed12e546818f9e93c3df8fc857739146ce9ab294c38dbbb97ea2b112438c95fc"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:13:37+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "ad1ac8067a2b452dd000ab31f3f1f5a39400559e55702ca99a629872e78f4f16",
+          "impl": "3b1ab600a70fd4af0cfbc5f8e39045e1c3b8e6de857e172c58350fedeaf11751",
+          "invariants": "1749e4379d570ab0d0eb31659111fdbb8276daed77768c687e466b5155e61189",
+          "post-conditions": "3d2c07ff6255a16fe5822b4e1c942a674c1e6adb6a5c938d334634594aef52f8",
+          "pre-conditions": "c01c2091e793e9b84471662a1c8612ee089f6572479f8bc8c309b0b53ae9b56e",
+          "pure": "5224a0221ff01db805ae943762ea7da05458233b20a204129aabd20bd928f0a6",
+          "spec_view": "2aa05102c453da740b7e719c958253f46ac8b320a1635bfd971733a8d8f63f90"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:13:37+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "1df35cb47048f5d53bc8f08abbd01f7f281ef76dc56f1a399c8d9189aacd96e1",
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:13:37+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-13T20:51:08+00:00",
+      "code_version": "78ae167c7-dirty",
+      "data": {
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "570ea576e841",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T08:38:12+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness of the spec to the real repo callees at base_commit 321ecb40f4 was checked empirically against the post-patch tree (clean base worktree + gold patch applied); it holds, no diverging input found.\n\nSpec integrity: `same-spec nagini django__django-16263 <identity-copy of model.py>` returns exit 0 (SAME). Model verifies under the pinned Nagini verifier (Verification successful, 23.2s).\n\nDecision #1 (existing_summary_forces_derived) modeled as any_k(selected[k]!=0 && summ[k]!=0) || filter_summary!=0. Real post-patch has_existing_aggregation = any(getattr(ann,'contains_aggregate',True) or getattr(ann,'contains_over_clause',True) for ann in existing_annotations.values()) or any(self.where.split_having_qualify()[1:]), where existing_annotations is built from self.annotation_select minus added_aggregate_names. Grounded both changed axes against real Django: annotate()->add_annotation(select=True)-> alias in annotation_select (selected=1); alias()->select=False-> absent (selected=0); Count(Value(1)).contains_aggregate=True (summ=1); Lower(Value('name')) contains_aggregate=False and contains_over_clause=False (summ=0). Both axes (source self.annotations->self.annotation_select, predicate truthiness->contains_aggregate/over_clause) faithfully modeled.\n\nDecision #2 (inner_column_kept) modeled as alias in added || alias in collect_refs(ref_tree). Real: annotation_mask = added_aggregate_names union (union of get_refs(pushed-out)). Matches.\n\nDeep model collect_refs vs real get_refs (the one nontrivial faithfulness risk): flatten traverses get_source_expressions() with Ref treated as a hard leaf (referent only, no source descent). Confirmed the three real overrides in the gold: BaseExpression.get_refs unions over get_source_expressions(), Ref.get_refs returns {self.refs}, WhereNode.get_refs unions over self.children. Verified WhereNode.get_source_expressions() returns self.children[:] (identical surface to what WhereNode.get_refs iterates), so a WhereNode embedded in a resolved expression is flattened faithfully. Directly tested a RESOLVED tree Sum(Case(When(Q(ac__gt=0), then=Value(1)), default=Value(0))).resolve_expression(query, summarize=True): it contains Sum->Case->When->WhereNode->GreaterThan->Ref('ac')->Count; real get_refs()={'ac'} and model collect_refs()={'ac'} MATCH. Also verified agreement (zero mismatches) on Ref-as-leaf nested Ref(outer,Ref(inner)) => {outer}, Ref(outer,Concat(Ref(inner1),Ref(inner2))) => {outer}, Concat(Ref(a,Ref(b)),Ref(c)) => {a,c}, Coalesce, Star, ExpressionWrapper, Avg, Concat, Count('*') => set(). G-AX independently passes strict (exit 0) over 12 boundary + 5000 fuzz trees whose Ref sources are Ref-bearing.\n\nTermination (MustTerminate) is not spec-strengthening beyond the gold: real has_existing_aggregation is a bounded any() over a finite dict, and the annotation_mask loop is a bounded for over finite get_refs sets -- both always return. It only rules out a non-terminating same-spec body whose faithful patch would hang the F2P/P2P aggregation tests (never resolve). It does not diverge from real repo behavior on any input.\n\nNo input exists where the modeled functions disagree with the real callees; the spec is neither too strong nor drifted. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes with zero hard failures (leakage.screen on the spec view against gold patch + problem_statement); no relaxation recorded (relaxed_leakage=None, no RELAXED_LEAKAGE.md); meta G-LEAK status=pass. Independent semantic review confirms NO-LEAKAGE: (1) all spec-view identifiers are abstract List[int]-carrier names (existing_summary_forces_derived, inner_column_kept, any_selected_summary, collect_refs, seq_contains) and none embed any patched repo symbol (get_aggregation, get_refs, annotation_select, has_existing_aggregation, annotation_mask, refs_expression, solve_lookup_type). (2) Docstrings/comments describe behavior in a generic vocabulary (derived/inner query, annotated columns, selected flag, row-summary, references) without naming Django internals, reproducing any gold-diff line, citing patched file paths, or using narration terms. (3) The specified behavior is a faithful refinement of the already-public problem_statement ('strip unused annotations from count queries \u2026 not referenced by filters, other annotations or ordering'); decision #2 restates the task, decision #1 states the correctness condition as desired behavior, not as the edit. A solver still must discover the actual code change; the spec view discloses WHAT correct behavior is, not the gold edit.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 Faithfulness of the spec to the real repo callees at base_commit 321ecb40f4 was checked empirically against the post-patch tree (clean base worktree + gold patch applied); it holds, no diverging input found.\n\nSpec integrity: `same-spec nagini django__django-16263 <identity-copy of model.py>` returns exit 0 (SAME). Model verifies under the pinned Nagini verifier (Verification successful, 23.2s).\n\nDecision #1 (existing_summary_forces_derived) modeled as any_k(selected[k]!=0 && summ[k]!=0) || filter_summary!=0. Real post-patch has_existing_aggregation = any(getattr(ann,'contains_aggregate',True) or getattr(ann,'contains_over_clause',True) for ann in existing_annotations.values()) or any(self.where.split_having_qualify()[1:]), where existing_annotations is built from self.annotation_select minus added_aggregate_names. Grounded both changed axes against real Django: annotate()->add_annotation(select=True)-> alias in annotation_select (selected=1); alias()->select=False-> absent (selected=0); Count(Value(1)).contains_aggregate=True (summ=1); Lower(Value('name')) contains_aggregate=False and contains_over_clause=False (summ=0). Both axes (source self.annotations->self.annotation_select, predicate truthiness->contains_aggregate/over_clause) faithfully modeled.\n\nDecision #2 (inner_column_kept) modeled as alias in added || alias in collect_refs(ref_tree). Real: annotation_mask = added_aggregate_names union (union of get_refs(pushed-out)). Matches.\n\nDeep model collect_refs vs real get_refs (the one nontrivial faithfulness risk): flatten traverses get_source_expressions() with Ref treated as a hard leaf (referent only, no source descent). Confirmed the three real overrides in the gold: BaseExpression.get_refs unions over get_source_expressions(), Ref.get_refs returns {self.refs}, WhereNode.get_refs unions over self.children. Verified WhereNode.get_source_expressions() returns self.children[:] (identical surface to what WhereNode.get_refs iterates), so a WhereNode embedded in a resolved expression is flattened faithfully. Directly tested a RESOLVED tree Sum(Case(When(Q(ac__gt=0), then=Value(1)), default=Value(0))).resolve_expression(query, summarize=True): it contains Sum->Case->When->WhereNode->GreaterThan->Ref('ac')->Count; real get_refs()={'ac'} and model collect_refs()={'ac'} MATCH. Also verified agreement (zero mismatches) on Ref-as-leaf nested Ref(outer,Ref(inner)) => {outer}, Ref(outer,Concat(Ref(inner1),Ref(inner2))) => {outer}, Concat(Ref(a,Ref(b)),Ref(c)) => {a,c}, Coalesce, Star, ExpressionWrapper, Avg, Concat, Count('*') => set(). G-AX independently passes strict (exit 0) over 12 boundary + 5000 fuzz trees whose Ref sources are Ref-bearing.\n\nTermination (MustTerminate) is not spec-strengthening beyond the gold: real has_existing_aggregation is a bounded any() over a finite dict, and the annotation_mask loop is a bounded for over finite get_refs sets -- both always return. It only rules out a non-terminating same-spec body whose faithful patch would hang the F2P/P2P aggregation tests (never resolve). It does not diverge from real repo behavior on any input.\n\nNo input exists where the modeled functions disagree with the real callees; the spec is neither too strong nor drifted. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes with zero hard failures (leakage.screen on the spec view against gold patch + problem_statement); no relaxation recorded (relaxed_leakage=None, no RELAXED_LEAKAGE.md); meta G-LEAK status=pass. Independent semantic review confirms NO-LEAKAGE: (1) all spec-view identifiers are abstract List[int]-carrier names (existing_summary_forces_derived, inner_column_kept, any_selected_summary, collect_refs, seq_contains) and none embed any patched repo symbol (get_aggregation, get_refs, annotation_select, has_existing_aggregation, annotation_mask, refs_expression, solve_lookup_type). (2) Docstrings/comments describe behavior in a generic vocabulary (derived/inner query, annotated columns, selected flag, row-summary, references) without naming Django internals, reproducing any gold-diff line, citing patched file paths, or using narration terms. (3) The specified behavior is a faithful refinement of the already-public problem_statement ('strip unused annotations from count queries \u2026 not referenced by filters, other annotations or ordering'); decision #2 restates the task, decision #1 states the correctness condition as desired behavior, not as the edit. A solver still must discover the actual code change; the spec view discloses WHAT correct behavior is, not the gold edit.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1.py`, `atk3.py`, `atk4.py`, `atk5.py`, `atk6.py`, `atk8.py`, `atk9.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk2.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness of the spec to the real repo callees at base_commit 321ecb40f4 was checked empirically against the post-patch tree (clean base worktree + gold patch applied); it holds, no diverging input found.\n\nSpec integrity: `same-spec nagini django__django-16263 <identity-copy of model.py>` returns exit 0 (SAME). Model verifies under the pinned Nagini verifier (Verification successful, 23.2s).\n\nDecision #1 (existing_summary_forces_derived) modeled as any_k(selected[k]!=0 && summ[k]!=0) || filter_summary!=0. Real post-patch has_existing_aggregation = any(getattr(ann,'contains_aggregate',True) or getattr(ann,'contains_over_clause',True) for ann in existing_annotations.values()) or any(self.where.split_having_qualify()[1:]), where existing_annotations is built from self.annotation_select minus added_aggregate_names. Grounded both changed axes against real Django: annotate()->add_annotation(select=True)-> alias in annotation_select (selected=1); alias()->select=False-> absent (selected=0); Count(Value(1)).contains_aggregate=True (summ=1); Lower(Value('name')) contains_aggregate=False and contains_over_clause=False (summ=0). Both axes (source self.annotations->self.annotation_select, predicate truthiness->contains_aggregate/over_clause) faithfully modeled.\n\nDecision #2 (inner_column_kept) modeled as alias in added || alias in collect_refs(ref_tree). Real: annotation_mask = added_aggregate_names union (union of get_refs(pushed-out)). Matches.\n\nDeep model collect_refs vs real get_refs (the one nontrivial faithfulness risk): flatten traverses get_source_expressions() with Ref treated as a hard leaf (referent only, no source descent). Confirmed the three real overrides in the gold: BaseExpression.get_refs unions over get_source_expressions(), Ref.get_refs returns {self.refs}, WhereNode.get_refs unions over self.children. Verified WhereNode.get_source_expressions() returns self.children[:] (identical surface to what WhereNode.get_refs iterates), so a WhereNode embedded in a resolved expression is flattened faithfully.\n\nDirectly tested a RESOLVED tree Sum(Case(When(Q(ac__gt=0), then=Value(1)), default=Value(0))).resolve_expression(query, summarize=True): it contains Sum->Case->When->WhereNode->GreaterThan->Ref('ac')->Count; real get_refs()={'ac'} and model collect_refs()={'ac'} MATCH. Also verified agreement (zero mismatches) on Ref-as-leaf nested Ref(outer,Ref(inner)) => {outer}, Ref(outer,Concat(Ref(inner1),Ref(inner2))) => {outer}, Concat(Ref(a,Ref(b)),Ref(c)) => {a,c}, Coalesce, Star, ExpressionWrapper, Avg, Concat, Count('*') => set(). G-AX independently passes strict (exit 0) over 12 boundary + 5000 fuzz trees whose Ref sources are Ref-bearing.\n\nTermination (MustTerminate) is not spec-strengthening beyond the gold: real has_existing_aggregation is a bounded any() over a finite dict, and the annotation_mask loop is a bounded for over finite get_refs sets -- both always return. It only rules out a non-terminating same-spec body whose faithful patch would hang the F2P/P2P aggregation tests (never resolve). It does not diverge from real repo behavior on any input.\n\nNo input exists where the modeled functions disagree with the real callees; the spec is neither too strong nor drifted. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes with zero hard failures (leakage.screen on the spec view against gold patch + problem_statement); no relaxation recorded (relaxed_leakage=None, no RELAXED_LEAKAGE.md); meta G-LEAK status=pass. Independent semantic review confirms NO-LEAKAGE:\n\n(1) all spec-view identifiers are abstract List[int]-carrier names (existing_summary_forces_derived, inner_column_kept, any_selected_summary, collect_refs, seq_contains) and none embed any patched repo symbol (get_aggregation, get_refs, annotation_select, has_existing_aggregation, annotation_mask, refs_expression, solve_lookup_type).\n\n(2) Docstrings/comments describe behavior in a generic vocabulary (derived/inner query, annotated columns, selected flag, row-summary, references) without naming Django internals, reproducing any gold-diff line, citing patched file paths, or using narration terms.\n\n(3) The specified behavior is a faithful refinement of the already-public problem_statement ('strip unused annotations from count queries \u2026 not referenced by filters, other annotations or ordering'); decision #2 restates the task, decision #1 states the correctness condition as desired behavior, not as the edit. A solver still must discover the actual code change; the spec view discloses WHAT correct behavior is, not the gold edit.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:54:17+00:00",
+      "code_version": "70785cfb4-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-esfd-accumulate",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-ick-accumulate",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-esfd-read-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "fm-esfd-overwrite-selected",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.5
+          },
+          {
+            "expect": "reject",
+            "id": "fm-ick-overwrite-reftree",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.9
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-esfd-presence-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-esfd-source-all",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-ick-keep-all",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-ick-drop-refs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-nonterm-esfd",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-nonterm-ick",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.4
+          },
+          {
+            "expect": "reject",
+            "id": "support-esfd-inverted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 9
+        },
+        "manifest_sha256": "4e6535f33540c38b83e58160f87d9ea910d0994d88021100881bdb9cc1973620",
+        "n_cases": 12,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 12 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "ff3018b5eb5d7da55702c092132e71cdd237d5a39efb33fc9592a9384f98b16e",
+        "properties.py": "4e6535f33540c38b83e58160f87d9ea910d0994d88021100881bdb9cc1973620"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T19:51:31+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-13T20:48:13+00:00",
+      "code_version": "78ae167c7-dirty",
+      "data": {
+        "wall_time_s": 17.0
+      },
+      "detail": "verified in 17.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "570ea576e841",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-16263",
+  "modeled_functions": [
+    {
+      "carrier_type": "per-annotated-column SELECTED bit (alias in annotation_select) -> List[int]; per-annotated-column summary (aggregate/over-clause) bit -> List[int]; HAVING/QUALIFY presence -> int; bool result",
+      "model_symbol": "existing_summary_forces_derived",
+      "repo_location": "django/db/models/sql/query.py:438 (existing_annotations dict built from self.annotation_select; has_existing_aggregation block), consumed in the subquery if at ~467",
+      "repo_symbol": "django.db.models.sql.query.Query.get_aggregation (existing_annotations from annotation_select + has_existing_aggregation computation + subquery if)",
+      "role": "modeled changed decision #1 (both axes: source self.annotations->self.annotation_select AND predicate presence->contains_aggregate/over_clause): whether the SELECTED pre-existing annotated columns force the wrapping subquery"
+    },
+    {
+      "carrier_type": "alias/ref codes -> List[int]; expression tree -> flattened List[int] (Ref LEAF>0 with no source descent, other node 0+children); bool result",
+      "model_symbol": "inner_column_kept",
+      "repo_location": "django/db/models/sql/query.py:489-503 (annotation_mask = added_aggregate_names | get_refs; set_annotation_mask)",
+      "repo_symbol": "django.db.models.sql.query.Query.get_aggregation (inner annotation_mask computation)",
+      "role": "modeled changed decision #2: which pre-existing annotated-column aliases survive the inner selection"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == (any_selected_summary(ToSeq(selected), ToSeq(summ)) or filter_summary != 0) \u2014 fails on selected=[1], summ=[0] (a lone SELECTED non-aggregate column), i.e. test_non_aggregate_annotation_pruned",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "get_aggregation subquery decision #1, PREDICATE axis (presence -> contains_aggregate/over_clause)",
+      "reverted_to": "old predicate: the mere PRESENCE of any SELECTED pre-existing annotated column (regardless of whether it summarises) forces the wrapping subquery; reads `selected` but never the `summ` bit"
+    },
+    {
+      "fails_on": "postcondition Result() == (seq_contains(ToSeq(added), alias) or seq_contains(collect_refs(ToSeq(ref_tree)), alias)) \u2014 fails when alias is neither pushed-out nor referenced, i.e. test_unreferenced_aggregate_annotation_pruned",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "get_aggregation inner annotation mask (decision #2)",
+      "reverted_to": "old `set_annotation_mask(self.annotation_select)`: every pre-existing annotated column is kept in the inner selection regardless of references"
+    },
+    {
+      "fails_on": "postcondition Result() == (any_selected_summary(ToSeq(selected), ToSeq(summ)) or filter_summary != 0) \u2014 fails on selected=[0], summ=[1] (an ALIAS-ONLY aggregate), i.e. test_unused_aliased_aggregate_pruned",
+      "file": "model_prepatch_3.py",
+      "fixed_behavior": "get_aggregation subquery decision #1, SOURCE axis (self.annotations -> self.annotation_select)",
+      "reverted_to": "old source: the decision is built from the FULL set of pre-existing annotated columns (self.annotations, incl. alias-only ones), not only the SELECTED ones; forces wrapping whenever ANY column summarises; reads `summ` but never the `selected` bit"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "ad1ac8067a2b452dd000ab31f3f1f5a39400559e55702ca99a629872e78f4f16",
+    "impl": "3b1ab600a70fd4af0cfbc5f8e39045e1c3b8e6de857e172c58350fedeaf11751",
+    "invariants": "1749e4379d570ab0d0eb31659111fdbb8276daed77768c687e466b5155e61189",
+    "post-conditions": "3d2c07ff6255a16fe5822b4e1c942a674c1e6adb6a5c938d334634594aef52f8",
+    "pre-conditions": "c01c2091e793e9b84471662a1c8612ee089f6572479f8bc8c309b0b53ae9b56e",
+    "pure": "5224a0221ff01db805ae943762ea7da05458233b20a204129aabd20bd928f0a6",
+    "spec_view": "2aa05102c453da740b7e719c958253f46ac8b320a1635bfd971733a8d8f63f90"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "no strings modelled; aliases/refs are int codes; the query's annotated columns and expression source trees are minimal parallel List[int] carriers recording exactly the bits each decision reads (aggregation flag, HAVING/QUALIFY presence, Ref-leaf referents, pushed-out summary names); sets observed via the front-recursive seq_contains membership predicate",
+  "version": "4.2"
+}

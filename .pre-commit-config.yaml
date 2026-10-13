@@ -1,0 +1,34 @@
+# Optional, and not a second source of truth: `bash scripts/check.sh` is what CI runs,
+# and this runs the fast half of it before a commit is written.
+#
+#   pre-commit install
+#
+# Every hook is local, so it runs the ruff and mypy already installed in the active
+# environment. A hook that pinned its own versions could disagree with the versions in
+# constraints/, which would mean a commit that passes here and fails in CI.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: python -m ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-check
+        name: ruff check
+        entry: python -m ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      # Type-checks the package rather than the staged files, because a change in one
+      # module is what breaks the types in another.
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true

@@ -1,0 +1,414 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "same single change (build the cache key under the recognised key convention instead of the unrecognised one) applied at the helper definition and the two other call sites; captured by the same key-construction effect (make_key / lookup_recognised). No separate prepatch: the load-bearing observable lives in _importconftest's _conftestpath2mod membership, which model_prepatch already exercises.",
+      "repo_location": "src/_pytest/pathlib.py:340-346 (removed), src/_pytest/config/__init__.py:370/409 (calls dropped)",
+      "repo_symbol": "_pytest.pathlib.unique_path (removed) + its call sites in _getconftestmodules / _set_initial_conftests"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): both real conventions agree on the canonical location string on 10 boundary + 2000 fuzz real files",
+      "ensures": "deterministic per-location canonical string (used to GROUND the result value in the input)",
+      "kind": "A-consumed",
+      "models": "the unchanged value-level canonicalisation of the location string: str(Path(str(conftestpath)).resolve()) (post) / os.path.realpath(str(conftestpath)) inside unique_path (pre) -- the SAME string on the F2P inputs",
+      "name": "canonical",
+      "provenance": "CPython pathlib.Path.resolve / os.path.realpath; structural symlink+abs resolution, deterministic. Never the operation under change.",
+      "signature": "@Pure @ContractOnly canonical(loc: PSeq[int]) -> PSeq[int]"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): recomputed Path(...).resolve() lookup HITS a dict keyed by the recognised key and MISSES one keyed by the unrecognised key, with identical location strings, on 10 boundary + 2000 fuzz real files",
+      "ensures": "result carries canonical(loc) as its location string under EITHER convention; grants lookup_recognised ONLY under the recognised convention (Ensures(Implies(recognised_convention, lookup_recognised(...))))",
+      "kind": "A-consumed",
+      "models": "the cache-key constructor: Path(str(conftestpath)).resolve() (recognised convention, pathlib) vs unique_path(conftestpath)=type(local)(normcase(realpath(...))) (unrecognised convention, py.path.local)",
+      "name": "make_key",
+      "provenance": "src/_pytest/config/__init__.py:432 (post) / :438 (pre); src/_pytest/pathlib.py:340-346 (unique_path). UNCHANGED callee the key is built by; never the function under change.",
+      "signature": "@ContractOnly make_key(loc: List[int], recognised_convention: bool) -> List[int]"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): soundness of the grant validated via the real membership HIT/MISS (see make_key)",
+      "kind": "capability-predicate (unforgeable token)",
+      "models": "the membership-recognition property of _conftestpath2mod: the cache's membership test recognises the key as equal to an independently-recomputed key for the same canonical location (Path(str(p)).resolve() in _conftestpath2mod)",
+      "name": "lookup_recognised",
+      "provenance": "src/_pytest/config/__init__.py:440 (lookup) / :457 (store); abstract predicate, no body -> cannot be Fold-fabricated; not value-carried -> cannot be laundered across a value-equal copy",
+      "role": "the unforgeable token granted only by make_key under the recognised convention and REQUIRED by conftest_dedup_key's result; the load-bearing discriminator for a control-flow effect with no value-level difference (SPEC_GUIDE directive 8)",
+      "signature": "@ContractOnly @Predicate lookup_recognised(canon: PSeq[int]) -> bool"
+    }
+  ],
+  "base_commit": "73c5b7f4b11a81e971f7d1bb18072e06a87060f4",
+  "changed_files": [
+    "src/_pytest/config/__init__.py",
+    "src/_pytest/pathlib.py"
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:30:25+00:00",
+      "code_version": "3938b8728-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: on 10 boundary + 2000 fuzz real files, both key conventions carry the IDENTICAL canonical location string, the recognised convention's key is FOUND by an independently-recomputed lookup (lookup_recognised sound), and the unrecognised convention's key is NOT found despite the identical string (no token). The discriminator is the recognition effect, not letter casing.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "e6dbc217c45b4f247d9415fafecbfa3b50710f4475b0875b4f1af46a2ad33726",
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:30:45+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 101730,
+          "disagreements": 0,
+          "seed": 5840,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101730, \"disagreements\": 0, \"seed\": 5840, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e5eadb27e6292b74d414c8210a35490d08a3b969c1e14a25ac2b7cf2bff9c4fc",
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:52:07+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f",
+        "model_prepatch.py": "1800711ab39412df4ce2c314c5fb9ec0ce9a654185172e11120abfe797974abe"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-01T06:32:52+00:00",
+      "code_version": "05792c06-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 13 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 13 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The audit re-ran 13 candidate wrong implementations against this specification, each changing the implementation and leaving the specification as this bundle ships it. None of them verified without also resolving the instance, which is what a counterexample to `verify => correct` would require. The positive control verifies, so the specification is satisfiable by a correct implementation and that outcome is not an artifact of a specification nothing can satisfy.\n\n**How far this record can be re-checked.** The attack sources are not carried in this bundle. The count above and the positive-control outcome are what the harness recorded; the sources and their individual outcomes are not, so this role is the one part of the cell a reader cannot re-run from the bundle alone. The audit record states the same limitation.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:52:46+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f",
+        "model_prepatch.py": "1800711ab39412df4ce2c314c5fb9ec0ce9a654185172e11120abfe797974abe"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:30:17+00:00",
+      "code_version": "3938b8728-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "78921337e6a4de10ba9769cc2c4db14776fdbccb53fa70f3c1b3c89e3c00dda6",
+          "impl": "fd63abb5312efc1a85c9103acd879b224b9a8edf8c936a729bd457943c79ec13",
+          "post-conditions": "537c816ed6b9c0287955e5f7de86d94f9dda9d5dfa8a3bc04f46a2eac56575d2",
+          "pre-conditions": "465b2d370abdc3107aa67cfca65cf06e3e175aa178046e282300534b35515a2d",
+          "pure": "aec1960311cda368a5f4022ecdb78f181921699e5bcc2b3314cf869c04b731d8",
+          "spec_view": "7d4678c28529021f1970844faf280cbdd6d41030db65e992d9fda5dc21ee73ab"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:30:17+00:00",
+      "code_version": "3938b8728-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "5a1bdf218f13b2840499a61e00b34f80b0189467aa111e861a35a8d69579c18c",
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:30:18+00:00",
+      "code_version": "3938b8728-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:41:52+00:00",
+      "code_version": "49a48fd3f-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-01T06:32:53+00:00",
+      "code_version": "05792c06-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 13 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break attack on nagini/pytest-dev__pytest-5840. Question: is the spec too strong / does the modeled function disagree with the real callee on any input?\n\nModeled function conftest_dedup_key requires the result to (a) carry the canonical location string of the input (ToSeq(Result())==canonical(Old(ToSeq(loc)))) and (b) hold the abstract lookup_recognised token. Real callee = gold _importconftest key computation `key = Path(str(conftestpath)).resolve()`.\n\nEvidence the spec does NOT diverge from real behavior:\n- model.py verifies (exit 0, 12.5s): recognised convention make_key(loc,True) discharges both clauses.\n- model_prepatch.py FAILS exactly on the lookup_recognised postcondition (make_key(loc,False)) \u2014 the spec genuinely discriminates the load-bearing change (unrecognised py.path.local key convention is rejected), so it is not vacuous/too-weak in the wrong direction.\n- axiom_check.py PASSES (exit 0) on 10 boundary + 2000 fuzz REAL files, incl. the actual F2P subdir names test/tests (lowercase \u2014 proves discriminator is NOT casing), case-insensitivity issue scenarios (JenkinsRoot, Foo, imageProcessing): (i) both conventions carry IDENTICAL canonical location string str(Path(str(p)).resolve()); (ii) a recomputed Path(...).resolve() lookup HITS a dict keyed by the recognised key; (iii) same lookup MISSES a dict keyed by the unrecognised unique_path/py.path.local key despite identical string.\n\nClause (a): canonical is defined as exactly str(Path(str(loc)).resolve()), i.e. the gold key's own string \u2014 no input can make the gold key's string differ from canonical.\nClause (b): the gold key IS the recognised convention (pathlib.Path resolved identically at lookup), so lookup_recognised holds for the real key on every checked input. The gold patch therefore always satisfies both postconditions; there is no input where the spec rejects the real correct behavior.\n\nThe discriminator is correctly modeled as the membership-recognition EFFECT (unforgeable @ContractOnly @Predicate token \u2014 no body, cannot be Fold'd or laundered across value-equal copies), matching the real repo where the two key kinds carry identical strings but incompatible __hash__/membership. Spec is not too strong; no diverging input exists. VERDICT: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Leakage bar: does the consumer spec view reveal the gold edit beyond the public problem_statement (NOT hints)? Public problem_statement is only a Windows bug report ('the path was converted to lower case' -> ModuleNotFoundError); it names the casing symptom, not the fix. Gold edit: replace `unique_path(conftestpath)` (py.path.local key via normcase(realpath(...))) with `key = Path(str(conftestpath)).resolve()` (pathlib.Path key) and delete the `unique_path` helper.\n\nI rendered the actual consumer spec view via markers.spec_view(src, nagini): impl region is elided to `...` before submission, so `result = make_key(loc, True)` is NOT visible. The visible spec (docstring + axioms + pre/post) contains NO concrete gold-patch token: no `Path`, `resolve`, `pathlib`, `unique_path`, `py.path.local`, `normcase`, or `realpath` appears anywhere. The edit is abstracted into a 'recognised convention' vs 'unrecognised convention' and an unforgeable `lookup_recognised` token whose defining property is a genuine behavioral spec (a recomputed-key lookup must HIT the stored entry). Notably the spec deliberately DIVERGES from the public casing framing, stating explicitly that the discriminator is dict-membership recognition (hash/class mismatch), NOT letter casing \u2014 so it does not even echo the public symptom, let alone reconstruct the fix.\n\nThe concrete binding recognised_convention=True <-> Path(...).resolve() lives only in mapping.md / axiom_check.py, which are audit-side artifacts and NOT part of the consumer spec view. The impl collapsing to make_key(loc, True) is intrinsic to the twin-artifact format (a spec constrains its impl) and is elided from the solver's view regardless; it is not concrete gold-edit reconstruction. A solver reading only the spec view learns the abstract correctness property (key must be recognised by a recomputed-key membership test) but nothing that maps it to the repository's `Path().resolve()`-replacing-`unique_path` change. No spec-view line leaks the gold edit beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 13 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break attack on nagini/pytest-dev__pytest-5840. Question: is the spec too strong / does the modeled function disagree with the real callee on any input?\n\nModeled function conftest_dedup_key requires the result to (a) carry the canonical location string of the input (ToSeq(Result())==canonical(Old(ToSeq(loc)))) and (b) hold the abstract lookup_recognised token. Real callee = gold _importconftest key computation `key = Path(str(conftestpath)).resolve()`.\n\nEvidence the spec does NOT diverge from real behavior:\n- model.py verifies (exit 0, 12.5s): recognised convention make_key(loc,True) discharges both clauses.\n- model_prepatch.py FAILS exactly on the lookup_recognised postcondition (make_key(loc,False)) \u2014 the spec genuinely discriminates the load-bearing change (unrecognised py.path.local key convention is rejected), so it is not vacuous/too-weak in the wrong direction.\n- axiom_check.py PASSES (exit 0) on 10 boundary + 2000 fuzz REAL files, incl. the actual F2P subdir names test/tests (lowercase \u2014 proves discriminator is NOT casing), case-insensitivity issue scenarios (JenkinsRoot, Foo, imageProcessing): (i) both conventions carry IDENTICAL canonical location string str(Path(str(p)).resolve()); (ii) a recomputed Path(...).resolve() lookup HITS a dict keyed by the recognised key; (iii) same lookup MISSES a dict keyed by the unrecognised unique_path/py.path.local key despite identical string.\n\nClause (a): canonical is defined as exactly str(Path(str(loc)).resolve()), i.e. the gold key's own string \u2014 no input can make the gold key's string differ from canonical.\nClause (b): the gold key IS the recognised convention (pathlib.Path resolved identically at lookup), so lookup_recognised holds for the real key on every checked input. The gold patch therefore always satisfies both postconditions; there is no input where the spec rejects the real correct behavior.\n\nThe discriminator is correctly modeled as the membership-recognition EFFECT (unforgeable @ContractOnly @Predicate token \u2014 no body, cannot be Fold'd or laundered across value-equal copies), matching the real repo where the two key kinds carry identical strings but incompatible __hash__/membership. Spec is not too strong; no diverging input exists. VERDICT: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Leakage bar: does the consumer spec view reveal the gold edit beyond the public problem_statement (NOT hints)? Public problem_statement is only a Windows bug report ('the path was converted to lower case' -> ModuleNotFoundError); it names the casing symptom, not the fix. Gold edit: replace `unique_path(conftestpath)` (py.path.local key via normcase(realpath(...))) with `key = Path(str(conftestpath)).resolve()` (pathlib.Path key) and delete the `unique_path` helper.\n\nI rendered the actual consumer spec view via markers.spec_view(src, nagini): impl region is elided to `...` before submission, so `result = make_key(loc, True)` is NOT visible. The visible spec (docstring + axioms + pre/post) contains NO concrete gold-patch token: no `Path`, `resolve`, `pathlib`, `unique_path`, `py.path.local`, `normcase`, or `realpath` appears anywhere. The edit is abstracted into a 'recognised convention' vs 'unrecognised convention' and an unforgeable `lookup_recognised` token whose defining property is a genuine behavioral spec (a recomputed-key lookup must HIT the stored entry). Notably the spec deliberately DIVERGES from the public casing framing, stating explicitly that the discriminator is dict-membership recognition (hash/class mismatch), NOT letter casing \u2014 so it does not even echo the public symptom, let alone reconstruct the fix.\n\nThe concrete binding recognised_convention=True <-> Path(...).resolve() lives only in mapping.md / axiom_check.py, which are audit-side artifacts and NOT part of the consumer spec view. The impl collapsing to make_key(loc, True) is intrinsic to the twin-artifact format (a spec constrains its impl) and is elided from the solver's view regardless; it is not concrete gold-edit reconstruction. A solver reading only the spec view learns the abstract correctness property (key must be recognised by a recomputed-key membership test) but nothing that maps it to the repository's `Path().resolve()`-replacing-`unique_path` change. No spec-view line leaks the gold edit beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 13 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The audit re-ran 13 candidate wrong implementations against this specification, each changing the implementation and leaving the specification as this bundle ships it. None of them verified without also resolving the instance, which is what a counterexample to `verify => correct` would require. The positive control verifies, so the specification is satisfiable by a correct implementation and that outcome is not an artifact of a specification nothing can satisfy.\n\n**How far this record can be re-checked.** The attack sources are not carried in this bundle. The count above and the positive-control outcome are what the harness recorded; the sources and their individual outcomes are not, so this role is the one part of the cell a reader cannot re-run from the bundle alone. The audit record states the same limitation.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break attack on nagini/pytest-dev__pytest-5840. Question: is the spec too strong / does the modeled function disagree with the real callee on any input?\n\nModeled function conftest_dedup_key requires the result to (a) carry the canonical location string of the input (ToSeq(Result())==canonical(Old(ToSeq(loc)))) and (b) hold the abstract lookup_recognised token. Real callee = gold _importconftest key computation `key = Path(str(conftestpath)).resolve()`.\n\nEvidence the spec does NOT diverge from real behavior:\n- model.py verifies (exit 0, 12.5s): recognised convention make_key(loc,True) discharges both clauses.\n- model_prepatch.py FAILS exactly on the lookup_recognised postcondition (make_key(loc,False)) \u2014 the spec genuinely discriminates the load-bearing change (unrecognised py.path.local key convention is rejected), so it is not vacuous/too-weak in the wrong direction.\n- axiom_check.py PASSES (exit 0) on 10 boundary + 2000 fuzz REAL files, incl. the actual F2P subdir names test/tests (lowercase \u2014 proves discriminator is NOT casing), case-insensitivity issue scenarios (JenkinsRoot, Foo, imageProcessing): (i) both conventions carry IDENTICAL canonical location string str(Path(str(p)).resolve()); (ii) a recomputed Path(...).resolve() lookup HITS a dict keyed by the recognised key; (iii) same lookup MISSES a dict keyed by the unrecognised unique_path/py.path.local key despite identical string.\n\nClause (a): canonical is defined as exactly str(Path(str(loc)).resolve()), i.e. the gold key's own string \u2014 no input can make the gold key's string differ from canonical.\nClause (b): the gold key IS the recognised convention (pathlib.Path resolved identically at lookup), so lookup_recognised holds for the real key on every checked input. The gold patch therefore always satisfies both postconditions; there is no input where the spec rejects the real correct behavior.\n\nThe discriminator is correctly modeled as the membership-recognition EFFECT (unforgeable @ContractOnly @Predicate token \u2014 no body, cannot be Fold'd or laundered across value-equal copies), matching the real repo where the two key kinds carry identical strings but incompatible __hash__/membership. Spec is not too strong; no diverging input exists. VERDICT: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Leakage bar: does the consumer spec view reveal the gold edit beyond the public problem_statement (NOT hints)? Public problem_statement is only a Windows bug report ('the path was converted to lower case' -> ModuleNotFoundError); it names the casing symptom, not the fix. Gold edit: replace `unique_path(conftestpath)` (py.path.local key via normcase(realpath(...))) with `key = Path(str(conftestpath)).resolve()` (pathlib.Path key) and delete the `unique_path` helper.\n\nI rendered the actual consumer spec view via markers.spec_view(src, nagini): impl region is elided to `...` before submission, so `result = make_key(loc, True)` is NOT visible. The visible spec (docstring + axioms + pre/post) contains NO concrete gold-patch token: no `Path`, `resolve`, `pathlib`, `unique_path`, `py.path.local`, `normcase`, or `realpath` appears anywhere. The edit is abstracted into a 'recognised convention' vs 'unrecognised convention' and an unforgeable `lookup_recognised` token whose defining property is a genuine behavioral spec (a recomputed-key lookup must HIT the stored entry). Notably the spec deliberately DIVERGES from the public casing framing, stating explicitly that the discriminator is dict-membership recognition (hash/class mismatch), NOT letter casing \u2014 so it does not even echo the public symptom, let alone reconstruct the fix.\n\nThe concrete binding recognised_convention=True <-> Path(...).resolve() lives only in mapping.md / axiom_check.py, which are audit-side artifacts and NOT part of the consumer spec view. The impl collapsing to make_key(loc, True) is intrinsic to the twin-artifact format (a spec constrains its impl) and is elided from the solver's view regardless; it is not concrete gold-edit reconstruction. A solver reading only the spec view learns the abstract correctness property (key must be recognised by a recomputed-key membership test) but nothing that maps it to the repository's `Path().resolve()`-replacing-`unique_path` change. No spec-view line leaks the gold edit beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:14:19+00:00",
+      "code_version": "5c158293b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "uniqueness-unrecognised-convention-echo",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-empty-location-unrecognised",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "reject",
+            "id": "control-flow-effect-value-launder",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-readonly-loc",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-inline-recognised",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.1
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "70f4bbd6ef71c45d828e75aba119d43fc7efb864a45a2d300bdd10bd1fae6a66",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f",
+        "properties.py": "70f4bbd6ef71c45d828e75aba119d43fc7efb864a45a2d300bdd10bd1fae6a66"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:27:03+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:42:06+00:00",
+      "code_version": "49a48fd3f-dirty",
+      "data": {
+        "wall_time_s": 12.8
+      },
+      "detail": "verified in 12.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a88902035185db08798c58f16b169bda3588d6fe6d7721dc11c257e6af89e49f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pytest-dev__pytest-5840",
+  "modeled_functions": [
+    {
+      "carrier_type": "str location -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "conftest_dedup_key",
+      "repo_location": "src/_pytest/config/__init__.py:434 (key line :438 pre-change, :432 post-patch)",
+      "repo_symbol": "_pytest.config.PytestPluginManager._importconftest (cache-key computation)",
+      "role": "modeled changed function (conftest cache deduplication key); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition lookup_recognised(ToSeq(Result())) -- the unrecognised convention grants no recognition token, so the result cannot be one the recognised construction produced; the value-level postcondition ToSeq(Result()) == canonical(...) still holds (the location string is identical), so the failure is precisely the recognition effect, not the string value",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "conftest cache-key construction convention (membership recognition)",
+      "reverted_to": "key built under the UNRECOGNISED convention (the old unique_path / py.path.local key): same canonical location string but NOT recognised by the cache's membership test (make_key(loc, False))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "306245a3f63dc8fbc8980e9aff015e97e8215afcdf73449060c50b8e42acf6a9",
+    "impl": "fd63abb5312efc1a85c9103acd879b224b9a8edf8c936a729bd457943c79ec13",
+    "post-conditions": "537c816ed6b9c0287955e5f7de86d94f9dda9d5dfa8a3bc04f46a2eac56575d2",
+    "pre-conditions": "2d7455ffa9a05c037305b8e6369c7cb83a703dfdaf7c4619191a999f31f007cd",
+    "pure": "aec1960311cda368a5f4022ecdb78f181921699e5bcc2b3314cf869c04b731d8",
+    "spec_view": "76762c804a5aba4f1eb9b2e5615dc88b1e20b3db48571ff24526f6870f884e12"
+  },
+  "repo": "pytest-dev/pytest",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; the value-level canonical location is the unchanged callee `canonical`; the changed dimension is the key-construction convention's membership recognition, modelled by the unforgeable capability token lookup_recognised granted only by make_key under the recognised convention",
+  "version": "5.1"
+}

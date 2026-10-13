@@ -1,0 +1,413 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "behaviour-preserving rewrites for the F2P scenarios (run=True so NOTRUN path dead; skipped is None so skipped_by_mark_key is False either way); folded into the slot pre-state abstraction, not separately modeled. See refinement.md 'Behaviour-preserving rewrites'.",
+      "repo_location": "src/_pytest/skipping.py:233-255",
+      "repo_symbol": "_pytest.skipping.pytest_runtest_call pre-yield NOTRUN guard + pytest_runtest_setup skipped_by_mark_key write"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real evaluate_xfail_marks evaluated twice on a fixed item agrees; None with no mark; non-None after a dynamic mark is attached; deterministic on the new state",
+      "encoded_property": "deterministic pure function of the marker state (empty Ensures): same token -> same value; the proof never inspects the returned value's fields. Weakest possible contract, trivially sound (over-approximates nothing).",
+      "models": "_pytest.skipping.evaluate_xfail_marks(item)",
+      "name": "evaluate_marks",
+      "provenance": "src/_pytest/skipping.py:200-222; iterates item.iter_markers(name='xfail'), returns Optional[Xfail]; UNCHANGED by the patch",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "7f7a36478abe7dd1fa993b115d22606aa0e35e88",
+  "changed_files": [
+    "src/_pytest/skipping.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): drives the real patched pytest on the two issue scenarios (dynamic xfail+fail -> 1 xfailed; dynamic strict xfail+pass -> 1 failed) and reconstructs the pre-patch no-refresh flow inline",
+      "encoded_property": "after the body runs, if nothing non-empty was saved before the body the saved slot is repopulated with evaluate_marks(final_marker_state); a non-empty prior save is preserved; the slot ends present",
+      "kind": "A-reference",
+      "models": "the gold patch's post-yield refresh block in pytest_runtest_call",
+      "name": "settle_saved_evaluation impl region",
+      "provenance": "src/_pytest/skipping.py:248; gold patch hunk adding 'xfailed = item._store.get(xfailed_key, None); if xfailed is None: item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)' after yield",
+      "role": "deep model (impl region) of the changed refresh operation; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:32:23+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK (evaluator axiom + refresh witness): evaluate_xfail_marks is deterministic in the marker state and turns None into a real Xfail when a mark is attached.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "6dc227dd02658da43a84c530d1c96668da76013a19e6726e5678d2de294610e9",
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:32:28+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100066,
+          "disagreements": 0,
+          "seed": 749034,
+          "shadow": "direct (contract-stripped impl region; axiom callee bound to the real evaluator)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100066, \"disagreements\": 0, \"seed\": 749034, \"shadow\": \"direct (contract-stripped impl region; axiom callee bound to the real evaluator)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "2e5be959af4c8b464ec027e0f5ef169d256589d163b0f2affc84980ffac4c3c0",
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:53:05+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592",
+        "model_prepatch.py": "b646e0bef2ba96edf1772c49ebbc5136dc90683d0bc2914359a0f262b304b980"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T12:39:00+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:53:44+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592",
+        "model_prepatch.py": "b646e0bef2ba96edf1772c49ebbc5136dc90683d0bc2914359a0f262b304b980"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:32:14+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "a29244c2c003dbe9d9b383d839e7b3911605cd79796d8c48a3dc42a1c6824e77",
+          "impl": "6b6f3e8957530b42095561b3cae3f82c8283d8148feef40782d42353387f9e10",
+          "post-conditions": "16f0413a97c56faab0e3a2561380f7b984086e3a4f5e18a0e252727fad661320",
+          "pre-conditions": "77827a09bd19140e46477b39d504ef51d1619717dc5c5488b45731bd8d1b5d17",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "1cdbe8ccc360a70aff4ed3c4e608960c0a94e257a44fd8fcd9105553c8d3284a"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:32:14+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "43ebdc9aa0ccb79a8f126d2bc1d0865294ead99428b42215da3478521796510d",
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:32:15+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T10:37:59+00:00",
+      "code_version": "f36c34d5a-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "e329a7d0cb6c",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T12:39:02+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Spec region byte-identical to bundle (compared model.py verbatim; same-spec carrier). Model VERIFIES under pinned Nagini (Verification successful, 10.36s). Verified base_commit 7f7a36478 worktree; the gold hunk (PR #7490 / ccad10a82) adds exactly the post-yield block:\n  xfailed = item._store.get(xfailed_key, None)\n  if xfailed is None:\n      item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)\nCase-by-case equivalence to the model impl (if not slot.present / elif slot.value is None) under the documented R-carrier (get(...,None) is None <=> not present or value is None): (1) absent -> refresh+present; (2) present&None -> refresh+present; (3) present&non-None -> unchanged. All three agree with the real block bit-for-bit, and match the postconditions (Ensures(slot.present); refresh clause guarded by not(Old.present and Old.value is not None); keep clause otherwise). Object-identity 'is' holds because the store write binds the exact callee return and evaluate_marks is modeled deterministic. The spec is NOT too strong: it never claims more than the gold block delivers on any tested input, and the impl region literally IS the gold block (G-RESOLVE resolves). The single divergence (callee totality vs the real raising-condition path) is explicitly acknowledged in mapping.md directive-7 as an inert over-claim: the proof consumes only determinism, never totality, and no F2P/P2P test exercises a raising-condition mark. No spec-too-strong drift exists on any tested/resolution-relevant input. VERDICT: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Leakage judged over the spec view (impl region elided) against the SOLVER-VISIBLE problem_statement only (not hints_text). Findings:\n\n1. Mechanical screen (leakage.screen) PASSES with zero hard failures. Spec region confirmed frozen: same_spec(model, prepatch)=True; G-LEAK meta status=pass; no relaxed_leakage flag.\n\n2. No diff markers, no reproduced gold-patch lines, no patched file path (src/_pytest/skipping.py) or module path in the spec view.\n\n3. Patch-changed distinctive symbols are {evaluate_xfail_marks, pytest_runtest_call}. Neither appears in the spec view. The model uses abstract stand-ins: settle_saved_evaluation, SavedSlot, evaluate_marks. No spec-view identifier embeds either patched symbol; no comment/docstring names them.\n\n4. No narration terms (bug/fix/regression/previously/...). 'xfail'/Xfail is already public via the problem_statement (pytest.mark.xfail), so it localizes no edit.\n\n5. Semantic gold-reconstruction check: The gold edit is the post-yield re-evaluation block added to the pytest_runtest_call hook-wrapper, keyed on item._store[xfailed_key], honoring dynamically-added xfail marks. The spec view describes only the ABSTRACT input/output contract of settling a saved evaluation against the marks as they finally stand (keep an already-present non-empty saved value; otherwise re-evaluate the final marks; end present). This behavior is exactly what the public issue requests (a mark added during the body must be honored, as in 5.x). The spec reveals no edit location, no repo hook name, no store key, no post-yield placement, no diff structure. A solver could not reconstruct the specific gold edit from this abstraction beyond what the public problem_statement already discloses.\n\nConclusion: spec view abstracts the FIXED BEHAVIOR (which is public) without disclosing the gold edit's mechanism or location. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Spec region byte-identical to bundle (compared model.py verbatim; same-spec carrier). Model VERIFIES under pinned Nagini (Verification successful, 10.36s). Verified base_commit 7f7a36478 worktree; the gold hunk (PR #7490 / ccad10a82) adds exactly the post-yield block:\n  xfailed = item._store.get(xfailed_key, None)\n  if xfailed is None:\n      item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)\nCase-by-case equivalence to the model impl (if not slot.present / elif slot.value is None) under the documented R-carrier (get(...,None) is None <=> not present or value is None): (1) absent -> refresh+present; (2) present&None -> refresh+present; (3) present&non-None -> unchanged. All three agree with the real block bit-for-bit, and match the postconditions (Ensures(slot.present); refresh clause guarded by not(Old.present and Old.value is not None); keep clause otherwise). Object-identity 'is' holds because the store write binds the exact callee return and evaluate_marks is modeled deterministic. The spec is NOT too strong: it never claims more than the gold block delivers on any tested input, and the impl region literally IS the gold block (G-RESOLVE resolves). The single divergence (callee totality vs the real raising-condition path) is explicitly acknowledged in mapping.md directive-7 as an inert over-claim: the proof consumes only determinism, never totality, and no F2P/P2P test exercises a raising-condition mark. No spec-too-strong drift exists on any tested/resolution-relevant input. VERDICT: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Leakage judged over the spec view (impl region elided) against the SOLVER-VISIBLE problem_statement only (not hints_text). Findings:\n\n1. Mechanical screen (leakage.screen) PASSES with zero hard failures. Spec region confirmed frozen: same_spec(model, prepatch)=True; G-LEAK meta status=pass; no relaxed_leakage flag.\n\n2. No diff markers, no reproduced gold-patch lines, no patched file path (src/_pytest/skipping.py) or module path in the spec view.\n\n3. Patch-changed distinctive symbols are {evaluate_xfail_marks, pytest_runtest_call}. Neither appears in the spec view. The model uses abstract stand-ins: settle_saved_evaluation, SavedSlot, evaluate_marks. No spec-view identifier embeds either patched symbol; no comment/docstring names them.\n\n4. No narration terms (bug/fix/regression/previously/...). 'xfail'/Xfail is already public via the problem_statement (pytest.mark.xfail), so it localizes no edit.\n\n5. Semantic gold-reconstruction check: The gold edit is the post-yield re-evaluation block added to the pytest_runtest_call hook-wrapper, keyed on item._store[xfailed_key], honoring dynamically-added xfail marks. The spec view describes only the ABSTRACT input/output contract of settling a saved evaluation against the marks as they finally stand (keep an already-present non-empty saved value; otherwise re-evaluate the final marks; end present). This behavior is exactly what the public issue requests (a mark added during the body must be honored, as in 5.x). The spec reveals no edit location, no repo hook name, no store key, no post-yield placement, no diff structure. A solver could not reconstruct the specific gold edit from this abstraction beyond what the public problem_statement already discloses.\n\nConclusion: spec view abstracts the FIXED BEHAVIOR (which is public) without disclosing the gold edit's mechanism or location. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec region byte-identical to bundle (compared model.py verbatim; same-spec carrier). Model VERIFIES under pinned Nagini (Verification successful, 10.36s). Verified base_commit 7f7a36478 worktree; the gold hunk (PR #7490 / ccad10a82) adds exactly the post-yield block:\n  xfailed = item._store.get(xfailed_key, None)\n  if xfailed is None:\n      item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)\nCase-by-case equivalence to the model impl (if not slot.present / elif slot.value is None) under the documented R-carrier (get(...,None) is None <=> not present or value is None): (1) absent -> refresh+present; (2) present&None -> refresh+present; (3) present&non-None -> unchanged. All three agree with the real block bit-for-bit, and match the postconditions (Ensures(slot.present); refresh clause guarded by not(Old.present and Old.value is not None); keep clause otherwise). Object-identity 'is' holds because the store write binds the exact callee return and evaluate_marks is modeled deterministic. The spec is NOT too strong: it never claims more than the gold block delivers on any tested input, and the impl region literally IS the gold block (G-RESOLVE resolves). The single divergence (callee totality vs the real raising-condition path) is explicitly acknowledged in mapping.md directive-7 as an inert over-claim: the proof consumes only determinism, never totality, and no F2P/P2P test exercises a raising-condition mark. No spec-too-strong drift exists on any tested/resolution-relevant input. VERDICT: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Leakage judged over the spec view (impl region elided) against the SOLVER-VISIBLE problem_statement only (not hints_text). Findings:\n\n1. Mechanical screen (leakage.screen) PASSES with zero hard failures. Spec region confirmed frozen: same_spec(model, prepatch)=True; G-LEAK meta status=pass; no relaxed_leakage flag.\n\n2. No diff markers, no reproduced gold-patch lines, no patched file path (src/_pytest/skipping.py) or module path in the spec view.\n\n3. Patch-changed distinctive symbols are {evaluate_xfail_marks, pytest_runtest_call}. Neither appears in the spec view. The model uses abstract stand-ins: settle_saved_evaluation, SavedSlot, evaluate_marks. No spec-view identifier embeds either patched symbol; no comment/docstring names them.\n\n4. No narration terms (bug/fix/regression/previously/...). 'xfail'/Xfail is already public via the problem_statement (pytest.mark.xfail), so it localizes no edit.\n\n5. Semantic gold-reconstruction check: The gold edit is the post-yield re-evaluation block added to the pytest_runtest_call hook-wrapper, keyed on item._store[xfailed_key], honoring dynamically-added xfail marks. The spec view describes only the ABSTRACT input/output contract of settling a saved evaluation against the marks as they finally stand (keep an already-present non-empty saved value; otherwise re-evaluate the final marks; end present). This behavior is exactly what the public issue requests (a mark added during the body must be honored, as in 5.x). The spec reveals no edit location, no repo hook name, no store key, no post-yield placement, no diff structure. A solver could not reconstruct the specific gold edit from this abstraction beyond what the public problem_statement already discloses.\n\nConclusion: spec view abstracts the FIXED BEHAVIOR (which is public) without disclosing the gold edit's mechanism or location. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:19:10+00:00",
+      "code_version": "5c158293b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-combined-guard",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-grounded-assert",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-empty-saved",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.5
+          },
+          {
+            "expect": "reject",
+            "id": "refresh-norefresh",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.6
+          },
+          {
+            "expect": "reject",
+            "id": "refresh-partial-absent-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "refresh-stale-state",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "refresh-fabricate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.0
+          },
+          {
+            "expect": "reject",
+            "id": "refresh-clobber-prior",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "13127606fb1e9a09ee554b12a638cac2d6a1b818a7b8891d2aa8e1f154c4c8ec",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592",
+        "properties.py": "13127606fb1e9a09ee554b12a638cac2d6a1b818a7b8891d2aa8e1f154c4c8ec"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:38:27+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T10:36:41+00:00",
+      "code_version": "f36c34d5a-dirty",
+      "data": {
+        "wall_time_s": 14.2
+      },
+      "detail": "verified in 14.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "e329a7d0cb6c",
+      "mode": "strict",
+      "sources": {
+        "model.py": "84d624979d617539f4351f0073c4efedaba38131556e5bd260bca8880e86f592"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pytest-dev__pytest-7490",
+  "modeled_functions": [
+    {
+      "carrier_type": "per-item store slot under xfailed_key -> SavedSlot(present: bool, value: Optional[Xfail]); item marker state -> opaque int token",
+      "model_symbol": "settle_saved_evaluation",
+      "repo_location": "src/_pytest/skipping.py:248",
+      "repo_symbol": "_pytest.skipping.pytest_runtest_call (post-yield refresh block)",
+      "role": "modeled changed behaviour: after the body has run, refresh the saved xfail evaluation that the report step consumes; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Ensures(slot.present) (and the refresh clause): when the pre-body slot was absent/empty the saved slot is never repopulated",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "post-body refresh of the saved xfail evaluation in pytest_runtest_call",
+      "reverted_to": "no post-yield refresh (impl region is a bare pass) \u2014 the saved slot keeps its pre-body state"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "a29244c2c003dbe9d9b383d839e7b3911605cd79796d8c48a3dc42a1c6824e77",
+    "impl": "6b6f3e8957530b42095561b3cae3f82c8283d8148feef40782d42353387f9e10",
+    "post-conditions": "16f0413a97c56faab0e3a2561380f7b984086e3a4f5e18a0e252727fad661320",
+    "pre-conditions": "c8511e0edcbc6856586d75183521d5c91671e0b7eb9b89735d51449e4bb2af0d",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "dab6233ff69b301d77657f087551e6574e20d21422b3d2639e7f1cd7992b1d4c"
+  },
+  "repo": "pytest-dev/pytest",
+  "schema_version": 1,
+  "string_modeling": "none (control/data-flow over a minimal SavedSlot class + opaque int marker-state token + minimal Xfail class)",
+  "version": "6.0"
+}

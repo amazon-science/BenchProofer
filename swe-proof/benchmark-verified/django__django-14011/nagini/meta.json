@@ -1,0 +1,507 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "R-plumbing folded into teardown_request: _close_connections is the closed[i] = True loop (deep model of connections.close_all, A-reference R2)",
+      "repo_location": "django/core/servers/basehttp.py:80",
+      "repo_symbol": "django.core.servers.basehttp.ThreadedWSGIServer._close_connections (calls connections.close_all)"
+    },
+    {
+      "handling": "test-infrastructure only (a backend test-skip set entry); no behavioural content; not modeled. NOTE: this is precisely why the connection-CLOSING behaviour (teardown_request) is NOT an F2P discriminator on the eval backend, and the tested discriminator is instead the configuration-acceptance modeled by serve_request_on_worker",
+      "repo_location": "django/db/backends/sqlite3/features.py:84",
+      "repo_symbol": "django.db.backends.sqlite3.features.DatabaseFeatures.django_test_skips (adds servers.tests.LiveServerTestCloseConnectionTest.test_closes_connections to the in-memory-sqlite skip set)"
+    }
+  ],
+  "axioms": [
+    {
+      "ContractOnly_Predicate": "connections_handed_off(server): abstract @ContractOnly @Predicate with NO body; cannot be Fold-ed into existence (Nagini rejects abstract.predicate.fold), and a capability for another server does not discharge it; SOLE producer is accept_connection_set",
+      "checked_by": "axiom_check.py R3 (G-AX, in-container): applies patch.diff into /testbed, reloads django.core.servers.basehttp, confirms the REAL fixed __init__ accepts+stores connections_override and process_request_thread installs it; if unpatched/unapplyable, asserts the pre-patch reject branch (constructing with connections_override raises TypeError)",
+      "grants": "connections_handed_off(server)",
+      "kind": "A-consumed",
+      "models": "the added ThreadedWSGIServer.__init__(*, connections_override=None) ACCEPTING the parent-supplied connection set and storing self.connections_override = connections_override (making it available to the worker)",
+      "name": "accept_connection_set",
+      "provenance": "django/core/servers/basehttp.py ThreadedWSGIServer.__init__ (added by patch.diff): def __init__(self, *args, connections_override=None, **kwargs): super().__init__(*args, **kwargs); self.connections_override = connections_override",
+      "weakest_contract": "Requires fractional read on the supplied-set lists; Ensures the per-server capability connections_handed_off(server) plus length preservation. Says nothing about how the set is stored, only that configuration accepted it -- the weakest fact the caller's discriminating postcondition needs"
+    }
+  ],
+  "base_commit": "e4430f22c8e3d29ce5d9d0263fba57121938d06d",
+  "changed_files": [
+    "django/core/servers/basehttp.py",
+    "django/db/backends/sqlite3/features.py"
+  ],
+  "deep_model_references": [
+    {
+      "encoded_property": "each supplied-override alias is bound to the supplied connection (has_override[i] => tokens[i] == override_tokens[i]); no-override aliases untouched. SECONDARY value-level facet; the DISCRIMINATING facet is the capability connections_handed_off",
+      "kind": "I (identical concrete op over R-typed carriers)",
+      "models": "if self.connections_override: for alias, conn in ...: connections[alias] = conn (the worker installing the available parent-supplied connections into the per-thread registry)",
+      "name": "serve_request_on_worker install loop (tokens[i] = override_tokens[i])",
+      "provenance": "django/core/servers/basehttp.py ThreadedWSGIServer.process_request_thread (added by patch.diff)",
+      "role": "deep model of the override-install (the registry-rebind connections[alias]=conn is unchanged Python); NOT axiomatized"
+    },
+    {
+      "checked_by": "axiom_check.py R2 (G-AX): reproduces close_all's exact loop over an instrumented registry and asserts every connection ends closed",
+      "encoded_property": "every alias's connection becomes closed (closed[i] == True for all i)",
+      "kind": "A-reference",
+      "models": "django.db.utils.ConnectionHandler.close_all (django/db/utils.py:207) invoked via ThreadedWSGIServer._close_connections",
+      "name": "teardown_request close loop (closed[i] = True)",
+      "provenance": "django/db/utils.py:207 close_all(): for alias in self: connection.close() -> closes every connection in the registry",
+      "role": "deep model of the close-all step; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py R1 (G-AX): drives the real CPython TCPServer.close_request on an instrumented request + connection registry; asserts request released, connections untouched",
+      "encoded_property": "the request resource is released (request.released == True) and the registry is NOT closed by this step",
+      "kind": "A-reference",
+      "models": "socketserver.TCPServer.close_request (CPython stdlib) invoked via super().close_request(request)",
+      "name": "teardown_request request.released write",
+      "provenance": "CPython Lib/socketserver.py TCPServer.close_request(): request.close() only -- releases the request resource, never touches DB connections",
+      "role": "deep model of the inherited request-cleanup primitive; NOT a consumed axiom"
+    },
+    {
+      "encoded_property": "the inherited handling is a registry no-op (the model performs no registry op after the install loop)",
+      "kind": "A-reference",
+      "models": "socketserver.ThreadingMixIn.process_request_thread (CPython stdlib) invoked via super().process_request_thread(...)",
+      "name": "inherited worker request handling (super().process_request_thread)",
+      "provenance": "CPython Lib/socketserver.py: handles the request; does not alter the installed connection registry",
+      "role": "A-reference (refinement A4); NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:31:05+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: R1 (inherited close_request releases the request only, never closes connections) + R2 (close_all closes every registry connection) + R3 configuration-acceptance capability -- real Django ThreadedWSGIServer (patch.diff applied): constructor ACCEPTS+stores the parent-supplied set and the worker installs it (capability sound)",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "b55b29346634957e4732109d60e7fdd0d396c149f9045d782e1a1cf6b0fa9c83",
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:31:20+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 105051,
+          "disagreements": 0,
+          "seed": 14011,
+          "shadow": "direct (contract-stripped impl regions)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 105051, \"disagreements\": 0, \"seed\": 14011, \"shadow\": \"direct (contract-stripped impl regions)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "0f84e0efd96e37fe70ddb99366c53aa3376c8ce2febaf47c0d6a455e38d1d1a0",
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:03:48+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb",
+        "model_prepatch.py": "a0c944670a9f9e9c8211b3c8b7564bdc8c027b3300344df0e281317efa91951b",
+        "model_prepatch_2.py": "16c7e2134461d125a0b2febec1633a5ea36ccb76a5b062d58750f925313f5231"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-08T16:59:28+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:05:41+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb",
+        "model_prepatch.py": "a0c944670a9f9e9c8211b3c8b7564bdc8c027b3300344df0e281317efa91951b",
+        "model_prepatch_2.py": "16c7e2134461d125a0b2febec1633a5ea36ccb76a5b062d58750f925313f5231"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:30:49+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "ee9068da6dd9e643be5d57837a2ade9d6e862019d56472746c54b51e4b0442cb",
+          "impl": "03bd6c3fb8c9ef3b2adc294aebe1ecd5c7d91f7ebbd1ffd6e6ec84156171086f",
+          "invariants": "a20da120bb68a0733994f37ab3c7fa3e613fc9b49258cb3f2754fceab3f899f2",
+          "post-conditions": "50bfb924766e115b866a679dddf93b8c6d47f55d1f88de31579933960d0c708d",
+          "pre-conditions": "dfb9816f1abd7724bd9cdb2277bfb06fed2901382d50d92d4a7a0930c1321337",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "e5ef141948ff0735ad21848bee1a44eb250fb4fc791456b42e2ad3eb45030be4"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:30:50+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "181703ad1db156ee659a1e54bc918a337838104fc75adde3724de3e6b7b11f80",
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:30:51+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "RELAXED_LEAKAGE.md": "92585468202a4edabf1cab40e78d448df83be0ebaaf3dba2f58573931bbeaff8",
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "relaxed"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T09:39:01+00:00",
+      "code_version": "0b76aa4a9-dirty",
+      "data": {
+        "judged": 16,
+        "killed": 16,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 16,
+        "unjudged": []
+      },
+      "detail": "killed 16/16 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-08T16:59:30+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break audit of django__django-14011 (nagini). Conclusion: FAITHFUL \u2014 no diverging input between the modeled functions and the real repo callees in the modeled domain.\n\nMACHINE FACTS:\n- same-spec on identical copy of model.py => rc=0 (SAME; spec markers well-formed).\n- Pinned Nagini verifier on model.py => exit 0 (18.7s): the bundle model IS a gold-equivalent impl and it verifies against the frozen spec, so the spec is NOT too strong.\n- model_prepatch.py (drops accept_connection_set) FAILS exactly Ensures(connections_handed_off(server)) at line 166 => the discriminating clause is load-bearing, not vacuous. model_prepatch_2 (drops close loop) FAILS the 'every connection closed' clause. same-spec rc=0 for both prepatch files (axioms/pure/pre/post byte-identical; only impl+invariants differ).\n- Gold patch (patch_gold.diff) confirmed: __init__(*,connections_override=None) stores the set; process_request_thread installs connections[alias]=conn for each override; close_request -> _close_connections()->close_all() then super().close_request().\n\nOP-BY-OP FAITHFULNESS vs base_commit e4430f22:\n- serve_request_on_worker <-> __init__(*,connections_override)+process_request_thread. Model pins tokens[i]==override_tokens[i] where has_override[i], else tokens[i]==Old(tokens[i]) \u2014 a faithful index-aligned refinement of the dict-keyed unconditional install; untouched-alias preservation matches. connections_handed_off(server) is always granted by accept_connection_set, which models the control-flow fact 'the constructor ACCEPTED the connections_override kwarg' (pre-patch: TypeError) \u2014 the sole tested discriminator. This is a config-level fact, NOT 'connections physically installed', which is faithful and not over-strong.\n- teardown_request <-> close_request. Model: close-all loop (closed[i]=True) then request.released=True, identities preserved. Matches gold's _close_connections()->close_all() then super().close_request(). Spec does not over-assert ordering (disjoint resources commute).\n\nABSTRACTION BOUNDARIES (not disagreements): close_all's try/except AttributeError skip of never-created connections and dict semantics for aliases absent from the registry lie OUTSIDE the index-aligned modeled carrier over the existing aliases the F2P tests exercise (the 'default' alias). The positional-list refinement observes only WHICH aliases are bound/closed \u2014 exactly what the tests discriminate. No input in the modeled carrier space makes a modeled function disagree with its real callee.\n\nSince a gold-equivalent implementation verifies against the frozen spec and the gold resolves (patch.diff==gold, G-RESOLVE), the spec is not too strong. Verdict: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Relaxed-leakage bundle (meta.json relaxed_leakage=true, gates.G-LEAK=relaxed; RELAXED_LEAKAGE.md present). Independently re-verified the disposition rather than rubber-stamping: (1) Re-scanned the spec view (model.py docstring + axioms + pre/post-conditions) against problem_statement \u2014 the ONLY leak is the already-dispositioned connection hand-off / thread-sharing facet (the capability postcondition connections_handed_off(server) at line 166, the accept_connection_set configuration step, and the value-level install postconditions keyed on has_override/override_tokens, lines 170-173). That behaviour is a proven problem_statement<->gold mismatch: the public issue reports ONLY the connection-CLOSING symptom, whose dedicated test is skipped on in-memory sqlite (gold's features.py hunk) and is NOT in FAIL_TO_PASS; the actually-tested F2P discriminator is the constructor accepting a parent-supplied connections_override set + worker install, vocabulary that appears only in hints_text/test_patch/gold internals, never in problem_statement. Faithful (G-DIFF-failing: model_prepatch.py fails exactly on Ensures(connections_handed_off(server))) + non-leaking is provably impossible, so the facet is unavoidable, not lazy narration. (2) Found NO new leak beyond the facet: the spec view contains none of the patched paths/repo symbols \u2014 no basehttp.py, features.py, ThreadedWSGIServer, connections_override, process_request_thread, close_request, __init__ kwarg, close_all, socketserver, WSGIServer, sqlite, or LiveServer; model identifiers name behaviour, not the edit; no line quotes the gold diff. (3) Disposition unbroken: core gates sound in meta.json (G-VERIFY/G-DIFF/G-EQ/G-AX pass), same_spec command returns SAME (exit 0) confirming the spec region is byte-identical, and the unavoidability argument re-derives cleanly. Per the panel recording convention in RELAXED_LEAKAGE.md and gates/_audit.py (relaxed-leakage panel is recorded pass + note; there is no separate 'relaxed' panel status), the honest recording for this properly-dispositioned facet is NO-LEAKAGE (pass). LEAKAGE is reserved for a new leak beyond the facet or a broken disposition; neither is present.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break audit of django__django-14011 (nagini). Conclusion: FAITHFUL \u2014 no diverging input between the modeled functions and the real repo callees in the modeled domain.\n\nMACHINE FACTS:\n- same-spec on identical copy of model.py => rc=0 (SAME; spec markers well-formed).\n- Pinned Nagini verifier on model.py => exit 0 (18.7s): the bundle model IS a gold-equivalent impl and it verifies against the frozen spec, so the spec is NOT too strong.\n- model_prepatch.py (drops accept_connection_set) FAILS exactly Ensures(connections_handed_off(server)) at line 166 => the discriminating clause is load-bearing, not vacuous. model_prepatch_2 (drops close loop) FAILS the 'every connection closed' clause. same-spec rc=0 for both prepatch files (axioms/pure/pre/post byte-identical; only impl+invariants differ).\n- Gold patch (patch_gold.diff) confirmed: __init__(*,connections_override=None) stores the set; process_request_thread installs connections[alias]=conn for each override; close_request -> _close_connections()->close_all() then super().close_request().\n\nOP-BY-OP FAITHFULNESS vs base_commit e4430f22:\n- serve_request_on_worker <-> __init__(*,connections_override)+process_request_thread. Model pins tokens[i]==override_tokens[i] where has_override[i], else tokens[i]==Old(tokens[i]) \u2014 a faithful index-aligned refinement of the dict-keyed unconditional install; untouched-alias preservation matches. connections_handed_off(server) is always granted by accept_connection_set, which models the control-flow fact 'the constructor ACCEPTED the connections_override kwarg' (pre-patch: TypeError) \u2014 the sole tested discriminator. This is a config-level fact, NOT 'connections physically installed', which is faithful and not over-strong.\n- teardown_request <-> close_request. Model: close-all loop (closed[i]=True) then request.released=True, identities preserved. Matches gold's _close_connections()->close_all() then super().close_request(). Spec does not over-assert ordering (disjoint resources commute).\n\nABSTRACTION BOUNDARIES (not disagreements): close_all's try/except AttributeError skip of never-created connections and dict semantics for aliases absent from the registry lie OUTSIDE the index-aligned modeled carrier over the existing aliases the F2P tests exercise (the 'default' alias). The positional-list refinement observes only WHICH aliases are bound/closed \u2014 exactly what the tests discriminate. No input in the modeled carrier space makes a modeled function disagree with its real callee.\n\nSince a gold-equivalent implementation verifies against the frozen spec and the gold resolves (patch.diff==gold, G-RESOLVE), the spec is not too strong. Verdict: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Relaxed-leakage bundle (meta.json relaxed_leakage=true, gates.G-LEAK=relaxed; RELAXED_LEAKAGE.md present). Independently re-verified the disposition rather than rubber-stamping: (1) Re-scanned the spec view (model.py docstring + axioms + pre/post-conditions) against problem_statement \u2014 the ONLY leak is the already-dispositioned connection hand-off / thread-sharing facet (the capability postcondition connections_handed_off(server) at line 166, the accept_connection_set configuration step, and the value-level install postconditions keyed on has_override/override_tokens, lines 170-173). That behaviour is a proven problem_statement<->gold mismatch: the public issue reports ONLY the connection-CLOSING symptom, whose dedicated test is skipped on in-memory sqlite (gold's features.py hunk) and is NOT in FAIL_TO_PASS; the actually-tested F2P discriminator is the constructor accepting a parent-supplied connections_override set + worker install, vocabulary that appears only in hints_text/test_patch/gold internals, never in problem_statement. Faithful (G-DIFF-failing: model_prepatch.py fails exactly on Ensures(connections_handed_off(server))) + non-leaking is provably impossible, so the facet is unavoidable, not lazy narration. (2) Found NO new leak beyond the facet: the spec view contains none of the patched paths/repo symbols \u2014 no basehttp.py, features.py, ThreadedWSGIServer, connections_override, process_request_thread, close_request, __init__ kwarg, close_all, socketserver, WSGIServer, sqlite, or LiveServer; model identifiers name behaviour, not the edit; no line quotes the gold diff. (3) Disposition unbroken: core gates sound in meta.json (G-VERIFY/G-DIFF/G-EQ/G-AX pass), same_spec command returns SAME (exit 0) confirming the spec region is byte-identical, and the unavoidability argument re-derives cleanly. Per the panel recording convention in RELAXED_LEAKAGE.md and gates/_audit.py (relaxed-leakage panel is recorded pass + note; there is no separate 'relaxed' panel status), the honest recording for this properly-dispositioned facet is NO-LEAKAGE (pass). LEAKAGE is reserved for a new leak beyond the facet or a broken disposition; neither is present.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break audit of django__django-14011 (nagini). Conclusion: FAITHFUL \u2014 no diverging input between the modeled functions and the real repo callees in the modeled domain.\n\nMACHINE FACTS:\n- same-spec on identical copy of model.py => rc=0 (SAME; spec markers well-formed).\n- Pinned Nagini verifier on model.py => exit 0 (18.7s): the bundle model IS a gold-equivalent impl and it verifies against the frozen spec, so the spec is NOT too strong.\n- model_prepatch.py (drops accept_connection_set) FAILS exactly Ensures(connections_handed_off(server)) at line 166 => the discriminating clause is load-bearing, not vacuous. model_prepatch_2 (drops close loop) FAILS the 'every connection closed' clause. same-spec rc=0 for both prepatch files (axioms/pure/pre/post byte-identical; only impl+invariants differ).\n- Gold patch (patch_gold.diff) confirmed: __init__(*,connections_override=None) stores the set; process_request_thread installs connections[alias]=conn for each override; close_request -> _close_connections()->close_all() then super().close_request().\n\nOP-BY-OP FAITHFULNESS vs base_commit e4430f22:\n- serve_request_on_worker <-> __init__(*,connections_override)+process_request_thread. Model pins tokens[i]==override_tokens[i] where has_override[i], else tokens[i]==Old(tokens[i]) \u2014 a faithful index-aligned refinement of the dict-keyed unconditional install; untouched-alias preservation matches. connections_handed_off(server) is always granted by accept_connection_set, which models the control-flow fact 'the constructor ACCEPTED the connections_override kwarg' (pre-patch: TypeError) \u2014 the sole tested discriminator. This is a config-level fact, NOT 'connections physically installed', which is faithful and not over-strong.\n- teardown_request <-> close_request. Model: close-all loop (closed[i]=True) then request.released=True, identities preserved. Matches gold's _close_connections()->close_all() then super().close_request(). Spec does not over-assert ordering (disjoint resources commute).\n\nABSTRACTION BOUNDARIES (not disagreements): close_all's try/except AttributeError skip of never-created connections and dict semantics for aliases absent from the registry lie OUTSIDE the index-aligned modeled carrier over the existing aliases the F2P tests exercise (the 'default' alias). The positional-list refinement observes only WHICH aliases are bound/closed \u2014 exactly what the tests discriminate. No input in the modeled carrier space makes a modeled function disagree with its real callee.\n\nSince a gold-equivalent implementation verifies against the frozen spec and the gold resolves (patch.diff==gold, G-RESOLVE), the spec is not too strong. Verdict: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Relaxed-leakage bundle (meta.json relaxed_leakage=true, gates.G-LEAK=relaxed; RELAXED_LEAKAGE.md present). Independently re-verified the disposition rather than rubber-stamping:\n\n(1) Re-scanned the spec view (model.py docstring + axioms + pre/post-conditions) against problem_statement \u2014 the ONLY leak is the already-dispositioned connection hand-off / thread-sharing facet (the capability postcondition connections_handed_off(server) at line 166, the accept_connection_set configuration step, and the value-level install postconditions keyed on has_override/override_tokens, lines 170-173). That behaviour is a proven problem_statement<->gold mismatch: the public issue reports ONLY the connection-CLOSING symptom, whose dedicated test is skipped on in-memory sqlite (gold's features.py hunk) and is NOT in FAIL_TO_PASS; the actually-tested F2P discriminator is the constructor accepting a parent-supplied connections_override set + worker install, vocabulary that appears only in hints_text/test_patch/gold internals, never in problem_statement. Faithful (G-DIFF-failing: model_prepatch.py fails exactly on Ensures(connections_handed_off(server))) + non-leaking is provably impossible, so the facet is unavoidable, not lazy narration.\n\n(2) Found NO new leak beyond the facet: the spec view contains none of the patched paths/repo symbols \u2014 no basehttp.py, features.py, ThreadedWSGIServer, connections_override, process_request_thread, close_request, __init__ kwarg, close_all, socketserver, WSGIServer, sqlite, or LiveServer; model identifiers name behaviour, not the edit; no line quotes the gold diff.\n\n(3) Disposition unbroken: core gates sound in meta.json (G-VERIFY/G-DIFF/G-EQ/G-AX pass), same_spec command returns SAME (exit 0) confirming the spec region is byte-identical, and the unavoidability argument re-derives cleanly. Per the panel recording convention in RELAXED_LEAKAGE.md and gates/_audit.py (relaxed-leakage panel is recorded pass + note; there is no separate 'relaxed' panel status), the honest recording for this properly-dispositioned facet is NO-LEAKAGE (pass). LEAKAGE is reserved for a new leak beyond the facet or a broken disposition; neither is present.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere. This cell separately records G-LEAK as `relaxed`, which is a disclosure a reviewer accepted rather than the absence of one.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `relaxed` (the mechanical leakage screen over the same spec view). The account names `model.py`, `RELAXED_LEAKAGE.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:41:50+00:00",
+      "code_version": "f2e98864a-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-serve-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-teardown-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 32.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-serve",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 50.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-teardown",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 34.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-override-serve",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-tokens-teardown",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-flags-serve",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-omit-handoff",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.2
+          },
+          {
+            "expect": "reject",
+            "id": "rival-handoff-wrong-server",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.3
+          },
+          {
+            "expect": "reject",
+            "id": "rival-partial-install-serve",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 64.2
+          },
+          {
+            "expect": "reject",
+            "id": "rival-clobber-noverride-serve",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-no-close-teardown",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.1
+          },
+          {
+            "expect": "reject",
+            "id": "rival-partial-close-teardown",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 2,
+          "soundness": 2,
+          "uniqueness": 9
+        },
+        "manifest_sha256": "a66c3130d4644eeb40bcf2e08d273f1c8ebcb96791d140024dc1e29bf88fe48a",
+        "n_cases": 13,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 13 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb",
+        "properties.py": "a66c3130d4644eeb40bcf2e08d273f1c8ebcb96791d140024dc1e29bf88fe48a"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-06T03:25:01+00:00",
+      "code_version": "346d4db1-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T11:26:24+00:00",
+      "code_version": "0a9a50d45-dirty",
+      "data": {
+        "wall_time_s": 43.6
+      },
+      "detail": "verified in 43.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "970165a5af57686ac45313154a423295eb2b3c3d776f1c0d386224d4c1f456bb"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-14011",
+  "modeled_functions": [
+    {
+      "carrier_type": "per-thread connection registry -> tokens: List[int] (alias i's connection identity); connections_override dict -> has_override: List[bool] + override_tokens: List[int] index-aligned; 'server was configured to accept the set' -> abstract unforgeable per-server capability connections_handed_off(server)",
+      "model_symbol": "serve_request_on_worker",
+      "repo_location": "django/core/servers/basehttp.py:80 (class ThreadedWSGIServer; methods added by the patch)",
+      "repo_symbol": "django.core.servers.basehttp.ThreadedWSGIServer.process_request_thread (run on each worker thread) together with the configuration accepted by ThreadedWSGIServer.__init__(*, connections_override=None)",
+      "role": "modeled changed behaviour (PRIMARY, the tested F2P discriminator): the worker can operate on the parent-supplied connection set ONLY because the server was configured to accept it (the capability connections_handed_off), then install the available set into this thread's registry"
+    },
+    {
+      "carrier_type": "per-thread registry -> closed: List[bool] (is alias i's connection closed?) + tokens: List[int]; request -> Request object with a released flag",
+      "model_symbol": "teardown_request",
+      "repo_location": "django/core/servers/basehttp.py:80 (class ThreadedWSGIServer; method added by the patch)",
+      "repo_symbol": "django.core.servers.basehttp.ThreadedWSGIServer.close_request",
+      "role": "modeled changed behaviour (SECONDARY, non-F2P): close ALL database connections in the worker thread's registry, then release the request resource. Publicly reported behaviour, but its F2P test (servers.tests.LiveServerTestCloseConnectionTest.test_closes_connections) is SKIPPED on the in-memory-sqlite eval backend (the gold's sqlite3/features.py hunk adds it to django_test_skips), so it is not a resolution discriminator"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; production hunk = basehttp.py ThreadedWSGIServer; second hunk = sqlite3/features.py test-skip entry)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Ensures(connections_handed_off(server)) of serve_request_on_worker (capability unobtainable without the configuration step)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "PRIMARY (tested F2P discriminator): the server being configurable with the parent-supplied connection set so it reaches the worker thread (ThreadedWSGIServer.__init__ accepting connections_override)",
+      "reverted_to": "a server that cannot be configured with the set: serve_request_on_worker omits accept_connection_set, so the per-server capability connections_handed_off(server) is never granted (mirrors the real pre-patch TypeError in setUpClass that errors all 17 F2P tests)"
+    },
+    {
+      "fails_on": "postcondition Forall i: closed[i] == True of teardown_request (connections not closed)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "SECONDARY (non-F2P, skipped on sqlite): ThreadedWSGIServer.close_request closing database connections on request teardown",
+      "reverted_to": "inherited socketserver.TCPServer.close_request (releases the request resource only; never closes DB connections)"
+    }
+  ],
+  "refinement_notes": "Refined per batch08 adversarial-panel verdict (NEEDS-REFINEMENT). D1 (spec/oracle drift): re-pinned the spec to the tested discriminator -- the server being configurable to accept the parent-supplied connection set so it reaches the worker (ThreadedWSGIServer.__init__ accepting connections_override; pre-patch TypeError errors all 17 F2P in setUpClass) -- modeled as the unforgeable per-server capability connections_handed_off granted by accept_connection_set; demoted the override-install body to a secondary value-level facet; kept the connection-closing behaviour as a secondary documented non-F2P behaviour (test_closes_connections is skipped on sqlite). D2 (leakage disposition): re-pinning the spec to the tested discriminator (D1) makes the configuration-acceptance / connection-hand-off the faithful discriminating clause -- but that hand-off / thread-sharing / parent-supplied vocabulary is hints_text/test_patch/gold-only (the problem_statement reports ONLY the connection-CLOSING symptom, which is untested on the sqlite eval backend), so faithful + non-leaking is provably impossible. This is therefore a genuine RELAXED_LEAKAGE instance (PS <-> gold mismatch), NOT a clean pass: G-LEAK.status = relaxed, with tasks/django__django-14011/RELAXED_LEAKAGE.md documenting the adversarial rationale (re-audit verdict; corrects the earlier batch08-refinement claim that re-pinning made G-LEAK a clean pass -- the configuration-acceptance discriminator IS the hints_text-only leak). D3 (axiom_check.py broken in-container): rewritten to apply patch.diff into /testbed before exercising patched symbols and to use real-code observables (constructor signature + stored field + install body), RC=0 confirmed in the pinned container. D4 (refinement A4 over-claim): corrected -- the spec does not constrain close-before-release ordering.",
+  "region_hashes": {
+    "axioms": "322c90cd4594abe900a4c09dd697091ece093bede7e8da4d6ab6942eee22cd6f",
+    "impl": "5b17af1c5652c68b56c2442be25d2fa9e49bfb851ca25071fb59b78c67e2df61",
+    "invariants": "e8e5f71854e4d87731f729fba29cc45ec1f3e73b0bdcfa3c49a83b4f508da08d",
+    "post-conditions": "50bfb924766e115b866a679dddf93b8c6d47f55d1f88de31579933960d0c708d",
+    "pre-conditions": "f92051e0de18f3d7e404c53cde42f167d68cadf1dbdb41847574950e378c8221",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "deb303c2a7fa7e8e07738364d4406ac09ef2e1e5bf5e3ddae11c5e6ed09204cc"
+  },
+  "relaxed_leakage": true,
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "no strings; the per-thread connection registry is modeled by index-aligned Lists (closed: List[bool], tokens: List[int]) over aliases-as-positions; the connections_override dict by index-aligned has_override/override_tokens Lists; 'server configured to accept the set' by the abstract @ContractOnly @Predicate capability connections_handed_off(server); mutation proven by per-element loops with Forall invariants",
+  "version": "4.0"
+}

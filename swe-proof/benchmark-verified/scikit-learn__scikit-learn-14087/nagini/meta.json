@@ -1,0 +1,671 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX) R1 (real _check_multi_class over solvers x n_classes x {ovr,multinomial,auto} resolves away 'auto'; real np.reshape rank table) + R2 (an arity-matching read is in-bounds; an over-arity read raises IndexError -> capability granted iff gather_arity==table_rank) + R4 (the no-refit block binds exactly ONE coefs_paths per iteration, whose real ndim is the modeled rank: bound at logistic.py:2084, reshaped by the resolved multi_class at :2086-2106, rebound per class only in the ovr arm at :2124 -- so 'the step holds one table at table_axes' is a true statement about the real state and every index expression in the block addresses that one array)",
+      "contract": "Requires(MustTerminate(1)); Requires(summary_table(table_rank)); Requires(gather_arity(use_joint_layout) == table_rank); Ensures(Result() == summary_token); Ensures(summary_table(table_rank)); Ensures(read_admissible(table_rank)). Both read_admissible(rank) and summary_table(actual_rank) are abstract @ContractOnly @Predicates (no body, unforgeable / un-Foldable). read_admissible is indexed by the rank the read was checked against and the consumer demands it at the actual layout rank (table_axes), so a value echo cannot discharge the contract. summary_table is the ONE array in scope carried as a RESOURCE at its real ndim: it is required by every read at the rank that read is checked against and returned unchanged, so a read is performable only against the held table at the held table's actual rank. That makes the read obligation UNIVERSAL -- every read the step performs, not merely the one whose value is delivered, is arity-checked against the real layout -- while still permitting a repeated in-bounds read. Weakest sufficient: nothing is claimed about the arity-mismatch case, which simply cannot satisfy the precondition.",
+      "kind": "A-consumed",
+      "models": "the across-folds per-class coefficient read w = np.mean([coefs_paths[...] for i in range(len(folds))], axis=0) (logistic.py:2172-2178); the array layout rank built by np.reshape from the RESOLVED multi_class (logistic.py:2086-2106) and the index-arity of the read expressions; and the single coefs_paths array the block indexes (bound logistic.py:2084, ndim fixed by the reshape at :2086-2106 and the per-class rebinding at :2124), carried as the summary_table resource at its real ndim",
+      "name": "read_across_folds (+ read_admissible capability, summary_table held-table resource)",
+      "provenance": "_check_multi_class maps 'auto'->'ovr'/'multinomial' (never 'auto'), logistic.py:457-471; ovr layout (n_folds,n_Cs*n_l1,n_features)=3 axes, multinomial layout (n_classes,n_folds,n_Cs*n_l1,n_features)=4 axes; reading with too many index axes raises IndexError: too many indices for array"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) R3: with the real numpy, the one-element placeholder candidate table (`l1_ratios_ = [None]`, set at logistic.py:1978 for every family that carries no mixing parameter) does NOT average to a real finite number at any selected position, while the real ratio table does -- so the averaged lookup `np.mean(l1_ratios_[best_indices_l1])` (logistic.py:2184) is a PARTIAL operation whose admissibility is exactly 'the table addressed holds real mixing values'. R3 also confirms the placeholder table has length 1, which is the modeled `not family_has_mixing => candidates_len == 1`.",
+      "contract": "Requires(MustTerminate(1)); Requires(candidate_table(holds_mixing_values)); Requires(holds_mixing_values); Requires(0 <= selected_index < candidates_len); Ensures(Result() == mixing_value); Ensures(candidate_table(holds_mixing_values)); Ensures(mixing_selected()). Both candidate_table(holds_mixing_values) and mixing_selected() are abstract @ContractOnly @Predicates (no body, unforgeable / un-Foldable). candidate_table is the ONE candidate-mixing table in scope carried as a RESOURCE indexed by whether its entries are real mixing values: it is required by every selection at the reality the selection claims and returned unchanged, so a selection is performable only against the held table and only when that table's entries are actually real -- an implementation cannot assert the reality for itself. mixing_selected() is granted only by the selection, and the consumer demands it whenever it records a value, so a recorded mixing value that was never selected cannot discharge the contract. Together these make the site-2 obligation UNIVERSAL over selections: every selection the step performs -- not merely the one whose value is delivered -- is a selection from a table that actually holds mixing values. That is what rules out the record-correcting shape (select unconditionally, then overwrite the record with the absent marker), which delivers the gold record on every input yet averages the placeholder table for the family that has none. Weakest sufficient: nothing is claimed about the placeholder case, which simply cannot satisfy the precondition, and the resource is returned so a repeated legitimate lookup stays expressible.",
+      "kind": "A-consumed",
+      "models": "the averaged per-class mixing lookup `np.mean(l1_ratios_[best_indices_l1])` (logistic.py:2184) and the single candidate-mixing table it addresses -- the real ratios (`l1_ratios_ = self.l1_ratios`, logistic.py:1971) or the one-element placeholder (`l1_ratios_ = [None]`, logistic.py:1978) -- carried as the candidate_table resource indexed by whether its entries are real mixing values",
+      "name": "select_mixing_value (+ candidate_table held-table resource, mixing_selected capability)",
+      "provenance": "l1_ratios_ bound at logistic.py:1971 (real ratios, penalty=='elasticnet') xor logistic.py:1978 (the [None] placeholder otherwise); the averaged lookup at logistic.py:2184; np.mean over the placeholder validated against real numpy by axiom_check.py R3"
+    }
+  ],
+  "base_commit": "a5743ed36fbd3fbc8e351bdab16561fbfca7dfa1",
+  "changed_files": [
+    "sklearn/linear_model/logistic.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX) R3: real numpy np.mean of [None] sentinel is not a finite number; real ratio table averages to a number",
+      "encoded_property": "not family_has_mixing => candidates_len==1 and the entry is not a real number, so the per-class record must be None",
+      "kind": "A-reference",
+      "models": "the one-element sentinel l1_ratios_=[None] set when penalty!='elasticnet' (logistic.py:1972-1978) and np.mean over it",
+      "name": "l1_ratios_ [None] sentinel",
+      "provenance": "logistic.py:1971 (real ratios when elasticnet) vs 1978 ([None] otherwise); np.mean(np.asarray([None])[0]) raises TypeError",
+      "role": "deep model (precondition + Optional sentinel) of site 2; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T21:26:34+00:00",
+      "code_version": "0696f0900",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: resolution never the deferred form + summary-table rank matches np.reshape (R1); an arity-matching read is in-bounds while an over-arity read raises IndexError, so read_across_folds grants the in-range capability EXACTLY on an arity match (R2); real fits hold exactly ONE per-class summary table per iteration whose real ndim is the modeled rank, so requiring every read to be performed against one held table at that rank is sound (R4); the [None] sentinel does not average to a real number, so the absent marker is required, and the averaged lookup is usable EXACTLY when the table addressed holds real mixing values \u2014 so the selection must be inadmissible against the placeholder table rather than corrected after the fact (R3/R3b); and the averaged lookup is admissible EXACTLY inside the candidate table's extent (every in-extent position averages to a real number, position len raises IndexError) while the real flat-position decomposition stays inside that extent, so carrying the extent on the held candidate table is sound and not restrictive (R5).",
+      "gate": "G-AX",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "53811fd57d3fb708599edb222465eef09a5e7a548ab8047d039b3b1e957ba5e4",
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T21:26:32+00:00",
+      "code_version": "0696f0900",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: shadow of gather_per_class + mixing_record agrees with the real patched no-refit statements on 100072 inputs (seed=140870) and with 6 full patched refit=False fits, 0 disagreements; on every one of those inputs the real ratio table also accepted every position the held candidate_table extent admits, refused position candidates_len, and contained the real flat decomposition, so the site-2 admissibility parameters are checked against reality and not merely passed.",
+      "gate": "G-CONF",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "457ae94888ac4cf71f0bee8a39b461fb6522b76604a816f2ec36b2bee92ab71c",
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:58:41+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_1.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_1.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4",
+        "model_prepatch.py": "cb04cdea8c822ef20294c6ea31f8143bae95697d2d0030b5122e9f50da4284e8",
+        "model_prepatch_1.py": "d7001a65c64f768ee0d93dc0ab1af993c5d9f6b115df1b04f3b7eea4f924faad",
+        "model_prepatch_2.py": "13466212f4224339730384c42bc39cf6ea50d8b06004ccd5ca96185817c9a907"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T01:51:17+00:00",
+      "code_version": "8e1d7ae7d-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 24 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies (2 did not reach the verifier: the checker could not translate them, so they count in neither tally)",
+      "gate": "G-EQ",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 24 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies (2 did not reach the verifier: the checker could not translate them, so they count in neither tally)\n\n**What was measured.** The harness re-ran 26 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_18.py`, `atk_19.py`, `atk_25.py`, `atk_26.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 9 | `atk_6.py`, `atk_7.py`, `atk_16.py`, `atk_17.py`, `atk_20.py`, `atk_21.py`, `atk_22.py`, `atk_23.py`, `atk_24.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 2 | `atk_4.py`, `atk_15.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4",
+        "properties.py": "aec717d04e1aca184cb16e04efe9f596d3cb718a5239da959f607492e9b5a277"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:00:07+00:00",
+      "code_version": "aac2a0129-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4",
+        "model_prepatch.py": "cb04cdea8c822ef20294c6ea31f8143bae95697d2d0030b5122e9f50da4284e8",
+        "model_prepatch_1.py": "d7001a65c64f768ee0d93dc0ab1af993c5d9f6b115df1b04f3b7eea4f924faad",
+        "model_prepatch_2.py": "13466212f4224339730384c42bc39cf6ea50d8b06004ccd5ca96185817c9a907"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T21:33:32+00:00",
+      "code_version": "0696f0900-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "6c9d82469f1ce352cdba2eff84a7f8371a77bfa5951e54d4bcf861645618451b",
+          "impl": "b37938ef8d61e6c7c1e527e1235ddce70d92d2230a4f8e57dc17b97fb80c09c0",
+          "post-conditions": "37ed1ba248803001dac29d7cde216c66ef81a0682cebaae7ef9a1c3fc54ef81f",
+          "pre-conditions": "da3b81cf4617e44788880c06684f17fdef131cb9826b272ab304f50f75e2c8ec",
+          "pure": "220e66a8fe062ef2d74f1ba296c26fac7d7717cd41e76abd7d81479df272ebca",
+          "spec_view": "d1ac5f26ef021b9019ca9b2dc87722af5d583a0697f2179d75a8e44810d18894"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T21:33:32+00:00",
+      "code_version": "0696f0900-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7063ac385abfcdca6c563bf48fb89d7e0a4e3afa02c729a2c0b760ed0c64ed9a",
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T21:33:32+00:00",
+      "code_version": "0696f0900-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:00:46+00:00",
+      "code_version": "aac2a0129-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T01:51:18+00:00",
+      "code_version": "8e1d7ae7d-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 24 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies (2 did not reach the verifier: the checker could not translate them, so they count in neither tally)",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS-BREAK attack on scikit-learn__scikit-learn-14087/nagini. Reference = the /tmp worktree WITH patch.diff applied (base commit a5743ed36f only for patch-untouched callees). No diverging input found; every candidate divergence I raised traced back to my own probe, not to the spec.\n\nSPEC IDENTITY: `adversary same-spec` on a verbatim copy of model.py -> exit 0 (\"SAME - attack shares the bundle's exact specification\"). Positive control: `scripts/nagini_verify.sh` on model.py -> exit 0, \"Verification successful\" in 12.12s. So the spec region I reviewed is the frozen one and it is live.\n\nWHAT THE SPEC CLAIMS (2 modeled sites, both in the no-refit `else:` of LogisticRegressionCV.fit, logistic.py:2169-2187):\n- gather_per_class: use_joint_layout = resolved_strategy != INDEPENDENT; read arity must equal the held summary_table's actual rank (3 for ovr layout, 4 for multinomial). Models patch hunk 1 (`self.multi_class` -> `multi_class`).\n- mixing_record: family_has_mixing => record a selected value + hold mixing_selected(); else => record the explicit None marker and perform NO selection. Models patch hunk 2 (the `if self.penalty == 'elasticnet': ... else: append(None)` guard).\n\nMACHINE CHECKS RUN IN THE REAL IMAGE (swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14087):\n1. Bundle G-CONF, gold patch applied: exit 0 - shadow of both impl regions agrees with the REAL patched no-refit statements (extracted from the patched module AST and exec'd) on 100072 fuzzed inputs (seed 140870) + 6 full refit=False fits, 0 disagreements.\n2. Bundle G-AX at base commit (apply_gold=False): exit 0 - R1 resolver never returns 'auto' + rank table matches np.reshape; R2 arity-match <=> in-bounds, over-arity raises IndexError; R4 one summary table per iteration at the modeled rank; R3/R3b [None] sentinel does not average to a real number and the lookup is usable EXACTLY when the table holds real values; R5 extent admissibility exact.\n3. F2P: all 3 target params of test_LogisticRegressionCV_no_refit (ovr-l2, multinomial-l2, auto-l2) pass with gold patch -> 6 passed.\n\nMY OWN INDEPENDENT PROBES (not the bundle's scripts), 216 configs over n_classes x multi_class x penalty x n_Cs x n_l1 x cv, reconstructing each Requires/Ensures clause from REAL fitted state: PROBE OK, no clause disagrees. Plus a sys.settrace probe measuring coefs_paths.ndim AT the read site (logistic.py:2172) against table_rank in every config: OK. Plus corner probes: (a) penalty l2/l1 WITH l1_ratios supplied (warning path) still yields the 1-entry [None] sentinel at the read site, so Requires(not family_has_mixing => candidates_len == 1) holds, and the record is [None,None,None]; (b) exhaustive sweep of every reachable flat position over n_Cs in {1,2,4,5} x n_l1 in {1,2,3,5}: flat // len(Cs_) is always inside len(l1_ratios_), so Requires(0 <= selected_index < candidates_len) is a fact about the real code, not a restriction on it.\n\nTWO CANDIDATE DIVERGENCES I CHASED AND RULED OUT (recording so they are not re-raised):\n- 'PRE table_axes mismatch real=4 modeled=3' (and real=5 vs 4) on every elasticnet config. NOT a spec defect: my probe read the post-fit `coefs_paths_` attribute, but fit() reshapes it AGAIN for elasticnet at logistic.py:2205-2213 (`if self.l1_ratios is not None: coefs_paths_[cls].reshape((len(folds), Cs_.size, l1_ratios_.size, -1))`), adding a dimension after the modeled block ran. The read-site array is the pre-2205 one; the settrace probe confirms real ndim == table_rank there in every config. The bundle's own G-AX R4 avoids this by only using the attribute under refit=True.\n- TypeError('only integer scalar arrays can be converted to a scalar index') when l1_ratios is a python list/tuple rather than an ndarray (real fit raises, refit=False only). NOT the patch delta and NOT a spec defect: measured identically with apply_gold=True AND apply_gold=False, so it is a pre-existing base-commit repo defect on `l1_ratios_[best_indices_l1]` with a list-typed table, outside this instance's delta and outside the F2P domain (the tests pass np.linspace). Per the brief, base behavior the patch does not touch is not a faithfulness break; and the model deliberately abstracts the table extent/entry-reality rather than the container type (mapping.md section 2, refinement.md B2).\n\nSTRENGTH CHECK (is the spec too strong?): the preconditions are each measured facts of the real code, not convenient restrictions - resolved_strategy != UNRESOLVED (real _check_multi_class never returns 'auto', logistic.py:457-471); table_axes == table_rank(resolved) (traced at the read site); candidates_len >= 1 and not-mixing => 1 (the [None] sentinel at logistic.py:1978, confirmed even on the l1_ratios-supplied warning path); 0 <= selected_index < candidates_len (exhaustive reachable-position sweep). The held-table resources (summary_table / candidate_table) are returned rather than consumed, so repeated in-bounds reads and repeated in-range lookups stay expressible - the contract does not forbid anything the real code does. Postconditions match the real post-patch observables: ovr/multinomial reads are in-bounds, and l1_ratio_ entries are real averages for elasticnet and literal None otherwise.\n\nVERDICT: FAITHFUL. The modeled functions agree with the patched repo on every input I could construct inside the stated domain; no diverging input exists to cite.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LEAKAGE / GOLD-RECONSTRUCTION review of scikit-learn__scikit-learn-14087 nagini. No relaxation present: meta.json has no `relaxed_leakage` key (verified by key dump -> 'relaxed_leakage' in meta == False) and no RELAXED_LEAKAGE.md exists anywhere under the instance dir (find -iname '*RELAX*' empty). So this was judged as a plain, unrelaxed leakage review. I also ran swebench_unified.leakage.reviewer_directed over every readable file in the bundle: zero hits -- no file in this bundle addresses or instructs this role, and nothing told me what to submit.\n\nARTIFACT IDENTITY. Recomputed markers.region_hashes(model.py, NaginiBackend) and compared to meta G-HYGIENE data: all six regions match byte-for-byte (spec_view d1ac5f26ef021b90, axioms 6c9d8246, pure 220e66a8, pre-conditions da3b81cf, post-conditions 37ed1ba2, impl b37938ef). model.py sha256 5436d5460e959dbe...11f6f4 equals the sha recorded in G-LEAK/G-AX/G-CONF/G-GOLD/G-EQ sources, so the spec view I screened is the one the gates screened. `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' in 11.12s, exit 0 (core gate re-confirmed, not inherited).\n\nMECHANICAL SCREEN, RE-RUN. leakage.screen(model.py, NaginiBackend, gold_patch, problem_statement, test_patch) from the frozen instance row: passed=True, hard_failures=[], warnings=[]. I did NOT stop there, because I measured that this screen's symbol check is VACUOUS on this instance: _patch_changed_symbols(gold) returns the empty set (the only def the hunks touch is `fit`, len 3, below the len>=4 distinctiveness threshold), so branches (a)/(b) of the repo-symbol check screen nothing at all here. The pass is therefore real but weak evidence, and the substantive judgement had to be done by hand.\n\nHAND CROSS-CHECK, SPEC VIEW vs PROBLEM_STATEMENT. Projected the consumer spec view with markers.spec_view and grepped 23 edit-localizing repo tokens against it, comparing each to the problem_statement. Result: every one of multi_class, ovr, multinomial, auto, elasticnet, penalty, l1_ratio, l1_ratios_, coefs_paths, best_indices, Cs_, logistic, sklearn, LogisticRegression, refit, np.mean, argmax, IndexError, ndim, reshape, n_classes, scores, sample_weight is ABSENT from the spec view. Note the direction of the finding: several of these (coefs_paths, best_indices, Cs_, refit, IndexError, np.mean, sklearn.linear_model.logistic) ARE public in the problem_statement traceback and the spec view still declines to use them. The view names no patched file path, no module path, no diff marker, and reproduces no gold line. Narration scan: the only hits for 'change'/'edit'/'diff'/'self.' are false positives on 'unchanged', 'differently-laid-out', 'not as an edit', and 'itself'/'table's' -- no bug->fix mechanism narration.\n\nGOLD-RECONSTRUCTION TEST (the real question). The gold edit has two hunks: (1) `self.multi_class` -> `multi_class` at the read guard, (2) wrap the l1_ratio_ append in `if self.penalty == 'elasticnet': ... else: append(None)`. The spec view describes both facets ABSTRACTLY -- an unresolved-vs-resolved categorical and a table whose index arity must match its rank; a regularisation family that carries a mixing parameter vs one whose candidate table holds only an absent placeholder. Neither the attribute-vs-local distinction nor the string 'elasticnet' nor the identifier l1_ratio_ appears, so a consumer cannot read the edit off the view; it must still localize `fit`, find the no-refit branch, discover that the layout is keyed on the resolved local, and discover which setting selects the placeholder table.\n\nThe facet worth the most scrutiny is site 2, since 'elasticnet'/l1_ratio_ appear NOWHERE in the problem_statement (measured above) -- so the concern is that the spec view reveals a second bug the public statement never mentions. I tested reachability with real numpy rather than arguing it: the public repro uses default penalty='l2', which drives logistic.py:1978 to set l1_ratios_ = [None] (read at base_commit in the /tmp worktree). With len(Cs_)=10 and scores.shape[1]=10, best_indices_l1 = best_indices // len(Cs_) = all zeros -- in-bounds, so the extent is not the issue; but the pre-patch `l1_ratios_[best_indices_l1]` on the plain list raises TypeError('only integer scalar arrays can be converted to a scalar index'), and np.mean(np.asarray([None])[idx]) raises TypeError('unsupported operand type(s) for +: NoneType and NoneType'). So site 2 is on the SAME public execution path: the moment the traceback's IndexError at site 1 is fixed, the problem_statement's own verbatim repro (`LogisticRegressionCV(cv=5, solver='saga', tol=1e-2, refit=False).fit(X, y)`) crashes at site 2. 'No error is thrown' -- the stated Expected Result -- therefore entails the site-2 behaviour by public derivation, and describing it is faithfulness to the stated expectation, not disclosure of a hidden second bug. This is consistent with F2P including the [ovr-l2]/[multinomial-l2]/[auto-l2] (non-elasticnet) cases.\n\nSUPPORTING GATES RE-CONFIRMED, not inherited: G-VERIFY re-run above; region hashes recomputed; G-DIFF's three prepatch impl regions read directly -- model_prepatch (site-1 read keyed on the unresolved form), model_prepatch_2 (site-2 unconditional selection), model_prepatch_1 (value echo with no read) -- each differs from model.py only in the impl region, confirming the spec view's abstractions are load-bearing discriminators rather than restatements of the diff. G-AX/G-CONF/G-EQ/G-MUT/G-PBT all recorded pass against this same model.py sha.\n\nCONCLUSION: the spec view leaks nothing beyond the solver-visible problem_statement -- it in fact uses strictly less repo vocabulary than the statement makes public. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 24 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies (2 did not reach the verifier: the checker could not translate them, so they count in neither tally); G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS-BREAK attack on scikit-learn__scikit-learn-14087/nagini. Reference = the /tmp worktree WITH patch.diff applied (base commit a5743ed36f only for patch-untouched callees). No diverging input found; every candidate divergence I raised traced back to my own probe, not to the spec.\n\nSPEC IDENTITY: `adversary same-spec` on a verbatim copy of model.py -> exit 0 (\"SAME - attack shares the bundle's exact specification\"). Positive control: `scripts/nagini_verify.sh` on model.py -> exit 0, \"Verification successful\" in 12.12s. So the spec region I reviewed is the frozen one and it is live.\n\nWHAT THE SPEC CLAIMS (2 modeled sites, both in the no-refit `else:` of LogisticRegressionCV.fit, logistic.py:2169-2187):\n- gather_per_class: use_joint_layout = resolved_strategy != INDEPENDENT; read arity must equal the held summary_table's actual rank (3 for ovr layout, 4 for multinomial). Models patch hunk 1 (`self.multi_class` -> `multi_class`).\n- mixing_record: family_has_mixing => record a selected value + hold mixing_selected(); else => record the explicit None marker and perform NO selection. Models patch hunk 2 (the `if self.penalty == 'elasticnet': ... else: append(None)` guard).\n\nMACHINE CHECKS RUN IN THE REAL IMAGE (swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14087):\n1. Bundle G-CONF, gold patch applied: exit 0 - shadow of both impl regions agrees with the REAL patched no-refit statements (extracted from the patched module AST and exec'd) on 100072 fuzzed inputs (seed 140870) + 6 full refit=False fits, 0 disagreements.\n2. Bundle G-AX at base commit (apply_gold=False): exit 0 - R1 resolver never returns 'auto' + rank table matches np.reshape; R2 arity-match <=> in-bounds, over-arity raises IndexError; R4 one summary table per iteration at the modeled rank; R3/R3b [None] sentinel does not average to a real number and the lookup is usable EXACTLY when the table holds real values; R5 extent admissibility exact.\n3. F2P: all 3 target params of test_LogisticRegressionCV_no_refit (ovr-l2, multinomial-l2, auto-l2) pass with gold patch -> 6 passed.\n\nMY OWN INDEPENDENT PROBES (not the bundle's scripts), 216 configs over n_classes x multi_class x penalty x n_Cs x n_l1 x cv, reconstructing each Requires/Ensures clause from REAL fitted state: PROBE OK, no clause disagrees. Plus a sys.settrace probe measuring coefs_paths.ndim AT the read site (logistic.py:2172) against table_rank in every config: OK. Plus corner probes: (a) penalty l2/l1 WITH l1_ratios supplied (warning path) still yields the 1-entry [None] sentinel at the read site, so Requires(not family_has_mixing => candidates_len == 1) holds, and the record is [None,None,None]; (b) exhaustive sweep of every reachable flat position over n_Cs in {1,2,4,5} x n_l1 in {1,2,3,5}: flat // len(Cs_) is always inside len(l1_ratios_), so Requires(0 <= selected_index < candidates_len) is a fact about the real code, not a restriction on it.\n\nTWO CANDIDATE DIVERGENCES I CHASED AND RULED OUT (recording so they are not re-raised):\n- 'PRE table_axes mismatch real=4 modeled=3' (and real=5 vs 4) on every elasticnet config. NOT a spec defect: my probe read the post-fit `coefs_paths_` attribute, but fit() reshapes it AGAIN for elasticnet at logistic.py:2205-2213 (`if self.l1_ratios is not None: coefs_paths_[cls].reshape((len(folds), Cs_.size, l1_ratios_.size, -1))`), adding a dimension after the modeled block ran. The read-site array is the pre-2205 one; the settrace probe confirms real ndim == table_rank there in every config. The bundle's own G-AX R4 avoids this by only using the attribute under refit=True.\n- TypeError('only integer scalar arrays can be converted to a scalar index') when l1_ratios is a python list/tuple rather than an ndarray (real fit raises, refit=False only). NOT the patch delta and NOT a spec defect: measured identically with apply_gold=True AND apply_gold=False, so it is a pre-existing base-commit repo defect on `l1_ratios_[best_indices_l1]` with a list-typed table, outside this instance's delta and outside the F2P domain (the tests pass np.linspace). Per the brief, base behavior the patch does not touch is not a faithfulness break; and the model deliberately abstracts the table extent/entry-reality rather than the container type (mapping.md section 2, refinement.md B2).\n\nSTRENGTH CHECK (is the spec too strong?): the preconditions are each measured facts of the real code, not convenient restrictions - resolved_strategy != UNRESOLVED (real _check_multi_class never returns 'auto', logistic.py:457-471); table_axes == table_rank(resolved) (traced at the read site); candidates_len >= 1 and not-mixing => 1 (the [None] sentinel at logistic.py:1978, confirmed even on the l1_ratios-supplied warning path); 0 <= selected_index < candidates_len (exhaustive reachable-position sweep). The held-table resources (summary_table / candidate_table) are returned rather than consumed, so repeated in-bounds reads and repeated in-range lookups stay expressible - the contract does not forbid anything the real code does. Postconditions match the real post-patch observables: ovr/multinomial reads are in-bounds, and l1_ratio_ entries are real averages for elasticnet and literal None otherwise.\n\nVERDICT: FAITHFUL. The modeled functions agree with the patched repo on every input I could construct inside the stated domain; no diverging input exists to cite.; G-PANEL-3 (leakage): pass \u2014 LEAKAGE / GOLD-RECONSTRUCTION review of scikit-learn__scikit-learn-14087 nagini. No relaxation present: meta.json has no `relaxed_leakage` key (verified by key dump -> 'relaxed_leakage' in meta == False) and no RELAXED_LEAKAGE.md exists anywhere under the instance dir (find -iname '*RELAX*' empty). So this was judged as a plain, unrelaxed leakage review. I also ran swebench_unified.leakage.reviewer_directed over every readable file in the bundle: zero hits -- no file in this bundle addresses or instructs this role, and nothing told me what to submit.\n\nARTIFACT IDENTITY. Recomputed markers.region_hashes(model.py, NaginiBackend) and compared to meta G-HYGIENE data: all six regions match byte-for-byte (spec_view d1ac5f26ef021b90, axioms 6c9d8246, pure 220e66a8, pre-conditions da3b81cf, post-conditions 37ed1ba2, impl b37938ef). model.py sha256 5436d5460e959dbe...11f6f4 equals the sha recorded in G-LEAK/G-AX/G-CONF/G-GOLD/G-EQ sources, so the spec view I screened is the one the gates screened. `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' in 11.12s, exit 0 (core gate re-confirmed, not inherited).\n\nMECHANICAL SCREEN, RE-RUN. leakage.screen(model.py, NaginiBackend, gold_patch, problem_statement, test_patch) from the frozen instance row: passed=True, hard_failures=[], warnings=[]. I did NOT stop there, because I measured that this screen's symbol check is VACUOUS on this instance: _patch_changed_symbols(gold) returns the empty set (the only def the hunks touch is `fit`, len 3, below the len>=4 distinctiveness threshold), so branches (a)/(b) of the repo-symbol check screen nothing at all here. The pass is therefore real but weak evidence, and the substantive judgement had to be done by hand.\n\nHAND CROSS-CHECK, SPEC VIEW vs PROBLEM_STATEMENT. Projected the consumer spec view with markers.spec_view and grepped 23 edit-localizing repo tokens against it, comparing each to the problem_statement. Result: every one of multi_class, ovr, multinomial, auto, elasticnet, penalty, l1_ratio, l1_ratios_, coefs_paths, best_indices, Cs_, logistic, sklearn, LogisticRegression, refit, np.mean, argmax, IndexError, ndim, reshape, n_classes, scores, sample_weight is ABSENT from the spec view. Note the direction of the finding: several of these (coefs_paths, best_indices, Cs_, refit, IndexError, np.mean, sklearn.linear_model.logistic) ARE public in the problem_statement traceback and the spec view still declines to use them. The view names no patched file path, no module path, no diff marker, and reproduces no gold line. Narration scan: the only hits for 'change'/'edit'/'diff'/'self.' are false positives on 'unchanged', 'differently-laid-out', 'not as an edit', and 'itself'/'table's' -- no bug->fix mechanism narration.\n\nGOLD-RECONSTRUCTION TEST (the real question). The gold edit has two hunks: (1) `self.multi_class` -> `multi_class` at the read guard, (2) wrap the l1_ratio_ append in `if self.penalty == 'elasticnet': ... else: append(None)`. The spec view describes both facets ABSTRACTLY -- an unresolved-vs-resolved categorical and a table whose index arity must match its rank; a regularisation family that carries a mixing parameter vs one whose candidate table holds only an absent placeholder. Neither the attribute-vs-local distinction nor the string 'elasticnet' nor the identifier l1_ratio_ appears, so a consumer cannot read the edit off the view; it must still localize `fit`, find the no-refit branch, discover that the layout is keyed on the resolved local, and discover which setting selects the placeholder table.\n\nThe facet worth the most scrutiny is site 2, since 'elasticnet'/l1_ratio_ appear NOWHERE in the problem_statement (measured above) -- so the concern is that the spec view reveals a second bug the public statement never mentions. I tested reachability with real numpy rather than arguing it: the public repro uses default penalty='l2', which drives logistic.py:1978 to set l1_ratios_ = [None] (read at base_commit in the /tmp worktree). With len(Cs_)=10 and scores.shape[1]=10, best_indices_l1 = best_indices // len(Cs_) = all zeros -- in-bounds, so the extent is not the issue; but the pre-patch `l1_ratios_[best_indices_l1]` on the plain list raises TypeError('only integer scalar arrays can be converted to a scalar index'), and np.mean(np.asarray([None])[idx]) raises TypeError('unsupported operand type(s) for +: NoneType and NoneType'). So site 2 is on the SAME public execution path: the moment the traceback's IndexError at site 1 is fixed, the problem_statement's own verbatim repro (`LogisticRegressionCV(cv=5, solver='saga', tol=1e-2, refit=False).fit(X, y)`) crashes at site 2. 'No error is thrown' -- the stated Expected Result -- therefore entails the site-2 behaviour by public derivation, and describing it is faithfulness to the stated expectation, not disclosure of a hidden second bug. This is consistent with F2P including the [ovr-l2]/[multinomial-l2]/[auto-l2] (non-elasticnet) cases.\n\nSUPPORTING GATES RE-CONFIRMED, not inherited: G-VERIFY re-run above; region hashes recomputed; G-DIFF's three prepatch impl regions read directly -- model_prepatch (site-1 read keyed on the unresolved form), model_prepatch_2 (site-2 unconditional selection), model_prepatch_1 (value echo with no read) -- each differs from model.py only in the impl region, confirming the spec view's abstractions are load-bearing discriminators rather than restatements of the diff. G-AX/G-CONF/G-EQ/G-MUT/G-PBT all recorded pass against this same model.py sha.\n\nCONCLUSION: the spec view leaks nothing beyond the solver-visible problem_statement -- it in fact uses strictly less repo vocabulary than the statement makes public. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4",
+        "properties.py": "aec717d04e1aca184cb16e04efe9f596d3cb718a5239da959f607492e9b5a277"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T00:41:21+00:00",
+      "code_version": "e7b705713-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 24 admissible attacks re-run of 26 submitted, none breaks the spec; positive control verifies (2 did not reach the verifier: the checker could not translate them, so they count in neither tally)\n\n**What was measured.** The harness re-ran 26 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_18.py`, `atk_19.py`, `atk_25.py`, `atk_26.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 9 | `atk_6.py`, `atk_7.py`, `atk_16.py`, `atk_17.py`, `atk_20.py`, `atk_21.py`, `atk_22.py`, `atk_23.py`, `atk_24.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 2 | `atk_4.py`, `atk_15.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4",
+        "properties.py": "aec717d04e1aca184cb16e04efe9f596d3cb718a5239da959f607492e9b5a277"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T01:51:17+00:00",
+      "code_version": "8e1d7ae7d-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS-BREAK attack on scikit-learn__scikit-learn-14087/nagini. Reference = the /tmp worktree WITH patch.diff applied (base commit a5743ed36f only for patch-untouched callees). No diverging input found; every candidate divergence I raised traced back to my own probe, not to the spec.\n\nSPEC IDENTITY: `adversary same-spec` on a verbatim copy of model.py -> exit 0 (\"SAME - attack shares the bundle's exact specification\"). Positive control: `scripts/nagini_verify.sh` on model.py -> exit 0, \"Verification successful\" in 12.12s. So the spec region I reviewed is the frozen one and it is live.\n\nWHAT THE SPEC CLAIMS (2 modeled sites, both in the no-refit `else:` of LogisticRegressionCV.fit, logistic.py:2169-2187):\n- gather_per_class: use_joint_layout = resolved_strategy != INDEPENDENT; read arity must equal the held summary_table's actual rank (3 for ovr layout, 4 for multinomial). Models patch hunk 1 (`self.multi_class` -> `multi_class`).\n- mixing_record: family_has_mixing => record a selected value + hold mixing_selected(); else => record the explicit None marker and perform NO selection. Models patch hunk 2 (the `if self.penalty == 'elasticnet': ... else: append(None)` guard).\n\nMACHINE CHECKS RUN IN THE REAL IMAGE (swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14087):\n1. Bundle G-CONF, gold patch applied: exit 0 - shadow of both impl regions agrees with the REAL patched no-refit statements (extracted from the patched module AST and exec'd) on 100072 fuzzed inputs (seed 140870) + 6 full refit=False fits, 0 disagreements.\n2. Bundle G-AX at base commit (apply_gold=False): exit 0 - R1 resolver never returns 'auto' + rank table matches np.reshape; R2 arity-match <=> in-bounds, over-arity raises IndexError; R4 one summary table per iteration at the modeled rank; R3/R3b [None] sentinel does not average to a real number and the lookup is usable EXACTLY when the table holds real values; R5 extent admissibility exact.\n3. F2P: all 3 target params of test_LogisticRegressionCV_no_refit (ovr-l2, multinomial-l2, auto-l2) pass with gold patch -> 6 passed.\n\nMY OWN INDEPENDENT PROBES (not the bundle's scripts), 216 configs over n_classes x multi_class x penalty x n_Cs x n_l1 x cv, reconstructing each Requires/Ensures clause from REAL fitted state: PROBE OK, no clause disagrees. Plus a sys.settrace probe measuring coefs_paths.ndim AT the read site (logistic.py:2172) against table_rank in every config: OK. Plus corner probes: (a) penalty l2/l1 WITH l1_ratios supplied (warning path) still yields the 1-entry [None] sentinel at the read site, so Requires(not family_has_mixing => candidates_len == 1) holds, and the record is [None,None,None]; (b) exhaustive sweep of every reachable flat position over n_Cs in {1,2,4,5} x n_l1 in {1,2,3,5}: flat // len(Cs_) is always inside len(l1_ratios_), so Requires(0 <= selected_index < candidates_len) is a fact about the real code, not a restriction on it.\n\nTWO CANDIDATE DIVERGENCES I CHASED AND RULED OUT (recording so they are not re-raised):\n- 'PRE table_axes mismatch real=4 modeled=3' (and real=5 vs 4) on every elasticnet config. NOT a spec defect: my probe read the post-fit `coefs_paths_` attribute, but fit() reshapes it AGAIN for elasticnet at logistic.py:2205-2213 (`if self.l1_ratios is not None: coefs_paths_[cls].reshape((len(folds), Cs_.size, l1_ratios_.size, -1))`), adding a dimension after the modeled block ran. The read-site array is the pre-2205 one; the settrace probe confirms real ndim == table_rank there in every config. The bundle's own G-AX R4 avoids this by only using the attribute under refit=True.\n- TypeError('only integer scalar arrays can be converted to a scalar index') when l1_ratios is a python list/tuple rather than an ndarray (real fit raises, refit=False only). NOT the patch delta and NOT a spec defect: measured identically with apply_gold=True AND apply_gold=False, so it is a pre-existing base-commit repo defect on `l1_ratios_[best_indices_l1]` with a list-typed table, outside this instance's delta and outside the F2P domain (the tests pass np.linspace). Per the brief, base behavior the patch does not touch is not a faithfulness break; and the model deliberately abstracts the table extent/entry-reality rather than the container type (mapping.md section 2, refinement.md B2).\n\nSTRENGTH CHECK (is the spec too strong?): the preconditions are each measured facts of the real code, not convenient restrictions - resolved_strategy != UNRESOLVED (real _check_multi_class never returns 'auto', logistic.py:457-471); table_axes == table_rank(resolved) (traced at the read site); candidates_len >= 1 and not-mixing => 1 (the [None] sentinel at logistic.py:1978, confirmed even on the l1_ratios-supplied warning path); 0 <= selected_index < candidates_len (exhaustive reachable-position sweep). The held-table resources (summary_table / candidate_table) are returned rather than consumed, so repeated in-bounds reads and repeated in-range lookups stay expressible - the contract does not forbid anything the real code does. Postconditions match the real post-patch observables: ovr/multinomial reads are in-bounds, and l1_ratio_ entries are real averages for elasticnet and literal None otherwise.\n\nVERDICT: FAITHFUL. The modeled functions agree with the patched repo on every input I could construct inside the stated domain; no diverging input exists to cite.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T01:40:00+00:00",
+      "code_version": "f9ce391eb-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LEAKAGE / GOLD-RECONSTRUCTION review of scikit-learn__scikit-learn-14087 nagini. No relaxation present: meta.json has no `relaxed_leakage` key (verified by key dump -> 'relaxed_leakage' in meta == False) and no RELAXED_LEAKAGE.md exists anywhere under the instance dir (find -iname '*RELAX*' empty). So this was judged as a plain, unrelaxed leakage review. I also ran swebench_unified.leakage.reviewer_directed over every readable file in the bundle: zero hits -- no file in this bundle addresses or instructs this role, and nothing told me what to submit.\n\nARTIFACT IDENTITY. Recomputed markers.region_hashes(model.py, NaginiBackend) and compared to meta G-HYGIENE data: all six regions match byte-for-byte (spec_view d1ac5f26ef021b90, axioms 6c9d8246, pure 220e66a8, pre-conditions da3b81cf, post-conditions 37ed1ba2, impl b37938ef). model.py sha256 5436d5460e959dbe...11f6f4 equals the sha recorded in G-LEAK/G-AX/G-CONF/G-GOLD/G-EQ sources, so the spec view I screened is the one the gates screened. `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' in 11.12s, exit 0 (core gate re-confirmed, not inherited).\n\nMECHANICAL SCREEN, RE-RUN. leakage.screen(model.py, NaginiBackend, gold_patch, problem_statement, test_patch) from the frozen instance row: passed=True, hard_failures=[], warnings=[]. I did NOT stop there, because I measured that this screen's symbol check is VACUOUS on this instance: _patch_changed_symbols(gold) returns the empty set (the only def the hunks touch is `fit`, len 3, below the len>=4 distinctiveness threshold), so branches (a)/(b) of the repo-symbol check screen nothing at all here. The pass is therefore real but weak evidence, and the substantive judgement had to be done by hand.\n\nHAND CROSS-CHECK, SPEC VIEW vs PROBLEM_STATEMENT. Projected the consumer spec view with markers.spec_view and grepped 23 edit-localizing repo tokens against it, comparing each to the problem_statement. Result: every one of multi_class, ovr, multinomial, auto, elasticnet, penalty, l1_ratio, l1_ratios_, coefs_paths, best_indices, Cs_, logistic, sklearn, LogisticRegression, refit, np.mean, argmax, IndexError, ndim, reshape, n_classes, scores, sample_weight is ABSENT from the spec view. Note the direction of the finding: several of these (coefs_paths, best_indices, Cs_, refit, IndexError, np.mean, sklearn.linear_model.logistic) ARE public in the problem_statement traceback and the spec view still declines to use them. The view names no patched file path, no module path, no diff marker, and reproduces no gold line. Narration scan: the only hits for 'change'/'edit'/'diff'/'self.' are false positives on 'unchanged', 'differently-laid-out', 'not as an edit', and 'itself'/'table's' -- no bug->fix mechanism narration.\n\nGOLD-RECONSTRUCTION TEST (the real question). The gold edit has two hunks: (1) `self.multi_class` -> `multi_class` at the read guard, (2) wrap the l1_ratio_ append in `if self.penalty == 'elasticnet': ... else: append(None)`. The spec view describes both facets ABSTRACTLY -- an unresolved-vs-resolved categorical and a table whose index arity must match its rank; a regularisation family that carries a mixing parameter vs one whose candidate table holds only an absent placeholder. Neither the attribute-vs-local distinction nor the string 'elasticnet' nor the identifier l1_ratio_ appears, so a consumer cannot read the edit off the view; it must still localize `fit`, find the no-refit branch, discover that the layout is keyed on the resolved local, and discover which setting selects the placeholder table.\n\nThe facet worth the most scrutiny is site 2, since 'elasticnet'/l1_ratio_ appear NOWHERE in the problem_statement (measured above) -- so the concern is that the spec view reveals a second bug the public statement never mentions. I tested reachability with real numpy rather than arguing it: the public repro uses default penalty='l2', which drives logistic.py:1978 to set l1_ratios_ = [None] (read at base_commit in the /tmp worktree).\n\nWith len(Cs_)=10 and scores.shape[1]=10, best_indices_l1 = best_indices // len(Cs_) = all zeros -- in-bounds, so the extent is not the issue; but the pre-patch `l1_ratios_[best_indices_l1]` on the plain list raises TypeError('only integer scalar arrays can be converted to a scalar index'), and np.mean(np.asarray([None])[idx]) raises TypeError('unsupported operand type(s) for +: NoneType and NoneType').\n\nSo site 2 is on the SAME public execution path: the moment the traceback's IndexError at site 1 is fixed, the problem_statement's own verbatim repro (`LogisticRegressionCV(cv=5, solver='saga', tol=1e-2, refit=False).fit(X, y)`) crashes at site 2. 'No error is thrown' -- the stated Expected Result -- therefore entails the site-2 behaviour by public derivation, and describing it is faithfulness to the stated expectation, not disclosure of a hidden second bug. This is consistent with F2P including the [ovr-l2]/[multinomial-l2]/[auto-l2] (non-elasticnet) cases.\n\nSUPPORTING GATES RE-CONFIRMED, not inherited: G-VERIFY re-run above; region hashes recomputed; G-DIFF's three prepatch impl regions read directly -- model_prepatch (site-1 read keyed on the unresolved form), model_prepatch_2 (site-2 unconditional selection), model_prepatch_1 (value echo with no read) -- each differs from model.py only in the impl region, confirming the spec view's abstractions are load-bearing discriminators rather than restatements of the diff. G-AX/G-CONF/G-EQ/G-MUT/G-PBT all recorded pass against this same model.py sha.\n\nCONCLUSION: the spec view leaks nothing beyond the solver-visible problem_statement -- it in fact uses strictly less repo vocabulary than the statement makes public. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:16:03+00:00",
+      "code_version": "9456274ba-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-site1-branch-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 20.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-site2-init-override",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-site1-duplicate-read",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-site1-read-then-deliver",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-site2-other-in-range-position",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-site1-held-table-assertable",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-site2-held-table-assertable",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 20.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-site1-arity-establishable",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.6
+          },
+          {
+            "expect": "reject",
+            "id": "rival-echo-no-read",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-unresolved-operand",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.3
+          },
+          {
+            "expect": "reject",
+            "id": "rival-hardcode-independent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-forge-rank-joint",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.2
+          },
+          {
+            "expect": "reject",
+            "id": "rival-forge-rank-independent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-forge-rank-unresolved",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-extra-read-forged-joint",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-extra-read-forged-independent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-extra-read-unresolved",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.4
+          },
+          {
+            "expect": "reject",
+            "id": "rival-deliver-unresolved-read",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "reject",
+            "id": "rival-conjure-summary-table",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-diverge-loop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.4
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-always-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.9
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-wrong-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.9
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-inverted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-hoisted-selection",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.5
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-hoisted-forged-reality",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-echo-no-selection",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.1
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-conjure-selection",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.5
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-forged-extent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-forged-extent-offset",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.4
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-extra-selection-forged-extent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-hoisted-forged-extent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-partial-domain-extent",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.5
+          },
+          {
+            "expect": "reject",
+            "id": "rival-site2-conjure-candidate-table",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 7,
+          "uniqueness": 25
+        },
+        "manifest_sha256": "72ce340dc67682ebbab12b62e7faff23ee4b5211258b329fb3eeefacb6043a43",
+        "n_cases": 33,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 33 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4",
+        "properties.py": "72ce340dc67682ebbab12b62e7faff23ee4b5211258b329fb3eeefacb6043a43"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T21:26:18+00:00",
+      "code_version": "315408321-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7063ac385abfcdca6c563bf48fb89d7e0a4e3afa02c729a2c0b760ed0c64ed9a",
+        "patch.diff": "819cd93cf36a6010195b74dc7106b268d9af01516be29821358c06ea5fa7600f"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T21:30:47+00:00",
+      "code_version": "0696f0900-dirty",
+      "data": {
+        "wall_time_s": 13.3
+      },
+      "detail": "verified in 13.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5436d5460e959dbe6d4bcdf56364e9903d2a60ffde2212e627ce3edd3611f6f4"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-14087",
+  "modeled_functions": [
+    {
+      "carrier_type": "str multi_class in {ovr,multinomial,auto} -> int {INDEPENDENT=0,JOINT=1,UNRESOLVED=2}; numpy array layout -> int axis-rank; the one array in scope -> abstract held-table resource at that rank; gathered vector -> identity token; in-bounds-read -> abstract capability predicate",
+      "model_symbol": "gather_per_class",
+      "repo_location": "sklearn/linear_model/logistic.py:2172-2178",
+      "repo_symbol": "sklearn.linear_model.logistic.LogisticRegressionCV.fit (no-refit branch, coefficient gather)",
+      "role": "modeled changed function (site 1): select the index arity of the across-folds coefficient read by the RESOLVED multi-class strategy so it matches the coefs_paths layout (removes the IndexError). The in-bounds-read obligation is pinned by an unforgeable capability predicate (read_admissible) granted only by the read_across_folds axiom, NOT by an impl-region assertion; and because the one coefs_paths array is carried as an unforgeable resource (summary_table) that each read must be performed against at that array's actual rank, the obligation is UNIVERSAL -- every read the step performs is arity-checked against the real layout, not merely the read whose value is delivered."
+    },
+    {
+      "carrier_type": "penalty=='elasticnet' -> bool family_has_mixing; appended value -> Optional[int] (real mixing token xor None); the one l1_ratios_ table in scope -> abstract held-table resource indexed by whether its entries are real mixing values; the averaged lookup -> A-consumed axiom granting an unforgeable selection capability",
+      "model_symbol": "mixing_record",
+      "repo_location": "sklearn/linear_model/logistic.py:2183-2184",
+      "repo_symbol": "sklearn.linear_model.logistic.LogisticRegressionCV.fit (no-refit branch, l1_ratio_ record)",
+      "role": "modeled changed function (site 2): record the per-class mixing value only for the family that carries a mixing parameter; otherwise record the explicit absent marker None. The obligation is not a claim about the delivered record alone: because the averaged lookup on the candidate-mixing table is carried as an A-consumed axiom that is admissible only against the held table when that table's entries are real mixing values, and the value recorded must carry the unforgeable capability that lookup grants, EVERY selection the step performs is a selection from a table that actually holds mixing values. So a step that selects unconditionally and only then corrects the record to the absent marker -- delivering the identical record on every input -- cannot discharge the contract."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; two hunks, both in the no-refit branch of LogisticRegressionCV.fit)",
+  "prepatch_models": [
+    {
+      "fails_on": "precondition of read_across_folds (gather_arity(use_joint_layout) == table_rank) in gather_per_class -- the over-indexing / IndexError when unresolved_form==UNRESOLVED and resolved_strategy==INDEPENDENT",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "site 1: coefficient read index arity (the headline IndexError)",
+      "reverted_to": "drive the read branch by the UNRESOLVED form (self.multi_class) instead of the resolved local multi_class: use_joint_layout = unresolved_form != INDEPENDENT"
+    },
+    {
+      "fails_on": "postcondition Ensures(read_admissible()) of gather_per_class -- 'insufficient permission to access read_admissible()': the unforgeable capability cannot be fabricated by a value echo",
+      "file": "model_prepatch_1.py",
+      "fixed_behavior": "site 1: CONSUMER-FREEDOM attacker (verdict-required). Echoes the value WITHOUT performing an arity-matching read; demonstrates the site-1 guard is a frozen contract clause, not a discardable impl-region Assert",
+      "reverted_to": "w = summary_token (return the token directly, never call read_across_folds)"
+    },
+    {
+      "fails_on": "postcondition Implies(not family_has_mixing, Result() is None) of mixing_record",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "site 2: per-class l1_ratio_ record for the family without a mixing parameter",
+      "reverted_to": "unconditionally take the value from the candidate table (the pre-patch unguarded np.mean(l1_ratios_[best_indices_l1])): entry = mixing_value"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "58b7affb5669bbe8aba4ae810ff82f6076367e8c6181b48a2a9cd8bdca207ba8",
+    "impl": "639c33cd8916c4ea61078481a3809286d0e5a9e07844106650d75cc488690f60",
+    "post-conditions": "5753b0db454e5fc0328aad4664ab8a435444dba4c9ef9c8e25e745c8deedac0d",
+    "pre-conditions": "66ba07a34d0ef4c5af1a720747379912a3492381d1e63e865593a687c1b63512",
+    "pure": "220e66a8fe062ef2d74f1ba296c26fac7d7717cd41e76abd7d81479df272ebca",
+    "spec_view": "7e41c07d7b0bb0174580b4b35073e049811faf9898a3ddd4806f6e8bc16a0e95"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": "none (no strings under spec); categorical settings as small int tags; numpy array layout abstracted to its index-axis rank (int); coefficient vector / mixing value as identity token / Optional sentinel",
+  "version": "0.22"
+}

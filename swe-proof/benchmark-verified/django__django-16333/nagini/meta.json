@@ -1,0 +1,537 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): the relations-unwritten-until-save_m2m claim is validated by the relations_written(instance) observations across the three real-callee steps (unwritten until save_m2m runs)",
+      "encoded_property": "@ContractOnly @Predicate with NO body (an abstract per-form capability). Unforgeable: cannot be Folded (abstract.predicate.fold rejected) and there is no relational field to assign, so the relational-data fact cannot be fabricated by fiat (defeats both the direct-assign and the Unfold/assign/Fold fiats). Non-transferable: parameterised by the form object, so relations_done(scratch) does NOT discharge relations_done(self) (defeats the cross-instance token-transfer / echo-the-oracle cheat). Only run_deferred_save(self)'s Ensures(relations_done(self)) produces it",
+      "kind": "A-reference",
+      "models": "the abstract relational-data fact: whether the deferred many-to-many associations are persisted for THIS form, as a per-form capability",
+      "name": "relations_done",
+      "provenance": "directive-8 / control-flow capability grounding device (no separate real callee); the load-bearing real-world claim \u2014 that BEFORE the deferred relational save runs the m2m associations are NOT written and that running save_m2m is what writes them \u2014 is asserted by axiom_check.py after super().save(commit=False) and after the record write (relations unwritten); only save_m2m writes them",
+      "purity": "@ContractOnly @Predicate (a capability predicate held in the proof state, not a @Pure value; required in save_form's postcondition; not an answer-key oracle on Result())"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real ModelForm.save(form, commit=False) over 50 observations",
+      "encoded_property": "deferred mode: sets up the deferred relational save (deferred_save_ready -> True) and writes NOTHING (record_persisted unchanged; the relational-data capability relations_done(self) is not granted)",
+      "flag_dependency": "holds only for the commit=False call the routine makes (super().save(commit=False)); the commit=True branch of the base save would itself persist",
+      "kind": "A-consumed",
+      "models": "django.forms.models.BaseModelForm.save(commit=False)",
+      "name": "base_form_save_deferred",
+      "provenance": "django/forms/models.py:526 (commit=False else-branch lines 544-547: self.save_m2m = self._save_m2m; return self.instance)",
+      "purity": "@ContractOnly (mutating; used only in the impl, not inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real instance.save() asserts row exists and m2m still unwritten",
+      "encoded_property": "writes the primary record only (record_persisted -> True); does NOT write the m2m associations (the relational-data capability relations_done(self) is not granted) and does not touch deferred_save_ready",
+      "kind": "A-consumed",
+      "models": "django.db.models.Model.save() (invoked as user.save())",
+      "name": "persist_record",
+      "provenance": "django/contrib/auth/forms.py:143 (user.save())",
+      "purity": "@ContractOnly (mutating)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real form.save_m2m() asserts the submitted associations are written, exactly, without disturbing the record; PLUS a negative observation that save_m2m() BEFORE the record write (no primary key) raises ValueError and writes nothing \u2014 confirming Requires(record_persisted is True) is faithful, not an over-claim",
+      "encoded_property": "writes the deferred relational (many-to-many) data \u2014 it is the SOLE producer of the per-form relational-data capability relations_done(self); requires deferred_save_ready is True AND record_persisted is True (the associations attach to the record's primary key, so save_m2m must follow the record write); leaves record_persisted and deferred_save_ready unchanged",
+      "kind": "A-consumed",
+      "models": "save_m2m == django.forms.models.BaseModelForm._save_m2m",
+      "name": "run_deferred_save",
+      "provenance": "django/forms/models.py:505 (_save_m2m: f.save_form_data(self.instance, cleaned_data[f.name]) over many_to_many); exposed as self.save_m2m by BaseModelForm.save(commit=False)",
+      "purity": "@ContractOnly (mutating)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): every observation obtains `instance` from the real forms.ModelForm.save(form, commit=False) and only then calls instance.save() / form.save_m2m(); the object cannot be operated on before that call produces it",
+      "encoded_property": "@ContractOnly @Predicate with NO body (an abstract per-form capability). Unforgeable and non-transferable on the same grounds as relations_done: it cannot be Folded (abstract.predicate.fold) and relations-style cross-form laundering fails because it is parameterised by the form object. SOLE producer is base_form_save_deferred(self)'s Ensures (that step builds the record object). BOTH persist_record and run_deferred_save Require it, so neither can run before the producing step \u2014 this is the data dependency that makes the callee ORDER load-bearing, not merely the multiset of callees called",
+      "kind": "A-reference",
+      "models": "the abstract record-object fact: whether this form's model record object has been produced and handed to the routine \u2014 the object both persistence steps act on",
+      "name": "record_available",
+      "provenance": "directive-8 / control-flow capability grounding device (no separate real callee): `user = super().save(commit=False)` produces the `user` object that `user.save()` writes and that `save_m2m()` attaches the associations to, so both consumers are unrunnable until it has produced it. Validated by axiom_check.py, which obtains the record object from the real ModelForm.save(form, commit=False) before it can call instance.save() or form.save_m2m() at all",
+      "purity": "@ContractOnly @Predicate (a capability predicate held in the proof state, not a @Pure value; required by persist_record and run_deferred_save and ensured by save_form; not an answer-key oracle on Result())"
+    }
+  ],
+  "base_commit": "60a7bd89860e504c0c33b02c78edcac87f6d1b5a",
+  "changed_files": [
+    "django/contrib/auth/forms.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T19:04:09+00:00",
+      "code_version": "356f15f92-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: base_form_save_deferred / persist_record / run_deferred_save axioms sound against real BaseModelForm.save(commit=False), Model.save(), and save_m2m over 50 observations (incl. empty-m2m boundary). Deferred save installs the handle and writes nothing; the record write never writes m2m; save_m2m writes only the m2m data.",
+      "gate": "G-AX",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "f528ddeef87497e56b74ad8dd3a2eb44f796899be016bf3220094da667ac3719",
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T19:04:06+00:00",
+      "code_version": "356f15f92-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "cells": 24,
+          "checked": 100000,
+          "disagreements": 0,
+          "oracle": "called: django.contrib.auth.forms.UserCreationForm.save (gold-patched)",
+          "seed": 16333,
+          "shadow": "direct (impl region verbatim; @ContractOnly callees -> real repo functions)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"disagreements\": 0, \"seed\": 16333, \"cells\": 24, \"shadow\": \"direct (impl region verbatim; @ContractOnly callees -> real repo functions)\", \"oracle\": \"called: django.contrib.auth.forms.UserCreationForm.save (gold-patched)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "1ca6b3afacf33e6b0994b000a1d7063412349ca8320680023b8ee55b08156a41",
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:26:23+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc",
+        "model_prepatch.py": "88a7ea1457f816fc45039b05c068213080d6971c1f8d833b88e27f7006fa7b5a"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-14T20:09:52+00:00",
+      "code_version": "e8335dbbe-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 15 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies (3 did not reach the verifier: the checker could not translate them, so they count in neither tally)",
+      "gate": "G-EQ",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 15 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies (3 did not reach the verifier: the checker could not translate them, so they count in neither tally)\n\n**What was measured.** The harness re-ran 18 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 13 | `atk_1_fiat_record.py`, `atk_2_prepatch.py`, `atk_3_shortcircuit_ready.py`, `atk_5_scratch_launder.py`, `atk_6_selfecho.py`, `atk_8_m2m_before_record.py`, `atk_9_uncond_persist.py`, `atk_10_prepatch_on_ready_half.py`, `atk_12_diverge_not_commit.py`, `atk_14_raise_after_commit.py`, `atk_15_no_base_save_ever.py`, +2 more |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 3 | `atk_4_fiat_fold.py`, `atk_7_raise_on_ready.py`, `atk_11_raise_not_commit.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_13_skip_base_when_ready.py`, `atk_18_double_effects.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc",
+        "properties.py": "ad3717abdede702268a6b8be3adf49a0cc9ff4f8c04350f0db7c1126326c996a"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:27:03+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc",
+        "model_prepatch.py": "88a7ea1457f816fc45039b05c068213080d6971c1f8d833b88e27f7006fa7b5a"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T19:11:02+00:00",
+      "code_version": "9ec98c292-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "2a52615112728cd1bf35a0d4eaf0e45dc901f3529de48335cdfd48fac08b2936",
+          "impl": "ddec16217ca419e62cd20f9b117d0650412989e9a004569102222102cc7702b4",
+          "post-conditions": "ff5b448d354bee49cd430f3cfe45a6d3b86e8ab2fa8de64813d8fad23293f112",
+          "pre-conditions": "f63b75bc924b890939f03763da12ab6b9944f8143b0fcc1c0fcfebe9d2b0433d",
+          "pure": "6a0d32568afb3408c3f404cf673ddfcea2d84836f4081e2523fb64a1bc79b1f6",
+          "spec_view": "d13f0162fe762ef3f52b41c17d6d09b7fc687d61c5214024421518657fde09d9"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T19:11:01+00:00",
+      "code_version": "9ec98c292-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bb5df5344ad1a19bfef258697b9e469ef591dff1c27c44c9f67e2bcbc3e5a184",
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T19:11:02+00:00",
+      "code_version": "9ec98c292-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T19:10:04+00:00",
+      "code_version": "356f15f92-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-14T20:09:52+00:00",
+      "code_version": "e8335dbbe-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 15 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies (3 did not reach the verifier: the checker could not translate them, so they count in neither tally)",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK GOAL: find an input where the modeled save_form disagrees with the REAL gold-patched UserCreationForm.save (spec too strong / drifted). NONE FOUND across every admitted entry state.\n\nSETUP. Bundle model.py verifies on the pinned verifier (scripts/nagini_verify.sh, exit 0, 10.7s). same-spec on the unmodified model.py => SAME. Spec region hashes present in meta.json. Reference used for the modeled function = repo with the gold patch APPLIED (per instructions): I applied the gold hunk (the two added lines `if hasattr(self,\"save_m2m\"): self.save_m2m()`) inside the real testbed container swebench/sweb.eval.x86_64.django_1776_django-16333 (git apply OK, verified by sed of forms.py:139-146). Base commit worktree 60a7bd8986 used as the reference for the three untouched callees (what the axioms model). Work confined to a mktemp -d under /tmp; bundle never modified.\n\nPROBE 1 - all four postconditions vs the real patched function, fresh entry (get_record False, get_ready False): commit=True and commit=False, m2m-required and blank-m2m shapes. Checked Result() is self <=> (user is form.instance); Ensures(get_ready() is True) <=> hasattr(form,'save_m2m'); Implies(commit, get_record()) <=> row exists; Implies(commit, relations_done(self)) <=> real _save_m2m invoked for THIS form (counter in an override delegating to the real BaseModelForm._save_m2m); Implies(not commit, get_record() is False). 0 divergences.\n\nPROBE 2 - the RE-ENTERED entry state, which is the half the precondition deliberately leaves free (get_ready() already True at entry). Drove save(commit=False) then save(commit=True); also commit=False on a re-entered form; blank-m2m re-entered; and triple re-entry (defer, defer, commit). Every clause held on the real patched function, and the associations were genuinely persisted (user.orgs == [org]). 0 divergences. This is exactly the state auth_tests.test_forms.UserCreationFormTest.test_success drives (test_forms.py:123-125: form.save(commit=False) then form.save()), so leaving it free makes the spec claim MORE, not less.\n\nPROBE 3 - is Requires(get_record() is False) a faithful narrowing or gratuitous over-fitting? Measured: after save(commit=True), a subsequent save(commit=False) leaves get_record()==True on the real function, which would VIOLATE Ensures(Implies(not commit, get_record() is False)). So the precondition is LOAD-BEARING for faithfulness (a deferred request cannot un-write an existing row) rather than a domain trimmed to dodge a clause. It also cannot hide the bug: the discriminating clause sits on commit=True, and the F2P test calls save(commit=True) on a fresh form, squarely inside the domain.\n\nPROBE 4 - axiom faithfulness against the real UNPATCHED callees (the patch does not touch them), each Ensures re-checked on live ORM state: base_form_save_deferred -> get_ready True, get_record unchanged, grants no relational capability; persist_record -> get_record True, get_ready unchanged, m2m associations STILL unwritten (the load-bearing asymmetry); run_deferred_save -> sole producer of the capability, get_record/get_ready unchanged, associations now written. Negative control on the ordering Requires(get_record() is True): calling save_m2m() BEFORE the record write raises ValueError, so that precondition is faithful and not an over-claim. 0 divergences.\n\nNO-OVER-STRENGTH ON THE EMPTY-M2M EDGE. relations_done is modeled as 'the deferred relational save was invoked for this form', not 'the association set is non-empty' (mapping.md \u00a72 states the two coincide on the F2P input and diverge on empty-m2m). I probed exactly that divergence point: on an m2m-LESS user model and on a blank-m2m form with 0 submitted associations, the real patched function still enters the guard (the base save always installs save_m2m) and invokes save_m2m, so Implies(commit, relations_done(self)) holds. The unconditional Ensures(get_ready() is True) likewise held on every shape, including commit=False and m2m-less.\n\nABSTRACTION BOUNDARY EXAMINED, NOT A DEFECT. On an INVALID (unvalidated) form the real save raises ValueError ('the data didn't validate') while the model claims normal return. This is not a faithfulness break: (a) record_available(self) is bound in mapping.md \u00a71/\u00a72.2 to self.instance as built from submitted data WHILE VALIDATING, and G-CONF's stated domain is live validated bound forms, so the boundary is documented rather than hidden; (b) the axiomatized callee BaseModelForm.save(commit=False) raises identically on that input, so it is outside every axiom's Requires too; (c) it cannot mask the fix - pre-patch and post-patch behave identically (both raise) on an invalid form, so no invalid form is a discriminating input.\n\nSCAFFOLDING CHECKED. MustTerminate(2)/MustTerminate(1) add no behaviour: the real save is a straight-line body of bounded calls with no recursion, and all three real callees ran to completion in every observation.\n\nINDEPENDENT GATE REPRODUCTION in the real container on the gold-patched tree: axiom_check.py exit 0 (50 observations incl. the empty-m2m boundary and the pre-pk negative); conformance_check.py exit 0 - 100000 Requires-satisfying trials, seed 16333, 24 cells enumerated exhaustively, 0 disagreements, oracle = the real gold-patched UserCreationForm.save CALLED (not transliterated), shadow = the impl region verbatim with the @ContractOnly callees bound to the real repo functions. (Note: the two checks SKIP/pass trivially outside the container - 'Django not configurable... No module named django' - so the in-container run is the load-bearing evidence.)\n\nBUNDLE NOTE (not a defect): the task prompt names patch.diff, which is not a file in this bundle; the gold patch is carried in meta.json['patch_diff'] and matches the SWE-bench dataset patch byte-for-byte (I diffed against data/swe_bench_verified/test.jsonl), and it is what I applied.\n\nCONCLUSION: no admitted input separates the modeled function from the real patched callee. The only domain restriction (get_record() is False) is provably required for the spec to be TRUE of the real function, and the one entry fact left unconstrained (get_ready()) strengthens the spec over the P2P-relevant half. Verdict FAITHFUL; no diverging input to cite.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "G-PANEL(3) leakage / gold-reconstruction audit of django__django-16333 nagini spec view.\n\nBASELINE. Public problem_statement (title 'UserCreationForm should save data from ManyToMany form fields') already states, in the solver's own view: (a) the symbol UserCreationForm.save and its commit=True path; (b) that data in ManyToMany form fields is not saved; (c) that unlike the parent django.forms.ModelForm, save(commit=True) 'omits to call self.save_m2m()'; (d) the file's owning module (contrib.auth.forms). The public statement therefore already names the exact call to add and the exact method to add it to. The residual gold content NOT in the problem statement is only the `if hasattr(self, \"save_m2m\"):` guard. Gold patch = 2 added lines in django/contrib/auth/forms.py:141.\n\nSPEC VIEW GENERATED, not eyeballed: markers.spec_view(model.py, nagini backend) -> 311 lines, impl region replaced by the elision placeholder; sole impl region is save_form's, and the elided body is the only place the gold-analogue control flow lives.\n\nMECHANICAL EVIDENCE (all run, not asserted):\n1. leakage.screen(model.py, nagini, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[]. Matches the recorded meta.json G-LEAK stamp ('pass', 'spec view clean', harness fb403a771a83, model.py digest fe187a86..) -- no relaxed_leakage flag, no RELAXED_LEAKAGE.md, so the pass is not a documented semantic-leak waiver being papered over.\n2. Gold-line reproduction: every added/removed/context gold line normalized (whitespace-stripped) and searched in the spec view -- 'if hasattr(self, \"save_m2m\"):', 'self.save_m2m()', 'user = super().save(commit=False)', 'user.set_password(self.cleaned_data[\"password1\"])', 'user.save()', 'return user', 'def save(self, commit=True):' -- ALL not present.\n3. Diff markers: '@@', 'diff --git', '+++ ', '--- ', '\\nindex ' -- all absent.\n4. Identifier/path scan: 'save_m2m', 'hasattr', 'UserCreationForm', 'contrib', 'auth', 'forms.py', 'set_password', 'password1', 'cleaned_data', 'ModelForm', 'super', 'm2m', 'M2M', 'ManyToMany', 'user.save', 'commit=True/False', and the test-patch-only names 'orgs'/'Organization'/'pk' -- all absent from the spec view. Only 'django' appears, in the instance-id header line 1 ('Twin-artifact model for django__django-16333.'), which is the uniform header across all bundles (verified: every benchmark-verified/*/nagini/model.py opens with the same 'Twin-artifact model for <instance_id>' line) and is the instance identity the harness already gives the solver -- not edit localization beyond it. patch changed-symbol set is {'save'}, and 'save' is in the problem statement, so no symbol-collision leak either.\n5. Vocabulary: no bug/fix narration -- _NARRATION scan clean; grep for 'fix/patch/bug/regression/previously/broken/incorrectly/wrong' over the spec view returns only innocuous English ('before', 'missing', 'after the primary record exists') in behaviour prose, none of it narrating an edit.\n6. Naming is deliberately de-Djangoized throughout: save_form / Form / persist_record / base_form_save_deferred / run_deferred_save / relations_done / record_available / get_ready. A solver reading only the spec view learns 'a save routine must also run the deferred relational save when committing' -- which is exactly claim (c) already in the public statement -- and learns no file, no method name, and no call site.\n\nNO OVER-CONSTRAINT INTO THE GOLD SHAPE (the subtle leak channel I specifically probed). The one gold element absent from the problem statement is the hasattr guard. I built unguarded.py: same spec, impl with the guard REMOVED (base_form_save_deferred; if commit: persist_record; run_deferred_save -- the model analogue of a bare unguarded self.save_m2m()). adversary same-spec -> exit 0 ('SAME -- attack shares the bundle's exact specification'), and nagini_verify.sh -> exit 0 ('Verification successful', 7.74s). So the spec does NOT force the guard: it admits the unguarded implementation. The spec view therefore cannot be read backwards to recover the `if hasattr(...)` line -- the residual gold content is exactly the part the spec leaves free. (This same fact is a spec-strength observation for panel 1/2 to weigh against the real repo's contract, where super().save(commit=False) always sets save_m2m so the guard is defensive; it is not a leakage finding, and if anything it is the opposite of one.)\n7. Bundle-file provenance pointers ('Provenance + soundness check: mapping.md / axiom_check.py') survive into the spec view, but mapping.md and axiom_check.py are bundle-side only -- confirmed absent from the solver worktree at base_commit 60a7bd89860e -- and the consumer prompt (eval/prompts.py _spec_block/initial_user) ships only spec_view + problem_statement + modeled-function model_symbol<->repo_symbol pairs. Note the modeled-functions line IS localization ('save_form (<-> django.contrib.auth.forms.UserCreationForm.save)', forms.py:139), but it is delivered by the harness's own localization channel that mode 0 gets identically and with no spec detail, and it merely repeats UserCreationForm.save which the problem statement names; it is not a spec-view line, so it is out of scope for this gate and leaks nothing beyond the public statement.\n\nCONCLUSION: no gold line, no diff marker, no patched path, no identifier echoing a patched repo symbol beyond the public statement, no bug/fix narration, and the spec provably does not pin the one gold detail the problem statement omits. Verdict NO-LEAKAGE. Work confined to /tmp (scratch); bundle unmodified.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 15 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies (3 did not reach the verifier: the checker could not translate them, so they count in neither tally); G-PANEL-2 (faithfulness): pass \u2014 ATTACK GOAL: find an input where the modeled save_form disagrees with the REAL gold-patched UserCreationForm.save (spec too strong / drifted). NONE FOUND across every admitted entry state.\n\nSETUP. Bundle model.py verifies on the pinned verifier (scripts/nagini_verify.sh, exit 0, 10.7s). same-spec on the unmodified model.py => SAME. Spec region hashes present in meta.json. Reference used for the modeled function = repo with the gold patch APPLIED (per instructions): I applied the gold hunk (the two added lines `if hasattr(self,\"save_m2m\"): self.save_m2m()`) inside the real testbed container swebench/sweb.eval.x86_64.django_1776_django-16333 (git apply OK, verified by sed of forms.py:139-146). Base commit worktree 60a7bd8986 used as the reference for the three untouched callees (what the axioms model). Work confined to a mktemp -d under /tmp; bundle never modified.\n\nPROBE 1 - all four postconditions vs the real patched function, fresh entry (get_record False, get_ready False): commit=True and commit=False, m2m-required and blank-m2m shapes. Checked Result() is self <=> (user is form.instance); Ensures(get_ready() is True) <=> hasattr(form,'save_m2m'); Implies(commit, get_record()) <=> row exists; Implies(commit, relations_done(self)) <=> real _save_m2m invoked for THIS form (counter in an override delegating to the real BaseModelForm._save_m2m); Implies(not commit, get_record() is False). 0 divergences.\n\nPROBE 2 - the RE-ENTERED entry state, which is the half the precondition deliberately leaves free (get_ready() already True at entry). Drove save(commit=False) then save(commit=True); also commit=False on a re-entered form; blank-m2m re-entered; and triple re-entry (defer, defer, commit). Every clause held on the real patched function, and the associations were genuinely persisted (user.orgs == [org]). 0 divergences. This is exactly the state auth_tests.test_forms.UserCreationFormTest.test_success drives (test_forms.py:123-125: form.save(commit=False) then form.save()), so leaving it free makes the spec claim MORE, not less.\n\nPROBE 3 - is Requires(get_record() is False) a faithful narrowing or gratuitous over-fitting? Measured: after save(commit=True), a subsequent save(commit=False) leaves get_record()==True on the real function, which would VIOLATE Ensures(Implies(not commit, get_record() is False)). So the precondition is LOAD-BEARING for faithfulness (a deferred request cannot un-write an existing row) rather than a domain trimmed to dodge a clause. It also cannot hide the bug: the discriminating clause sits on commit=True, and the F2P test calls save(commit=True) on a fresh form, squarely inside the domain.\n\nPROBE 4 - axiom faithfulness against the real UNPATCHED callees (the patch does not touch them), each Ensures re-checked on live ORM state: base_form_save_deferred -> get_ready True, get_record unchanged, grants no relational capability; persist_record -> get_record True, get_ready unchanged, m2m associations STILL unwritten (the load-bearing asymmetry); run_deferred_save -> sole producer of the capability, get_record/get_ready unchanged, associations now written. Negative control on the ordering Requires(get_record() is True): calling save_m2m() BEFORE the record write raises ValueError, so that precondition is faithful and not an over-claim. 0 divergences.\n\nNO-OVER-STRENGTH ON THE EMPTY-M2M EDGE. relations_done is modeled as 'the deferred relational save was invoked for this form', not 'the association set is non-empty' (mapping.md \u00a72 states the two coincide on the F2P input and diverge on empty-m2m). I probed exactly that divergence point: on an m2m-LESS user model and on a blank-m2m form with 0 submitted associations, the real patched function still enters the guard (the base save always installs save_m2m) and invokes save_m2m, so Implies(commit, relations_done(self)) holds. The unconditional Ensures(get_ready() is True) likewise held on every shape, including commit=False and m2m-less.\n\nABSTRACTION BOUNDARY EXAMINED, NOT A DEFECT. On an INVALID (unvalidated) form the real save raises ValueError ('the data didn't validate') while the model claims normal return. This is not a faithfulness break: (a) record_available(self) is bound in mapping.md \u00a71/\u00a72.2 to self.instance as built from submitted data WHILE VALIDATING, and G-CONF's stated domain is live validated bound forms, so the boundary is documented rather than hidden; (b) the axiomatized callee BaseModelForm.save(commit=False) raises identically on that input, so it is outside every axiom's Requires too; (c) it cannot mask the fix - pre-patch and post-patch behave identically (both raise) on an invalid form, so no invalid form is a discriminating input.\n\nSCAFFOLDING CHECKED. MustTerminate(2)/MustTerminate(1) add no behaviour: the real save is a straight-line body of bounded calls with no recursion, and all three real callees ran to completion in every observation.\n\nINDEPENDENT GATE REPRODUCTION in the real container on the gold-patched tree: axiom_check.py exit 0 (50 observations incl. the empty-m2m boundary and the pre-pk negative); conformance_check.py exit 0 - 100000 Requires-satisfying trials, seed 16333, 24 cells enumerated exhaustively, 0 disagreements, oracle = the real gold-patched UserCreationForm.save CALLED (not transliterated), shadow = the impl region verbatim with the @ContractOnly callees bound to the real repo functions. (Note: the two checks SKIP/pass trivially outside the container - 'Django not configurable... No module named django' - so the in-container run is the load-bearing evidence.)\n\nBUNDLE NOTE (not a defect): the task prompt names patch.diff, which is not a file in this bundle; the gold patch is carried in meta.json['patch_diff'] and matches the SWE-bench dataset patch byte-for-byte (I diffed against data/swe_bench_verified/test.jsonl), and it is what I applied.\n\nCONCLUSION: no admitted input separates the modeled function from the real patched callee. The only domain restriction (get_record() is False) is provably required for the spec to be TRUE of the real function, and the one entry fact left unconstrained (get_ready()) strengthens the spec over the P2P-relevant half. Verdict FAITHFUL; no diverging input to cite.; G-PANEL-3 (leakage): pass \u2014 G-PANEL(3) leakage / gold-reconstruction audit of django__django-16333 nagini spec view.\n\nBASELINE. Public problem_statement (title 'UserCreationForm should save data from ManyToMany form fields') already states, in the solver's own view: (a) the symbol UserCreationForm.save and its commit=True path; (b) that data in ManyToMany form fields is not saved; (c) that unlike the parent django.forms.ModelForm, save(commit=True) 'omits to call self.save_m2m()'; (d) the file's owning module (contrib.auth.forms). The public statement therefore already names the exact call to add and the exact method to add it to. The residual gold content NOT in the problem statement is only the `if hasattr(self, \"save_m2m\"):` guard. Gold patch = 2 added lines in django/contrib/auth/forms.py:141.\n\nSPEC VIEW GENERATED, not eyeballed: markers.spec_view(model.py, nagini backend) -> 311 lines, impl region replaced by the elision placeholder; sole impl region is save_form's, and the elided body is the only place the gold-analogue control flow lives.\n\nMECHANICAL EVIDENCE (all run, not asserted):\n1. leakage.screen(model.py, nagini, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[]. Matches the recorded meta.json G-LEAK stamp ('pass', 'spec view clean', harness fb403a771a83, model.py digest fe187a86..) -- no relaxed_leakage flag, no RELAXED_LEAKAGE.md, so the pass is not a documented semantic-leak waiver being papered over.\n2. Gold-line reproduction: every added/removed/context gold line normalized (whitespace-stripped) and searched in the spec view -- 'if hasattr(self, \"save_m2m\"):', 'self.save_m2m()', 'user = super().save(commit=False)', 'user.set_password(self.cleaned_data[\"password1\"])', 'user.save()', 'return user', 'def save(self, commit=True):' -- ALL not present.\n3. Diff markers: '@@', 'diff --git', '+++ ', '--- ', '\\nindex ' -- all absent.\n4. Identifier/path scan: 'save_m2m', 'hasattr', 'UserCreationForm', 'contrib', 'auth', 'forms.py', 'set_password', 'password1', 'cleaned_data', 'ModelForm', 'super', 'm2m', 'M2M', 'ManyToMany', 'user.save', 'commit=True/False', and the test-patch-only names 'orgs'/'Organization'/'pk' -- all absent from the spec view. Only 'django' appears, in the instance-id header line 1 ('Twin-artifact model for django__django-16333.'), which is the uniform header across all bundles (verified: every benchmark-verified/*/nagini/model.py opens with the same 'Twin-artifact model for <instance_id>' line) and is the instance identity the harness already gives the solver -- not edit localization beyond it. patch changed-symbol set is {'save'}, and 'save' is in the problem statement, so no symbol-collision leak either.\n5. Vocabulary: no bug/fix narration -- _NARRATION scan clean; grep for 'fix/patch/bug/regression/previously/broken/incorrectly/wrong' over the spec view returns only innocuous English ('before', 'missing', 'after the primary record exists') in behaviour prose, none of it narrating an edit.\n6. Naming is deliberately de-Djangoized throughout: save_form / Form / persist_record / base_form_save_deferred / run_deferred_save / relations_done / record_available / get_ready. A solver reading only the spec view learns 'a save routine must also run the deferred relational save when committing' -- which is exactly claim (c) already in the public statement -- and learns no file, no method name, and no call site.\n\nNO OVER-CONSTRAINT INTO THE GOLD SHAPE (the subtle leak channel I specifically probed). The one gold element absent from the problem statement is the hasattr guard. I built unguarded.py: same spec, impl with the guard REMOVED (base_form_save_deferred; if commit: persist_record; run_deferred_save -- the model analogue of a bare unguarded self.save_m2m()). adversary same-spec -> exit 0 ('SAME -- attack shares the bundle's exact specification'), and nagini_verify.sh -> exit 0 ('Verification successful', 7.74s). So the spec does NOT force the guard: it admits the unguarded implementation. The spec view therefore cannot be read backwards to recover the `if hasattr(...)` line -- the residual gold content is exactly the part the spec leaves free. (This same fact is a spec-strength observation for panel 1/2 to weigh against the real repo's contract, where super().save(commit=False) always sets save_m2m so the guard is defensive; it is not a leakage finding, and if anything it is the opposite of one.)\n7. Bundle-file provenance pointers ('Provenance + soundness check: mapping.md / axiom_check.py') survive into the spec view, but mapping.md and axiom_check.py are bundle-side only -- confirmed absent from the solver worktree at base_commit 60a7bd89860e -- and the consumer prompt (eval/prompts.py _spec_block/initial_user) ships only spec_view + problem_statement + modeled-function model_symbol<->repo_symbol pairs. Note the modeled-functions line IS localization ('save_form (<-> django.contrib.auth.forms.UserCreationForm.save)', forms.py:139), but it is delivered by the harness's own localization channel that mode 0 gets identically and with no spec detail, and it merely repeats UserCreationForm.save which the problem statement names; it is not a spec-view line, so it is out of scope for this gate and leaks nothing beyond the public statement.\n\nCONCLUSION: no gold line, no diff marker, no patched path, no identifier echoing a patched repo symbol beyond the public statement, no bug/fix narration, and the spec provably does not pin the one gold detail the problem statement omits. Verdict NO-LEAKAGE. Work confined to /tmp (scratch); bundle unmodified.",
+      "gate": "G-PANEL",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc",
+        "properties.py": "ad3717abdede702268a6b8be3adf49a0cc9ff4f8c04350f0db7c1126326c996a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-14T20:09:50+00:00",
+      "code_version": "e8335dbbe-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 15 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies (3 did not reach the verifier: the checker could not translate them, so they count in neither tally)\n\n**What was measured.** The harness re-ran 18 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 13 | `atk_1_fiat_record.py`, `atk_2_prepatch.py`, `atk_3_shortcircuit_ready.py`, `atk_5_scratch_launder.py`, `atk_6_selfecho.py`, `atk_8_m2m_before_record.py`, `atk_9_uncond_persist.py`, `atk_10_prepatch_on_ready_half.py`, `atk_12_diverge_not_commit.py`, `atk_14_raise_after_commit.py`, `atk_15_no_base_save_ever.py`, +2 more |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 3 | `atk_4_fiat_fold.py`, `atk_7_raise_on_ready.py`, `atk_11_raise_not_commit.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_13_skip_base_when_ready.py`, `atk_18_double_effects.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc",
+        "properties.py": "ad3717abdede702268a6b8be3adf49a0cc9ff4f8c04350f0db7c1126326c996a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-14T19:37:33+00:00",
+      "code_version": "6161627c2-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK GOAL: find an input where the modeled save_form disagrees with the REAL gold-patched UserCreationForm.save (spec too strong / drifted). NONE FOUND across every admitted entry state.\n\nSETUP. Bundle model.py verifies on the pinned verifier (scripts/nagini_verify.sh, exit 0, 10.7s). same-spec on the unmodified model.py => SAME. Spec region hashes present in meta.json. Reference used for the modeled function = repo with the gold patch APPLIED (per instructions): I applied the gold hunk (the two added lines `if hasattr(self,\"save_m2m\"): self.save_m2m()`) inside the real testbed container swebench/sweb.eval.x86_64.django_1776_django-16333 (git apply OK, verified by sed of forms.py:139-146). Base commit worktree 60a7bd8986 used as the reference for the three untouched callees (what the axioms model). Work confined to a mktemp -d under /tmp; bundle never modified.\n\nPROBE 1 - all four postconditions vs the real patched function, fresh entry (get_record False, get_ready False): commit=True and commit=False, m2m-required and blank-m2m shapes. Checked Result() is self <=> (user is form.instance); Ensures(get_ready() is True) <=> hasattr(form,'save_m2m'); Implies(commit, get_record()) <=> row exists; Implies(commit, relations_done(self)) <=> real _save_m2m invoked for THIS form (counter in an override delegating to the real BaseModelForm._save_m2m); Implies(not commit, get_record() is False). 0 divergences.\n\nPROBE 2 - the RE-ENTERED entry state, which is the half the precondition deliberately leaves free (get_ready() already True at entry). Drove save(commit=False) then save(commit=True); also commit=False on a re-entered form; blank-m2m re-entered; and triple re-entry (defer, defer, commit). Every clause held on the real patched function, and the associations were genuinely persisted (user.orgs == [org]). 0 divergences. This is exactly the state auth_tests.test_forms.UserCreationFormTest.test_success drives (test_forms.py:123-125: form.save(commit=False) then form.save()), so leaving it free makes the spec claim MORE, not less.\n\nPROBE 3 - is Requires(get_record() is False) a faithful narrowing or gratuitous over-fitting? Measured: after save(commit=True), a subsequent save(commit=False) leaves get_record()==True on the real function, which would VIOLATE Ensures(Implies(not commit, get_record() is False)). So the precondition is LOAD-BEARING for faithfulness (a deferred request cannot un-write an existing row) rather than a domain trimmed to dodge a clause. It also cannot hide the bug: the discriminating clause sits on commit=True, and the F2P test calls save(commit=True) on a fresh form, squarely inside the domain.\n\nPROBE 4 - axiom faithfulness against the real UNPATCHED callees (the patch does not touch them), each Ensures re-checked on live ORM state: base_form_save_deferred -> get_ready True, get_record unchanged, grants no relational capability; persist_record -> get_record True, get_ready unchanged, m2m associations STILL unwritten (the load-bearing asymmetry); run_deferred_save -> sole producer of the capability, get_record/get_ready unchanged, associations now written. Negative control on the ordering Requires(get_record() is True): calling save_m2m() BEFORE the record write raises ValueError, so that precondition is faithful and not an over-claim. 0 divergences.\n\nNO-OVER-STRENGTH ON THE EMPTY-M2M EDGE. relations_done is modeled as 'the deferred relational save was invoked for this form', not 'the association set is non-empty' (mapping.md \u00a72 states the two coincide on the F2P input and diverge on empty-m2m). I probed exactly that divergence point: on an m2m-LESS user model and on a blank-m2m form with 0 submitted associations, the real patched function still enters the guard (the base save always installs save_m2m) and invokes save_m2m, so Implies(commit, relations_done(self)) holds. The unconditional Ensures(get_ready() is True) likewise held on every shape, including commit=False and m2m-less.\n\nABSTRACTION BOUNDARY EXAMINED, NOT A DEFECT. On an INVALID (unvalidated) form the real save raises ValueError ('the data didn't validate') while the model claims normal return. This is not a faithfulness break: (a) record_available(self) is bound in mapping.md \u00a71/\u00a72.2 to self.instance as built from submitted data WHILE VALIDATING, and G-CONF's stated domain is live validated bound forms, so the boundary is documented rather than hidden; (b) the axiomatized callee BaseModelForm.save(commit=False) raises identically on that input, so it is outside every axiom's Requires too; (c) it cannot mask the fix - pre-patch and post-patch behave identically (both raise) on an invalid form, so no invalid form is a discriminating input.\n\nSCAFFOLDING CHECKED. MustTerminate(2)/MustTerminate(1) add no behaviour: the real save is a straight-line body of bounded calls with no recursion, and all three real callees ran to completion in every observation.\n\nINDEPENDENT GATE REPRODUCTION in the real container on the gold-patched tree: axiom_check.py exit 0 (50 observations incl. the empty-m2m boundary and the pre-pk negative); conformance_check.py exit 0 - 100000 Requires-satisfying trials, seed 16333, 24 cells enumerated exhaustively, 0 disagreements, oracle = the real gold-patched UserCreationForm.save CALLED (not transliterated), shadow = the impl region verbatim with the @ContractOnly callees bound to the real repo functions. (Note: the two checks SKIP/pass trivially outside the container - 'Django not configurable... No module named django' - so the in-container run is the load-bearing evidence.)\n\nBUNDLE NOTE (not a defect): the task prompt names patch.diff, which is not a file in this bundle; the gold patch is carried in meta.json['patch_diff'] and matches the SWE-bench dataset patch byte-for-byte (I diffed against data/swe_bench_verified/test.jsonl), and it is what I applied.\n\nCONCLUSION: no admitted input separates the modeled function from the real patched callee. The only domain restriction (get_record() is False) is provably required for the spec to be TRUE of the real function, and the one entry fact left unconstrained (get_ready()) strengthens the spec over the P2P-relevant half. Verdict FAITHFUL; no diverging input to cite.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-14T19:26:23+00:00",
+      "code_version": "b4e6b0855-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "G-PANEL(3) leakage / gold-reconstruction audit of django__django-16333 nagini spec view.\n\nBASELINE. Public problem_statement (title 'UserCreationForm should save data from ManyToMany form fields') already states, in the solver's own view: (a) the symbol UserCreationForm.save and its commit=True path; (b) that data in ManyToMany form fields is not saved; (c) that unlike the parent django.forms.ModelForm, save(commit=True) 'omits to call self.save_m2m()'; (d) the file's owning module (contrib.auth.forms). The public statement therefore already names the exact call to add and the exact method to add it to. The residual gold content NOT in the problem statement is only the `if hasattr(self, \"save_m2m\"):` guard. Gold patch = 2 added lines in django/contrib/auth/forms.py:141.\n\nSPEC VIEW GENERATED, not eyeballed: markers.spec_view(model.py, nagini backend) -> 311 lines, impl region replaced by the elision placeholder; sole impl region is save_form's, and the elided body is the only place the gold-analogue control flow lives.\n\nMECHANICAL EVIDENCE (all run, not asserted):\n1. leakage.screen(model.py, nagini, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[]. Matches the recorded meta.json G-LEAK stamp ('pass', 'spec view clean', harness fb403a771a83, model.py digest fe187a86..) -- no relaxed_leakage flag, no RELAXED_LEAKAGE.md, so the pass is not a documented semantic-leak waiver being papered over.\n2. Gold-line reproduction: every added/removed/context gold line normalized (whitespace-stripped) and searched in the spec view -- 'if hasattr(self, \"save_m2m\"):', 'self.save_m2m()', 'user = super().save(commit=False)', 'user.set_password(self.cleaned_data[\"password1\"])', 'user.save()', 'return user', 'def save(self, commit=True):' -- ALL not present.\n3. Diff markers: '@@', 'diff --git', '+++ ', '--- ', '\\nindex ' -- all absent.\n4. Identifier/path scan: 'save_m2m', 'hasattr', 'UserCreationForm', 'contrib', 'auth', 'forms.py', 'set_password', 'password1', 'cleaned_data', 'ModelForm', 'super', 'm2m', 'M2M', 'ManyToMany', 'user.save', 'commit=True/False', and the test-patch-only names 'orgs'/'Organization'/'pk' -- all absent from the spec view. Only 'django' appears, in the instance-id header line 1 ('Twin-artifact model for django__django-16333.'), which is the uniform header across all bundles (verified: every benchmark-verified/*/nagini/model.py opens with the same 'Twin-artifact model for <instance_id>' line) and is the instance identity the harness already gives the solver -- not edit localization beyond it. patch changed-symbol set is {'save'}, and 'save' is in the problem statement, so no symbol-collision leak either.\n5. Vocabulary: no bug/fix narration -- _NARRATION scan clean; grep for 'fix/patch/bug/regression/previously/broken/incorrectly/wrong' over the spec view returns only innocuous English ('before', 'missing', 'after the primary record exists') in behaviour prose, none of it narrating an edit.\n6. Naming is deliberately de-Djangoized throughout: save_form / Form / persist_record / base_form_save_deferred / run_deferred_save / relations_done / record_available / get_ready. A solver reading only the spec view learns 'a save routine must also run the deferred relational save when committing' -- which is exactly claim (c) already in the public statement -- and learns no file, no method name, and no call site.\n\nNO OVER-CONSTRAINT INTO THE GOLD SHAPE (the subtle leak channel I specifically probed). The one gold element absent from the problem statement is the hasattr guard. I built unguarded.py: same spec, impl with the guard REMOVED (base_form_save_deferred; if commit: persist_record; run_deferred_save -- the model analogue of a bare unguarded self.save_m2m()). adversary same-spec -> exit 0 ('SAME -- attack shares the bundle's exact specification'), and nagini_verify.sh -> exit 0 ('Verification successful', 7.74s). So the spec does NOT force the guard: it admits the unguarded implementation. The spec view therefore cannot be read backwards to recover the `if hasattr(...)` line -- the residual gold content is exactly the part the spec leaves free. (This same fact is a spec-strength observation for panel 1/2 to weigh against the real repo's contract, where super().save(commit=False) always sets save_m2m so the guard is defensive; it is not a leakage finding, and if anything it is the opposite of one.)\n7. Bundle-file provenance pointers ('Provenance + soundness check: mapping.md / axiom_check.py') survive into the spec view, but mapping.md and axiom_check.py are bundle-side only -- confirmed absent from the solver worktree at base_commit 60a7bd89860e -- and the consumer prompt (eval/prompts.py _spec_block/initial_user) ships only spec_view + problem_statement + modeled-function model_symbol<->repo_symbol pairs. Note the modeled-functions line IS localization ('save_form (<-> django.contrib.auth.forms.UserCreationForm.save)', forms.py:139), but it is delivered by the harness's own localization channel that mode 0 gets identically and with no spec detail, and it merely repeats UserCreationForm.save which the problem statement names; it is not a spec-view line, so it is out of scope for this gate and leaks nothing beyond the public statement.\n\nCONCLUSION: no gold line, no diff marker, no patched path, no identifier echoing a patched repo symbol beyond the public statement, no bug/fix narration, and the spec provably does not pin the one gold detail the problem statement omits. Verdict NO-LEAKAGE. Work confined to /tmp (scratch); bundle unmodified.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:04:05+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-guard-dropped",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-commit-true",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch-no-deferred",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fiat-no-producer",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-unfold-poke-fields",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-cross-instance-transfer",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-self-echo-recursion",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-deferred-before-record",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-record-write-before-base-save",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-unconditional-persist",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-dead-guard-skips-deferred",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fiat-record",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-fiat-then-deferred",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reset-after-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reentrant-shortcircuit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reentrant-diverge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-reentrant-partial-domain",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 14
+        },
+        "manifest_sha256": "852cdc9c69b749c0d8598b399f2703826865a2d0eb2cda3e1f8a4429a4ec388a",
+        "n_cases": 17,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 17 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc",
+        "properties.py": "852cdc9c69b749c0d8598b399f2703826865a2d0eb2cda3e1f8a4429a4ec388a"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T18:53:05+00:00",
+      "code_version": "7794a4607-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bb5df5344ad1a19bfef258697b9e469ef591dff1c27c44c9f67e2bcbc3e5a184",
+        "patch.diff": "c4b7770ef756f3a5ab62b68afe57275f518feaff4299c95dd4844be7586d1199"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T19:09:07+00:00",
+      "code_version": "356f15f92-dirty",
+      "data": {
+        "wall_time_s": 32.9
+      },
+      "detail": "verified in 32.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fe187a86d666e559aeacad1af07883616c1b5e3f0d54da92842d57e0cf47b9fc"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-16333",
+  "modeled_functions": [
+    {
+      "carrier_type": "the bound form instance + its model object collapsed into a minimal Form carrying the two observable persistence booleans (record_persisted, deferred_save_ready) held behind the abstraction predicate Form.form_pred() and read only via pure accessors get_record/get_ready; the relational-data fact is the abstract per-form CAPABILITY relations_done(self), a @ContractOnly @Predicate with NO body, so it CANNOT be folded into existence by fiat (no field to assign, abstract.predicate.fold rejected) and CANNOT be laundered across forms (relations_done(scratch) is a different predicate instance) \u2014 only run_deferred_save(self)'s Ensures grants it (SPEC_GUIDE directive 8 / control-flow capability grounding, hardened against the Unfold/assign/Fold fiat AND the cross-instance token transfer); commit modeled as bool",
+      "model_symbol": "save_form",
+      "repo_location": "django/contrib/auth/forms.py:139",
+      "repo_symbol": "django.contrib.auth.forms.UserCreationForm.save",
+      "role": "modeled changed function (user-creation save); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "object_modeling": "the bound form + its model instance folded into one minimal Form class with three observed booleans; persistence facts (row exists / m2m through-rows exist / save_m2m attribute installed) abstracted to booleans per mapping.md \u00a72",
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; checked with git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(commit, relations_done(self)) \u2014 insufficient permission to access relations_done(self) (model_prepatch.py:198)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "UserCreationForm.save() persists deferred many-to-many data on commit",
+      "reverted_to": "pre-patch body: commit branch stops after the primary-record write (no guarded deferred relational save)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "6b38592f3979197d5987b88a3ec07c461fdb8ccc26edc05df85af22c989c59e6",
+    "impl": "ddec16217ca419e62cd20f9b117d0650412989e9a004569102222102cc7702b4",
+    "post-conditions": "c20713034564fa655b030c8b9940ce4bd37e7e7465b23a9aaf7bd05e56c9030f",
+    "pre-conditions": "14c91859c98591dab4c8b1571435ed1a12802b2a6546402d8d12f945558790ff",
+    "pure": "06fbb8b8e5869fd362d06e2aa5cc5e018485fc0bc17e9795e65fbc450e2d9f3d",
+    "spec_view": "7d302431e91b7618263b0b80ae1175daa377378502b96dcfc025bba110c7a517"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "4.2"
+}

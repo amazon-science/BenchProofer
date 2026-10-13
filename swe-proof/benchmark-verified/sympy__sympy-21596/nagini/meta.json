@@ -1,0 +1,427 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "110997fe18b9f7d5ba7d22f624d156a29bf40759",
+  "changed_files": [
+    "sympy/sets/handlers/intersection.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py check_two_step (G-AX): replays the gold's _solution_union (reproduced verbatim) at both sites and asserts keep_filter == retained indices of (base_set & keep_solution) and drop_filter(keep_filter(.)) == retained indices of ((base_set & keep_solution) - drop_solution), and that the composition == aggregate kept_seq, on every in-scope F2P + distinct-linear fuzz case. RC=0 against gold-patched sympy; FAILS against buggy base.",
+      "encoded_property": "keep_filter(base, keep) = front-recursive filter keeping indices in keep (step 1, &=); drop_filter(seq, drop) = front-recursive filter removing indices in drop (step 2, -=); the result is their composition in the gold's keep-then-drop order. This composition denotes the same retained subsequence as the aggregate kept_seq (a mathematical identity, confirmed at the index level by axiom_check.py).",
+      "kind": "A-reference",
+      "models": "the gold's TWO _solution_union call sites individually: keep_filter == the imaginary-part intersection (base_set &= _solution_union(Mul.make_args(numer(im)), n)); drop_filter == the denominator difference (base_set -= _solution_union(denoms(f), n)) applied to the step-1 carrier. collect_real_indices_two_step's postcondition pins the result to drop_filter(keep_filter(base,keep),drop), the exact ordered composition.",
+      "name": "keep_filter / drop_filter",
+      "provenance": "sympy/sets/handlers/intersection.py:316-317 (base_set &=) and :322 (base_set -=) post-patch; the gold-added _solution_union helper (:283-294) reproduced verbatim in axiom_check.py; unchanged callees solve_linear, numer, Mul.make_args, denoms.",
+      "role": "deep model (pure region) of the two CHANGED call sites; NOT a consumed axiom."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the FULL INDEX-LEVEL BICONDITIONAL survives(k, keep, drop) == gold_keeps(k) (gold_keeps = the real fixed imageset(...).intersect(S.Reals) retains index k) for every base index k in a 25-wide window, in BOTH directions with NO value-realness mask on either side (so an over-kept pole index is caught, not hidden). keep recomputed from real numer/Mul.make_args/solve_linear([sym]); drop = all denominator-zero indices from real denoms(f). 6 in-scope boundary (issue + 5 in-scope F2P) + 400 distinct-linear-factor fuzz cases checked; 1 out-of-scope F2P case (quadratic im) reported SKIPPED; 120 repeated-root fuzz cases asserted correctly flagged out-of-scope; coverage-completeness asserted (exactly the documented case skipped) and the in-scope discriminator (index 2) re-derived. Runs in-container against the gold-patched code (RC=0); against the buggy base it FAILS (so it captures the FIXED semantics).",
+      "encoded_property": "survives(v, keep, drop) == contains(keep, v) and not contains(drop, v); kept_seq = front-recursive filter of base by survives; indices tested individually, never collapsed into a composite key. keep = per-factor linear roots of numer(im); drop = every index where any denominator vanishes (covers non-linear denominator factors).",
+      "kind": "A-reference",
+      "models": "the gold aggregation: base_set &= Union(per-factor roots of numer(im)) then base_set -= Union(per-factor solutions of denoms(f)); the surviving index set fed to imageset(lam, .)",
+      "name": "survives / kept_seq",
+      "provenance": "sympy/sets/handlers/intersection.py:283-294,316-322 (gold _solution_union + its two uses); unchanged callees solve_linear (solvers.py:1984), numer (radsimp.py:1114), Mul.make_args (core/mul.py), denoms (solvers.py:130)",
+      "role": "deep model (pure region) of the CHANGED aggregation; NOT a consumed axiom -- there is no @ContractOnly the proof uses"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:31:58+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: index-level biconditional survives(k,keep,drop) == gold_keeps(k) holds on 6 in-scope F2P cases + 400 distinct-linear-factor fuzz cases (honest, no value-realness mask); the WIDENED two-step decomposition is validated against the gold's actual step ordering -- keep_filter == (base_set &= _solution_union(numer(im))) at the index level, then drop_filter == (-= _solution_union(denoms(f))), and their composition == the aggregate kept_seq -- on every in-scope case; 120 repeated-root (non-linear) fuzz cases were correctly flagged out-of-scope; drop = ALL denominator-zero indices (covers non-linear denominators, e.g. F2P-7 -> EmptySet); the single skipped F2P case is the documented out-of-scope quadratic imaginary-part case (F2P-4: n/2 + im.expand()*i (QUAD)); the in-scope subset still discriminates the bug (index 2 kept by the collapse, excluded by gold).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "d975ca2041c9e6fe49ff8e210836363440f8955509d8ae077472444c10c52e08",
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:33:13+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100007,
+          "disagreements": 0,
+          "scenarios": 2102,
+          "seed": 21596,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100007, \"disagreements\": 0, \"seed\": 21596, \"scenarios\": 2102, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "c3fa8760ad2153e5248e259f2cb84536a2ad17c35f9486c9798cbd1af2e13de8",
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:25:24+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09",
+        "model_prepatch.py": "b46a8bc1e06dc1ac79f0aa24567ea1cec3c1483f569e5035567e963e9350cb8e"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T13:39:29+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_9.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:26:28+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09",
+        "model_prepatch.py": "b46a8bc1e06dc1ac79f0aa24567ea1cec3c1483f569e5035567e963e9350cb8e"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:31:39+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "c3a3f07bbd33c87992e8b2387510100bb8905a21d7b636c7a8ba63ebb61c819e",
+          "impl": "f578cafd37c7c7630f775719c8facee3da38bba89a492b2b635b6ef5fa30592a",
+          "invariants": "077d1e7558eac766df644b28adc918e3c9287a008fd9448caa89c83dda081ff1",
+          "post-conditions": "68510a829e93c346ed40caecd9fce0f84ac72b343f93279a1cb12aa609037243",
+          "pre-conditions": "faba9952f35023aaf6624a63f6d06a725e01963fa523578d9471e77a3314d620",
+          "pure": "11bc9fa9069d6782fb724b35977d3c4a76671fbe70f7e5cb42b65f68cf1a5f08",
+          "spec_view": "55e22f718ff817cd3164d571f3540bbb7100d6aaa982b3d5cc814b2d4820f14c"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:31:39+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "a9209dd510ab441382bbe4b48588d6dfa6742913272811457717040408d5945f",
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:31:39+00:00",
+      "code_version": "6278fd0f9-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:41:42+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "judged": 18,
+        "killed": 18,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": [
+          "line 188: '+' -> '-'",
+          "line 212: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 18/18 (100%); no verdict on 2: [\"line 188: '+' -> '-'\", \"line 212: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T13:39:30+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / spec-drift) audit for sympy__sympy-21596 (nagini). Target: intersection_sets(self, other==S.Reals) in sympy/sets/handlers/intersection.py; modeled by kept_seq/survives (aggregate view, collect_real_indices) and keep_filter/drop_filter (two-step view, collect_real_indices_two_step). Refinement: pointwise Set-of-indices <-> List[int]; keep = per-factor LINEAR roots of numer(im); drop = ALL denominator-zero indices.\n\nSetup: fresh git worktree at base_commit 110997fe... ($SCRATCH), gold patch applied verbatim from data/swe_bench_verified/test.jsonl (bundle patch.diff confirmed to match: adds _solution_union helper + base_set &= _solution_union(Mul.make_args(numer(im)),n) then base_set -= _solution_union(denoms(f),n)). Spec region byte-identical: same-spec exit 0.\n\nEvidence for FAITHFUL:\n1. Bundle axiom_check.py run against the freshly-patched gold repo => G-AX OK: index-level biconditional survives(k,keep,drop) == gold_keeps(k) holds on 6 in-scope F2P cases + 400 distinct-linear-factor fuzz; the one out-of-scope quadratic F2P case (F2P-4 n/2+im.expand()*I) correctly SKIPPED-OUT-OF-SCOPE (not silently passed); 120 repeated-root cases correctly flagged out-of-scope.\n2. Independent differential harness (my own, recomputing keep via real numer/Mul.make_args/solve_linear([n]) and drop via real denoms(f), oracle = imageset(Lambda(n,f),base).intersect(S.Reals), window +/-15):\n   - 4000 mixed integer/rational-root linear-factor imag parts with linear & quadratic denominators: 0 diverge (3660 checked, 340 correctly out-of-scope)\n   - 3000 NON-INJECTIVE real-part cases (n**2, n**3, n**2/(n-c), (n-1)(n+1), etc.) that stress the index-vs-value equivalence: 0 diverge\n   Total >6600 additional in-scope inputs beyond axiom_check's, zero disagreement.\n3. Index-vs-value concern explicitly probed: for f=n**2+(n-2)*I (non-injective real part), gold retains only k=2 because gold_keeps requires f(k) itself real (f(-2)=4-4i is NOT retained though value 4 in result). Model agrees. So the pointwise refinement is not over-strong.\n4. Out-of-scope regime (non-linear imag-part numerator -> ConditionSet-image) is honestly declared in mapping.md/refinement.md AND enforced by axiom_check (gate fails if any in-scope F2P case is skipped), so the spec claims no behaviour it lacks and cannot be silently over-broad off-regime.\n\nThe modeled function does NOT disagree with the real repo callee on any constructible in-scope input; no diverging input found. Spec is neither too strong nor drifting. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Independently extracted the consumer-visible spec view via swebench_unified.markers.spec_view(model.py, NaginiBackend) and compared it against the public problem_statement from data/swe_bench_verified/test.jsonl.\n\nPublic problem_statement discloses BEHAVIOR only: `2 in S1.intersect(Reals)` must be False (was True) and `S1.intersect(S.Reals) == {-1, 1}` for imageset(Lambda(n, n+(n-1)*(n+1)*I), S.Integers). It reveals no fix mechanism.\n\nGold edit (verified against test.jsonl patch): adds `_solution_union` helper in sympy/sets/handlers/intersection.py; changes the imaginary-part step to `base_set &= _solution_union(Mul.make_args(numer(im)), n)` (keep = imaginary-part numerator roots) and the denominator step to `base_set -= _solution_union(denoms(f), n)` (drop = denominator zeros), replacing the buggy zip(*[...]) collapse.\n\nSpec view is entirely abstract: a base domain of integer indices (List[int]) filtered against two GENERIC collections 'keep' and 'drop'; retain iff contains(keep,k) and not contains(drop,k) (survives/kept_seq), optionally as two ordered steps intersection-then-difference (keep_filter then drop_filter). Checked the extracted view for every gold-specific token \u2014 NONE present: no sympy / intersection_sets / imageset / intersect / S.Reals / ImageSet / intersection.py; no zip(*[...]) collapse or FiniteSet composite-tuple artifact; no _solution_union / solve_linear / numer / Mul.make_args / denoms; no statement that keep = imaginary-part roots or drop = denominator poles. The repo-level meaning of keep/drop lives only in mapping.md/refinement.md/meta.json (refinement-audit docs, not the spec view).\n\nThe 'two ordered steps: intersection then difference' framing does parallel the gold's `base_set &=` then `base_set -=`, but it is a trivial mathematical decomposition of 'in keep AND not in drop' over abstract collections; it discloses no repo specifics (which roots, which poles, the helper name, the changed file) and does not reconstruct the gold edit beyond the behavior the problem_statement already demands. Function name collect_real_indices only echoes 'real', already public via intersect(Reals).\n\nConclusion: spec view stays at the abstract behavioral level and leaks nothing about the gold edit beyond the public problem_statement. Consistent with recorded G-LEAK pass (spec view clean) and prior G-PANEL-3 NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / spec-drift) audit for sympy__sympy-21596 (nagini). Target: intersection_sets(self, other==S.Reals) in sympy/sets/handlers/intersection.py; modeled by kept_seq/survives (aggregate view, collect_real_indices) and keep_filter/drop_filter (two-step view, collect_real_indices_two_step). Refinement: pointwise Set-of-indices <-> List[int]; keep = per-factor LINEAR roots of numer(im); drop = ALL denominator-zero indices.\n\nSetup: fresh git worktree at base_commit 110997fe... ($SCRATCH), gold patch applied verbatim from data/swe_bench_verified/test.jsonl (bundle patch.diff confirmed to match: adds _solution_union helper + base_set &= _solution_union(Mul.make_args(numer(im)),n) then base_set -= _solution_union(denoms(f),n)). Spec region byte-identical: same-spec exit 0.\n\nEvidence for FAITHFUL:\n1. Bundle axiom_check.py run against the freshly-patched gold repo => G-AX OK: index-level biconditional survives(k,keep,drop) == gold_keeps(k) holds on 6 in-scope F2P cases + 400 distinct-linear-factor fuzz; the one out-of-scope quadratic F2P case (F2P-4 n/2+im.expand()*I) correctly SKIPPED-OUT-OF-SCOPE (not silently passed); 120 repeated-root cases correctly flagged out-of-scope.\n2. Independent differential harness (my own, recomputing keep via real numer/Mul.make_args/solve_linear([n]) and drop via real denoms(f), oracle = imageset(Lambda(n,f),base).intersect(S.Reals), window +/-15):\n   - 4000 mixed integer/rational-root linear-factor imag parts with linear & quadratic denominators: 0 diverge (3660 checked, 340 correctly out-of-scope)\n   - 3000 NON-INJECTIVE real-part cases (n**2, n**3, n**2/(n-c), (n-1)(n+1), etc.) that stress the index-vs-value equivalence: 0 diverge\n   Total >6600 additional in-scope inputs beyond axiom_check's, zero disagreement.\n3. Index-vs-value concern explicitly probed: for f=n**2+(n-2)*I (non-injective real part), gold retains only k=2 because gold_keeps requires f(k) itself real (f(-2)=4-4i is NOT retained though value 4 in result). Model agrees. So the pointwise refinement is not over-strong.\n4. Out-of-scope regime (non-linear imag-part numerator -> ConditionSet-image) is honestly declared in mapping.md/refinement.md AND enforced by axiom_check (gate fails if any in-scope F2P case is skipped), so the spec claims no behaviour it lacks and cannot be silently over-broad off-regime.\n\nThe modeled function does NOT disagree with the real repo callee on any constructible in-scope input; no diverging input found. Spec is neither too strong nor drifting. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Independently extracted the consumer-visible spec view via swebench_unified.markers.spec_view(model.py, NaginiBackend) and compared it against the public problem_statement from data/swe_bench_verified/test.jsonl.\n\nPublic problem_statement discloses BEHAVIOR only: `2 in S1.intersect(Reals)` must be False (was True) and `S1.intersect(S.Reals) == {-1, 1}` for imageset(Lambda(n, n+(n-1)*(n+1)*I), S.Integers). It reveals no fix mechanism.\n\nGold edit (verified against test.jsonl patch): adds `_solution_union` helper in sympy/sets/handlers/intersection.py; changes the imaginary-part step to `base_set &= _solution_union(Mul.make_args(numer(im)), n)` (keep = imaginary-part numerator roots) and the denominator step to `base_set -= _solution_union(denoms(f), n)` (drop = denominator zeros), replacing the buggy zip(*[...]) collapse.\n\nSpec view is entirely abstract: a base domain of integer indices (List[int]) filtered against two GENERIC collections 'keep' and 'drop'; retain iff contains(keep,k) and not contains(drop,k) (survives/kept_seq), optionally as two ordered steps intersection-then-difference (keep_filter then drop_filter). Checked the extracted view for every gold-specific token \u2014 NONE present: no sympy / intersection_sets / imageset / intersect / S.Reals / ImageSet / intersection.py; no zip(*[...]) collapse or FiniteSet composite-tuple artifact; no _solution_union / solve_linear / numer / Mul.make_args / denoms; no statement that keep = imaginary-part roots or drop = denominator poles. The repo-level meaning of keep/drop lives only in mapping.md/refinement.md/meta.json (refinement-audit docs, not the spec view).\n\nThe 'two ordered steps: intersection then difference' framing does parallel the gold's `base_set &=` then `base_set -=`, but it is a trivial mathematical decomposition of 'in keep AND not in drop' over abstract collections; it discloses no repo specifics (which roots, which poles, the helper name, the changed file) and does not reconstruct the gold edit beyond the behavior the problem_statement already demands. Function name collect_real_indices only echoes 'real', already public via intersect(Reals).\n\nConclusion: spec view stays at the abstract behavioral level and leaks nothing about the gold edit beyond the public problem_statement. Consistent with recorded G-LEAK pass (spec view clean) and prior G-PANEL-3 NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_9.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / spec-drift) audit for sympy__sympy-21596 (nagini). Target: intersection_sets(self, other==S.Reals) in sympy/sets/handlers/intersection.py; modeled by kept_seq/survives (aggregate view, collect_real_indices) and keep_filter/drop_filter (two-step view, collect_real_indices_two_step). Refinement: pointwise Set-of-indices <-> List[int]; keep = per-factor LINEAR roots of numer(im); drop = ALL denominator-zero indices.\n\nSetup: fresh git worktree at base_commit 110997fe... ($SCRATCH), gold patch applied verbatim from data/swe_bench_verified/test.jsonl (bundle patch.diff confirmed to match: adds _solution_union helper + base_set &= _solution_union(Mul.make_args(numer(im)),n) then base_set -= _solution_union(denoms(f),n)). Spec region byte-identical: same-spec exit 0.\n\nEvidence for FAITHFUL:\n1. Bundle axiom_check.py run against the freshly-patched gold repo => G-AX OK: index-level biconditional survives(k,keep,drop) == gold_keeps(k) holds on 6 in-scope F2P cases + 400 distinct-linear-factor fuzz; the one out-of-scope quadratic F2P case (F2P-4 n/2+im.expand()*I) correctly SKIPPED-OUT-OF-SCOPE (not silently passed); 120 repeated-root cases correctly flagged out-of-scope.\n2. Independent differential harness (my own, recomputing keep via real numer/Mul.make_args/solve_linear([n]) and drop via real denoms(f), oracle = imageset(Lambda(n,f),base).intersect(S.Reals), window +/-15):\n   - 4000 mixed integer/rational-root linear-factor imag parts with linear & quadratic denominators: 0 diverge (3660 checked, 340 correctly out-of-scope)\n   - 3000 NON-INJECTIVE real-part cases (n**2, n**3, n**2/(n-c), (n-1)(n+1), etc.) that stress the index-vs-value equivalence: 0 diverge\n   Total >6600 additional in-scope inputs beyond axiom_check's, zero disagreement.\n3. Index-vs-value concern explicitly probed: for f=n**2+(n-2)*I (non-injective real part), gold retains only k=2 because gold_keeps requires f(k) itself real (f(-2)=4-4i is NOT retained though value 4 in result). Model agrees. So the pointwise refinement is not over-strong.\n4. Out-of-scope regime (non-linear imag-part numerator -> ConditionSet-image) is honestly declared in mapping.md/refinement.md AND enforced by axiom_check (gate fails if any in-scope F2P case is skipped), so the spec claims no behaviour it lacks and cannot be silently over-broad off-regime.\n\nThe modeled function does NOT disagree with the real repo callee on any constructible in-scope input; no diverging input found. Spec is neither too strong nor drifting. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Independently extracted the consumer-visible spec view via swebench_unified.markers.spec_view(model.py, NaginiBackend) and compared it against the public problem_statement from data/swe_bench_verified/test.jsonl.\n\nPublic problem_statement discloses BEHAVIOR only: `2 in S1.intersect(Reals)` must be False (was True) and `S1.intersect(S.Reals) == {-1, 1}` for imageset(Lambda(n, n+(n-1)*(n+1)*I), S.Integers). It reveals no fix mechanism.\n\nGold edit (verified against test.jsonl patch): adds `_solution_union` helper in sympy/sets/handlers/intersection.py; changes the imaginary-part step to `base_set &= _solution_union(Mul.make_args(numer(im)), n)` (keep = imaginary-part numerator roots) and the denominator step to `base_set -= _solution_union(denoms(f), n)` (drop = denominator zeros), replacing the buggy zip(*[...]) collapse.\n\nSpec view is entirely abstract: a base domain of integer indices (List[int]) filtered against two GENERIC collections 'keep' and 'drop'; retain iff contains(keep,k) and not contains(drop,k) (survives/kept_seq), optionally as two ordered steps intersection-then-difference (keep_filter then drop_filter). Checked the extracted view for every gold-specific token \u2014 NONE present: no sympy / intersection_sets / imageset / intersect / S.Reals / ImageSet / intersection.py; no zip(*[...]) collapse or FiniteSet composite-tuple artifact; no _solution_union / solve_linear / numer / Mul.make_args / denoms; no statement that keep = imaginary-part roots or drop = denominator poles. The repo-level meaning of keep/drop lives only in mapping.md/refinement.md/meta.json (refinement-audit docs, not the spec view).\n\nThe 'two ordered steps: intersection then difference' framing does parallel the gold's `base_set &=` then `base_set -=`, but it is a trivial mathematical decomposition of 'in keep AND not in drop' over abstract collections; it discloses no repo specifics (which roots, which poles, the helper name, the changed file) and does not reconstruct the gold edit beyond the behavior the problem_statement already demands. Function name collect_real_indices only echoes 'real', already public via intersect(Reals).\n\nConclusion: spec view stays at the abstract behavioral level and leaks nothing about the gold edit beyond the public problem_statement. Consistent with recorded G-LEAK pass (spec view clean) and prior G-PANEL-3 NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:41:38+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-hoist-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 40.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-base-case",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 46.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-base",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-collapse-no-keep",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 91.0
+          },
+          {
+            "expect": "reject",
+            "id": "value-double-mask-ignore-drop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-keep-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.8
+          },
+          {
+            "expect": "verify",
+            "id": "two-step-pos-control-hoist-drop",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 42.9
+          },
+          {
+            "expect": "reject",
+            "id": "two-step-drop-collapse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 57.4
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "3128eec3598e13d7ff92009bc46e59b6cbc74dc7527f40d43946cd228d88c9a1",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09",
+        "properties.py": "3128eec3598e13d7ff92009bc46e59b6cbc74dc7527f40d43946cd228d88c9a1"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T07:50:12+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:05:20+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 19.8
+      },
+      "detail": "verified in 19.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2e10793082c3f759315f2a028e301feaed4d86483d63609cef1d9f97ecd44c09"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-21596",
+  "modeled_functions": [
+    {
+      "carrier_type": "index Set (S.Integers/S.Naturals0/...) -> List[int] of candidate indices; per-factor root collections -> List[int]; specification over PSeq[int]",
+      "model_symbol": "collect_real_indices",
+      "repo_location": "sympy/sets/handlers/intersection.py:279 (else branch lines 305-311 + denominator loop lines 312-321)",
+      "repo_symbol": "sympy.sets.handlers.intersection.intersection_sets (ImageSet, other == S.Reals)",
+      "role": "modeled changed function: collects the integer indices whose image under the lambda is real; the aggregate per-index selection (survives/kept_seq) over both collections at once"
+    },
+    {
+      "carrier_type": "index Set -> List[int]; keep/drop collections -> List[int]; per-step selection over PSeq[int] via keep_filter (step 1: base_set &=) and drop_filter (step 2: base_set -=)",
+      "model_symbol": "collect_real_indices_two_step",
+      "repo_location": "sympy/sets/handlers/intersection.py:316-317 (base_set &= ... imaginary-part step) and 322 (base_set -= ... denominator step) post-patch",
+      "repo_symbol": "sympy.sets.handlers.intersection.intersection_sets (ImageSet, other == S.Reals): the TWO _solution_union call sites -- the imaginary-part intersection (base_set &= _solution_union(Mul.make_args(numer(im)), n)) and the denominator difference (base_set -= _solution_union(denoms(f), n))",
+      "role": "modeled changed function: pins WHERE each collection is applied -- the keep collection at the intersection step (base_set &=) producing keep_filter, then the drop collection at the difference step (base_set -=) producing drop_filter over THAT. The single postcondition ToSeq(Result()) == drop_filter(keep_filter(base, keep), drop) pins the result to the exact ordered composition of the two per-site filters; it is established directly from the two-loop invariants with no auxiliary induction. (This composition denotes the same retained subsequence as the aggregate per-index selection survives/kept_seq -- a mathematical identity confirmed at the index level by axiom_check.py, not needed in-model to pin the behaviour.)"
+    }
+  ],
+  "modeled_regime": {
+    "in_scope": "imaginary-part numerator is a product of factors each LINEAR in the index; keep = per-factor scalar roots, drop = all denominator-zero indices (linear OR non-linear factors). 6 of 7 F2P assertions are in scope (incl. the non-linear-denominator EmptySet case n/(n**2-9)+..., whose imaginary part is linear).",
+    "out_of_scope": "a NON-linear imaginary-part factor (expanded quadratic n**2-n/2-1/2, or repeated linear root (n-r)**2) -> the real result is a ConditionSet-image, not a finite index list. Exactly 1 of 7 F2P assertions (n/2 + im.expand()*I) is out of scope; the bundle makes NO correctness claim about it. axiom_check.py reports it SKIPPED-OUT-OF-SCOPE (does NOT silently pass). The in-scope subset still fully discriminates the bug.",
+    "shipped_patch_note": "patch.diff is the gold patch verbatim and resolves ALL 7 F2P assertions including the out-of-scope one; out-of-scope means only that no verifying refinement of model.py constrains that case (the model is silent there), not that the shipped patch fails it."
+  },
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit -- git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "(1) collect_real_indices fails the loop invariant / postcondition ToSeq(result) == kept_seq(...) -- a base index outside both collections (e.g. index 2 in the issue) is wrongly kept. (2) collect_real_indices_two_step fails the postcondition ToSeq(Result()) == drop_filter(keep_filter(ToSeq(base), ToSeq(keep)), ToSeq(drop)) -- an index in BOTH the keep and the drop collection survives the collapsed step but must be removed by the drop filter (e.g. the F2P-7 EmptySet pole index 3). Both witness that the spec senses the pre-fix behaviour.",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "applying the keep/drop index collections to the base domain per individual index, modeled both as the aggregate selection (collect_real_indices) and as the two ordered steps that pin where each collection is applied (collect_real_indices_two_step)",
+      "reverted_to": "TWO complementary pre-fix collapses, one per modeled function. (1) collect_real_indices: the keep collection is aggregated into one composite key that matches no individual scalar index, so the keep filter is a no-op and every index outside the drop collection is kept (survives degrades to 'not contains(drop, c)'). (2) collect_real_indices_two_step: the difference step (step 2, base_set -=) is collapsed into a no-op, so every index that survived the intersection step is retained unconditionally without being tested against the drop collection (the not-contains(drop) conjunct is dropped)."
+    }
+  ],
+  "region_hashes": {
+    "axioms": "c3a3f07bbd33c87992e8b2387510100bb8905a21d7b636c7a8ba63ebb61c819e",
+    "impl": "4737d9b04e72658ff90f8a9bb5ecddc322a569d6d4adf6c5ae5f2596341119ca",
+    "invariants": "7788ea6b51845c5349f21ea252228cd9c8577bac8829c49b27726c3aadf0c046",
+    "post-conditions": "e61f7e4ac025c2ea3229a5b3fffefb04054854741ca2034c99adc878f9b7cdd5",
+    "pre-conditions": "b135999f2c3a20f68969349a49c478d77e2f6fb45114f91f8ee527cdeb52b4f2",
+    "pure": "11bc9fa9069d6782fb724b35977d3c4a76671fbe70f7e5cb42b65f68cf1a5f08",
+    "spec_view": "a2f2a4dd58487952be85ac5d008282b64aa29e67f2362b8c058c2cbe454721f9"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "n/a (no strings); index Sets modeled as List[int] of candidate indices, keep/drop index collections as List[int]; selection proven by a backward front-recursive filter (kept_seq) giving a single unfold per loop step; membership via front-recursive contains",
+  "version": "1.9"
+}

@@ -1,0 +1,500 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real django.urls.reverse over nine shared-app-namespace URLconfs whose entries are the exact 3-tuple AdminSite.urls returns (sites.py:303), each sibling carrying its OWN inner URLconf with its OWN route set (a staircase of three view names) so the route axis is observable at all; includes a NON-default colon-named sibling ('a:b'), an empty-named sibling, a sibling named like the shared app namespace, and a ROOT-mounted deployment (the non-empty edge of the non-empty-prefix domain fact). exposes[k] is OBSERVED by reversing against a ONE-deployment URLconf holding deployment k's route set (no selection happens there), never read off the route-set literal; default_idx is OBSERVED from the no-selector path with an anchor route every deployment carries. 2996 observations, 0 violations: per-instance separator-free selection asserted in BOTH route states (prefix when the instance carries the identifier, NO url when it does not), default fallback in both route states, current_app='' asserted to agree with no current_app at all, colon-separator domain boundary [reverse(current_app='a:b') -> the default, NOT /colon1/], ~1300 colon-separator fuzz confirming colon-bearing selectors never whole-name-match, and 2000 selection fuzz checked against the freshly observed route flag. Both domain premises (unique names, non-empty prefixes) are asserted of every shape, and per-leg coverage is asserted non-zero so the two no-url clauses cannot go unexercised: {'sel_route': 32, 'sel_noroute': 13, 'nosel_route': 18, 'nosel_noroute': 9, 'emptysel_route': 18, 'emptysel_noroute': 9, 'colon_boundary': 6, 'rootprefix': 1}",
+      "encoded_property": "weakest sufficient contract, PARTIAL in the produced value (four clauses, two selection branches x two production outcomes): (not has_selector or len(selector)==0) and exposes[default_idx] -> Result()==prefixes[default_idx]; (not has_selector or len(selector)==0) and not exposes[default_idx] -> len(Result())==0; (has_selector and len(selector)>0 and a registered instance k with names[k]==selector) and exposes[k] -> Result()==prefixes[k]; same guard and not exposes[k] -> len(Result())==0. exposes[k] is 'instance k carries a route for the identifier and argument being resolved'; the empty sequence denotes 'produced no url at all' (the callee raises rather than returning, and the consumer's arm for that signal renders no link). DOMAIN Requires: (a) selector carries no U+003A (58) component separator -- the callee splits the selector on ':' before matching, so a separator-bearing name is decomposed and unreachable as a whole-name selector (falls to default), and the has_selector clauses hold only on the split fixed-point (separator-free) domain; (b) instance identifiers are unique in the registry -- the callee looks a deployment up BY identifier, which is what keeps the clauses jointly satisfiable (a selector matches at most one k); (c) every registered deployment's prefix is non-empty -- a produced url carries the resolution root before anything else, which is what makes len(Result())==0 unambiguous (a root-mounted deployment's prefix is '/'). An EMPTY selector is IN the domain and is governed by the default clauses: the callee guards on `if current_app:` (django/urls/base.py:41) and never reaches the name matching for it. URL pattern matching / argument substitution / get_ns_resolver are abstracted (they do not change the selected prefix, and the single bit of the lookup that IS observable in the result is carried by exposes).",
+      "flag_dependencies": "AdminSite registers under app namespace 'admin' with instance namespace = AdminSite.name; admin-site names are unique (the name uniqueness Requires). The selector (current site name) must be separator-free (no ':' code point) -- the input-key analogue of the html.escape/quote=True flag dependency (SPEC_GUIDE 3); discharged by a matching consumer precondition on names[current_idx]; the F2P names (admin, namespaced_admin) are colon-free. Whether a given deployment can be resolved INTO for a given identifier is a second dependency, on that deployment's own AdminSite._registry (sites.py:112 register / 253 get_urls): the change view exists under a site only if that site registers the model, so resolution is partial and the axiom carries the exposes axis rather than assuming totality. The gold test_patch itself has to ADD site2.register(...) calls before the custom-site link renders. The proof consumes only the has_selector branch (the fix always supplies current_app), but BOTH of its production clauses.",
+      "kind": "A-consumed",
+      "models": "django.urls.reverse(viewname, ..., current_app=...) namespace->instance selection AND the in-instance identifier lookup that follows it",
+      "name": "resolve_prefix",
+      "provenance": "django/urls/base.py:27 (reverse); selection loop lines 41-84: current_app names a registered instance under the shared app namespace -> that instance's namespace/prefix is chosen ('if current_ns and current_ns in app_list: ns = current_ns'); no current_app -> app_dict[app][0] default. The narrowed resolver is only then searched for the view identifier (_reverse_with_prefix, the final line of reverse), which RAISES NoReverseMatch when that one instance does not carry it -- selection happens first and the lookup never consults a sibling. Each AdminSite's route table is built from its own _registry (sites.py:253 get_urls), so sibling deployments really do carry different identifiers.",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "475cffd1d64c690cdad16ede4d5e81985738ceb4",
+  "changed_files": [
+    "django/contrib/admin/helpers.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T20:36:23+00:00",
+      "code_version": "82c73c1be-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: resolve_prefix axiom sound against real django.urls.reverse on 2996 observations (per-instance separator-free selection with and without a route for the identifier + default fallback in both route states + the empty selector absorbed by the default clauses + colon-separator domain boundary + root-mount prefix edge + fuzz); leg coverage {'sel_route': 32, 'sel_noroute': 13, 'nosel_route': 18, 'nosel_noroute': 9, 'emptysel_route': 18, 'emptysel_noroute': 9, 'colon_boundary': 6, 'rootprefix': 1}",
+      "gate": "G-AX",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "c21ec3f6106e4042dc3faaf7439e5b6e96d50b637a3e5a862cb4663fc5a22a0e",
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T20:36:22+00:00",
+      "code_version": "82c73c1be-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 1350,
+          "checked": 100000,
+          "leg_a_disagreements": 0,
+          "leg_b_violations": 0,
+          "seed": 14855,
+          "shadow": "direct (contract-stripped impl region)",
+          "stats": {
+            "empty_selector_witness": 5010,
+            "heterogeneous": 48602,
+            "mutant_caught": {
+              "default": 43077,
+              "prepatch": 43082,
+              "total": 100000
+            },
+            "nomatch_branch": 47583,
+            "nondefault_witness": 33147,
+            "resolve_branch": 52417,
+            "unexposed_current_witness": 23116,
+            "unexposed_default_witness": 564
+          }
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"leg_a_disagreements\": 0, \"leg_b_violations\": 0, \"boundary\": 1350, \"seed\": 14855, \"stats\": {\"resolve_branch\": 52417, \"nomatch_branch\": 47583, \"nondefault_witness\": 33147, \"empty_selector_witness\": 5010, \"unexposed_current_witness\": 23116, \"unexposed_default_witness\": 564, \"heterogeneous\": 48602, \"mutant_caught\": {\"prepatch\": 43082, \"default\": 43077, \"total\": 100000}}, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "88de1778c11154b4e215f41a17e115c42e975897e0f0caffaa54d62d12d9eaa2",
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:12:33+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c",
+        "model_prepatch.py": "0b211a4a43f1205dd550775e6368e5c4dfdd39967d5ec5abb9d4382b14870009"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-14T21:34:35+00:00",
+      "code_version": "7cdd698b6-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 11 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_3.py`, `atk_5.py`, `atk_7.py`, `atk_8.py`, `atk_vac.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_2.py`, `atk_4.py`, `atk_6.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c",
+        "properties.py": "69a2ede6f9dccb2613d9a5fe4ad8efad5fa94ac7518a49528473e1185fc68650"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:13:56+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c",
+        "model_prepatch.py": "0b211a4a43f1205dd550775e6368e5c4dfdd39967d5ec5abb9d4382b14870009"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T20:34:06+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "23e1cf7f4626335e35d1c02fc315f46b08a5b019359a36daee03fc5c55774aa9",
+          "impl": "30ea7dd2acbcdcc111d87d58733eb3ca3ee679af79b07966490fbc67f31a81c1",
+          "post-conditions": "eca4a26850b6f8c90a0876da16056873d204ce48dc802eae64e8fdd2d57f38ef",
+          "pre-conditions": "83d5bbaa77c260e2af06c1f748f867fc554f3398168838d75c14bd5d1c5684d8",
+          "pure": "832573acd777a8f918963f373af719990fec13a84cb9f4573fb8bc57566886cd",
+          "spec_view": "069812a686cb5abe18eb8ec30a024c8769e55479c53c150229336b6eb391f531"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T20:34:06+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "a76a25341dab21ea930eeb7a78ae1ed46825bdb3eb114da53b9e8e323117f973",
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T20:34:06+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T20:33:16+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-14T21:34:35+00:00",
+      "code_version": "7cdd698b6-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SETUP. Fresh worktree of django_django.git at base_commit 475cffd1d64c690cdad16ede4d5e81985738ceb4, with the gold hunk (reverse(...) gains current_app=self.model_admin.admin_site.name at helpers.py:212) applied by hand and re-read to confirm. Reference for the modeled function = that PATCHED worktree, per the brief; base commit used only for the unchanged callee django.urls.reverse (base.py:27-86), which the patch does not touch. Bundle never modified; all work under /tmp. Note the bundle has no patch.diff file (only meta.json's patch_diff prose stub) -- I reconstructed the hunk from refinement.md's quoted gold hunk and verified it applies exactly.\n\nSPEC INTEGRITY. `adversary same-spec nagini django__django-14855 atk.py` on a byte copy of model.py => exit 0, \"SAME -- attack shares the bundle's exact specification\". `scripts/nagini_verify.sh model.py` => \"Verification successful\" (13.4s). Non-vacuity control: injecting Assert(False) into the impl region FAILS (\"Assertion False might not hold\"), so the axiom's Requires domain (unique names + non-empty prefixes + colon-free selector) is satisfiable and the proof is not deriving from an inconsistent assumption. Discriminating content confirmed: model_prepatch.py FAILS exactly on the non-empty-name route-carrying clause (Implies(len(names[cur])>0 and exposes[cur], Result()==prefixes[cur])) -- so the spec is not so weak it accepts the bug, which matters here because a too-weak spec is the cheap way to be trivially 'faithful'.\n\nWHAT I ATTACKED. The spec is TOO STRONG iff on some Requires-satisfying input the four postcondition clauses (C1 nonempty-name+route -> prefixes[current]; C2 nonempty-name+no-route -> empty; C3 empty-name+default-route -> prefixes[default]; C4 empty-name+default-no-route -> empty) disagree with the real patched get_admin_url. I wrote four independent harnesses from scratch (NOT derived from conformance_check.py), driving the real patched AdminReadonlyField.get_admin_url on a duck-typed receiver against real Django URLconfs built from the exact 3-tuple AdminSite.urls returns ((get_urls(), 'admin', self.name), sites.py:303).\n\nMEASUREMENTS (all zero violations).\n1. diff2.py -- 14,746 obs, cov {C1 4154, C2 9412, C3 425, C4 755}, 0 violations. Nasty instance names (admin, '', namespaced_admin, 'a:b', 'admin:', '::', '.', 'x.*', '(grp)', 'admin\\\\', unicode, tab/space-bearing), heterogeneous per-site route sets, pk shapes incl. '', 0, negatives, 'a/b', unicode, 10^12, converter-rejecting args.\n2. diff4.py -- 16,375 obs, cov {C1 4015, C2 10948, C3 399, C4 1013}, 0 violations. Robust bridge: default_idx discovered from the live no-selector path via a shared-NAME/deployment-UNIQUE-PATH anchor route (so it works even when mounts collide or the default is colon-named); exposes[k] observed on a ONE-deployment non-namespaced URLconf mounted at k's real mount (no selection mechanism present, so the observation cannot depend on the mechanism under test); the served deployment identified from a unique '/d<k>/' path segment rather than by prefix-startswith. Structural shapes: two siblings at the SAME mount, a site mounted under a converter (tt/<int:tenant>/), root-mounted ('' mount), a sibling named exactly like the app namespace and non-first, an admin instance nested inside a foreign namespace, and a FOREIGN app declaring a colliding instance namespace both before and after the admin entries.\n3. final.py -- 27,445 obs, cov {C1 7080, C2 18581, C3 589, C4 1195}, 0 violations, over BOTH script prefixes ('/' and '/pre/'), additionally seeding %-malformed mounts (p%20q/, p%d/, p%s/, p%%/, a%zb/) and unicode mounts.\n4. ax.py -- direct re-check of the resolve_prefix AXIOM's four Ensures against real reverse, including the two no-selector legs the impl does not consume (an unsound axiom would let the proof derive anything): 8,956 obs, cov {A1 775, A2 2344, A3 1600, A4 4237}, 0 violations.\nTotal ~67.5k live observations against the real callee, every clause covered, no diverging input.\n\nCONFIRMED-CORRECT SUBTLETIES (I tried to break each and it held).\n* Falsiness: AdminSite(name='') is legal (sites.py:36) and reverse guards on `if current_app:` (base.py:41), so an empty name resolves against the DEFAULT, not the current site. Measured: siblings {'' -> /e1/, 'other' -> /e2/} in both registration orders; with 'other' the default, cur='' lands on /e2/'s table, exactly clauses C3/C4. The spec models this instead of over-claiming prefixes[current] -- this is the single most tempting over-strengthening and the spec does NOT commit it.\n* Colon: reverse does current_app.split(':') BEFORE matching, so a colon-named instance is unreachable whole-name. Confirmed at base_commit; the spec correctly EXCLUDES colon selectors via Requires rather than claiming prefixes[k]. My sweeps generated colon-named siblings as non-current entries (permitted) and skipped them as current (excluded), so the restriction is honestly scoped, not a blanket domain gutting.\n* Partiality: reverse narrows to ONE instance and only then runs _reverse_with_prefix, so an identifier a SIBLING carries but the selected site does not raises NoReverseMatch and get_admin_url renders no link. C2 dominated my coverage (18,581 obs) and never once found the real code falling back to a sibling. The empty-PSeq carrier for 'no link' is unambiguous because every registered prefix carries at least the root -- I confirmed a root-mounted deployment ('' mount) yields prefix '/', length 1, so the carrier never collides.\n* Non-first same-name-as-app-namespace sibling: with {'zzz' -> /z1/ (no route), 'admin' -> /z2/}, app_dict['admin']=['admin','zzz'] and the elif never fires, so 'admin' is the default -- the spec's existential default_idx (never fixing the physical index) survives this; a spec that hard-coded app_dict[app][0] would have broken here.\n\nTWO AXES I FOUND AND ADJUDICATED AS NOT DEFECTS (recorded so a later panelist need not redo them).\n(a) Global-namespace shadowing. resolver.namespace_dict is GLOBAL while app_dict is per-app, so a foreign app declaring instance namespace 'sitea' EARLIER than the admin entry named 'sitea' hijacks it: measured app_dict={'admin':['siteb','sitea'],'otherapp':['sitea']} but namespace_dict={'sitea':'foreign/','siteb':'adm_b/'}, and current_app='sitea' returns /foreign/... not /adm_a/.... This breaks C1 only under a SOURCE reading of prefixes[k] (= the mount the admin entry was declared at). Under the RESOLVER reading -- prefixes[k] = the prefix reverse associates with instance namespace names[k], i.e. namespace_dict[names[k]][0], which is what mapping.md \u00a72 means by 'Django's resolver.app_dict[admin] instance list + their mount prefixes' and what the bundle's own harness observes via reverse('<name>:<view>') -- the real result MATCHES on all four sub-cases I tabulated (foreign-carries-route x foreign-first, 2x2, all ok). The resolver reading is the correct one: it is the state reverse is actually in, and in this configuration the admin deployment really is unreachable, which is why Django itself emits urls.W005 ('URL namespace isn't unique. You may not be able to reverse all URLs in this namespace', checks/urls.py:46) for exactly this URLconf. So this is a modeling-row ambiguity resolved consistently in the faithful direction, not a spec-too-strong defect. Recommend mapping.md \u00a72 pin the phrase to namespace_dict for future readers.\n(b) reverse can raise something other than NoReverseMatch. A %-malformed route/mount (p%20q/, a%zb/) makes _reverse_with_prefix raise ValueError/TypeError from candidate_pat % subs, and a custom converter whose to_url raises propagates arbitrarily; get_admin_url catches only NoReverseMatch, so the composite RAISES where the total model returns a PSeq. Not a defect: in those states the deployment cannot produce any URL at all, so prefixes[k]/exposes[k] have no image under mapping.md's bridge -- the registry describes no state the bridge maps (my final.py counted 3,535 such inputs separately as 'no-bridge-image' and never scored them as passes either, so this is an honest exclusion, not a swept-under-the-rug one). It is also entirely a property of the UNCHANGED framework machinery, identical pre- and post-patch, so it carries no discriminating content in either direction.\n\nHARNESS SELF-CORRECTIONS (disclosed so the zero is credible). My first two runs reported 207 and 157 'violations'; both were MY bridge bugs, not spec defects: (i) prefixes[k] must be the produced-URL form of the mount, so a unicode mount 'unicode/' appears percent-encoded (/%C3%BCn%C3%AF/) in the href -- fixed with urllib quote; (ii) exposes[k] must be observed WITH the deployment's own mount included, since a parameterized mount (tt/<int:tenant>/) genuinely makes the identifier unresolvable with the given args -- fixed by mounting the one-deployment probe URLconf at the real mount. After both fixes every sweep is clean, and the fixes made the probe STRICTER (exact landing-deployment identity, not prefix-startswith), not laxer.\n\nCONCLUSION. I could not construct any Requires-satisfying input on which model.py's postcondition disagrees with the real patched get_admin_url. The two clauses that would be the natural over-strengthenings (empty instance name -> current site's prefix; resolution is total) are precisely the two the bundle documents as previously-found and repaired, and both repairs hold up against the live callee. The spec is at or below the strength of the real behavior while still rejecting the pre-patch twin. VERDICT: FAITHFUL; no diverging input exists to cite.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LANE: leakage / gold-reconstruction, django__django-14855 (nagini). Judged against problem_statement ONLY; hints_text excluded as baseline. Every number below is my own measurement on the CURRENT bundle.\n\nNO RELAXATION IS IN PLAY. meta.json has no `relaxed_leakage` key (checked: key absent, value None) and there is no RELAXED_LEAKAGE.md in the bundle directory. So this is a plain full-strength leakage judgement, not a relaxation to re-derive. I also ran swebench_unified.leakage.reviewer_directed() over every .md/.py/.json in the bundle (model.py, refinement.md, mapping.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md): ZERO reviewer-directed hits. Nothing in the bundle addresses me, prescribes a verdict, or defines a recording convention.\n\nONE FINDING TO REPORT UNDER THAT HEADING, THOUGH IT IS NOT A DIRECTIVE: meta.json carries a RETAINED G-PANEL-3 stanza with agent_verdict='NO-LEAKAGE' and a full prior note. Per my standing rule that retained attack labels carry the oracle verdict, I did not adopt it. It is also STALE: that stanza's sources hash is model.py=dc251f79d3c1acbc2d500dcc3638699c1455326255770cae4c8c628a72621876, while the on-disk model.py is efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c. The prior note therefore judged a DIFFERENT file than the one I judged, and its side claim that region_hashes are stale is no longer true for the current file (see next paragraph). My verdict happens to agree with the retained label; the measurements are mine.\n\nSPEC-VIEW PROVENANCE (byte-exact, current file). Regenerated the consumer view with swebench_unified.markers.spec_view(nagini tables) from the on-disk model.py. The single impl region collapses to '...  # implementation elided \u2014 supplied by the consumer'; axioms, pure, pre-conditions, post-conditions pass through. Freshly computed region_hashes MATCH meta.json's stanza on ALL SIX regions including spec_view=069812a686cb5abe18eb8ec30a024c8769e55479c53c150229336b6eb391f531, and model.py's sha256 matches the sources hash on the G-LEAK, G-AX, G-CONF, G-GOLD, G-HYGIENE and G-DIFF gate stanzas \u2014 the recorded gates ran on exactly this file. markers.same_spec(model.py, model_prepatch.py) is True, so the spec view I judged is the frozen twin-shared one. `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' (exit 0, 13.05s), so the artifact I audited is live.\n\nTHE BASELINE ALREADY CONTAINS THE ENTIRE GOLD EDIT \u2014 VERIFIED BY NORMALIZED SUBSTRING TEST, NOT ASSERTED. I whitespace-normalized the problem_statement and tested containment of each gold-diff side. All True: the removed line 'url = reverse(url_name, args=[quote(remote_obj.pk)])' and the added form 'reverse(url_name, args=[quote(remote_obj.pk)], current_app=self.model_admin.admin_site.name)'. The problem_statement also names 'get_admin_url', 'readonly_fields', 'django.contrib.admin.helpers', the 'current_app keyword' pointer, and the /admin/ vs /custom-admin/ symptom. The dataset gold patch is exactly that one-call change to django/contrib/admin/helpers.py. There is no headroom for the spec view to be MORE informative than a verbatim copy of the diff. I did not stop there.\n\nMECHANICAL SCANS ON THE VIEW'S OWN TERMS. (a) Repo-symbol scan for reverse, current_app, admin_site, model_admin, format_html, NoReverseMatch, url_name, quote, remote_obj, remote_field, AdminSite, ModelAdmin, readonly, ForeignKey, app_dict, app_list, get_admin_url, custom-admin, /admin, helpers.py, urlconf, namespace: ZERO substantive hits. The only matches are lexical false positives: 'contrib' inside the English 'contributes'/'contributes to' (lines 123, 208), 'django' only in the instance id on line 1 ('Twin-artifact model for django__django-14855' \u2014 the instance name, public), and 'admin' inside the English word 'administration' (line 6). No Django symbol appears. (b) Provenance-marker regex sweep for '\\.py:\\d+', 7-40-char hex runs, '#\\d{4,6}', '@@', 'diff --git', 'ticket', 'commit': ZERO matches. (c) Independent gold-line reproduction check: every +/- line of the patch, whitespace-normalized, absent from the normalized view. (d) Independent re-run of swebench_unified.leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch): passed=True, 0 hard_failures, 0 warnings \u2014 consistent with gates.G-LEAK status=pass.\n\nHINTS-VOCABULARY DIFF (the canonical failure mode for this lane). Diffed spec-view tokens (>=4 chars) against problem_statement: 300 novel tokens, all Nagini/contract machinery (Requires, Ensures, PSeq, ToSeq, MustTerminate, list_pred, Forall, Forall2, ContractOnly), bundle scaffolding (axioms, impl, elided, provenance, twin, mapping, axiom_check), or the de-Djangoized abstraction vocabulary (deployment, prefix, selector, registry, sibling, route, exposes). Intersecting the novel set with hints-ONLY vocabulary leaves 12 survivors \u2014 against, before, currently, first, input, looks, real, since, what, which, without, would \u2014 every one a function word. None of the hints' distinctive content (the b790883065... backport SHA, ticket #31181, release-blocker framing, 3.2.8) appears anywhere in the view.\n\nTHE ONLY CLAUSES WITH NO problem_statement ANTECEDENT \u2014 MACHINE-CHECKED. The empty-instance-name fallback (docstring lines 17-20, the axiom's no-selector Ensures pair, and the two post-conditions 'len(names[current_idx]) == 0 => Result() == prefixes[default_idx]' / '=> len(Result()) == 0') plus the U+003A separator-free domain Requires. Two independent checks clear both:\n  (1) PROVENANCE IS THE UNCHANGED CALLEE AT base_commit, NOT THE DIFF. I built a git worktree at base_commit 475cffd1d64c690cdad16ede4d5e81985738ceb4 and read django/urls/base.py directly. The guard is literally 'if current_app:' \u2014 a FALSINESS test, so an empty AdminSite.name never reaches the 'if current_ns and current_ns in app_list' matching and falls through to the 'elif ns not in app_list' default arm; and 'current_path = current_app.split(\":\")' is the exact component split the U+003A domain restriction encodes. I also confirmed the base-commit helpers.py get_admin_url is the unpatched one-line reverse() call inside try/except NoReverseMatch: return str(remote_obj) \u2014 the two exits the spec's empty-sequence value models. Both facts are readable in UNCHANGED framework code at base_commit by any solver; neither is derivable only from the gold diff or hints.\n  (2) THE CLAUSES CARRY ZERO DISCRIMINATING CONTENT \u2014 MEASURED, NOT ARGUED (this is the load-bearing test the lane asks for). I stripped the two empty-name post-conditions from model_prepatch.py (prepatch_noempty.py) and ran the pinned verifier: it STILL FAILS, exit 1, and fails on the OTHER clause \u2014 'Postcondition of related_link_target might not hold. Assertion Implies(((len(ToSeq(names)[current_idx]) > 0) and ToSeq(exposes)[current_idx]), (Result() == ToSeq(prefixes)[current_idx])) might not hold.' So the NON-EMPTY-name clause alone rejects the pre-patch impl; the empty-name clauses do no discriminating work and cannot be reverse-engineered into the edit. They also name default_idx as a bare existential index without ever fixing WHICH sibling the framework falls back to (app_dict['admin'][0]), so they do not disclose the resolver's fallback rule either.\n\nCORE GATES THE JUDGEMENT LEANS ON, RE-READ: G-LEAK pass (and re-run by me, passed=True), G-HYGIENE pass with region hashes I recomputed and matched, G-GOLD pass, G-DIFF pass (and independently reproduced above), G-VERIFY pass (reproduced: exit 0). G-PANEL-2 (faithfulness) is recorded FAIL \u2014 a spec-strength finding on heterogeneous sibling registries. That is a different lane and does not bear on leakage: an over-strong Ensures on an untested input class discloses nothing about the gold edit beyond a problem_statement that already quotes it. I flag it only so the record shows I saw it and did not let a sibling-lane failure color this one.\n\nCONCLUSION: no gold-diff line reproduced, no patched path/module/symbol echoed, no diff or provenance markers, no bug/fix narration, no hints-only content, and the only clauses without a problem_statement antecedent are base_commit-readable properties of an unchanged callee that I MEASURED to carry no discriminating power. VERDICT: NO-LEAKAGE. No counterexample applies \u2014 this lane's deliverable is the reconstruction argument, not a verifying rival.\n\nHYGIENE: all scratch under mktemp -d ( worktree, removed via `git worktree remove --force`) plus  for the prepatch probe; bundle read-only throughout and re-confirmed byte-identical after the audit (model.py sha256 still efec6e32...). No git stash, no tree-wide git operations.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SETUP. Fresh worktree of django_django.git at base_commit 475cffd1d64c690cdad16ede4d5e81985738ceb4, with the gold hunk (reverse(...) gains current_app=self.model_admin.admin_site.name at helpers.py:212) applied by hand and re-read to confirm. Reference for the modeled function = that PATCHED worktree, per the brief; base commit used only for the unchanged callee django.urls.reverse (base.py:27-86), which the patch does not touch. Bundle never modified; all work under /tmp. Note the bundle has no patch.diff file (only meta.json's patch_diff prose stub) -- I reconstructed the hunk from refinement.md's quoted gold hunk and verified it applies exactly.\n\nSPEC INTEGRITY. `adversary same-spec nagini django__django-14855 atk.py` on a byte copy of model.py => exit 0, \"SAME -- attack shares the bundle's exact specification\". `scripts/nagini_verify.sh model.py` => \"Verification successful\" (13.4s). Non-vacuity control: injecting Assert(False) into the impl region FAILS (\"Assertion False might not hold\"), so the axiom's Requires domain (unique names + non-empty prefixes + colon-free selector) is satisfiable and the proof is not deriving from an inconsistent assumption. Discriminating content confirmed: model_prepatch.py FAILS exactly on the non-empty-name route-carrying clause (Implies(len(names[cur])>0 and exposes[cur], Result()==prefixes[cur])) -- so the spec is not so weak it accepts the bug, which matters here because a too-weak spec is the cheap way to be trivially 'faithful'.\n\nWHAT I ATTACKED. The spec is TOO STRONG iff on some Requires-satisfying input the four postcondition clauses (C1 nonempty-name+route -> prefixes[current]; C2 nonempty-name+no-route -> empty; C3 empty-name+default-route -> prefixes[default]; C4 empty-name+default-no-route -> empty) disagree with the real patched get_admin_url. I wrote four independent harnesses from scratch (NOT derived from conformance_check.py), driving the real patched AdminReadonlyField.get_admin_url on a duck-typed receiver against real Django URLconfs built from the exact 3-tuple AdminSite.urls returns ((get_urls(), 'admin', self.name), sites.py:303).\n\nMEASUREMENTS (all zero violations).\n1. diff2.py -- 14,746 obs, cov {C1 4154, C2 9412, C3 425, C4 755}, 0 violations. Nasty instance names (admin, '', namespaced_admin, 'a:b', 'admin:', '::', '.', 'x.*', '(grp)', 'admin\\\\', unicode, tab/space-bearing), heterogeneous per-site route sets, pk shapes incl. '', 0, negatives, 'a/b', unicode, 10^12, converter-rejecting args.\n2. diff4.py -- 16,375 obs, cov {C1 4015, C2 10948, C3 399, C4 1013}, 0 violations. Robust bridge: default_idx discovered from the live no-selector path via a shared-NAME/deployment-UNIQUE-PATH anchor route (so it works even when mounts collide or the default is colon-named); exposes[k] observed on a ONE-deployment non-namespaced URLconf mounted at k's real mount (no selection mechanism present, so the observation cannot depend on the mechanism under test); the served deployment identified from a unique '/d<k>/' path segment rather than by prefix-startswith. Structural shapes: two siblings at the SAME mount, a site mounted under a converter (tt/<int:tenant>/), root-mounted ('' mount), a sibling named exactly like the app namespace and non-first, an admin instance nested inside a foreign namespace, and a FOREIGN app declaring a colliding instance namespace both before and after the admin entries.\n3. final.py -- 27,445 obs, cov {C1 7080, C2 18581, C3 589, C4 1195}, 0 violations, over BOTH script prefixes ('/' and '/pre/'), additionally seeding %-malformed mounts (p%20q/, p%d/, p%s/, p%%/, a%zb/) and unicode mounts.\n4. ax.py -- direct re-check of the resolve_prefix AXIOM's four Ensures against real reverse, including the two no-selector legs the impl does not consume (an unsound axiom would let the proof derive anything): 8,956 obs, cov {A1 775, A2 2344, A3 1600, A4 4237}, 0 violations.\nTotal ~67.5k live observations against the real callee, every clause covered, no diverging input.\n\nCONFIRMED-CORRECT SUBTLETIES (I tried to break each and it held).\n* Falsiness: AdminSite(name='') is legal (sites.py:36) and reverse guards on `if current_app:` (base.py:41), so an empty name resolves against the DEFAULT, not the current site. Measured: siblings {'' -> /e1/, 'other' -> /e2/} in both registration orders; with 'other' the default, cur='' lands on /e2/'s table, exactly clauses C3/C4. The spec models this instead of over-claiming prefixes[current] -- this is the single most tempting over-strengthening and the spec does NOT commit it.\n* Colon: reverse does current_app.split(':') BEFORE matching, so a colon-named instance is unreachable whole-name. Confirmed at base_commit; the spec correctly EXCLUDES colon selectors via Requires rather than claiming prefixes[k]. My sweeps generated colon-named siblings as non-current entries (permitted) and skipped them as current (excluded), so the restriction is honestly scoped, not a blanket domain gutting.\n* Partiality: reverse narrows to ONE instance and only then runs _reverse_with_prefix, so an identifier a SIBLING carries but the selected site does not raises NoReverseMatch and get_admin_url renders no link. C2 dominated my coverage (18,581 obs) and never once found the real code falling back to a sibling. The empty-PSeq carrier for 'no link' is unambiguous because every registered prefix carries at least the root -- I confirmed a root-mounted deployment ('' mount) yields prefix '/', length 1, so the carrier never collides.\n* Non-first same-name-as-app-namespace sibling: with {'zzz' -> /z1/ (no route), 'admin' -> /z2/}, app_dict['admin']=['admin','zzz'] and the elif never fires, so 'admin' is the default -- the spec's existential default_idx (never fixing the physical index) survives this; a spec that hard-coded app_dict[app][0] would have broken here.\n\nTWO AXES I FOUND AND ADJUDICATED AS NOT DEFECTS (recorded so a later panelist need not redo them).\n(a) Global-namespace shadowing. resolver.namespace_dict is GLOBAL while app_dict is per-app, so a foreign app declaring instance namespace 'sitea' EARLIER than the admin entry named 'sitea' hijacks it: measured app_dict={'admin':['siteb','sitea'],'otherapp':['sitea']} but namespace_dict={'sitea':'foreign/','siteb':'adm_b/'}, and current_app='sitea' returns /foreign/... not /adm_a/.... This breaks C1 only under a SOURCE reading of prefixes[k] (= the mount the admin entry was declared at). Under the RESOLVER reading -- prefixes[k] = the prefix reverse associates with instance namespace names[k], i.e. namespace_dict[names[k]][0], which is what mapping.md \u00a72 means by 'Django's resolver.app_dict[admin] instance list + their mount prefixes' and what the bundle's own harness observes via reverse('<name>:<view>') -- the real result MATCHES on all four sub-cases I tabulated (foreign-carries-route x foreign-first, 2x2, all ok). The resolver reading is the correct one: it is the state reverse is actually in, and in this configuration the admin deployment really is unreachable, which is why Django itself emits urls.W005 ('URL namespace isn't unique. You may not be able to reverse all URLs in this namespace', checks/urls.py:46) for exactly this URLconf. So this is a modeling-row ambiguity resolved consistently in the faithful direction, not a spec-too-strong defect. Recommend mapping.md \u00a72 pin the phrase to namespace_dict for future readers.\n(b) reverse can raise something other than NoReverseMatch. A %-malformed route/mount (p%20q/, a%zb/) makes _reverse_with_prefix raise ValueError/TypeError from candidate_pat % subs, and a custom converter whose to_url raises propagates arbitrarily; get_admin_url catches only NoReverseMatch, so the composite RAISES where the total model returns a PSeq. Not a defect: in those states the deployment cannot produce any URL at all, so prefixes[k]/exposes[k] have no image under mapping.md's bridge -- the registry describes no state the bridge maps (my final.py counted 3,535 such inputs separately as 'no-bridge-image' and never scored them as passes either, so this is an honest exclusion, not a swept-under-the-rug one). It is also entirely a property of the UNCHANGED framework machinery, identical pre- and post-patch, so it carries no discriminating content in either direction.\n\nHARNESS SELF-CORRECTIONS (disclosed so the zero is credible). My first two runs reported 207 and 157 'violations'; both were MY bridge bugs, not spec defects: (i) prefixes[k] must be the produced-URL form of the mount, so a unicode mount 'unicode/' appears percent-encoded (/%C3%BCn%C3%AF/) in the href -- fixed with urllib quote; (ii) exposes[k] must be observed WITH the deployment's own mount included, since a parameterized mount (tt/<int:tenant>/) genuinely makes the identifier unresolvable with the given args -- fixed by mounting the one-deployment probe URLconf at the real mount. After both fixes every sweep is clean, and the fixes made the probe STRICTER (exact landing-deployment identity, not prefix-startswith), not laxer.\n\nCONCLUSION. I could not construct any Requires-satisfying input on which model.py's postcondition disagrees with the real patched get_admin_url. The two clauses that would be the natural over-strengthenings (empty instance name -> current site's prefix; resolution is total) are precisely the two the bundle documents as previously-found and repaired, and both repairs hold up against the live callee. The spec is at or below the strength of the real behavior while still rejecting the pre-patch twin. VERDICT: FAITHFUL; no diverging input exists to cite.; G-PANEL-3 (leakage): pass \u2014 LANE: leakage / gold-reconstruction, django__django-14855 (nagini). Judged against problem_statement ONLY; hints_text excluded as baseline. Every number below is my own measurement on the CURRENT bundle.\n\nNO RELAXATION IS IN PLAY. meta.json has no `relaxed_leakage` key (checked: key absent, value None) and there is no RELAXED_LEAKAGE.md in the bundle directory. So this is a plain full-strength leakage judgement, not a relaxation to re-derive. I also ran swebench_unified.leakage.reviewer_directed() over every .md/.py/.json in the bundle (model.py, refinement.md, mapping.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md): ZERO reviewer-directed hits. Nothing in the bundle addresses me, prescribes a verdict, or defines a recording convention.\n\nONE FINDING TO REPORT UNDER THAT HEADING, THOUGH IT IS NOT A DIRECTIVE: meta.json carries a RETAINED G-PANEL-3 stanza with agent_verdict='NO-LEAKAGE' and a full prior note. Per my standing rule that retained attack labels carry the oracle verdict, I did not adopt it. It is also STALE: that stanza's sources hash is model.py=dc251f79d3c1acbc2d500dcc3638699c1455326255770cae4c8c628a72621876, while the on-disk model.py is efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c. The prior note therefore judged a DIFFERENT file than the one I judged, and its side claim that region_hashes are stale is no longer true for the current file (see next paragraph). My verdict happens to agree with the retained label; the measurements are mine.\n\nSPEC-VIEW PROVENANCE (byte-exact, current file). Regenerated the consumer view with swebench_unified.markers.spec_view(nagini tables) from the on-disk model.py. The single impl region collapses to '...  # implementation elided \u2014 supplied by the consumer'; axioms, pure, pre-conditions, post-conditions pass through. Freshly computed region_hashes MATCH meta.json's stanza on ALL SIX regions including spec_view=069812a686cb5abe18eb8ec30a024c8769e55479c53c150229336b6eb391f531, and model.py's sha256 matches the sources hash on the G-LEAK, G-AX, G-CONF, G-GOLD, G-HYGIENE and G-DIFF gate stanzas \u2014 the recorded gates ran on exactly this file. markers.same_spec(model.py, model_prepatch.py) is True, so the spec view I judged is the frozen twin-shared one. `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' (exit 0, 13.05s), so the artifact I audited is live.\n\nTHE BASELINE ALREADY CONTAINS THE ENTIRE GOLD EDIT \u2014 VERIFIED BY NORMALIZED SUBSTRING TEST, NOT ASSERTED. I whitespace-normalized the problem_statement and tested containment of each gold-diff side. All True: the removed line 'url = reverse(url_name, args=[quote(remote_obj.pk)])' and the added form 'reverse(url_name, args=[quote(remote_obj.pk)], current_app=self.model_admin.admin_site.name)'. The problem_statement also names 'get_admin_url', 'readonly_fields', 'django.contrib.admin.helpers', the 'current_app keyword' pointer, and the /admin/ vs /custom-admin/ symptom. The dataset gold patch is exactly that one-call change to django/contrib/admin/helpers.py. There is no headroom for the spec view to be MORE informative than a verbatim copy of the diff. I did not stop there.\n\nMECHANICAL SCANS ON THE VIEW'S OWN TERMS. (a) Repo-symbol scan for reverse, current_app, admin_site, model_admin, format_html, NoReverseMatch, url_name, quote, remote_obj, remote_field, AdminSite, ModelAdmin, readonly, ForeignKey, app_dict, app_list, get_admin_url, custom-admin, /admin, helpers.py, urlconf, namespace: ZERO substantive hits. The only matches are lexical false positives: 'contrib' inside the English 'contributes'/'contributes to' (lines 123, 208), 'django' only in the instance id on line 1 ('Twin-artifact model for django__django-14855' \u2014 the instance name, public), and 'admin' inside the English word 'administration' (line 6). No Django symbol appears. (b) Provenance-marker regex sweep for '\\.py:\\d+', 7-40-char hex runs, '#\\d{4,6}', '@@', 'diff --git', 'ticket', 'commit': ZERO matches. (c) Independent gold-line reproduction check: every +/- line of the patch, whitespace-normalized, absent from the normalized view. (d) Independent re-run of swebench_unified.leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch): passed=True, 0 hard_failures, 0 warnings \u2014 consistent with gates.G-LEAK status=pass.\n\nHINTS-VOCABULARY DIFF (the canonical failure mode for this lane). Diffed spec-view tokens (>=4 chars) against problem_statement: 300 novel tokens, all Nagini/contract machinery (Requires, Ensures, PSeq, ToSeq, MustTerminate, list_pred, Forall, Forall2, ContractOnly), bundle scaffolding (axioms, impl, elided, provenance, twin, mapping, axiom_check), or the de-Djangoized abstraction vocabulary (deployment, prefix, selector, registry, sibling, route, exposes). Intersecting the novel set with hints-ONLY vocabulary leaves 12 survivors \u2014 against, before, currently, first, input, looks, real, since, what, which, without, would \u2014 every one a function word. None of the hints' distinctive content (the b790883065... backport SHA, ticket #31181, release-blocker framing, 3.2.8) appears anywhere in the view.\n\nTHE ONLY CLAUSES WITH NO problem_statement ANTECEDENT \u2014 MACHINE-CHECKED. The empty-instance-name fallback (docstring lines 17-20, the axiom's no-selector Ensures pair, and the two post-conditions 'len(names[current_idx]) == 0 => Result() == prefixes[default_idx]' / '=> len(Result()) == 0') plus the U+003A separator-free domain Requires. Two independent checks clear both:\n  (1) PROVENANCE IS THE UNCHANGED CALLEE AT base_commit, NOT THE DIFF. I built a git worktree at base_commit 475cffd1d64c690cdad16ede4d5e81985738ceb4 and read django/urls/base.py directly. The guard is literally 'if current_app:' \u2014 a FALSINESS test, so an empty AdminSite.name never reaches the 'if current_ns and current_ns in app_list' matching and falls through to the 'elif ns not in app_list' default arm; and 'current_path = current_app.split(\":\")' is the exact component split the U+003A domain restriction encodes. I also confirmed the base-commit helpers.py get_admin_url is the unpatched one-line reverse() call inside try/except NoReverseMatch: return str(remote_obj) \u2014 the two exits the spec's empty-sequence value models. Both facts are readable in UNCHANGED framework code at base_commit by any solver; neither is derivable only from the gold diff or hints.\n  (2) THE CLAUSES CARRY ZERO DISCRIMINATING CONTENT \u2014 MEASURED, NOT ARGUED (this is the load-bearing test the lane asks for). I stripped the two empty-name post-conditions from model_prepatch.py (prepatch_noempty.py) and ran the pinned verifier: it STILL FAILS, exit 1, and fails on the OTHER clause \u2014 'Postcondition of related_link_target might not hold. Assertion Implies(((len(ToSeq(names)[current_idx]) > 0) and ToSeq(exposes)[current_idx]), (Result() == ToSeq(prefixes)[current_idx])) might not hold.' So the NON-EMPTY-name clause alone rejects the pre-patch impl; the empty-name clauses do no discriminating work and cannot be reverse-engineered into the edit. They also name default_idx as a bare existential index without ever fixing WHICH sibling the framework falls back to (app_dict['admin'][0]), so they do not disclose the resolver's fallback rule either.\n\nCORE GATES THE JUDGEMENT LEANS ON, RE-READ: G-LEAK pass (and re-run by me, passed=True), G-HYGIENE pass with region hashes I recomputed and matched, G-GOLD pass, G-DIFF pass (and independently reproduced above), G-VERIFY pass (reproduced: exit 0). G-PANEL-2 (faithfulness) is recorded FAIL \u2014 a spec-strength finding on heterogeneous sibling registries. That is a different lane and does not bear on leakage: an over-strong Ensures on an untested input class discloses nothing about the gold edit beyond a problem_statement that already quotes it. I flag it only so the record shows I saw it and did not let a sibling-lane failure color this one.\n\nCONCLUSION: no gold-diff line reproduced, no patched path/module/symbol echoed, no diff or provenance markers, no bug/fix narration, no hints-only content, and the only clauses without a problem_statement antecedent are base_commit-readable properties of an unchanged callee that I MEASURED to carry no discriminating power. VERDICT: NO-LEAKAGE. No counterexample applies \u2014 this lane's deliverable is the reconstruction argument, not a verifying rival.\n\nHYGIENE: all scratch under mktemp -d ( worktree, removed via `git worktree remove --force`) plus  for the prepatch probe; bundle read-only throughout and re-confirmed byte-identical after the audit (model.py sha256 still efec6e32...). No git stash, no tree-wide git operations.",
+      "gate": "G-PANEL",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c",
+        "properties.py": "69a2ede6f9dccb2613d9a5fe4ad8efad5fa94ac7518a49528473e1185fc68650"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-14T21:34:33+00:00",
+      "code_version": "7cdd698b6-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 11 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_3.py`, `atk_5.py`, `atk_7.py`, `atk_8.py`, `atk_vac.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_2.py`, `atk_4.py`, `atk_6.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c",
+        "properties.py": "69a2ede6f9dccb2613d9a5fe4ad8efad5fa94ac7518a49528473e1185fc68650"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-14T21:20:24+00:00",
+      "code_version": "dd7bce1d2-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SETUP. Fresh worktree of django_django.git at base_commit 475cffd1d64c690cdad16ede4d5e81985738ceb4, with the gold hunk (reverse(...) gains current_app=self.model_admin.admin_site.name at helpers.py:212) applied by hand and re-read to confirm. Reference for the modeled function = that PATCHED worktree, per the brief; base commit used only for the unchanged callee django.urls.reverse (base.py:27-86), which the patch does not touch. Bundle never modified; all work under /tmp. Note the bundle has no patch.diff file (only meta.json's patch_diff prose stub) -- I reconstructed the hunk from refinement.md's quoted gold hunk and verified it applies exactly.\n\nSPEC INTEGRITY. `adversary same-spec nagini django__django-14855 atk.py` on a byte copy of model.py => exit 0, \"SAME -- attack shares the bundle's exact specification\". `scripts/nagini_verify.sh model.py` => \"Verification successful\" (13.4s). Non-vacuity control: injecting Assert(False) into the impl region FAILS (\"Assertion False might not hold\"), so the axiom's Requires domain (unique names + non-empty prefixes + colon-free selector) is satisfiable and the proof is not deriving from an inconsistent assumption. Discriminating content confirmed: model_prepatch.py FAILS exactly on the non-empty-name route-carrying clause (Implies(len(names[cur])>0 and exposes[cur], Result()==prefixes[cur])) -- so the spec is not so weak it accepts the bug, which matters here because a too-weak spec is the cheap way to be trivially 'faithful'.\n\nWHAT I ATTACKED. The spec is TOO STRONG iff on some Requires-satisfying input the four postcondition clauses (C1 nonempty-name+route -> prefixes[current]; C2 nonempty-name+no-route -> empty; C3 empty-name+default-route -> prefixes[default]; C4 empty-name+default-no-route -> empty) disagree with the real patched get_admin_url. I wrote four independent harnesses from scratch (NOT derived from conformance_check.py), driving the real patched AdminReadonlyField.get_admin_url on a duck-typed receiver against real Django URLconfs built from the exact 3-tuple AdminSite.urls returns ((get_urls(), 'admin', self.name), sites.py:303).\n\nMEASUREMENTS (all zero violations).\n1. diff2.py -- 14,746 obs, cov {C1 4154, C2 9412, C3 425, C4 755}, 0 violations. Nasty instance names (admin, '', namespaced_admin, 'a:b', 'admin:', '::', '.', 'x.*', '(grp)', 'admin\\\\', unicode, tab/space-bearing), heterogeneous per-site route sets, pk shapes incl. '', 0, negatives, 'a/b', unicode, 10^12, converter-rejecting args.\n2. diff4.py -- 16,375 obs, cov {C1 4015, C2 10948, C3 399, C4 1013}, 0 violations. Robust bridge: default_idx discovered from the live no-selector path via a shared-NAME/deployment-UNIQUE-PATH anchor route (so it works even when mounts collide or the default is colon-named); exposes[k] observed on a ONE-deployment non-namespaced URLconf mounted at k's real mount (no selection mechanism present, so the observation cannot depend on the mechanism under test); the served deployment identified from a unique '/d<k>/' path segment rather than by prefix-startswith. Structural shapes: two siblings at the SAME mount, a site mounted under a converter (tt/<int:tenant>/), root-mounted ('' mount), a sibling named exactly like the app namespace and non-first, an admin instance nested inside a foreign namespace, and a FOREIGN app declaring a colliding instance namespace both before and after the admin entries.\n3. final.py -- 27,445 obs, cov {C1 7080, C2 18581, C3 589, C4 1195}, 0 violations, over BOTH script prefixes ('/' and '/pre/'), additionally seeding %-malformed mounts (p%20q/, p%d/, p%s/, p%%/, a%zb/) and unicode mounts.\n4. ax.py -- direct re-check of the resolve_prefix AXIOM's four Ensures against real reverse, including the two no-selector legs the impl does not consume (an unsound axiom would let the proof derive anything): 8,956 obs, cov {A1 775, A2 2344, A3 1600, A4 4237}, 0 violations.\nTotal ~67.5k live observations against the real callee, every clause covered, no diverging input.\n\nCONFIRMED-CORRECT SUBTLETIES (I tried to break each and it held).\n* Falsiness: AdminSite(name='') is legal (sites.py:36) and reverse guards on `if current_app:` (base.py:41), so an empty name resolves against the DEFAULT, not the current site. Measured: siblings {'' -> /e1/, 'other' -> /e2/} in both registration orders; with 'other' the default, cur='' lands on /e2/'s table, exactly clauses C3/C4. The spec models this instead of over-claiming prefixes[current] -- this is the single most tempting over-strengthening and the spec does NOT commit it.\n* Colon: reverse does current_app.split(':') BEFORE matching, so a colon-named instance is unreachable whole-name. Confirmed at base_commit; the spec correctly EXCLUDES colon selectors via Requires rather than claiming prefixes[k]. My sweeps generated colon-named siblings as non-current entries (permitted) and skipped them as current (excluded), so the restriction is honestly scoped, not a blanket domain gutting.\n* Partiality: reverse narrows to ONE instance and only then runs _reverse_with_prefix, so an identifier a SIBLING carries but the selected site does not raises NoReverseMatch and get_admin_url renders no link. C2 dominated my coverage (18,581 obs) and never once found the real code falling back to a sibling. The empty-PSeq carrier for 'no link' is unambiguous because every registered prefix carries at least the root -- I confirmed a root-mounted deployment ('' mount) yields prefix '/', length 1, so the carrier never collides.\n* Non-first same-name-as-app-namespace sibling: with {'zzz' -> /z1/ (no route), 'admin' -> /z2/}, app_dict['admin']=['admin','zzz'] and the elif never fires, so 'admin' is the default -- the spec's existential default_idx (never fixing the physical index) survives this; a spec that hard-coded app_dict[app][0] would have broken here.\n\nTWO AXES I FOUND AND ADJUDICATED AS NOT DEFECTS (recorded so a later panelist need not redo them).\n\n(a) Global-namespace shadowing. resolver.namespace_dict is GLOBAL while app_dict is per-app, so a foreign app declaring instance namespace 'sitea' EARLIER than the admin entry named 'sitea' hijacks it: measured app_dict={'admin':['siteb','sitea'],'otherapp':['sitea']} but namespace_dict={'sitea':'foreign/','siteb':'adm_b/'}, and current_app='sitea' returns /foreign/... not /adm_a/.... This breaks C1 only under a SOURCE reading of prefixes[k] (= the mount the admin entry was declared at).\n\nUnder the RESOLVER reading -- prefixes[k] = the prefix reverse associates with instance namespace names[k], i.e. namespace_dict[names[k]][0], which is what mapping.md \u00a72 means by 'Django's resolver.app_dict[admin] instance list + their mount prefixes' and what the bundle's own harness observes via reverse('<name>:<view>') -- the real result MATCHES on all four sub-cases I tabulated (foreign-carries-route x foreign-first, 2x2, all ok). The resolver reading is the correct one: it is the state reverse is actually in, and in this configuration the admin deployment really is unreachable, which is why Django itself emits urls.W005 ('URL namespace isn't unique. You may not be able to reverse all URLs in this namespace', checks/urls.py:46) for exactly this URLconf. So this is a modeling-row ambiguity resolved consistently in the faithful direction, not a spec-too-strong defect. Recommend mapping.md \u00a72 pin the phrase to namespace_dict for future readers.\n\n(b) reverse can raise something other than NoReverseMatch. A %-malformed route/mount (p%20q/, a%zb/) makes _reverse_with_prefix raise ValueError/TypeError from candidate_pat % subs, and a custom converter whose to_url raises propagates arbitrarily; get_admin_url catches only NoReverseMatch, so the composite RAISES where the total model returns a PSeq. Not a defect: in those states the deployment cannot produce any URL at all, so prefixes[k]/exposes[k] have no image under mapping.md's bridge -- the registry describes no state the bridge maps (my final.py counted 3,535 such inputs separately as 'no-bridge-image' and never scored them as passes either, so this is an honest exclusion, not a swept-under-the-rug one). It is also entirely a property of the UNCHANGED framework machinery, identical pre- and post-patch, so it carries no discriminating content in either direction.\n\nHARNESS SELF-CORRECTIONS (disclosed so the zero is credible). My first two runs reported 207 and 157 'violations'; both were MY bridge bugs, not spec defects: (i) prefixes[k] must be the produced-URL form of the mount, so a unicode mount 'unicode/' appears percent-encoded (/%C3%BCn%C3%AF/) in the href -- fixed with urllib quote; (ii) exposes[k] must be observed WITH the deployment's own mount included, since a parameterized mount (tt/<int:tenant>/) genuinely makes the identifier unresolvable with the given args -- fixed by mounting the one-deployment probe URLconf at the real mount. After both fixes every sweep is clean, and the fixes made the probe STRICTER (exact landing-deployment identity, not prefix-startswith), not laxer.\n\nCONCLUSION. I could not construct any Requires-satisfying input on which model.py's postcondition disagrees with the real patched get_admin_url. The two clauses that would be the natural over-strengthenings (empty instance name -> current site's prefix; resolution is total) are precisely the two the bundle documents as previously-found and repaired, and both repairs hold up against the live callee. The spec is at or below the strength of the real behavior while still rejecting the pre-patch twin. VERDICT: FAITHFUL; no diverging input exists to cite.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-14T20:52:41+00:00",
+      "code_version": "16f49cd5f-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LANE: leakage / gold-reconstruction, django__django-14855 (nagini). Judged against problem_statement ONLY; hints_text excluded as baseline. Every number below is my own measurement on the CURRENT bundle.\n\nNO RELAXATION IS IN PLAY. meta.json has no `relaxed_leakage` key (checked: key absent, value None) and there is no RELAXED_LEAKAGE.md in the bundle directory. So this is a plain full-strength leakage judgement, not a relaxation to re-derive. I also ran swebench_unified.leakage.reviewer_directed() over every .md/.py/.json in the bundle (model.py, refinement.md, mapping.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md): ZERO reviewer-directed hits. Nothing in the bundle addresses me, prescribes a verdict, or defines a recording convention.\n\nONE FINDING TO REPORT UNDER THAT HEADING, THOUGH IT IS NOT A DIRECTIVE: meta.json carries a RETAINED G-PANEL-3 stanza with agent_verdict='NO-LEAKAGE' and a full prior note. Per my standing rule that retained attack labels carry the oracle verdict, I did not adopt it. It is also STALE: that stanza's sources hash is model.py=dc251f79d3c1acbc2d500dcc3638699c1455326255770cae4c8c628a72621876, while the on-disk model.py is efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c. The prior note therefore judged a DIFFERENT file than the one I judged, and its side claim that region_hashes are stale is no longer true for the current file (see next paragraph). My verdict happens to agree with the retained label; the measurements are mine.\n\nSPEC-VIEW PROVENANCE (byte-exact, current file). Regenerated the consumer view with swebench_unified.markers.spec_view(nagini tables) from the on-disk model.py. The single impl region collapses to '...  # implementation elided \u2014 supplied by the consumer'; axioms, pure, pre-conditions, post-conditions pass through. Freshly computed region_hashes MATCH meta.json's stanza on ALL SIX regions including spec_view=069812a686cb5abe18eb8ec30a024c8769e55479c53c150229336b6eb391f531, and model.py's sha256 matches the sources hash on the G-LEAK, G-AX, G-CONF, G-GOLD, G-HYGIENE and G-DIFF gate stanzas \u2014 the recorded gates ran on exactly this file. markers.same_spec(model.py, model_prepatch.py) is True, so the spec view I judged is the frozen twin-shared one. `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' (exit 0, 13.05s), so the artifact I audited is live.\n\nTHE BASELINE ALREADY CONTAINS THE ENTIRE GOLD EDIT \u2014 VERIFIED BY NORMALIZED SUBSTRING TEST, NOT ASSERTED. I whitespace-normalized the problem_statement and tested containment of each gold-diff side. All True: the removed line 'url = reverse(url_name, args=[quote(remote_obj.pk)])' and the added form 'reverse(url_name, args=[quote(remote_obj.pk)], current_app=self.model_admin.admin_site.name)'. The problem_statement also names 'get_admin_url', 'readonly_fields', 'django.contrib.admin.helpers', the 'current_app keyword' pointer, and the /admin/ vs /custom-admin/ symptom. The dataset gold patch is exactly that one-call change to django/contrib/admin/helpers.py. There is no headroom for the spec view to be MORE informative than a verbatim copy of the diff. I did not stop there.\n\nMECHANICAL SCANS ON THE VIEW'S OWN TERMS. (a) Repo-symbol scan for reverse, current_app, admin_site, model_admin, format_html, NoReverseMatch, url_name, quote, remote_obj, remote_field, AdminSite, ModelAdmin, readonly, ForeignKey, app_dict, app_list, get_admin_url, custom-admin, /admin, helpers.py, urlconf, namespace: ZERO substantive hits. The only matches are lexical false positives: 'contrib' inside the English 'contributes'/'contributes to' (lines 123, 208), 'django' only in the instance id on line 1 ('Twin-artifact model for django__django-14855' \u2014 the instance name, public), and 'admin' inside the English word 'administration' (line 6). No Django symbol appears. (b) Provenance-marker regex sweep for '\\.py:\\d+', 7-40-char hex runs, '#\\d{4,6}', '@@', 'diff --git', 'ticket', 'commit': ZERO matches. (c) Independent gold-line reproduction check: every +/- line of the patch, whitespace-normalized, absent from the normalized view. (d) Independent re-run of swebench_unified.leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch): passed=True, 0 hard_failures, 0 warnings \u2014 consistent with gates.G-LEAK status=pass.\n\nHINTS-VOCABULARY DIFF (the canonical failure mode for this lane). Diffed spec-view tokens (>=4 chars) against problem_statement: 300 novel tokens, all Nagini/contract machinery (Requires, Ensures, PSeq, ToSeq, MustTerminate, list_pred, Forall, Forall2, ContractOnly), bundle scaffolding (axioms, impl, elided, provenance, twin, mapping, axiom_check), or the de-Djangoized abstraction vocabulary (deployment, prefix, selector, registry, sibling, route, exposes). Intersecting the novel set with hints-ONLY vocabulary leaves 12 survivors \u2014 against, before, currently, first, input, looks, real, since, what, which, without, would \u2014 every one a function word. None of the hints' distinctive content (the b790883065... backport SHA, ticket #31181, release-blocker framing, 3.2.8) appears anywhere in the view.\n\nTHE ONLY CLAUSES WITH NO problem_statement ANTECEDENT \u2014 MACHINE-CHECKED. The empty-instance-name fallback (docstring lines 17-20, the axiom's no-selector Ensures pair, and the two post-conditions 'len(names[current_idx]) == 0 => Result() == prefixes[default_idx]' / '=> len(Result()) == 0') plus the U+003A separator-free domain Requires. Two independent checks clear both:\n\n  (1) PROVENANCE IS THE UNCHANGED CALLEE AT base_commit, NOT THE DIFF. I built a git worktree at base_commit 475cffd1d64c690cdad16ede4d5e81985738ceb4 and read django/urls/base.py directly. The guard is literally 'if current_app:' \u2014 a FALSINESS test, so an empty AdminSite.name never reaches the 'if current_ns and current_ns in app_list' matching and falls through to the 'elif ns not in app_list' default arm; and 'current_path = current_app.split(\":\")' is the exact component split the U+003A domain restriction encodes. I also confirmed the base-commit helpers.py get_admin_url is the unpatched one-line reverse() call inside try/except NoReverseMatch: return str(remote_obj) \u2014 the two exits the spec's empty-sequence value models. Both facts are readable in UNCHANGED framework code at base_commit by any solver; neither is derivable only from the gold diff or hints.\n\n  (2) THE CLAUSES CARRY ZERO DISCRIMINATING CONTENT \u2014 MEASURED, NOT ARGUED (this is the load-bearing test the lane asks for). I stripped the two empty-name post-conditions from model_prepatch.py (prepatch_noempty.py) and ran the pinned verifier: it STILL FAILS, exit 1, and fails on the OTHER clause \u2014 'Postcondition of related_link_target might not hold. Assertion Implies(((len(ToSeq(names)[current_idx]) > 0) and ToSeq(exposes)[current_idx]), (Result() == ToSeq(prefixes)[current_idx])) might not hold.' So the NON-EMPTY-name clause alone rejects the pre-patch impl; the empty-name clauses do no discriminating work and cannot be reverse-engineered into the edit. They also name default_idx as a bare existential index without ever fixing WHICH sibling the framework falls back to (app_dict['admin'][0]), so they do not disclose the resolver's fallback rule either.\n\nCORE GATES THE JUDGEMENT LEANS ON, RE-READ: G-LEAK pass (and re-run by me, passed=True), G-HYGIENE pass with region hashes I recomputed and matched, G-GOLD pass, G-DIFF pass (and independently reproduced above), G-VERIFY pass (reproduced: exit 0). G-PANEL-2 (faithfulness) is recorded FAIL \u2014 a spec-strength finding on heterogeneous sibling registries. That is a different lane and does not bear on leakage: an over-strong Ensures on an untested input class discloses nothing about the gold edit beyond a problem_statement that already quotes it. I flag it only so the record shows I saw it and did not let a sibling-lane failure color this one.\n\nCONCLUSION: no gold-diff line reproduced, no patched path/module/symbol echoed, no diff or provenance markers, no bug/fix narration, no hints-only content, and the only clauses without a problem_statement antecedent are base_commit-readable properties of an unchanged callee that I MEASURED to carry no discriminating power. VERDICT: NO-LEAKAGE. No counterexample applies \u2014 this lane's deliverable is the reconstruction argument, not a verifying rival.\n\nHYGIENE: all scratch under mktemp -d ( worktree, removed via `git worktree remove --force`) plus  for the prepatch probe; bundle read-only throughout and re-confirmed byte-identical after the audit (model.py sha256 still efec6e32...). No git stash, no tree-wide git operations.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:09:02+00:00",
+      "code_version": "94314cde7-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-inline-selector",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reads",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-names",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-prefixes",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-exposes",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-no-selector",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 57.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-return-default",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-default-selector",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-default-arg-swapped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-total-resolution",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.1
+          },
+          {
+            "expect": "reject",
+            "id": "echo-unguarded",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-exposes-forced",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-route-axis-swapped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 12
+        },
+        "manifest_sha256": "69a2ede6f9dccb2613d9a5fe4ad8efad5fa94ac7518a49528473e1185fc68650",
+        "n_cases": 14,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 14 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c",
+        "properties.py": "69a2ede6f9dccb2613d9a5fe4ad8efad5fa94ac7518a49528473e1185fc68650"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T20:35:22+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "a76a25341dab21ea930eeb7a78ae1ed46825bdb3eb114da53b9e8e323117f973",
+        "patch.diff": "d3030b5f4fad5c863ff06db624c2394aa0a7f8e23a3bc281954555e703488016"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T20:31:54+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {
+        "wall_time_s": 14.1
+      },
+      "detail": "verified in 14.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "efec6e321793c61714f365e62b444a515ba9d801faa8a1a480243a23081e500c"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-14855",
+  "modeled_functions": [
+    {
+      "carrier_type": "admin-site instance names + URL prefixes as PSeq[int] of Unicode code points; the sibling-instance registry as parallel PSeq lists (names, prefixes, and exposes: bool -- whether that deployment carries a route for the identifier and argument being resolved); 'the page rendered NO link' (the real function's except NoReverseMatch: return str(remote_obj) arm) as the EMPTY PSeq, unambiguous because every registered deployment's prefix is non-empty",
+      "model_symbol": "related_link_target",
+      "repo_location": "django/contrib/admin/helpers.py:206 (changed body line 212)",
+      "repo_symbol": "django.contrib.admin.helpers.AdminReadonlyField.get_admin_url",
+      "role": "modeled changed function (builds the link URL for a read-only related object); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(((len(ToSeq(names)[current_idx]) > 0) and ToSeq(exposes)[current_idx]), (Result() == ToSeq(prefixes)[current_idx])) -- the clause pinning the result to the CURRENT deployment's prefix when that deployment has a non-empty instance identifier and carries a route for the identifier being resolved; that prefix differs from the default's whenever the current deployment is not the default. (The companion clauses are shared by both twins and so carry no discriminating content: the EMPTY-identifier clauses resolve against the default, matching the real reverse's falsy `if current_app:` guard at django/urls/base.py:41, and the route-absent clauses demand that no link be produced, which both twins honour on the slices where they apply. The clause above alone rejects the pre-patch call.)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the read-only related-object link resolves into the CURRENT admin-site deployment",
+      "reverted_to": "reverse(...) called WITHOUT current_app -> resolve_prefix(..., has_selector=False) -> the registered default instance's prefix"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "23e1cf7f4626335e35d1c02fc315f46b08a5b019359a36daee03fc5c55774aa9",
+    "impl": "30ea7dd2acbcdcc111d87d58733eb3ca3ee679af79b07966490fbc67f31a81c1",
+    "post-conditions": "eca4a26850b6f8c90a0876da16056873d204ce48dc802eae64e8fdd2d57f38ef",
+    "pre-conditions": "83d5bbaa77c260e2af06c1f748f867fc554f3398168838d75c14bd5d1c5684d8",
+    "pure": "832573acd777a8f918963f373af719990fec13a84cb9f4573fb8bc57566886cd",
+    "spec_view": "069812a686cb5abe18eb8ec30a024c8769e55479c53c150229336b6eb391f531"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "admin-site instance names and URL prefixes as PSeq[int] of Unicode code points; the sibling-instance registry as two parallel PSeq[PSeq[int]] (names, prefixes) alongside a parallel PSeq[bool] (exposes, the per-deployment route flag); the EMPTY PSeq[int] denotes 'no link produced' (distinct from every deployment prefix, since a produced url carries the resolution root); str indexing banned in Nagini",
+  "version": "4.0"
+}

@@ -1,0 +1,403 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "R+I: delete kwargs become {\"unique\": True, \"primary_key\": False}; only changes the filter passed to the unchanged _constraint_names, so PK constraints are excluded from the candidates input. Reflected in the candidates input (pk-field scenario -> single _uniq candidate). Not a separate modeled function.",
+      "repo_location": "django/db/backends/base/schema.py:528-532 (gold hunk 1)",
+      "repo_symbol": "django.db.backends.base.schema.BaseDatabaseSchemaEditor.alter_unique_together"
+    },
+    {
+      "handling": "R+I: pure extraction of the IndexName(...) name construction into _unique_constraint_name(table, columns, quote=True/False); quote=True reproduces the old inline closure byte-for-byte (no observable change on the create path). With quote=False it yields the unquoted default _uniq name = the default_name input the selection consumes (mapping.md \u00a73.2).",
+      "repo_location": "django/db/backends/base/schema.py:1563-1577 (gold hunk 3), 1606-1616 (gold hunk 4, new helper)",
+      "repo_symbol": "django.db.backends.base.schema.BaseDatabaseSchemaEditor._create_unique_sql / _unique_constraint_name"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "ce69e34bd646558bb44ea92cecfd98b345a0b3e0",
+  "changed_files": [
+    "django/db/backends/base/schema.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the deep model == the gold selection algorithm (gold_select verbatim) on 72 boundary + 200000 fuzz inputs incl. F2P unique-field and P2P pk-field scenarios, 0 disagreements",
+      "encoded_property": "selection over (candidates, default_name, unique, feature_on): narrow to [default_name] iff unique and feature_on and len(candidates)>=1 and default_name in candidates; then return the sole candidate or raise if not exactly one",
+      "kind": "A-reference",
+      "models": "the post-patch _delete_composed_index constraint-name selection: optional narrowing to the composed rule's default name then the exactly-one-candidate check",
+      "name": "select_constraint_to_remove (impl) + disambiguates",
+      "provenance": "django/db/backends/base/schema.py:571-587 post-patch; the guard `unique is True and constraint_names and self.connection.features.allows_multiple_constraints_on_same_fields`, then `if default_name in constraint_names: constraint_names = [default_name]`, then `if len(constraint_names) != 1: raise ValueError`",
+      "role": "deep model (the verified impl) of the CHANGED selection operation; NOT a consumed axiom \u2014 there is no @ContractOnly axiom in this bundle"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:10:56+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model select_constraint_to_remove == gold _delete_composed_index selection on 72 boundary + 200000 fuzz inputs (incl. F2P unique-field and P2P pk-field scenarios), 0 disagreements",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "548586bfcd729ce9aa08cd56e38af3f647f905a453eae0a80a87ab4dcd35b845",
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:11:00+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100546,
+          "disagreements": 0,
+          "seed": 15732,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100546, \"disagreements\": 0, \"seed\": 15732, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "304007c41b9f1be4e99f6470fb43734f62cd41f8c244957638c567a496576486",
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:20:20+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db",
+        "model_prepatch.py": "a05d334df46c315b0d80cbe632c1b27b898db88902bf1e52bff6339131774cb7"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T22:56:57+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:21:08+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db",
+        "model_prepatch.py": "a05d334df46c315b0d80cbe632c1b27b898db88902bf1e52bff6339131774cb7"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:10:40+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "860e0bcd24274e03edbed91b4356dae3dc9f74ed7a7f2aa54f56da6b8f3cf9e1",
+          "impl": "ca2661f1ab1edd7e5fa9028f4cc3574f536a0e6741bfd975b05ca87dda6e7af0",
+          "post-conditions": "fd23ff647df4041fa49c2613b8cc4fe1f129173edaf25abbea025a09e0abbf7d",
+          "pre-conditions": "625e5f7b04e5251cd71b9169d489f189ba725f528c5c6ac15a079c179ef07324",
+          "pure": "f0d25b55c8427ce3865cc966effbac8b54d6a5baf32c9710efedc0e67c824f72",
+          "spec_view": "31310fb9223f2359e21d488f7b1ec7e359b56d6c96b7a0a5dce21d4f8e2f0691"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:10:41+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7cc379f38ebab6e9fb7e47f2022e17e0d071a2210e87c8e0b9b211842eff3a5a",
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:10:42+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:29:53+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 6,
+        "survivors": [
+          "line 140: '0' -> '-1'"
+        ],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 6/7 (86%); survivors: [\"line 140: '0' -> '-1'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T22:56:59+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-not-too-strong / no drift from real repo) confirmed. Modeled function: the disambiguating constraint-selection block inside BaseDatabaseSchemaEditor._delete_composed_index (django/db/backends/base/schema.py, post-patch worktree $SCRATCH @ ce69e34). Checks performed:\n\n1. Nagini verification of the bundle model.py: PASS (exit 0, 12.2s).\n2. G-AX A-reference (axiom_check.py): model_select == gold _delete_composed_index selection on 72 boundary + 200000 fuzz inputs, 0 disagreements.\n3. INDEPENDENT sweep (I transcribed the REAL repo selection directly from the /tmp worktree, NOT from axiom_check): compared the SPEC's mandated behavior (derived from the Ensures normal-return-domain clause + the disambiguation/sole-candidate value clauses + the Exsures raise condition) against the real repo selection over 500000 randomized (candidates, default_name, unique, feature_on) inputs. 0 divergences.\n\nKey abstractions vetted:\n- unique:bool is defined at the modeling boundary as the result of `constraint_kwargs.get(\"unique\") is True` (mapping.md A3), so the real repo's identity-check semantics are captured; conformance_check.py additionally fuzzes truthy-non-True kwargs confirming unique==(kwargs.get('unique') is True). Not a drift source.\n- List[int] for list[str] is sound: only name equality/membership/length/[0] are observable in the selection; characters never affect the decision.\n- The narrowing (constraint_names=[default_name]) <-> narrowed_to_default flag returning default_name is observationally identical for the subsequent len!=1 check and [0] access.\n- The positive normal-return-domain Ensures makes refusal REQUIRED on non-resolvable sets, exactly matching the real repo (which raises ValueError there). The spec neither forbids a behavior the repo exhibits nor mandates one it does not.\n\nSpec region byte-identity was implicitly confirmed by nagini_verify + axiom_check operating on the frozen model; no divergence found. Verdict: FAITHFUL (spec is not too strong and does not drift from real repo behavior).",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Leakage judged against the public problem_statement ONLY (not hints_text), on a bundle with NO relaxation in force (meta.relaxed_leakage=None, no RELAXED_LEAKAGE.md), so a leak would be a real fail.\n\nMechanical G-LEAK screen: PASS (spec view clean, hard_failures=[]). Confirmed directly: (a) no diff markers; (b) no gold-patch changed line reproduced (>=8 normalized chars); (c) patched file path 'django/db/backends/base/schema.py' and its module path absent from the spec view; (d) NO patched repo symbol (_delete_composed_index, _unique_constraint_name, alter_unique_together, allows_multiple_constraints_on_same_fields, constraint_names) appears in any spec-view identifier, comment, or docstring (grep + _patch_changed_symbols screen); (e) no fix/bug/patch/regression narration in comments.\n\nSemantic check beyond the lexical screen: the spec view (docstring + disambiguates helper + pre/post-conditions of select_constraint_to_remove) describes DESIRED behavior over an abstract modeled carrier (candidates:List[int], default_name:int, unique/feature_on bools) \u2014 select the composed rule's own default name when several uniqueness constraints coexist on the same column(s) and the default is among the candidates, else the sole candidate, else refuse rather than remove an arbitrary constraint. This is exactly the scenario the PUBLIC problem_statement already lays out (a column carrying two uniqueness constraints \u2014 the PK/independent unique and the unique_together's own \u2014 where the migration wrongly expects exactly one). Encoding that the correct constraint must be chosen among the candidates is the legitimate, unavoidable content of a behavioral spec; it discloses no edit-localization (which file/function/lines were changed) beyond the public task framing. The 'default_name'/'disambiguates' abstraction reveals the required outcome, not the gold edit.\n\nConclusion: the spec view does not reconstruct the gold edit beyond the public problem_statement. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-not-too-strong / no drift from real repo) confirmed. Modeled function: the disambiguating constraint-selection block inside BaseDatabaseSchemaEditor._delete_composed_index (django/db/backends/base/schema.py, post-patch worktree $SCRATCH @ ce69e34). Checks performed:\n\n1. Nagini verification of the bundle model.py: PASS (exit 0, 12.2s).\n2. G-AX A-reference (axiom_check.py): model_select == gold _delete_composed_index selection on 72 boundary + 200000 fuzz inputs, 0 disagreements.\n3. INDEPENDENT sweep (I transcribed the REAL repo selection directly from the /tmp worktree, NOT from axiom_check): compared the SPEC's mandated behavior (derived from the Ensures normal-return-domain clause + the disambiguation/sole-candidate value clauses + the Exsures raise condition) against the real repo selection over 500000 randomized (candidates, default_name, unique, feature_on) inputs. 0 divergences.\n\nKey abstractions vetted:\n- unique:bool is defined at the modeling boundary as the result of `constraint_kwargs.get(\"unique\") is True` (mapping.md A3), so the real repo's identity-check semantics are captured; conformance_check.py additionally fuzzes truthy-non-True kwargs confirming unique==(kwargs.get('unique') is True). Not a drift source.\n- List[int] for list[str] is sound: only name equality/membership/length/[0] are observable in the selection; characters never affect the decision.\n- The narrowing (constraint_names=[default_name]) <-> narrowed_to_default flag returning default_name is observationally identical for the subsequent len!=1 check and [0] access.\n- The positive normal-return-domain Ensures makes refusal REQUIRED on non-resolvable sets, exactly matching the real repo (which raises ValueError there). The spec neither forbids a behavior the repo exhibits nor mandates one it does not.\n\nSpec region byte-identity was implicitly confirmed by nagini_verify + axiom_check operating on the frozen model; no divergence found. Verdict: FAITHFUL (spec is not too strong and does not drift from real repo behavior).; G-PANEL-3 (leakage): pass \u2014 Leakage judged against the public problem_statement ONLY (not hints_text), on a bundle with NO relaxation in force (meta.relaxed_leakage=None, no RELAXED_LEAKAGE.md), so a leak would be a real fail.\n\nMechanical G-LEAK screen: PASS (spec view clean, hard_failures=[]). Confirmed directly: (a) no diff markers; (b) no gold-patch changed line reproduced (>=8 normalized chars); (c) patched file path 'django/db/backends/base/schema.py' and its module path absent from the spec view; (d) NO patched repo symbol (_delete_composed_index, _unique_constraint_name, alter_unique_together, allows_multiple_constraints_on_same_fields, constraint_names) appears in any spec-view identifier, comment, or docstring (grep + _patch_changed_symbols screen); (e) no fix/bug/patch/regression narration in comments.\n\nSemantic check beyond the lexical screen: the spec view (docstring + disambiguates helper + pre/post-conditions of select_constraint_to_remove) describes DESIRED behavior over an abstract modeled carrier (candidates:List[int], default_name:int, unique/feature_on bools) \u2014 select the composed rule's own default name when several uniqueness constraints coexist on the same column(s) and the default is among the candidates, else the sole candidate, else refuse rather than remove an arbitrary constraint. This is exactly the scenario the PUBLIC problem_statement already lays out (a column carrying two uniqueness constraints \u2014 the PK/independent unique and the unique_together's own \u2014 where the migration wrongly expects exactly one). Encoding that the correct constraint must be chosen among the candidates is the legitimate, unavoidable content of a behavioral spec; it discloses no edit-localization (which file/function/lines were changed) beyond the public task framing. The 'default_name'/'disambiguates' abstraction reveals the required outcome, not the gold edit.\n\nConclusion: the spec view does not reconstruct the gold edit beyond the public problem_statement. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-not-too-strong / no drift from real repo) confirmed. Modeled function: the disambiguating constraint-selection block inside BaseDatabaseSchemaEditor._delete_composed_index (django/db/backends/base/schema.py, post-patch worktree $SCRATCH @ ce69e34). Checks performed:\n\n1. Nagini verification of the bundle model.py: PASS (exit 0, 12.2s).\n2. G-AX A-reference (axiom_check.py): model_select == gold _delete_composed_index selection on 72 boundary + 200000 fuzz inputs, 0 disagreements.\n3. INDEPENDENT sweep (I transcribed the REAL repo selection directly from the /tmp worktree, NOT from axiom_check): compared the SPEC's mandated behavior (derived from the Ensures normal-return-domain clause + the disambiguation/sole-candidate value clauses + the Exsures raise condition) against the real repo selection over 500000 randomized (candidates, default_name, unique, feature_on) inputs. 0 divergences.\n\nKey abstractions vetted:\n- unique:bool is defined at the modeling boundary as the result of `constraint_kwargs.get(\"unique\") is True` (mapping.md A3), so the real repo's identity-check semantics are captured; conformance_check.py additionally fuzzes truthy-non-True kwargs confirming unique==(kwargs.get('unique') is True). Not a drift source.\n- List[int] for list[str] is sound: only name equality/membership/length/[0] are observable in the selection; characters never affect the decision.\n- The narrowing (constraint_names=[default_name]) <-> narrowed_to_default flag returning default_name is observationally identical for the subsequent len!=1 check and [0] access.\n- The positive normal-return-domain Ensures makes refusal REQUIRED on non-resolvable sets, exactly matching the real repo (which raises ValueError there). The spec neither forbids a behavior the repo exhibits nor mandates one it does not.\n\nSpec region byte-identity was implicitly confirmed by nagini_verify + axiom_check operating on the frozen model; no divergence found. Verdict: FAITHFUL (spec is not too strong and does not drift from real repo behavior).\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Leakage judged against the public problem_statement ONLY (not hints_text), on a bundle with NO relaxation in force (meta.relaxed_leakage=None, no RELAXED_LEAKAGE.md), so a leak would be a real fail.\n\nMechanical G-LEAK screen: PASS (spec view clean, hard_failures=[]). Confirmed directly: (a) no diff markers; (b) no gold-patch changed line reproduced (>=8 normalized chars); (c) patched file path 'django/db/backends/base/schema.py' and its module path absent from the spec view; (d) NO patched repo symbol (_delete_composed_index, _unique_constraint_name, alter_unique_together, allows_multiple_constraints_on_same_fields, constraint_names) appears in any spec-view identifier, comment, or docstring (grep + _patch_changed_symbols screen); (e) no fix/bug/patch/regression narration in comments.\n\nSemantic check beyond the lexical screen: the spec view (docstring + disambiguates helper + pre/post-conditions of select_constraint_to_remove) describes DESIRED behavior over an abstract modeled carrier (candidates:List[int], default_name:int, unique/feature_on bools) \u2014 select the composed rule's own default name when several uniqueness constraints coexist on the same column(s) and the default is among the candidates, else the sole candidate, else refuse rather than remove an arbitrary constraint. This is exactly the scenario the PUBLIC problem_statement already lays out (a column carrying two uniqueness constraints \u2014 the PK/independent unique and the unique_together's own \u2014 where the migration wrongly expects exactly one). Encoding that the correct constraint must be chosen among the candidates is the legitimate, unavoidable content of a behavioral spec; it discloses no edit-localization (which file/function/lines were changed) beyond the public task framing. The 'default_name'/'disambiguates' abstraction reveals the required outcome, not the gold edit.\n\nConclusion: the spec view does not reconstruct the gold edit beyond the public problem_statement. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:37:30+00:00",
+      "code_version": "f2e98864a-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.1
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-single-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-selfcall",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-candidates",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-arbitrary-on-multi",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-wrong-disambig-pick",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-invented-name",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "e0bc4df18889af427288add2c45111817770ff285c29e9474624c26346cdff14",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db",
+        "properties.py": "e0bc4df18889af427288add2c45111817770ff285c29e9474624c26346cdff14"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:38:10+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:30:08+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 14.3
+      },
+      "detail": "verified in 14.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d64934d8c47be82be0e539469b93de75dfc2b522cacf44aa5f02ffe1372525db"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15732",
+  "modeled_functions": [
+    {
+      "carrier_type": "list[str] of constraint names -> List[int] of distinct name identifiers; default name str -> int id; unique/feature flags -> bool",
+      "model_symbol": "select_constraint_to_remove",
+      "repo_location": "django/db/backends/base/schema.py:559 (selection block 571-587 post-patch)",
+      "repo_symbol": "django.db.backends.base.schema.BaseDatabaseSchemaEditor._delete_composed_index (constraint-name selection block)",
+      "role": "modeled changed function: the disambiguating selection of the single constraint name to delete; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "Exsures(AmbiguousConstraintSelection, ... and not (disambiguates(...) and default_name in ToSeq(candidates))): on a two-candidate set containing the default with unique+feature_on the prepatch raises, but the spec forbids raising there (requires returning default_name). This is the F2P test_remove_unique_together_on_unique_field case.",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "_delete_composed_index constraint-name selection (missing disambiguation toward the composed rule's default name)",
+      "reverted_to": "pre-patch skeleton with no narrowing: straight to `if len(candidates) == 1 then return else raise` (mirrors pre-patch schema.py:565-580)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "860e0bcd24274e03edbed91b4356dae3dc9f74ed7a7f2aa54f56da6b8f3cf9e1",
+    "impl": "ca2661f1ab1edd7e5fa9028f4cc3574f536a0e6741bfd975b05ca87dda6e7af0",
+    "post-conditions": "fd23ff647df4041fa49c2613b8cc4fe1f129173edaf25abbea025a09e0abbf7d",
+    "pre-conditions": "d0cea18b590944352c2cd6e9244f4952ab4370b68da265b7ce025a8eb6db0199",
+    "pure": "f0d25b55c8427ce3865cc966effbac8b54d6a5baf32c9710efedc0e67c824f72",
+    "spec_view": "bedd7df3a2a24929b9bf121abca5621967b9391a1f8a7cbc41610daa97c9508d"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "constraint names abstracted to distinct integer identifiers (selection observes only name equality/membership/length, never characters); the discovered set is List[int]; specification uses ToSeq(candidates) for membership (x in ToSeq(candidates))",
+  "version": "4.2"
+}

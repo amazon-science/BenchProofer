@@ -1,0 +1,611 @@
+{
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): 7 real formatter kinds x 10 boundary tick sets x 7 axis ranges drawn INDEPENDENTLY of those ticks (the diagonal, 2x, 1000x, zero-anchored, upward-only, unrelated, and one that excludes the ticks) + 4000 fuzz sets each with its own independently drawn range x both formatter APIs; asserts one label per tick everywhere, the guarded reading property at every range, that the residual hypothesis is load-bearing (residual-enabled labels demonstrably do not read back), that a label's text carries strictly more than its reading and depends on the whole set, that the label sequence MOVES when only the axis range moves (so the range arguments are not idle and the tick set's own span is not a substitute for them), that some non-default convention stays unreadable even with every residual control disabled while the default convention is exactly the one those controls move, and (a declared bound plus an exact measurement, since it is version-dependent) which conventions have no label sequence at all for an axis range of no width",
+      "encoded_property": "weakest sufficient contract, two Ensures: (1) len(rendered_labels(c, ticks, r, lo, hi)) == len(ticks) -- one label per tick, for every convention, mode and axis range; (2) c == 0 and not r ==> reading(Result()[k]) == ticks[k] -- the full-value convention with residual rendering disabled factors nothing out, so each label reads back to its tick's full value, at every range. Nothing else is knowable: with residual rendering enabled the readings are unconstrained, and two conventions, two modes, two tick sets or two axis ranges need not render alike.",
+      "models": "the label sequence a numeric tick formatter renders for a whole tick set, given the formatter's rendering convention, whether residual rendering is enabled, and the numeric range of the axis it is attached to",
+      "name": "rendered_labels",
+      "provenance": "the numeric tick formatters the two legend sites render through, taken as they are (the change does not alter rendering); the whole tick set is the argument because a formatter chooses one common way of writing the set it is given, and the axis range is an argument because on this path it is the ONLY channel from the formatter to its environment and several conventions choose how to write a tick from it -- both dependences measured in axiom_check.py",
+      "purity": "@Pure @ContractOnly (used inside Ensures and loop Invariants; the only source of label values in the impl)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): validated in that concrete form on every boundary and fuzz tick set; also witnesses two different label texts for the same tick that read back to the same number, which is why the model's label carrier stands for the exact text and not for the reading",
+      "encoded_property": "deliberately UNINTERPRETED (no Ensures). Nothing about a label's reading is available except through rendered_labels' guarded clause, so the spec cannot be satisfied by any label value the implementation computes for itself.",
+      "models": "the number a reader recovers by reading a rendered label back as a number -- the only thing the model may learn about a label's text",
+      "name": "reading",
+      "provenance": "no repo callee: this is the reader's operation, i.e. what the repo's own legend assertions do to a label's text (parse it as a number); concretely float(text) after normalising a Unicode minus and digit-grouping spaces",
+      "purity": "@Pure @ContractOnly (used inside Ensures via rendered_labels and legend_reads_ticks)"
+    }
+  ],
+  "base_commit": "22cdfb0c93f8ec78492d87edb810f10cb7f57a31",
+  "changed_files": [
+    "seaborn/_core/scales.py",
+    "seaborn/utils.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX) over 7 formatter kinds, both APIs, 10 boundary tick sets x 7 independently drawn axis ranges + 4000 fuzz pairs; conformance_check.py (G-CONF) calls the real callee on all 105750 checks, 74315 of them on a range strictly wider than the ticks",
+      "encoded_property": "same two Ensures as the axiom entry; the rendering itself is UNCHANGED by the patch, so this is a reference model of an unchanged callee, not a contract on a changed operation",
+      "kind": "A-reference",
+      "models": "the real matplotlib tick formatter's rendering, through BOTH APIs the two modeled sites use (whole set at once; set announced then each tick rendered), for a given tick set and a given axis range",
+      "name": "rendered_labels",
+      "provenance": "matplotlib.ticker numeric formatters as installed/built by the two legend sites, attached to an axis of the range that site presents; validated == the real object rather than described",
+      "role": "deep model of the unchanged label rendering: supplies the only label values the impl can obtain, and is validated against the real formatter by axiom_check.py and exercised live by conformance_check.py"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX); conformance_check.py performs 105240 reading checks against the real labels",
+      "encoded_property": "uninterpreted in the model; concretely the numeric parse of the label text",
+      "kind": "A-reference",
+      "models": "reading a label's text back as a number",
+      "name": "reading",
+      "provenance": "the reader's operation, matching how the repo's own legend assertions inspect a label",
+      "role": "pure spec function; the model's sole window onto a label, kept uninterpreted so no guarantee about label readings is derivable except from the rendered_labels clause"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T05:09:41+00:00",
+      "code_version": "55093e6ac-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: rendered_labels/reading deep models sound on 70 boundary (tick set, axis range) pairs + 4000 fuzz pairs, both formatter APIs, with the axis range driven INDEPENDENTLY of the tick set -- one label per tick for every convention, mode and range; value-writing + residual-disabled labels read back to full ticks at every range, including ranges that do not contain the ticks; residual-enabled labels demonstrably do not (hypothesis load-bearing); label text carries strictly more than its reading and depends on the whole tick set (carrier and signature justified); the label sequence moves when only the axis range moves for convention(s) ['log', 'logsci', 'scalar'], so the range arguments are load-bearing and rendering against the tick set's own span would differ; some non-default conventions are unreadable even with every residual-rendering control disabled (guard withholds nothing available) while the residual controls moved a non-default rendering in 0 of the boundary pairs (measured, not claimed), and the default convention is exactly the one those controls move. Measured callee domain (declared bound ['eng']): the convention(s) with no label sequence at all for an axis range of no width are []; every other convention renders one label per tick on every range, of no width or not, an empty tick set renders everywhere, and on a range of non-zero width every convention renders.",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "9fe2f054198f82325cec6055f6892343a3de4d98cf516a689be19930c0a2115d",
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T05:09:33+00:00",
+      "code_version": "55093e6ac-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "axis_range_driven_independently": true,
+          "backend": "nagini",
+          "boundary_cases": 30,
+          "boundary_range_factors": [
+            0,
+            1,
+            10,
+            1000
+          ],
+          "checks": 105750,
+          "conventions_driven": {
+            "0": "scalar",
+            "1": "eng",
+            "2": "strmethod_3g",
+            "3": "log"
+          },
+          "disagreements": [],
+          "discriminates_prepatch": true,
+          "fuzz_draws": 100000,
+          "inputs": 100120,
+          "instance": "mwaskom__seaborn-3187",
+          "label_comparison": "exact text",
+          "oracle": [
+            "seaborn._core.scales.ContinuousBase._setup legend branch",
+            "seaborn.utils.locator_to_legend_entries"
+          ],
+          "prepatch_controls_cap": 20000,
+          "prepatch_controls_evaluated": 20000,
+          "prepatch_disagreeing_cases": 20000,
+          "purity_checks": 1320,
+          "raise_agreements": 0,
+          "reads_checks": 105240,
+          "seed": 3187,
+          "shadow_provenance": "pure + impl regions of model.py, verbatim",
+          "site1_checks": 5630,
+          "site2_checks": 100120,
+          "state_checks": 5630,
+          "state_half_observed_at": "site 1 (site 2 builds its own formatter)",
+          "status": "pass",
+          "wider_than_ticks_checks": 74315
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"instance\": \"mwaskom__seaborn-3187\", \"backend\": \"nagini\", \"checks\": 105750, \"site1_checks\": 5630, \"site2_checks\": 100120, \"state_checks\": 5630, \"reads_checks\": 105240, \"purity_checks\": 1320, \"raise_agreements\": 0, \"inputs\": 100120, \"boundary_cases\": 30, \"fuzz_draws\": 100000, \"seed\": 3187, \"label_comparison\": \"exact text\", \"axis_range_driven_independently\": true, \"wider_than_ticks_checks\": 74315, \"boundary_range_factors\": [0, 1, 10, 1000], \"conventions_driven\": {\"0\": \"scalar\", \"1\": \"eng\", \"2\": \"strmethod_3g\", \"3\": \"log\"}, \"state_half_observed_at\": \"site 1 (site 2 builds its own formatter)\", \"oracle\": [\"seaborn._core.scales.ContinuousBase._setup legend branch\", \"seaborn.utils.locator_to_legend_entries\"], \"shadow_provenance\": \"pure + impl regions of model.py, verbatim\", \"prepatch_controls_evaluated\": 20000, \"prepatch_controls_cap\": 20000, \"discriminates_prepatch\": true, \"prepatch_disagreeing_cases\": 20000, \"disagreements\": []}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "586b5516d4bc554f764de5bf8c8c4b41f66085fc5815d76a556c7a07943114b3",
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:44:07+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6",
+        "model_prepatch.py": "ff2add950ca5785b402c71c6ff60cac947f3253b81fd21578516de83a277225d",
+        "model_prepatch_2.py": "a572c0ee87270af981a4a32f41409b813a4d5e724c2aefa17de63cd5c4589f21"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T05:18:51+00:00",
+      "code_version": "55093e6ac-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 22 admissible attacks re-run of 22 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 22 admissible attacks re-run of 22 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 22 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 22 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_20.py`, `atk_pp1.py`, `atk_pp2.py` |\n\n**Non-vacuity.** The positive control `atk_0.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6",
+        "properties.py": "ac28fd562020ff599d133bad5a6723b0c3f9d6e2f9fc7db35e00ad2af9611f5d"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:45:25+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6",
+        "model_prepatch.py": "ff2add950ca5785b402c71c6ff60cac947f3253b81fd21578516de83a277225d",
+        "model_prepatch_2.py": "a572c0ee87270af981a4a32f41409b813a4d5e724c2aefa17de63cd5c4589f21"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T05:06:01+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "4fc5b7967c233aed213204a95a3633a452f9612e2faf82e42566f8aa15913cfc",
+          "impl": "d8d46db0ef09f2155e83bed1e824e47e3f5a77d9dd198b442491c975c108a299",
+          "invariants": "87c3cd5db3b3f0b6c76cb97dc2c4570a1a67ad27d7525a71312cff7c9891783a",
+          "post-conditions": "88c76d49b9e89218dd22b54ec4c10b0843a4d1a74b8b1e796ee444911bfcd16d",
+          "pre-conditions": "61c4dd02a23e8f88482a43a16e9a642818ac7b1645d722f90866cf15bcb6d014",
+          "pure": "9def42897f3a72aad0f7e02de2ead53ac40d281f52c7c8c479629f9886299f5c",
+          "spec_view": "d0d68ad9c1805445bc3fb71c3d8e0d143b1ec51127341d7ce15090a44107df83"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T05:06:01+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "559bd933c7b7eeefa22c3437534cc993feebfa3794b56aee60d40b77643e4aed",
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T05:06:02+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T05:04:44+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T05:18:51+00:00",
+      "code_version": "55093e6ac-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 22 admissible attacks re-run of 22 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS-BREAK attack on mwaskom__seaborn-3187 (nagini). Reference = base worktree with patch.diff APPLIED (verified present at both sites via inspect.getsource before every differential); base commit used only for the untouched callees the axioms model. All work in /tmp + the instance container; bundle unmodified.\n\nSETUP CHECKS\n- Bundle model.py verifies under the pinned verifier: `scripts/nagini_verify.sh` -> 'Verification successful' (27.4s, exit 0).\n- Spec region integrity: markers.same_spec(model.py, model_prepatch.py, NaginiBackend()) = True and same for model_prepatch_2.py; spec_view = 18675 bytes. Both pre-state twins share the byte-identical spec and FAIL verification on exactly the patched clause -- 'Postcondition ... Assertion (not fmt.residual) might not hold' at legend_values_continuous:265 and legend_values_locator:350. So the spec discriminates the bug at both sites and is not vacuous.\n- Reproduced the bundle's own gates independently inside the gold-patched container: axiom_check.py exit 0 (measured callee-restriction set [] in this env, declared bound ['eng'] -- a sound over-declaration); conformance_check.py exit 0, 105750 checks / 0 disagreements / discriminates_prepatch true (20000/20000 controls disagree).\n\nAXIOM ATTACKS (rendered_labels / reading vs REAL matplotlib 3.7.2 formatters)\nBoth axioms held on every reachable input, including inputs the bundle's driver never presented (ranges NOT containing the ticks, ranges NARROWER than the ticks, INVERTED hi<lo, zero-width):\n- 4368 boundary checks over 6 formatter kinds x 22 tick sets x 13 ranges x both APIs: 0 length violations, 0 reading violations (convention 0, residual=False), 0 raises.\n- 60000-draw seeded fuzz (|t| <= 2**53, ranges drawn independently incl. inverted/zero-width): 0 length, 0 reading, 0 cross-API, 0 raises.\n- Determinism/no-hidden-input control: 20 repeats x all kinds x all tick sets -> 0 nondeterminism.\n\nDIFFERENTIAL: MODEL IMPL vs THE REAL GOLD-PATCHED SITES\nRestricted to the legitimate refinement domain (model `locs` binds to the POST-CLIP tick set per mapping A1/B1, so ranges must contain every tick; clipped cases counted+excluded, 0 occurred).\n- Boundary sweep: 3540 site-1 + 295 site-2 presentable calls over 32 tick sets, SIX conventions (incl. logsci and FuncFormatter, two the bundle never drove) x both arrival modes. All four postcondition clauses checked on the REAL object: sequence-equality 0, length 0, `not fmt.residual` 0, convention-pinning 0, reading (conv 0) 0, locations-identity 0, raises 0.\n- Fuzz: 4000 draws -> 8000 site-1 + 4000 site-2 calls, 3011 with range strictly wider than the ticks. 0 violations on every clause, INCLUDING view_lo/view_hi pinning read back off the real axis the formatter is attached to (f.axis.get_view_interval()) -- 0 range mutations.\n- Mixed arrival states (useOffset/scientific independently True/False -- probing the ONE-boolean abstraction of refinement C.2 as a possible under-count): 96 checks, 0 violations.\n- Exhaustive enumeration of 16 real mpl.ticker formatters through the patched site 1: 0 state-clause violations, 0 length-axiom violations. Pre-used formatter (set_locs already called, offset already computed to 1e8) -> patched site still yields full-value labels, residual_state False.\n- Site-2 LogLocator/LogFormatter branch (patch-untouched, mapping says in-scope as a non-default convention): 6 cases, length axiom and sequence-equality hold, no reading guarantee claimed -- consistent.\n- dtype gap: site 2's third parameter `dtype` has no model counterpart and real callers (relational.py:246,278) pass the data's own dtype. Tested float/int/np.int64 on 7 integral cases: label TEXT identical in all, and ScalarFormatter text is invariant to int64-vs-float tick type. No divergence.\n\nTWO LEADS RAISED AND CLOSED (both reasons the verdict is FAITHFUL, not a rubber stamp)\n1. rcParams['axes.formatter.use_mathtext'] -- ScalarFormatter().__init__ reads it when useMathText is None, and the patch does not touch it. With it True, the DEFAULT-constructed formatter (mapping's convention==0) renders '$\\mathdefault{100000001}$' at BOTH real sites, which does NOT read back -> would break Implies(convention==0, legend_reads_ticks). CLOSED: it is not model state and not a legend-builder input; the model's convention==0 is bound to a rendering CONVENTION settled before the builder runs, and the spec explicitly makes the convention immutable-by-the-builder and non-full-value conventions unguaranteed. A mathtext ScalarFormatter is a different convention under that binding, exactly like EngFormatter. mpl default is False, matplotlibrc default is False, and seaborn never sets it (grep of seaborn/ and rcmod.py: no hits). Not a spec-vs-repo divergence.\n2. axis.get_transform() -- a channel BEYOND get_view_interval, contradicting mapping 3.1's 'only thing it reads' claim. Found by spying on every axis attribute access: Log/LogSci/LogMathtext formatters call it in set_locs to read .linthresh. It is genuinely label-changing: 12 measured cases where the SAME (convention, ticks, residual, lo, hi) render differently with vs without a symlog linthresh (e.g. LogFormatter t=[1,3,10,30,100] -> ['1','','10','','100'] vs ['1','3','10','30','100']). CLOSED as UNREACHABLE at both modeled sites: seaborn's PseudoAxis has NO get_transform (confirmed by dir()) and site 2's dummy_axis defines get_view_interval and nothing else, so the try/AttributeError guard always takes the None branch. Confirmed behaviourally: 48 real site-1 calls across trans=None/'log'/'symlog'/'symlog(1)'/'symlog(10)' x 4 log-formatter kinds -> 0 sequence mismatches vs the model's transform-less deep model. mapping 3.1's wording is imprecise (get_transform is read, on the rendering path, by Log* kinds) but the model's 5-argument input list is COMPLETE for the two sites actually modeled, so the spec is not too strong.\n\nCONCLUSION: no input was found on which the modeled functions disagree with the real gold-patched callees. ~12k differential calls + ~64k axiom checks, all six site-1 conventions and both rendering APIs, over corners the bundle's driver omitted (inverted, zero-width, non-containing and narrower ranges; mixed residual states; pre-used formatters; 16 formatter kinds; dtype variants). The spec is neither too strong nor drifting: it pins the state half (residual disabled, convention and both range bounds unchanged) and the text half (exact sequence from the formatter's own rendering) and every clause is discharged by the real patched code, while both same-spec pre-state twins fail on the very clause the patch installs. Verdict FAITHFUL; no diverging input to cite.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "ARTIFACT JUDGED (current bytes, re-derived myself): model.py sha256=9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6; markers.spec_view(model.py, get_backend('nagini')) sha256=d0d68ad9c1805445bc3fb71c3d8e0d143b1ec51127341d7ce15090a44107df83 == meta.json region_hashes.spec_view (so the spec_view hash is current, even though the other six region hashes are stale vs these bytes). 336-line view. Scratch under a mktemp dir; NOTE a fixed-path spec_view.py I first used was clobbered mid-run by a concurrent instance's artifact (astropy-13033 content), so I re-derived  and re-ran every grep with an assertion that the file's header names mwaskom__seaborn-3187. All conclusions below are from the asserted-correct file.\n\nNO RELAXATION IN PLAY (checked, not assumed): meta.json has no `relaxed_leakage` key; gates.G-LEAK.status == \"pass\" (not \"relaxed\"); `find benchmark-verified/mwaskom__seaborn-3187 -iname '*relax*'` -> nothing. So there is no relaxation argument to re-derive; this is an ordinary strict leakage judgement.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as its own finding per instructions): leakage.reviewer_directed() over every .md/.py/.json in the instance dir (including the 445KB verdict.md) returns [] -- no bundle file instructs me how to record or which verdict is honest. verdict.md does carry prior panel records, including an earlier G-PANEL-3 LEAKAGE (sources digest 459e49f704b9..., the older two-flag mode_a/mode_b model) and a later NO-LEAKAGE. Per the retained-attack-label trap I inherited neither and re-measured from scratch; a transcript of prior rounds is not an instruction to me.\n\nCONSUMER SURFACE. eval/dataset.py as_dict() ships problem_statement + spec_view + modeled_functions (+localization/changed_files in modes 0/1/2/100); refinement.md / mapping.md / patch.diff / meta.json are NOT shipped, and WITHHELD_FIELDS blocks patch/test_patch. So refinement.md A3/B3 naming set_useOffset/set_scientific verbatim, and mapping.md's get_useOffset()/_scientific reads, are outside the judged surface.\n\nMECHANICAL SCREEN + POSITIVE CONTROL (my measurement, not the gate record): leakage.screen(model.py, nagini, gold_patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. Control: I injected 'formatter.set_useOffset(False)' + 'seaborn/_core/scales.py' + 'fix' into the docstring and re-ran -> passed=False with L1 gold-line-reproduced, L2 patched-file-path (x2), L3 narration 'fix'. So the clean result is a real pass, not a vacuous one. Patch changed symbols {get_view_interval, spacer}: neither appears in any spec-view identifier or comment.\n\nTOKEN SWEEP. Every >=4-char token on a gold +/- line, cross-checked against the view: set_useoffset, set_scientific, offset, scientific, notation, hasattr, major, avoid, incorrect, representing all ABSENT from the view. Present-and-PS-public: formatter, legend, label, which, that, ends. Present-but-not-in-PS: only generic English/structural words (axis, continuous, could, have, need, this, true, would) -- none localizing. Also swept hints_text-only vocabulary into the view: hits are 'like/only/other/same' (English), i.e. no hints-only term or diagnosis is echoed. No seaborn/mpl symbol at all: ScalarFormatter, EngFormatter, LogFormatter, StrMethodFormatter, ContinuousBase, locator_to_legend_entries, relplot, scatterplot, rcParam, spacer, get_view_interval, format_ticks -- all absent (only a bare `matplotlib` in the G-AX provenance sentence, which localizes nothing and is a library name PS itself invokes via ScalarFormatter).\n\nTHE ARITY QUESTION (the facet the prior round found leaking) -- re-measured on mpl 3.10.9 at the FAIL_TO_PASS scale (xy 0..3, color = xy + 1e8, MaxNLocator ticks, ScalarFormatter.format_ticks over a dummy axis reporting the data interval): both-on (prepatch) -> ['0.0'..'3.0'], test FAILS; set_useOffset(False) ONLY -> ['1.000000000'...], test FAILS; set_scientific(False) ONLY -> ['0.0'..'3.0'], test FAILS; both off (gold) -> ['100000000.0'...], test PASSES. So the genuinely hard, tested content of the gold edit is that TWO separately-toggled controls must both go off, and neither alone suffices. The spec view discloses NONE of it: it collapses the whole family into ONE opaque boolean `TickFormatter.residual` (\"whether residual rendering is enabled\"), never names either setter, never says there is more than one control, and pushes the arity + the hasattr guards into refinement.md/mapping.md, which the consumer never receives. The specific arity leak of the older two-flag model is repaired in these bytes.\n\nWHAT THE VIEW DOES SAY, AND WHY EACH PIECE IS PS-COVERED. (a) 'legend labels must read back to the ticks' FULL absolute values, including large magnitudes' -- PS's own headline (\"legends describing large numbers ... formatted without their multiplicative offset value\", the 1E6 body_mass_mg screenshot). (b) 'labels are the formatter's own text, one per tick, not reordered/dropped' -- PS names ScalarFormatter as the label source and links the exact producing lines. (c) 'two independent places build such numeric legends' -- PS publishes the second path itself (\"The issue also reproduces if you create the mentioned plot using scatterplot\"). (d) the convention/view-range arguments and the guarded (convention==0) reading clause -- these WEAKEN the spec (they carve out formatters for which no reading guarantee is claimed); they hand the solver nothing about the edit. On localization the view is strictly LESS revealing than the public PS, which quotes scales.py L377-382 by permalink and even names the relevant rcParams.\n\nCONSIDERED AND REJECTED AS A FINDING: half (2), 'the formatter must be LEFT with residual rendering disabled', does foreclose the alternative route PS actually suggests (\"the offset value can be safely retrieved ... and used to create the legend title and/or labels\"), so it narrows the solver toward gold's mutate-the-formatter approach. I do not call this leakage: it is a statement of required observable end-state on an object that outlives the call, in abstract vocabulary, and it is exactly what the hidden tests check (each label text alone must parse > 1e7, so the title route fails F2P). Pinning gold's observable behaviour is what makes the cell faithful -- G-DIFF confirms both prepatch models FAIL verification, so this clause is load-bearing spec content, not decoration -- and if 'the spec constrains behaviour to gold's behaviour' counted as leakage no spec could ever pass. The leakage standard in prompts/nagini/spec_guide.md sec6 is quoted diff lines / patched file-function-line / identifiers echoing patched symbols / bug-to-fix mechanism narration, and the view breaks none of them.\n\nSPEC-INTEGRITY: `python -m swebench_unified.adversary same-spec nagini mwaskom__seaborn-3187 atk_id.py` -> exit 0, 'SAME -- attack shares the bundle's exact specification' (tooling sane). No counterexample is offered: this facet is leakage, not spec-weakness.\n\nOBSERVED BUT NOT MY FACET (not claimed as leakage): G-PANEL-2 is recorded fail and G-PANEL aggregate is fail -- a faithfulness dispute over the unconditional rendered_labels sequence-equality clause and refinement.md A3's claim that the hasattr guards are no-ops (wrong for EngFormatter, a ScalarFormatter subclass where the guards pass yet residual persists). That belongs to G-PANEL-2/G-EQ. Also meta.json region_hashes for the six non-spec_view regions are stale relative to current model.py.\n\nCONCLUSION: nothing in the spec view reproduces a gold line, names a patched file/module/symbol, echoes hints-only vocabulary, or narrates the bug-to-fix mechanism; the tested discriminator (two controls, both off, at two sites, with guards) is not reconstructible from the view beyond what problem_statement already publishes, and the view is less localizing than the PS. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 22 admissible attacks re-run of 22 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS-BREAK attack on mwaskom__seaborn-3187 (nagini). Reference = base worktree with patch.diff APPLIED (verified present at both sites via inspect.getsource before every differential); base commit used only for the untouched callees the axioms model. All work in /tmp + the instance container; bundle unmodified.\n\nSETUP CHECKS\n- Bundle model.py verifies under the pinned verifier: `scripts/nagini_verify.sh` -> 'Verification successful' (27.4s, exit 0).\n- Spec region integrity: markers.same_spec(model.py, model_prepatch.py, NaginiBackend()) = True and same for model_prepatch_2.py; spec_view = 18675 bytes. Both pre-state twins share the byte-identical spec and FAIL verification on exactly the patched clause -- 'Postcondition ... Assertion (not fmt.residual) might not hold' at legend_values_continuous:265 and legend_values_locator:350. So the spec discriminates the bug at both sites and is not vacuous.\n- Reproduced the bundle's own gates independently inside the gold-patched container: axiom_check.py exit 0 (measured callee-restriction set [] in this env, declared bound ['eng'] -- a sound over-declaration); conformance_check.py exit 0, 105750 checks / 0 disagreements / discriminates_prepatch true (20000/20000 controls disagree).\n\nAXIOM ATTACKS (rendered_labels / reading vs REAL matplotlib 3.7.2 formatters)\nBoth axioms held on every reachable input, including inputs the bundle's driver never presented (ranges NOT containing the ticks, ranges NARROWER than the ticks, INVERTED hi<lo, zero-width):\n- 4368 boundary checks over 6 formatter kinds x 22 tick sets x 13 ranges x both APIs: 0 length violations, 0 reading violations (convention 0, residual=False), 0 raises.\n- 60000-draw seeded fuzz (|t| <= 2**53, ranges drawn independently incl. inverted/zero-width): 0 length, 0 reading, 0 cross-API, 0 raises.\n- Determinism/no-hidden-input control: 20 repeats x all kinds x all tick sets -> 0 nondeterminism.\n\nDIFFERENTIAL: MODEL IMPL vs THE REAL GOLD-PATCHED SITES\nRestricted to the legitimate refinement domain (model `locs` binds to the POST-CLIP tick set per mapping A1/B1, so ranges must contain every tick; clipped cases counted+excluded, 0 occurred).\n- Boundary sweep: 3540 site-1 + 295 site-2 presentable calls over 32 tick sets, SIX conventions (incl. logsci and FuncFormatter, two the bundle never drove) x both arrival modes. All four postcondition clauses checked on the REAL object: sequence-equality 0, length 0, `not fmt.residual` 0, convention-pinning 0, reading (conv 0) 0, locations-identity 0, raises 0.\n- Fuzz: 4000 draws -> 8000 site-1 + 4000 site-2 calls, 3011 with range strictly wider than the ticks. 0 violations on every clause, INCLUDING view_lo/view_hi pinning read back off the real axis the formatter is attached to (f.axis.get_view_interval()) -- 0 range mutations.\n- Mixed arrival states (useOffset/scientific independently True/False -- probing the ONE-boolean abstraction of refinement C.2 as a possible under-count): 96 checks, 0 violations.\n- Exhaustive enumeration of 16 real mpl.ticker formatters through the patched site 1: 0 state-clause violations, 0 length-axiom violations. Pre-used formatter (set_locs already called, offset already computed to 1e8) -> patched site still yields full-value labels, residual_state False.\n- Site-2 LogLocator/LogFormatter branch (patch-untouched, mapping says in-scope as a non-default convention): 6 cases, length axiom and sequence-equality hold, no reading guarantee claimed -- consistent.\n- dtype gap: site 2's third parameter `dtype` has no model counterpart and real callers (relational.py:246,278) pass the data's own dtype. Tested float/int/np.int64 on 7 integral cases: label TEXT identical in all, and ScalarFormatter text is invariant to int64-vs-float tick type. No divergence.\n\nTWO LEADS RAISED AND CLOSED (both reasons the verdict is FAITHFUL, not a rubber stamp)\n1. rcParams['axes.formatter.use_mathtext'] -- ScalarFormatter().__init__ reads it when useMathText is None, and the patch does not touch it. With it True, the DEFAULT-constructed formatter (mapping's convention==0) renders '$\\mathdefault{100000001}$' at BOTH real sites, which does NOT read back -> would break Implies(convention==0, legend_reads_ticks). CLOSED: it is not model state and not a legend-builder input; the model's convention==0 is bound to a rendering CONVENTION settled before the builder runs, and the spec explicitly makes the convention immutable-by-the-builder and non-full-value conventions unguaranteed. A mathtext ScalarFormatter is a different convention under that binding, exactly like EngFormatter. mpl default is False, matplotlibrc default is False, and seaborn never sets it (grep of seaborn/ and rcmod.py: no hits). Not a spec-vs-repo divergence.\n2. axis.get_transform() -- a channel BEYOND get_view_interval, contradicting mapping 3.1's 'only thing it reads' claim. Found by spying on every axis attribute access: Log/LogSci/LogMathtext formatters call it in set_locs to read .linthresh. It is genuinely label-changing: 12 measured cases where the SAME (convention, ticks, residual, lo, hi) render differently with vs without a symlog linthresh (e.g. LogFormatter t=[1,3,10,30,100] -> ['1','','10','','100'] vs ['1','3','10','30','100']). CLOSED as UNREACHABLE at both modeled sites: seaborn's PseudoAxis has NO get_transform (confirmed by dir()) and site 2's dummy_axis defines get_view_interval and nothing else, so the try/AttributeError guard always takes the None branch. Confirmed behaviourally: 48 real site-1 calls across trans=None/'log'/'symlog'/'symlog(1)'/'symlog(10)' x 4 log-formatter kinds -> 0 sequence mismatches vs the model's transform-less deep model. mapping 3.1's wording is imprecise (get_transform is read, on the rendering path, by Log* kinds) but the model's 5-argument input list is COMPLETE for the two sites actually modeled, so the spec is not too strong.\n\nCONCLUSION: no input was found on which the modeled functions disagree with the real gold-patched callees. ~12k differential calls + ~64k axiom checks, all six site-1 conventions and both rendering APIs, over corners the bundle's driver omitted (inverted, zero-width, non-containing and narrower ranges; mixed residual states; pre-used formatters; 16 formatter kinds; dtype variants). The spec is neither too strong nor drifting: it pins the state half (residual disabled, convention and both range bounds unchanged) and the text half (exact sequence from the formatter's own rendering) and every clause is discharged by the real patched code, while both same-spec pre-state twins fail on the very clause the patch installs. Verdict FAITHFUL; no diverging input to cite.; G-PANEL-3 (leakage): pass \u2014 ARTIFACT JUDGED (current bytes, re-derived myself): model.py sha256=9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6; markers.spec_view(model.py, get_backend('nagini')) sha256=d0d68ad9c1805445bc3fb71c3d8e0d143b1ec51127341d7ce15090a44107df83 == meta.json region_hashes.spec_view (so the spec_view hash is current, even though the other six region hashes are stale vs these bytes). 336-line view. Scratch under a mktemp dir; NOTE a fixed-path spec_view.py I first used was clobbered mid-run by a concurrent instance's artifact (astropy-13033 content), so I re-derived  and re-ran every grep with an assertion that the file's header names mwaskom__seaborn-3187. All conclusions below are from the asserted-correct file.\n\nNO RELAXATION IN PLAY (checked, not assumed): meta.json has no `relaxed_leakage` key; gates.G-LEAK.status == \"pass\" (not \"relaxed\"); `find benchmark-verified/mwaskom__seaborn-3187 -iname '*relax*'` -> nothing. So there is no relaxation argument to re-derive; this is an ordinary strict leakage judgement.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as its own finding per instructions): leakage.reviewer_directed() over every .md/.py/.json in the instance dir (including the 445KB verdict.md) returns [] -- no bundle file instructs me how to record or which verdict is honest. verdict.md does carry prior panel records, including an earlier G-PANEL-3 LEAKAGE (sources digest 459e49f704b9..., the older two-flag mode_a/mode_b model) and a later NO-LEAKAGE. Per the retained-attack-label trap I inherited neither and re-measured from scratch; a transcript of prior rounds is not an instruction to me.\n\nCONSUMER SURFACE. eval/dataset.py as_dict() ships problem_statement + spec_view + modeled_functions (+localization/changed_files in modes 0/1/2/100); refinement.md / mapping.md / patch.diff / meta.json are NOT shipped, and WITHHELD_FIELDS blocks patch/test_patch. So refinement.md A3/B3 naming set_useOffset/set_scientific verbatim, and mapping.md's get_useOffset()/_scientific reads, are outside the judged surface.\n\nMECHANICAL SCREEN + POSITIVE CONTROL (my measurement, not the gate record): leakage.screen(model.py, nagini, gold_patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. Control: I injected 'formatter.set_useOffset(False)' + 'seaborn/_core/scales.py' + 'fix' into the docstring and re-ran -> passed=False with L1 gold-line-reproduced, L2 patched-file-path (x2), L3 narration 'fix'. So the clean result is a real pass, not a vacuous one. Patch changed symbols {get_view_interval, spacer}: neither appears in any spec-view identifier or comment.\n\nTOKEN SWEEP. Every >=4-char token on a gold +/- line, cross-checked against the view: set_useoffset, set_scientific, offset, scientific, notation, hasattr, major, avoid, incorrect, representing all ABSENT from the view. Present-and-PS-public: formatter, legend, label, which, that, ends. Present-but-not-in-PS: only generic English/structural words (axis, continuous, could, have, need, this, true, would) -- none localizing. Also swept hints_text-only vocabulary into the view: hits are 'like/only/other/same' (English), i.e. no hints-only term or diagnosis is echoed. No seaborn/mpl symbol at all: ScalarFormatter, EngFormatter, LogFormatter, StrMethodFormatter, ContinuousBase, locator_to_legend_entries, relplot, scatterplot, rcParam, spacer, get_view_interval, format_ticks -- all absent (only a bare `matplotlib` in the G-AX provenance sentence, which localizes nothing and is a library name PS itself invokes via ScalarFormatter).\n\nTHE ARITY QUESTION (the facet the prior round found leaking) -- re-measured on mpl 3.10.9 at the FAIL_TO_PASS scale (xy 0..3, color = xy + 1e8, MaxNLocator ticks, ScalarFormatter.format_ticks over a dummy axis reporting the data interval): both-on (prepatch) -> ['0.0'..'3.0'], test FAILS; set_useOffset(False) ONLY -> ['1.000000000'...], test FAILS; set_scientific(False) ONLY -> ['0.0'..'3.0'], test FAILS; both off (gold) -> ['100000000.0'...], test PASSES. So the genuinely hard, tested content of the gold edit is that TWO separately-toggled controls must both go off, and neither alone suffices. The spec view discloses NONE of it: it collapses the whole family into ONE opaque boolean `TickFormatter.residual` (\"whether residual rendering is enabled\"), never names either setter, never says there is more than one control, and pushes the arity + the hasattr guards into refinement.md/mapping.md, which the consumer never receives. The specific arity leak of the older two-flag model is repaired in these bytes.\n\nWHAT THE VIEW DOES SAY, AND WHY EACH PIECE IS PS-COVERED. (a) 'legend labels must read back to the ticks' FULL absolute values, including large magnitudes' -- PS's own headline (\"legends describing large numbers ... formatted without their multiplicative offset value\", the 1E6 body_mass_mg screenshot). (b) 'labels are the formatter's own text, one per tick, not reordered/dropped' -- PS names ScalarFormatter as the label source and links the exact producing lines. (c) 'two independent places build such numeric legends' -- PS publishes the second path itself (\"The issue also reproduces if you create the mentioned plot using scatterplot\"). (d) the convention/view-range arguments and the guarded (convention==0) reading clause -- these WEAKEN the spec (they carve out formatters for which no reading guarantee is claimed); they hand the solver nothing about the edit. On localization the view is strictly LESS revealing than the public PS, which quotes scales.py L377-382 by permalink and even names the relevant rcParams.\n\nCONSIDERED AND REJECTED AS A FINDING: half (2), 'the formatter must be LEFT with residual rendering disabled', does foreclose the alternative route PS actually suggests (\"the offset value can be safely retrieved ... and used to create the legend title and/or labels\"), so it narrows the solver toward gold's mutate-the-formatter approach. I do not call this leakage: it is a statement of required observable end-state on an object that outlives the call, in abstract vocabulary, and it is exactly what the hidden tests check (each label text alone must parse > 1e7, so the title route fails F2P). Pinning gold's observable behaviour is what makes the cell faithful -- G-DIFF confirms both prepatch models FAIL verification, so this clause is load-bearing spec content, not decoration -- and if 'the spec constrains behaviour to gold's behaviour' counted as leakage no spec could ever pass. The leakage standard in prompts/nagini/spec_guide.md sec6 is quoted diff lines / patched file-function-line / identifiers echoing patched symbols / bug-to-fix mechanism narration, and the view breaks none of them.\n\nSPEC-INTEGRITY: `python -m swebench_unified.adversary same-spec nagini mwaskom__seaborn-3187 atk_id.py` -> exit 0, 'SAME -- attack shares the bundle's exact specification' (tooling sane). No counterexample is offered: this facet is leakage, not spec-weakness.\n\nOBSERVED BUT NOT MY FACET (not claimed as leakage): G-PANEL-2 is recorded fail and G-PANEL aggregate is fail -- a faithfulness dispute over the unconditional rendered_labels sequence-equality clause and refinement.md A3's claim that the hasattr guards are no-ops (wrong for EngFormatter, a ScalarFormatter subclass where the guards pass yet residual persists). That belongs to G-PANEL-2/G-EQ. Also meta.json region_hashes for the six non-spec_view regions are stale relative to current model.py.\n\nCONCLUSION: nothing in the spec view reproduces a gold line, names a patched file/module/symbol, echoes hints-only vocabulary, or narrates the bug-to-fix mechanism; the tested discriminator (two controls, both off, at two sites, with guards) is not reconstructible from the view beyond what problem_statement already publishes, and the view is less localizing than the PS. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6",
+        "properties.py": "ac28fd562020ff599d133bad5a6723b0c3f9d6e2f9fc7db35e00ad2af9611f5d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T05:18:48+00:00",
+      "code_version": "55093e6ac-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 22 admissible attacks re-run of 22 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 22 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 22 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_20.py`, `atk_pp1.py`, `atk_pp2.py` |\n\n**Non-vacuity.** The positive control `atk_0.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6",
+        "properties.py": "ac28fd562020ff599d133bad5a6723b0c3f9d6e2f9fc7db35e00ad2af9611f5d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T05:04:45+00:00",
+      "code_version": "47c964f63-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS-BREAK attack on mwaskom__seaborn-3187 (nagini). Reference = base worktree with patch.diff APPLIED (verified present at both sites via inspect.getsource before every differential); base commit used only for the untouched callees the axioms model. All work in /tmp + the instance container; bundle unmodified.\n\nSETUP CHECKS\n- Bundle model.py verifies under the pinned verifier: `scripts/nagini_verify.sh` -> 'Verification successful' (27.4s, exit 0).\n- Spec region integrity: markers.same_spec(model.py, model_prepatch.py, NaginiBackend()) = True and same for model_prepatch_2.py; spec_view = 18675 bytes. Both pre-state twins share the byte-identical spec and FAIL verification on exactly the patched clause -- 'Postcondition ... Assertion (not fmt.residual) might not hold' at legend_values_continuous:265 and legend_values_locator:350. So the spec discriminates the bug at both sites and is not vacuous.\n- Reproduced the bundle's own gates independently inside the gold-patched container: axiom_check.py exit 0 (measured callee-restriction set [] in this env, declared bound ['eng'] -- a sound over-declaration); conformance_check.py exit 0, 105750 checks / 0 disagreements / discriminates_prepatch true (20000/20000 controls disagree).\n\nAXIOM ATTACKS (rendered_labels / reading vs REAL matplotlib 3.7.2 formatters)\nBoth axioms held on every reachable input, including inputs the bundle's driver never presented (ranges NOT containing the ticks, ranges NARROWER than the ticks, INVERTED hi<lo, zero-width):\n- 4368 boundary checks over 6 formatter kinds x 22 tick sets x 13 ranges x both APIs: 0 length violations, 0 reading violations (convention 0, residual=False), 0 raises.\n- 60000-draw seeded fuzz (|t| <= 2**53, ranges drawn independently incl. inverted/zero-width): 0 length, 0 reading, 0 cross-API, 0 raises.\n- Determinism/no-hidden-input control: 20 repeats x all kinds x all tick sets -> 0 nondeterminism.\n\nDIFFERENTIAL: MODEL IMPL vs THE REAL GOLD-PATCHED SITES\nRestricted to the legitimate refinement domain (model `locs` binds to the POST-CLIP tick set per mapping A1/B1, so ranges must contain every tick; clipped cases counted+excluded, 0 occurred).\n- Boundary sweep: 3540 site-1 + 295 site-2 presentable calls over 32 tick sets, SIX conventions (incl. logsci and FuncFormatter, two the bundle never drove) x both arrival modes. All four postcondition clauses checked on the REAL object: sequence-equality 0, length 0, `not fmt.residual` 0, convention-pinning 0, reading (conv 0) 0, locations-identity 0, raises 0.\n- Fuzz: 4000 draws -> 8000 site-1 + 4000 site-2 calls, 3011 with range strictly wider than the ticks. 0 violations on every clause, INCLUDING view_lo/view_hi pinning read back off the real axis the formatter is attached to (f.axis.get_view_interval()) -- 0 range mutations.\n- Mixed arrival states (useOffset/scientific independently True/False -- probing the ONE-boolean abstraction of refinement C.2 as a possible under-count): 96 checks, 0 violations.\n- Exhaustive enumeration of 16 real mpl.ticker formatters through the patched site 1: 0 state-clause violations, 0 length-axiom violations. Pre-used formatter (set_locs already called, offset already computed to 1e8) -> patched site still yields full-value labels, residual_state False.\n- Site-2 LogLocator/LogFormatter branch (patch-untouched, mapping says in-scope as a non-default convention): 6 cases, length axiom and sequence-equality hold, no reading guarantee claimed -- consistent.\n- dtype gap: site 2's third parameter `dtype` has no model counterpart and real callers (relational.py:246,278) pass the data's own dtype. Tested float/int/np.int64 on 7 integral cases: label TEXT identical in all, and ScalarFormatter text is invariant to int64-vs-float tick type. No divergence.\n\nTWO LEADS RAISED AND CLOSED (both reasons the verdict is FAITHFUL, not a rubber stamp)\n1. rcParams['axes.formatter.use_mathtext'] -- ScalarFormatter().__init__ reads it when useMathText is None, and the patch does not touch it. With it True, the DEFAULT-constructed formatter (mapping's convention==0) renders '$\\mathdefault{100000001}$' at BOTH real sites, which does NOT read back -> would break Implies(convention==0, legend_reads_ticks). CLOSED: it is not model state and not a legend-builder input; the model's convention==0 is bound to a rendering CONVENTION settled before the builder runs, and the spec explicitly makes the convention immutable-by-the-builder and non-full-value conventions unguaranteed. A mathtext ScalarFormatter is a different convention under that binding, exactly like EngFormatter. mpl default is False, matplotlibrc default is False, and seaborn never sets it (grep of seaborn/ and rcmod.py: no hits). Not a spec-vs-repo divergence.\n2. axis.get_transform() -- a channel BEYOND get_view_interval, contradicting mapping 3.1's 'only thing it reads' claim. Found by spying on every axis attribute access: Log/LogSci/LogMathtext formatters call it in set_locs to read .linthresh. It is genuinely label-changing: 12 measured cases where the SAME (convention, ticks, residual, lo, hi) render differently with vs without a symlog linthresh (e.g. LogFormatter t=[1,3,10,30,100] -> ['1','','10','','100'] vs ['1','3','10','30','100']). CLOSED as UNREACHABLE at both modeled sites: seaborn's PseudoAxis has NO get_transform (confirmed by dir()) and site 2's dummy_axis defines get_view_interval and nothing else, so the try/AttributeError guard always takes the None branch. Confirmed behaviourally: 48 real site-1 calls across trans=None/'log'/'symlog'/'symlog(1)'/'symlog(10)' x 4 log-formatter kinds -> 0 sequence mismatches vs the model's transform-less deep model. mapping 3.1's wording is imprecise (get_transform is read, on the rendering path, by Log* kinds) but the model's 5-argument input list is COMPLETE for the two sites actually modeled, so the spec is not too strong.\n\nCONCLUSION: no input was found on which the modeled functions disagree with the real gold-patched callees. ~12k differential calls + ~64k axiom checks, all six site-1 conventions and both rendering APIs, over corners the bundle's driver omitted (inverted, zero-width, non-containing and narrower ranges; mixed residual states; pre-used formatters; 16 formatter kinds; dtype variants). The spec is neither too strong nor drifting: it pins the state half (residual disabled, convention and both range bounds unchanged) and the text half (exact sequence from the formatter's own rendering) and every clause is discharged by the real patched code, while both same-spec pre-state twins fail on the very clause the patch installs. Verdict FAITHFUL; no diverging input to cite.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T04:49:08+00:00",
+      "code_version": "47c964f63-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ARTIFACT JUDGED (current bytes, re-derived myself): model.py sha256=9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6; markers.spec_view(model.py, get_backend('nagini')) sha256=d0d68ad9c1805445bc3fb71c3d8e0d143b1ec51127341d7ce15090a44107df83 == meta.json region_hashes.spec_view (so the spec_view hash is current, even though the other six region hashes are stale vs these bytes). 336-line view. Scratch under a mktemp dir; NOTE a fixed-path spec_view.py I first used was clobbered mid-run by a concurrent instance's artifact (astropy-13033 content), so I re-derived  and re-ran every grep with an assertion that the file's header names mwaskom__seaborn-3187. All conclusions below are from the asserted-correct file.\n\nNO RELAXATION IN PLAY (checked, not assumed): meta.json has no `relaxed_leakage` key; gates.G-LEAK.status == \"pass\" (not \"relaxed\"); `find benchmark-verified/mwaskom__seaborn-3187 -iname '*relax*'` -> nothing. So there is no relaxation argument to re-derive; this is an ordinary strict leakage judgement.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as its own finding per instructions): leakage.reviewer_directed() over every .md/.py/.json in the instance dir (including the 445KB verdict.md) returns [] -- no bundle file instructs me how to record or which verdict is honest. verdict.md does carry prior panel records, including an earlier G-PANEL-3 LEAKAGE (sources digest 459e49f704b9..., the older two-flag mode_a/mode_b model) and a later NO-LEAKAGE. Per the retained-attack-label trap I inherited neither and re-measured from scratch; a transcript of prior rounds is not an instruction to me.\n\nCONSUMER SURFACE. eval/dataset.py as_dict() ships problem_statement + spec_view + modeled_functions (+localization/changed_files in modes 0/1/2/100); refinement.md / mapping.md / patch.diff / meta.json are NOT shipped, and WITHHELD_FIELDS blocks patch/test_patch. So refinement.md A3/B3 naming set_useOffset/set_scientific verbatim, and mapping.md's get_useOffset()/_scientific reads, are outside the judged surface.\n\nMECHANICAL SCREEN + POSITIVE CONTROL (my measurement, not the gate record): leakage.screen(model.py, nagini, gold_patch, problem_statement) -> passed=True, hard_failures=[], warnings=[]. Control: I injected 'formatter.set_useOffset(False)' + 'seaborn/_core/scales.py' + 'fix' into the docstring and re-ran -> passed=False with L1 gold-line-reproduced, L2 patched-file-path (x2), L3 narration 'fix'. So the clean result is a real pass, not a vacuous one. Patch changed symbols {get_view_interval, spacer}: neither appears in any spec-view identifier or comment.\n\nTOKEN SWEEP. Every >=4-char token on a gold +/- line, cross-checked against the view: set_useoffset, set_scientific, offset, scientific, notation, hasattr, major, avoid, incorrect, representing all ABSENT from the view. Present-and-PS-public: formatter, legend, label, which, that, ends. Present-but-not-in-PS: only generic English/structural words (axis, continuous, could, have, need, this, true, would) -- none localizing. Also swept hints_text-only vocabulary into the view: hits are 'like/only/other/same' (English), i.e. no hints-only term or diagnosis is echoed. No seaborn/mpl symbol at all: ScalarFormatter, EngFormatter, LogFormatter, StrMethodFormatter, ContinuousBase, locator_to_legend_entries, relplot, scatterplot, rcParam, spacer, get_view_interval, format_ticks -- all absent (only a bare `matplotlib` in the G-AX provenance sentence, which localizes nothing and is a library name PS itself invokes via ScalarFormatter).\n\nTHE ARITY QUESTION (the facet the prior round found leaking) -- re-measured on mpl 3.10.9 at the FAIL_TO_PASS scale (xy 0..3, color = xy + 1e8, MaxNLocator ticks, ScalarFormatter.format_ticks over a dummy axis reporting the data interval): both-on (prepatch) -> ['0.0'..'3.0'], test FAILS; set_useOffset(False) ONLY -> ['1.000000000'...], test FAILS; set_scientific(False) ONLY -> ['0.0'..'3.0'], test FAILS; both off (gold) -> ['100000000.0'...], test PASSES. So the genuinely hard, tested content of the gold edit is that TWO separately-toggled controls must both go off, and neither alone suffices. The spec view discloses NONE of it: it collapses the whole family into ONE opaque boolean `TickFormatter.residual` (\"whether residual rendering is enabled\"), never names either setter, never says there is more than one control, and pushes the arity + the hasattr guards into refinement.md/mapping.md, which the consumer never receives. The specific arity leak of the older two-flag model is repaired in these bytes.\n\nWHAT THE VIEW DOES SAY, AND WHY EACH PIECE IS PS-COVERED. (a) 'legend labels must read back to the ticks' FULL absolute values, including large magnitudes' -- PS's own headline (\"legends describing large numbers ... formatted without their multiplicative offset value\", the 1E6 body_mass_mg screenshot). (b) 'labels are the formatter's own text, one per tick, not reordered/dropped' -- PS names ScalarFormatter as the label source and links the exact producing lines. (c) 'two independent places build such numeric legends' -- PS publishes the second path itself (\"The issue also reproduces if you create the mentioned plot using scatterplot\"). (d) the convention/view-range arguments and the guarded (convention==0) reading clause -- these WEAKEN the spec (they carve out formatters for which no reading guarantee is claimed); they hand the solver nothing about the edit. On localization the view is strictly LESS revealing than the public PS, which quotes scales.py L377-382 by permalink and even names the relevant rcParams.\n\nCONSIDERED AND REJECTED AS A FINDING: half (2), 'the formatter must be LEFT with residual rendering disabled', does foreclose the alternative route PS actually suggests (\"the offset value can be safely retrieved ... and used to create the legend title and/or labels\"), so it narrows the solver toward gold's mutate-the-formatter approach. I do not call this leakage: it is a statement of required observable end-state on an object that outlives the call, in abstract vocabulary, and it is exactly what the hidden tests check (each label text alone must parse > 1e7, so the title route fails F2P). Pinning gold's observable behaviour is what makes the cell faithful -- G-DIFF confirms both prepatch models FAIL verification, so this clause is load-bearing spec content, not decoration -- and if 'the spec constrains behaviour to gold's behaviour' counted as leakage no spec could ever pass. The leakage standard in prompts/nagini/spec_guide.md sec6 is quoted diff lines / patched file-function-line / identifiers echoing patched symbols / bug-to-fix mechanism narration, and the view breaks none of them.\n\nSPEC-INTEGRITY: `python -m swebench_unified.adversary same-spec nagini mwaskom__seaborn-3187 atk_id.py` -> exit 0, 'SAME -- attack shares the bundle's exact specification' (tooling sane). No counterexample is offered: this facet is leakage, not spec-weakness.\n\nOBSERVED BUT NOT MY FACET (not claimed as leakage): G-PANEL-2 is recorded fail and G-PANEL aggregate is fail -- a faithfulness dispute over the unconditional rendered_labels sequence-equality clause and refinement.md A3's claim that the hasattr guards are no-ops (wrong for EngFormatter, a ScalarFormatter subclass where the guards pass yet residual persists). That belongs to G-PANEL-2/G-EQ. Also meta.json region_hashes for the six non-spec_view regions are stale relative to current model.py.\n\nCONCLUSION: nothing in the spec view reproduces a gold line, names a patched file/module/symbol, echoes hints-only vocabulary, or narrates the bug-to-fix mechanism; the tested discriminator (two controls, both off, at two sites, with guards) is not reconstructible from the view beyond what problem_statement already publishes, and the view is less localizing than the PS. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:55:55+00:00",
+      "code_version": "6bcce40dc-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-precomputed-sequence",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-different-loop-guard",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-call-arrived-state-nondefault-convention",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.5
+          },
+          {
+            "expect": "reject",
+            "id": "admiss-self-call-vacuity-control",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "reject",
+            "id": "left-residual-enabled",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.2
+          },
+          {
+            "expect": "reject",
+            "id": "private-route-raw-tick",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "render-then-disable",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.3
+          },
+          {
+            "expect": "reject",
+            "id": "other-tick-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "rotated-labels",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "mode-token-swap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "convention-echo",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.2
+          },
+          {
+            "expect": "reject",
+            "id": "convention-rewrite",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "interval-rewrite",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.0
+          },
+          {
+            "expect": "reject",
+            "id": "other-interval",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.8
+          },
+          {
+            "expect": "reject",
+            "id": "interval-from-ticks",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-empty-tick-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-drop-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-append-to-locs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.7
+          },
+          {
+            "expect": "reject",
+            "id": "frame-store-into-locs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.0
+          },
+          {
+            "expect": "reject",
+            "id": "nonterminating-build",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 17
+        },
+        "manifest_sha256": "ac28fd562020ff599d133bad5a6723b0c3f9d6e2f9fc7db35e00ad2af9611f5d",
+        "n_cases": 20,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 20 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6",
+        "properties.py": "ac28fd562020ff599d133bad5a6723b0c3f9d6e2f9fc7db35e00ad2af9611f5d"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T05:08:43+00:00",
+      "code_version": "2ca141e69-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "559bd933c7b7eeefa22c3437534cc993feebfa3794b56aee60d40b77643e4aed",
+        "patch.diff": "578f98370810261561a8936dd7202e8c6644ef8d9ae52a54578a680f3cb4fc1f"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T05:02:09+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {
+        "wall_time_s": 19.2
+      },
+      "detail": "verified in 19.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a70c4a3d5ac99cba8e77167cef9f99bd7d654364405c605ee8d29429ad680a6"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "mwaskom__seaborn-3187",
+  "modeled_functions": [
+    {
+      "carrier_type": "float-array tick locations -> List[int]; a label -> an opaque int code for its exact text; the axis range the formatter is attached to -> two int bounds; specification over PSeq[int] via ToSeq",
+      "model_symbol": "legend_values_continuous",
+      "repo_location": "seaborn/_core/scales.py:377-390",
+      "repo_symbol": "seaborn._core.scales.ContinuousBase._setup (legend block)",
+      "role": "modeled changed function, site 1: builds the objects-interface continuous legend -- the tick locations paired with the labels its already-installed formatter renders for them against the range that formatter's axis carries, plus the rendering mode that formatter is left in and the range it is left on"
+    },
+    {
+      "carrier_type": "float-array tick levels -> List[int]; a label -> an opaque int code for its exact text; the range the locally built axis reports -> two int bounds; specification over PSeq[int] via ToSeq",
+      "model_symbol": "legend_values_locator",
+      "repo_location": "seaborn/utils.py:687-714",
+      "repo_symbol": "seaborn.utils.locator_to_legend_entries",
+      "role": "modeled changed function, site 2: builds the classic relational legend -- the same guarantee at an independent site, with the formatter built locally and attached to a minimal axis whose only capability is reporting that range"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; two hunks: scales.py:378+ and utils.py:699+)",
+  "prepatch_models": [
+    {
+      "fails_on": "legend_values_continuous: the postcondition `not fmt.residual` fails outright, and the reading guarantee `fmt.convention == 0 ==> legend_reads_ticks(...)` is unprovable because rendered_labels(0, ticks, True) constrains no reading -- exactly the magnitude a legend loses",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "site 1: objects-interface continuous legend (scales.py)",
+      "reverted_to": "the formatter is left in whatever rendering mode it arrived in, and the labels are rendered in that mode"
+    },
+    {
+      "fails_on": "the same two clauses in legend_values_locator",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "site 2: classic relational legend (utils.locator_to_legend_entries)",
+      "reverted_to": "the formatter is left in whatever rendering mode it arrived in"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "4fc5b7967c233aed213204a95a3633a452f9612e2faf82e42566f8aa15913cfc",
+    "impl": "d8d46db0ef09f2155e83bed1e824e47e3f5a77d9dd198b442491c975c108a299",
+    "invariants": "87c3cd5db3b3f0b6c76cb97dc2c4570a1a67ad27d7525a71312cff7c9891783a",
+    "post-conditions": "88c76d49b9e89218dd22b54ec4c10b0843a4d1a74b8b1e796ee444911bfcd16d",
+    "pre-conditions": "61c4dd02a23e8f88482a43a16e9a642818ac7b1645d722f90866cf15bcb6d014",
+    "pure": "9def42897f3a72aad0f7e02de2ead53ac40d281f52c7c8c479629f9886299f5c",
+    "spec_view": "d0d68ad9c1805445bc3fb71c3d8e0d143b1ec51127341d7ce15090a44107df83"
+  },
+  "repo": "mwaskom/seaborn",
+  "schema_version": 1,
+  "string_modeling": "label TEXT is modeled as an opaque int code, injectively: two labels are equal in the model exactly when their texts are identical, and the only thing derivable about a code is reading(code) (uninterpreted). No string operations are modeled -- the change is about WHICH text a legend records, not about building text. Tick locations are modeled as List[int] and the two bounds of the axis range the formatter renders against as int fields (the exercised locations and bounds are integral and the property is exact at them; specification carried by PSeq[int] via ToSeq with whole-sequence equality against rendered_labels).",
+  "version": "0.12"
+}

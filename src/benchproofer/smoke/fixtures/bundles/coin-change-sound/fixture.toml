@@ -1,0 +1,59 @@
+# A sound formalization of the coin-change repair task.
+#
+# The specification says what "fewest coins" means without saying how to compute
+# it, so it rejects the pre-fix implementation and both wrong rivals while still
+# accepting a correct implementation written a different way.
+
+task_id = "coin-change"
+backend = "falsifier"
+summary = "A sound formalization: every required gate passes."
+
+[expect]
+static = "certified"
+oracle = "certified"
+
+# Gates that must reach an unfavorable judgment, per level. Empty means every
+# required gate has to pass.
+[unfavorable]
+static = []
+oracle = []
+
+# What a reviewer shown these artifacts concludes. Three questions no program can
+# decide, so a case that reviews this bundle offline takes them from here; the
+# implementations a review submits come from the battery above, and the gates re-run
+# those.
+[review.faithfulness]
+verdict = "sound"
+summary = "Conservation, non-negativity and the three inequalities together say what the task asks for, and none of them names a way of computing it."
+
+[[review.faithfulness.coverage]]
+behavior = "the coins returned add up to the amount"
+tested_by = "the task's test program"
+covered_by = "assert quarters * 25 + dimes * 10 + nickels * 5 + pennies == cents"
+
+[[review.faithfulness.coverage]]
+behavior = "no coin count is negative"
+tested_by = "the task's test program"
+covered_by = "assert all(count >= 0 for count in impl(cents))"
+
+[[review.faithfulness.coverage]]
+behavior = "the coins are the fewest that add up to the amount, so 40 cents is a quarter, a dime and a nickel"
+tested_by = "the task's test program"
+covered_by = "assert nickels * 5 + pennies < 10"
+
+[review.equivalence]
+verdict = "sound"
+summary = "It takes the denominations in the same order as the golden patch and returns the same tuple on every amount."
+
+# One correspondence per operation, each of a kind that leaves behavior alone.
+[[review.equivalence.operations]]
+kind = "identical"
+detail = "The subtotal is carried in one variable that is reassigned, rather than in a fresh name per denomination."
+
+[[review.equivalence.operations]]
+kind = "identical"
+detail = "The denominations are taken largest first, in the same order as the golden patch."
+
+[review.disclosure]
+verdict = "sound"
+summary = "The specification describes the required result in the task's own terms and leaves the solver to work out how to reach it."

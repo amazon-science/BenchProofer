@@ -1,0 +1,401 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "3a668ea6ff24b0c8f00498c3144c63bac561d925",
+  "changed_files": [
+    "src/_pytest/python.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts join_dot == real '.'.join on 11 boundary + 30000 fuzz part lists (incl. the F2P collection witness)",
+      "encoded_property": "join_dot(parts): parts[0] then, for each later part, a single '.' (code point 46) followed by that part; empty list -> empty, single part -> itself; front-recursive (one unfold per part)",
+      "kind": "A-reference",
+      "models": "str.join: \".\".join(parts) (CPython stdlib str method)",
+      "name": "join_dot",
+      "provenance": "src/_pytest/python.py:288 (unchanged across the patch); docs.python.org/3/library/stdtypes.html#str.join",
+      "role": "deep model (pure region) of the kept dot-join; NOT a consumed axiom -- there is no @ContractOnly axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts replace_db == real str.replace on 18 boundary + 30000 fuzz strings",
+      "encoded_property": "left-to-right non-overlapping replacement of the two-code-point pattern '.[' ([46,91]) by '[' ([91]); coincides with a greedy scan because the pattern's two characters are distinct",
+      "kind": "A-reference",
+      "models": "str.replace: s.replace(\".[\", \"[\") (CPython stdlib str method)",
+      "name": "replace_db",
+      "provenance": "src/_pytest/python.py:289 (REMOVED by the patch); docs.python.org/3/library/stdtypes.html#str.replace",
+      "role": "deep model used ONLY in model_prepatch.py's impl (the elided impl region, NOT the shared spec view) to witness the pre-patch bug; the removed (changed) operation, so NOT an axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:30:59+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: join_dot deep model (== str.join) + replace_db deep model (== str.replace) sound on 11 + 18 boundary inputs and 30000 fuzz rounds; twin discriminates the fix from the bug on the F2P witness",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ca3c153968abe0ab9910e5b4debde1ac40d20800b1242d89d421f5bfc3810564",
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:31:04+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100024,
+          "disagreements": 0,
+          "seed": 620202,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100024, \"disagreements\": 0, \"seed\": 620202, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "60e5e888c4ac92babff149e963448a30b5f91182f593e8404866123ae1d0d908",
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:09:36+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac",
+        "model_prepatch.py": "3b07322a6d94730afb05447b233cbcfa7c3889a0dae65b8dc42b2554f3b4c141"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T09:30:45+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1_prepatch.py`, `atk_2b_first_noassume.py`, `atk_4_nonterm.py`, `atk_5_nosep.py`, `atk_6_offbyone.py`, `atk_7_firstonly.py`, `atk_8_doubledot.py`, `atk_9_trailingdot.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:10:29+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac",
+        "model_prepatch.py": "3b07322a6d94730afb05447b233cbcfa7c3889a0dae65b8dc42b2554f3b4c141"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:30:51+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "581aff821aece0ba5b45eca366ed115d468c0088c05a78b2df64202de8eb65d2",
+          "impl": "33deb467dd141ee0582b37f5c5b52de3dae8683b674192eb4b8afe45b3df311c",
+          "invariants": "e86fbfcbe5f1e4cddc79c32926b2da68077c87cf8c69996e6b310913866de0f7",
+          "post-conditions": "85167875a271db5fcdc1cd16a22f7fa04c473114734a5fd166e15484ed730ef4",
+          "pre-conditions": "0c9f3a28ac33ebbad13fc766d27767018b4b6a55a232eca733e8976fa7e9d2c9",
+          "pure": "e928e79f3e11025b8524dfa5f8ceeaada5da0dca5a33538c7a094b973585278f",
+          "spec_view": "16e515bd351024baf2c1226059c0209f39e923a4ae6f24f2c28a32afa5e257db"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:30:51+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "dfb5e10dc63ecc0f062c18156022084c3893edbf7ba8231d06d6454a1fd720b0",
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:30:52+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:30:48+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T09:30:47+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness check for the modeled function modpath_of(parts) against the real getmodpath tail at base_commit 3a668ea6 (worktree $SCRATCH confirmed at base_commit, pre-patch buggy code present: s='.'.join(parts); return s.replace('.[','[')).\n\nThe gold patch replaces that with `return '.'.join(parts)` (join only, no substitution). The model specs EXACTLY the post-patch behavior via postcondition Result() == join_dot(parts), where join_dot is a deep front-recursive fold with separator code point 46. No further character substitution is modeled \u2014 matching the fix precisely.\n\nEvidence the spec does NOT drift / is not too strong:\n1. G-AX axiom_check.py PASSES (exit 0): join_dot deep model == real CPython '.'.join on 11+18 boundary inputs + 30000 fuzz rounds, incl. the F2P witness ['TestY','testmethod_two[.[]'] and '.['-rich strings.\n2. Independent 200000-input fuzz over the precondition domain (len(parts)>=1, alphabet incl. '.', '[', ']') comparing join_dot vs real post-patch '.'.join: ZERO divergences.\n3. model.py VERIFIES (nagini_verify exit 0, 12.9s).\n4. Precondition len(parts)>=1 is faithful: real getmodpath always appends >=1 name part (node.name), so parts is never empty at the join \u2014 not an artificial domain restriction.\n5. MustTerminate(2) is faithful: real getmodpath is a single finite pass that always returns; the obligation only rejects diverging impls (closes a partial-correctness vacuity the P1 audit exploited) and the gold discharges it with measure i+1 \u2014 does not over-constrain the gold.\n6. The postcondition is a structural equality grounded in the input carrier parts (not an oracle read of Result), and model_prepatch.py (the pre-patch bug) FAILS it \u2014 so the spec genuinely discriminates fix from bug (G-DIFF), confirming it senses the real change rather than merely echoing it.\n\nNo input exists where modpath_of disagrees with the real (post-patch/gold) callee. Spec is faithful to the real repo behavior being modeled.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Leakage baseline = public problem_statement, which is maximally explicit: it names the bug ('.[' replaced with '[' in the report headline), quotes the exact culprit source line `return s.replace(\".[\", \"[\")` as the cause, and prescribes the fix ('We should replace it with `return s`'), plus states the desired behaviour that '.[' be preserved. The spec view (verified via markers.spec_view + NaginiBackend.language: docstring + join_dot pure fn + pre-conditions len(parts)>=1 & MustTerminate(2) + postcondition Ensures(Result()==join_dot(parts)); impl region correctly elided) reveals only that the result is EXACTLY the dot-join of the name parts with no further character substitution, so '.[' inside any part survives. Every behavioural fact disclosed by the spec is already stated MORE explicitly in the public problem_statement (which quotes the literal source line and its replacement). It leaks nothing about the gold edit beyond problem_statement. The rest (PSeq[int] code-point carrier, front-recursive join_dot fold, MustTerminate obligation, loop invariants) is modeling scaffolding, not gold-edit disclosure. The gold patch (delete `s=\".\".join(parts); return s.replace(\".[\", \"[\")`, replace with `return \".\".join(parts)`) is a Python edit in src/_pytest/python.py and lives entirely in the elided impl region. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness check for the modeled function modpath_of(parts) against the real getmodpath tail at base_commit 3a668ea6 (worktree $SCRATCH confirmed at base_commit, pre-patch buggy code present: s='.'.join(parts); return s.replace('.[','[')).\n\nThe gold patch replaces that with `return '.'.join(parts)` (join only, no substitution). The model specs EXACTLY the post-patch behavior via postcondition Result() == join_dot(parts), where join_dot is a deep front-recursive fold with separator code point 46. No further character substitution is modeled \u2014 matching the fix precisely.\n\nEvidence the spec does NOT drift / is not too strong:\n1. G-AX axiom_check.py PASSES (exit 0): join_dot deep model == real CPython '.'.join on 11+18 boundary inputs + 30000 fuzz rounds, incl. the F2P witness ['TestY','testmethod_two[.[]'] and '.['-rich strings.\n2. Independent 200000-input fuzz over the precondition domain (len(parts)>=1, alphabet incl. '.', '[', ']') comparing join_dot vs real post-patch '.'.join: ZERO divergences.\n3. model.py VERIFIES (nagini_verify exit 0, 12.9s).\n4. Precondition len(parts)>=1 is faithful: real getmodpath always appends >=1 name part (node.name), so parts is never empty at the join \u2014 not an artificial domain restriction.\n5. MustTerminate(2) is faithful: real getmodpath is a single finite pass that always returns; the obligation only rejects diverging impls (closes a partial-correctness vacuity the P1 audit exploited) and the gold discharges it with measure i+1 \u2014 does not over-constrain the gold.\n6. The postcondition is a structural equality grounded in the input carrier parts (not an oracle read of Result), and model_prepatch.py (the pre-patch bug) FAILS it \u2014 so the spec genuinely discriminates fix from bug (G-DIFF), confirming it senses the real change rather than merely echoing it.\n\nNo input exists where modpath_of disagrees with the real (post-patch/gold) callee. Spec is faithful to the real repo behavior being modeled.; G-PANEL-3 (leakage): pass \u2014 Leakage baseline = public problem_statement, which is maximally explicit: it names the bug ('.[' replaced with '[' in the report headline), quotes the exact culprit source line `return s.replace(\".[\", \"[\")` as the cause, and prescribes the fix ('We should replace it with `return s`'), plus states the desired behaviour that '.[' be preserved. The spec view (verified via markers.spec_view + NaginiBackend.language: docstring + join_dot pure fn + pre-conditions len(parts)>=1 & MustTerminate(2) + postcondition Ensures(Result()==join_dot(parts)); impl region correctly elided) reveals only that the result is EXACTLY the dot-join of the name parts with no further character substitution, so '.[' inside any part survives. Every behavioural fact disclosed by the spec is already stated MORE explicitly in the public problem_statement (which quotes the literal source line and its replacement). It leaks nothing about the gold edit beyond problem_statement. The rest (PSeq[int] code-point carrier, front-recursive join_dot fold, MustTerminate obligation, loop invariants) is modeling scaffolding, not gold-edit disclosure. The gold patch (delete `s=\".\".join(parts); return s.replace(\".[\", \"[\")`, replace with `return \".\".join(parts)`) is a Python edit in src/_pytest/python.py and lives entirely in the elided impl region. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1_prepatch.py`, `atk_2b_first_noassume.py`, `atk_4_nonterm.py`, `atk_5_nosep.py`, `atk_6_offbyone.py`, `atk_7_firstonly.py`, `atk_8_doubledot.py`, `atk_9_trailingdot.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness check for the modeled function modpath_of(parts) against the real getmodpath tail at base_commit 3a668ea6 (worktree $SCRATCH confirmed at base_commit, pre-patch buggy code present: s='.'.join(parts); return s.replace('.[','[')).\n\nThe gold patch replaces that with `return '.'.join(parts)` (join only, no substitution). The model specs EXACTLY the post-patch behavior via postcondition Result() == join_dot(parts), where join_dot is a deep front-recursive fold with separator code point 46. No further character substitution is modeled \u2014 matching the fix precisely.\n\nEvidence the spec does NOT drift / is not too strong:\n1. G-AX axiom_check.py PASSES (exit 0): join_dot deep model == real CPython '.'.join on 11+18 boundary inputs + 30000 fuzz rounds, incl. the F2P witness ['TestY','testmethod_two[.[]'] and '.['-rich strings.\n2. Independent 200000-input fuzz over the precondition domain (len(parts)>=1, alphabet incl. '.', '[', ']') comparing join_dot vs real post-patch '.'.join: ZERO divergences.\n3. model.py VERIFIES (nagini_verify exit 0, 12.9s).\n4. Precondition len(parts)>=1 is faithful: real getmodpath always appends >=1 name part (node.name), so parts is never empty at the join \u2014 not an artificial domain restriction.\n5. MustTerminate(2) is faithful: real getmodpath is a single finite pass that always returns; the obligation only rejects diverging impls (closes a partial-correctness vacuity the P1 audit exploited) and the gold discharges it with measure i+1 \u2014 does not over-constrain the gold.\n6. The postcondition is a structural equality grounded in the input carrier parts (not an oracle read of Result), and model_prepatch.py (the pre-patch bug) FAILS it \u2014 so the spec genuinely discriminates fix from bug (G-DIFF), confirming it senses the real change rather than merely echoing it.\n\nNo input exists where modpath_of disagrees with the real (post-patch/gold) callee. Spec is faithful to the real repo behavior being modeled.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Leakage baseline = public problem_statement, which is maximally explicit: it names the bug ('.[' replaced with '[' in the report headline), quotes the exact culprit source line `return s.replace(\".[\", \"[\")` as the cause, and prescribes the fix ('We should replace it with `return s`'), plus states the desired behaviour that '.[' be preserved. The spec view (verified via markers.spec_view + NaginiBackend.language: docstring + join_dot pure fn + pre-conditions len(parts)>=1 & MustTerminate(2) + postcondition Ensures(Result()==join_dot(parts)); impl region correctly elided) reveals only that the result is EXACTLY the dot-join of the name parts with no further character substitution, so '.[' inside any part survives.\n\nEvery behavioural fact disclosed by the spec is already stated MORE explicitly in the public problem_statement (which quotes the literal source line and its replacement). It leaks nothing about the gold edit beyond problem_statement. The rest (PSeq[int] code-point carrier, front-recursive join_dot fold, MustTerminate obligation, loop invariants) is modeling scaffolding, not gold-edit disclosure. The gold patch (delete `s=\".\".join(parts); return s.replace(\".[\", \"[\")`, replace with `return \".\".join(parts)`) is a Python edit in src/_pytest/python.py and lives entirely in the elided impl region. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:31:14+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-direct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-firsthit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-nonterm",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-nosep",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "b5d17858a5a592d4c7abf771a7d232639c2ef94d1b37049c257aa94d7dd46a9b",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac",
+        "properties.py": "b5d17858a5a592d4c7abf771a7d232639c2ef94d1b37049c257aa94d7dd46a9b"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T09:45:00+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:09:05+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "wall_time_s": 30.0
+      },
+      "detail": "verified in 30.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "8bf315f32099993654a1854ed705d666f6f5170445c7f6e06c5342f361d90dac"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pytest-dev__pytest-6202",
+  "modeled_functions": [
+    {
+      "carrier_type": "List[str] of name parts -> PSeq[PSeq[int]] of Unicode code points; result str -> PSeq[int]",
+      "model_symbol": "modpath_of",
+      "repo_location": "src/_pytest/python.py:271 (body lines 287-289)",
+      "repo_symbol": "_pytest.python.PyobjMixin.getmodpath",
+      "role": "modeled changed function (dotted module path of a collected node); single contracted+implemented function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == join_dot(parts) (the join loop and substitution loop invariants verify; only the function postcondition fails)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "getmodpath() applies no post-join substitution",
+      "reverted_to": "the pre-patch '.[' -> '[' substitution applied after the dot-join (replace_db(join_dot(parts)))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "581aff821aece0ba5b45eca366ed115d468c0088c05a78b2df64202de8eb65d2",
+    "impl": "ac9c0c4f8b4da152093481476a1d03b3b472794688d239ffc517ac6f4dc24dbb",
+    "invariants": "230e86f50c7a1cd62eb3d04893023d6f352ec4fc215b821860ff99c1b6f7773c",
+    "post-conditions": "85167875a271db5fcdc1cd16a22f7fa04c473114734a5fd166e15484ed730ef4",
+    "pre-conditions": "9504979d4e41852eb1c723bacc5e43f5145e92e1b93ab16c7519efd57647c289",
+    "pure": "e928e79f3e11025b8524dfa5f8ceeaada5da0dca5a33538c7a094b973585278f",
+    "spec_view": "84d3fdaae8973c0b6c93ce7fa84feed23c0d6ebbd3b4739f74a5740b5657575c"
+  },
+  "repo": "pytest-dev/pytest",
+  "schema_version": 1,
+  "string_modeling": "name parts as PSeq[int] of Unicode code points, list of parts as PSeq[PSeq[int]]; result carried by PSeq[int]; dot-join proven by a backward per-part fold (front-recursive join_dot gives a single unfold per step)",
+  "version": "5.2"
+}

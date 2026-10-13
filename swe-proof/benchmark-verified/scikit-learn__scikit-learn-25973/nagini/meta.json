@@ -1,0 +1,516 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the per-round draw site the source is threaded through; modelled by draw_count/round_completes (A-reference) \u2014 a non-empty draw == a non-empty cross_val_score score set (no IndexError). Not an independently-fixed behaviour: it has no effect unless the source is materialised once before the loop (same shared spec), so no separate prepatch.",
+      "repo_location": "sklearn/feature_selection/_sequential.py:294,308-315",
+      "repo_symbol": "SequentialFeatureSelector._get_best_new_feature_score (signature gains `cv`; cross_val_score cv=self.cv -> cv=cv)"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real check_cv(generator)/check_cv(splitter) preserves the split-family size and presents it on every draw (== the contract); raw generator exhausts after first draw (the differential the fix removes)",
+      "contract": "Requires(Acc(src.size,1/4) and Acc(src.reusable,1/4) and src.size>=0); Ensures(Result().size==src.size and Result().reusable==True and presents_family(Result()))",
+      "kind": "A-consumed",
+      "model_symbol": "secure_reusable_source",
+      "repo_location": "sklearn/model_selection/_split.py:2406 (+ :2353-2403 _CVIterableWrapper)",
+      "repo_symbol": "sklearn.model_selection.check_cv (invoked at _sequential.py:262 post-patch)",
+      "role": "unchanged library helper the fix CALLS once before the loop; the proof consumes its Ensures, which is the unique grantor of the presents_family capability so the materialisation step cannot be faked by echoing the input's family size (directive-8 echo cheat closed)",
+      "weakest_sufficient": "asserts only: the returned source carries the same split-family size (count preservation), it presents that family on every draw, and the call grants the presents_family capability. No claim about int-input splitter construction, the ValueError raise path, or split index arrays."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) \u2014 the capability == 'every .split() re-presents the full family' (validated on real check_cv) \u2014 + G-EQ echo/launder attackers atk_echo / atk_launder (both now FAIL on presents_family(Result().cv))",
+      "contract": "@ContractOnly @Predicate, abstract (no body) -> unforgeable: no impl can Fold it, and it is tied to the object reference so it cannot be laundered across value-equal copies; obtainable ONLY from secure_reusable_source's Ensures",
+      "kind": "A-consumed",
+      "model_symbol": "presents_family",
+      "repo_location": "sklearn/model_selection/_split.py:2380-2403 (_CVIterableWrapper.split)",
+      "repo_symbol": "the EFFECT of check_cv returning a source whose every .split() re-presents the full split family",
+      "role": "load-bearing for verify=>correct: securing a source that presents its family on every draw is a control-flow effect with NO value-level discriminator (the family size src.size is the same whether or not such a source was secured). select_features.Ensures(presents_family(Result().cv)) forces every verifying impl to route the reported source through secure_reusable_source, closing the directive-8 echo cheat the panel found."
+    }
+  ],
+  "base_commit": "10dbc142bd17ccf7bd38eec2ac04b52ce0d1009e",
+  "changed_files": [
+    "sklearn/feature_selection/_sequential.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real materialised source yields full family every round; raw generator yields it once then 0",
+      "encoded_property": "draw_count(reusable=True, size, prior) == size (a source re-presenting its family yields the full family every round); draw_count(reusable=False, size, 0) == size and == 0 for prior>=1 (one-shot exhaustion = the pre-patch IndexError cause)",
+      "kind": "A-reference",
+      "models": "one cv.split(...) draw inside cross_val_score; the source's per-round yield semantics",
+      "name": "draw_count / round_completes",
+      "provenance": "sklearn/model_selection/_split.py:2380-2403 (_CVIterableWrapper.split re-presents the stored list) vs a raw generator (yielded once then exhausted); draw emptiness -> _aggregate_score_dicts IndexError",
+      "role": "deep model of the per-round draw semantics; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:09:21+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: axioms + deep models sound \u2014 the consumed axiom secure_reusable_source == check_cv materialises a one-shot generator into a source preserving the split-family size and presenting it on every draw (the presents_family capability; draw_count(True,size,*)==size); draw_splits == ONE real .split() draw, advancing the draw ledger by exactly one and reporting that draw's own count, so a tally of n is reachable only by performing n real draws (and since every draw of a secured source reports the SAME count, the tally rather than the counts is what witnesses that each round drew); raw generators exhaust after the first draw (draw_count(False,size,prior): size then 0), so a routine that never secures such a source cannot complete every round.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "6367a72858c8d5631076450e19dad0648a31ca1dac97406ec6eb932cb5f7803e",
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:09:17+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: 100000 inputs (924 = the ENTIRE finite modeled space, exhaustively; 99076 seeded 1/cost-weighted fuzz over that same space, full support, seed=25973), 0 disagreements. Shadow = model.py impl region verbatim (contracts stripped), @ContractOnly secure_reusable_source / draw_splits / keep_score realized by the REAL sklearn.model_selection.check_cv and real draws/aggregations, with both carrier facets and all four ledgers measured off real events; oracle = the REAL patched SequentialFeatureSelector.fit driven end-to-end, per-candidate-scoring split counts read back through the scoring probe. Legs: per-scoring counts + secured family (impl region), step_completes (pure region), and the four ledger postconditions measured on BOTH sides incl. the CONFIGURED source's own draw/kept tallies (1 draw, 0 kept scores; on check_cv's pass-through path, where the secured source IS the configured one, the kept scores are checked to be attributed to it instead). One-shot-generator inputs (the branch the gold patch changed) covered; unpatched, this script exits 1.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "cec4f1ce7fbc9b2101e0832581131ffbd8b9ccd48a5e5010988e6fdcd2396b91",
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:49:41+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a",
+        "model_prepatch.py": "0d698c748b7bd0a99a29ca257b8866e4ff48df2e3cc3089a4db10050f821fe1b"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T11:48:08+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 12 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_5.py`, `atk_6.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a",
+        "properties.py": "b0b771b8862e0b1cbf3eb01fc224df1e1faded17e7162b472984bffac315e5cd"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:50:45+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a",
+        "model_prepatch.py": "0d698c748b7bd0a99a29ca257b8866e4ff48df2e3cc3089a4db10050f821fe1b"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:11:39+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "frame_warnings": [
+          "param 'counts' of __init__() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)"
+        ],
+        "region_hashes": {
+          "axioms": "284f56dd5621c88483ad699c0927eff83d61433ad3436bbf90cb5533ec6c5b56",
+          "impl": "f0af5a4f708b556e4aefcfac27e99884cf880808dc7877ca87d2dfa8d7ccab4a",
+          "invariants": "25bd023d8ce2eddd5d6a30adc357ed75c8c0b2d2c555da1e386f43ac7747819c",
+          "post-conditions": "3538a0da2b03707bf2b6cdfd2cfa80744b900e61854969e7551847ffde13f0a3",
+          "pre-conditions": "39639b1cb78e4396a0d02d79533348ea08276994454d0b1bc590c02921fb77d9",
+          "pure": "3f0c923e5befb3660127dae33e073549bdf716ac0c919889dbb6f1bd8f97b732",
+          "spec_view": "b63fb9e0d56c05b958db4bea67da85f600bb3f998abfe89f3f69cbf22c4faf16"
+        }
+      },
+      "detail": "imports/markers/regions clean  [advisory] param 'counts' of __init__() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:11:39+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "995d7df55d93cea83338ed3fb1eb8ccd39e786d688993a5ac29ae656fd4ba070",
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:11:40+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:00:24+00:00",
+      "code_version": "aac2a0129-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T11:48:08+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE SETUP. Worktree from repos/scikit-learn_scikit-learn.git at base_commit 10dbc142bd17ccf7bd38eec2ac04b52ce0d1009e with patch.diff APPLIED (per instructions: the model describes the FIXED behavior, so base is the reference only for untouched callees). Also ran everything inside swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931 (same environment_setup_commit 1e8a5b833d1b58f3ab84099c4582239af854b23a, version 1.3, 65 compiled .so present), where /testbed sources were diffed against my worktree: _split.py and _validation.py byte-identical, _sequential.py differing by exactly patch.diff. patch.diff applied cleanly in-container. Baseline model.py verifies: exit 0, 36.82s.\n\nWHAT I TRIED TO BREAK. Faithfulness here means: on every input the precondition ADMITS (src.size>0, n_scorings>=1, ledgers at 0, and Implies(src.reusable==False, materialisable(src))), each of the postconditions must be TRUE of the real gold-patched fit. The load-bearing claims I attacked are (a) counts[k]==src.size>=1 for all k, (b) len(counts)==n_scorings with n_scorings = sum_{r<n_iterations}(n_features-r), (c) draws_taken(Result().cv)==scores_kept(Result().cv)==n_scorings with the draw/keep alternation and counts==score_from_draw journal, (d) Implies(src.reusable==False, draws_taken(src)==1 and scores_kept(src)==0), (e) Result().cv.size==src.size and reusable==True.\n\nMEASUREMENT HARNESS. Instrumented the REAL patched repo: wrapped .split on _CVIterableWrapper/KFold/StratifiedKFold/LeaveOneGroupOut/ShuffleSplit/StratifiedShuffleSplit/LeaveOneOut/LeavePOut/TimeSeriesSplit/RepeatedKFold/GroupKFold/PredefinedSplit to count per-draw split families per object identity (ledger 1 + the score_from_draw journal), wrapped _sequential.cross_val_score to count kept scores per cv object identity (ledger 2), wrapped _sequential.check_cv to capture the (argument, result) pair, and wrapped the configured iterable so each fresh traversal is a counted draw of src. Every clause was MEASURED off real events, never assumed.\n\nRESULTS: 0 DIVERGENCES on admissible inputs.\n1) Sweep 1: 400 configs x 4 realizations. Sweep 2: 1400 configs over 7 realizations (logo_gen, oneshot_gen, list, kfold, skfold, shufflesplit, int) x size 1,2,3,4,6 x n_features 2..5 x every k x both directions x n_jobs 1,2. All 80 flagged rows were size==1 ONLY, and all were the REAL repo's own input validation, not spec disagreement: cv=1 hits InvalidParameterError ('cv must be an int in the range [2,inf)') and LeaveOneGroupOut needs >=2 groups. size==1 with a wrapped iterable also failed only from my own probe's degenerate empty-train-set construction. No admissible size>=2 config ever diverged.\n2) n_scorings refinement (mapping.md \u00a74.1, the row a prior revision got WRONG): confirmed exactly. Also confirmed on the paths that could break the formula: n_features_to_select='auto' with tol=0.01/0.0001/1e9 (early break taken at 1e9: real did 9 scorings, and the formula agrees because n_iterations is recomputed), float n_features_to_select=0.5, tol with integer nfs, and negative tol backward. Formula matched real scoring count in every completing case.\n3) Splitter breadth: KFold(3), KFold(5,shuffle), StratifiedKFold(4), ShuffleSplit(7), StratifiedShuffleSplit(3), LeavePOut(2) (family size 1770 \u2014 counts still constant and ==size), TimeSeriesSplit(4), RepeatedKFold(3x2)==6, int 3, int 5, list, tuple, None==5. counts constant and ==size, both ledgers ==n_scorings, in all 13.\n4) One-shot generator (the F2P shape) across size 2..6 x 5 (nf,nfs,direction) shapes, 50 runs: counts==[size] uniformly, draws_taken(src)==1 and scores_kept(src)==0 uniformly \u2014 clause (d) exactly as stated.\n5) Regressor path (classifier=False in check_cv): int, KFold, one-shot generator \u2014 all clean.\n6) Exact F2P test_cv_generator_support reproduced: 90 scorings, sec_draws=90, counts=[2], draws_taken(src)=1, kept_src=0, formula(20,5,forward)=90. Exact match.\n7) check_cv argument consumption measured directly with a traversal tracer: exactly ONE __iter__ call, and the wrapper then presents 3,3,3 \u2014 the A3c/list(cv) claim is real. Bare generator draws (3,0,0) == draw_count(False,3,prior). iter(g) is g confirmed.\n8) StratifiedKFold size preservation on the int path stressed with minority class size 2..20 vs n_splits 2..10 (16 combos): family size always ==n_splits, so Result().size==src.size holds on the branch where check_cv CONSTRUCTS the splitter.\n9) Adversarial materialisable-but-weird iterables that carry no .split so check_cv wraps them \u2014 Shrinking, Growing, OnceThenEmpty, genexpr, map object, list_iterator: all clean, because list(cv) freezes the FIRST traversal, which is exactly what draw_count(False,size,0)==size models.\n\nTHE ONE REAL OVER-CLAIM I FOUND, AND WHY IT IS NOT A DEFECT. The axiom's permission arithmetic (Requires Acc(src.size,1/4) plus Ensures Acc(src.size,1/4) AND Ensures Acc(Result().size) \u2014 a FULL permission) makes result-argument separation derivable: I added Assert(cv is not src) inside the impl region, spec byte-identical (markers.same_spec=True), and it VERIFIED (exit 0, 43.48s). Assert(Implies(src.reusable==True, cv is not src)) also verified. But real check_cv RETURNS ITS ARGUMENT on the pass-through branch (measured: KFold/StratifiedKFold/ShuffleSplit/TimeSeriesSplit all give `out is cv` True), so the model's non-aliasing is strictly stronger than reality. I then tried to turn that into an observable divergence and could NOT: (i) I drove the aliased case (cv=KFold(3)) through the real patched fit and every stated postcondition held \u2014 draws_taken(cv)=7, scores_kept(cv)=7, counts=[3], all ==n_scorings; (ii) the two clauses that WOULD be false under aliasing are exactly the ones the spec guards behind Implies(src.reusable==False, ...) \u2014 under aliasing src.reusable is True, so draws_taken(src)==1/scores_kept(src)==0 are never asserted, and measurement confirms the real aliased run has draws_taken(src)=7, scores_kept(src)=7, which the spec correctly declines to constrain; (iii) I machine-confirmed the proof CANNOT leak the separation into a false claim about src's ledgers: Assert(scores_kept(src)==0) FAILED (exit 1) and Assert(Implies(src.reusable==True, scores_kept(src)==0)) FAILED (exit 1). So the extra separation fact is inert \u2014 it constrains no reported observable. mapping.md \u00a74.3 and refinement.md A1b/A3c document this branch split explicitly and measure all six realizations, and the conditional guarding is argued (correctly) as the weakest sufficient narrowing: an UNCONDITIONAL draw count would be the unfaithful choice.\n\nVACUITY CONTROLS (the guarded-self-call / infeasible-guard trap). Assert(False) in the impl region FAILED (exit 1, 19.62s) and Assert(False) at the pre-return program point FAILED (exit 1, 32.75s) \u2014 the path is feasible, so the verifications above prove something. Assert(src.reusable==False) FAILED (exit 1) \u2014 the reusable==True case is genuinely reachable and not silently excluded, so the postconditions are discharged on BOTH branches, not just the one-shot one. All 7 probe variants passed markers.same_spec against the bundle (spec byte-identical; only the impl region differed), so no probe was measuring a mutated spec.\n\nCONCLUSION: no admissible input on which the modeled function disagrees with the real gold-patched callee. The narrowing to materialisable sources is documented, measured over six realizations, and costs the spec none of the behavior under change (the F2P input is on the admitted side). The one place the model is stronger than reality (result-argument non-aliasing) is provably inert. FAITHFUL. Work confined to /tmp and the container; bundle unmodified.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "G-PANEL-3 (leakage / gold-reconstruction), scikit-learn__scikit-learn-25973 nagini. Verdict NO-LEAKAGE. Every claim below is my own measurement in this session; nothing inherited from verdict.md or meta.json prose.\n\nRELAXATION STATUS: NONE CLAIMED, and I checked rather than assumed. `find benchmark-verified/scikit-learn__scikit-learn-25973 -iname '*RELAX*'` -> no matches (instance dir and nagini/ both). meta.json top-level keys are [additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] -- no `relaxed_leakage` (checked: `'relaxed_leakage' in m` -> False), and meta.gates['G-LEAK'].status == 'pass', not 'relaxed'. So there is no documented relaxation and no unavoidability argument to re-derive; I judged the ordinary NO-LEAKAGE/LEAKAGE question, not a relaxed one.\n\nSPEC VIEW COMPUTED, NOT ASSUMED. Built the solver-visible projection myself with swebench_unified.markers.spec_view(model.py, get_backend('nagini')) -> specview.txt, 440 lines (model.py is 478). Confirmed the impl region collapses to the three-line ELISION placeholder (tail of the view is `# impl-start / ...  # implementation elided -- supplied by the consumer / # impl-end`), and that no impl statement survives: `secure_reusable_source(src)`, `used.append`, `while i <` and the whole Invariant block are all absent from the view (nested invariants elide with the impl, as `_python_spec_view` intends -- this is also the path adapter.spec_view() guards). same_spec(model.py, model_prepatch.py) == True, and `python -m swebench_unified.adversary same-spec nagini scikit-learn__scikit-learn-25973 atk.py` (copy of model.py) -> exit 0, 'SAME', so the spec region I audited is the one the gates compare against.\n\nL1 (gold-patch text). Ran leakage._patch_changed_lines over instance.json's patch and checked each changed line normalized against the normalized view. ZERO hits. Explicitly absent: 'cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))', 'from ..model_selection import cross_val_score, check_cv', 'from ..base import BaseEstimator, MetaEstimatorMixin, clone, is_classifier', 'cv=cv,', 'cloned_estimator, X, y, cv, current_mask', and both `_get_best_new_feature_score` signatures. No diff markers ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') in the view.\n\nL2 (paths / symbols) -- hand-grepped, because the mechanical L2 is blind here. I first established the blindness: leakage._patch_changed_symbols(patch) == {'get_best_new_feature_score'} only (check_cv / is_classifier are CALLED, not def'd, in the diff), and my own control -- renaming the axiom `secure_reusable_source` to `check_cv_secure` -- still returned hard_failures == [] from screen(). So the gate would not catch a literal `check_cv` in the view, and the real evidence is my grep: over specview.txt, case-insensitive counts are check_cv 0, is_classifier 0, cross_val_score 0, sklearn 0, model_selection 0, _sequential 0, feature_selection 0, SequentialFeatureSelector 0, n_features_to_select 0, estimator 0, clone 0, mask 0, LeaveOneGroupOut 0, _CVIterableWrapper 0, aggregate_score_dicts 0, generator 0 (the F2P test name is test_cv_generator_support -- 'generator' does not appear at all). 'self.cv' hits at view lines 110/116/117/119 are the model's own SelectionResult.__init__ field, not the repo attribute. Patched file path 'sklearn/feature_selection/_sequential.py' and its dotted form both absent. No spec-view identifier embeds 'get_best_new_feature_score' ('best'/'new_feature' return nothing).\n\nL3 (narration). grep -niE 'bug|fix|patch|gold|regression|previously|incorrectly|wrong|broken|IndexError|hoist|thread|exhaust|first iteration' over the view: zero narration hits. 'deplet' (2), 'consum' (6), 'one-shot' (6) are behavioural domain language about the modelled source's per-draw semantics, not bug->fix narration. The bundle's own prose files DO use 'pre-patch'/'gold' freely (refinement.md, mapping.md) but those are not projected -- only model.py reaches the solver via adapter.spec_view.\n\nMECHANICAL SCREEN, run by me: leakage.screen(model.py, nagini.language, patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Sensitivity controls proving the screen was live on this input, not silently no-op: injecting the gold line 'cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))' into a spec-view comment -> L1 hard failure; injecting '# this fixes the bug where the generator was consumed' -> L3 narration failure on 'fixes'.\n\nGOLD-RECONSTRUCTION (the question the lexer misses). The view describes an OBSERVABLE, not an edit: a 'securing step' yielding a source whose every draw re-presents the configured source's full positive split family, two abstract ledgers (draws_taken / scores_kept) forcing one draw per step in strict alternation, and a journal (score_from_draw) forcing each reported entry to be its own step's draw. Nothing states where to insert a call, which helper to call, which import to add, or that a parameter must be threaded through a second method (grep: 'method' 0, 'parameter' 0, 'thread' 0, 'hoist' 0, 'signature' 0, 'wrapper' 0, 'convert' 0). The single arguably structural line is view:212 '# An unchanged library helper the procedure CALLS (but does not change)' -- it names no helper, is forced by the @ContractOnly A-consumed rubric (a solver must know an axiom stands for a real callee), and adds nothing over the localization the solver already gets in modes 1/2 from meta.changed_files / meta.modeled_functions.\n\nThe hints_text-vs-PS test on the one substantive worry. The deep model draw_count(reusable=False, size, prior>0) == 0 encodes 'a one-shot source presents nothing after its first draw', which is close to the hints-only sentence 'if cv is a generator it will be consumed at the first iteration only'. I judged this derivable from the PUBLIC problem_statement alone: the PS reproduction passes `splits = cv.split(X, y, groups=groups)` (a generator, by public sklearn API) and the PS traceback is public and lands on `scores[0]` / 'IndexError: list index out of range' in _aggregate_score_dicts -- i.e. a later use saw ZERO splits. Zero-splits-on-a-later-use plus Python's own iterator semantics is exactly the one-shot facet; no hints vocabulary is needed and none is echoed (hints-only tokens: 'generator' 0, 'list(' 0, 'clone' 0, 'documentation' 0, '_CVObjects' 0, 'isgenerator' 0, 'GridSearchCV' 0, 'SearchCV' 0, '_parameter_constraints' 0). The facet is also load-bearing rather than decorative, and it is the INPUT domain being modelled, not the fix: without it the spec cannot see the bug at all.\n\nLOAD-BEARING CHECK (strip test, adapted since no relaxation is claimed). `bash scripts/nagini_verify.sh model.py` -> 'Verification successful', 42.63s, exit 0. `bash scripts/nagini_verify.sh model_prepatch.py` (byte-identical spec_view hash b63fb9e0..., confirmed) -> 'Verification failed', model_prepatch.py:382 'Postcondition of select_features might not hold. There might be insufficient permission to access presents_family(Result().cv, src)', 23.09s, exit 1. So the discriminator against the PRE-patch impl is carried by the unforgeable presents_family capability and the ledgers -- spec-region CONTRACT text -- not by prose a solver could pattern-match back into the gold diff.\n\nBUNDLE ADDRESSING THE PANEL: none found, and I looked deliberately. leakage.reviewer_directed() returns [] on model.py, model_prepatch.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, meta.json and verdict.md. Hand-grepped the same set for 'G-PANEL-3', 'leakage panel', 'NO-LEAKAGE', 'attacker 3', 'you must/should submit|record': the only hits are inside meta.json and verdict.md, and they are RECORDS of a prior panel run's own findings and gate names (verdict.md:1673 'Role 3 -- G-PANEL-3 (leakage): pass'), i.e. self-reporting, not an instruction to me. Nothing in the bundle told me which verdict to record. Note: a prior G-PANEL-3 record in verdict.md also concluded NO-LEAKAGE; I did not read it before running my own measurements and my greps/controls above are independent of it.\n\nOUT-OF-FACET OBSERVATION, routed rather than acted on here: meta.json's `region_hashes` block does not match what I recompute from the model.py bytes on disk -- all seven differ (recorded spec_view ff9c629a..., computed b63fb9e0...; recorded impl 6e41c5a2..., computed f0af5a4f...) -- while meta.gates['G-LEAK'].sources['model.py'] == 2239e1e6... which DOES equal the current sha256 of model.py. That reads as a stale region_hashes block from an earlier revision alongside current gate source digests. It does not affect leakage (I audited the projection of the bytes actually on disk, and the two models' spec_views are equal to each other), but it is a G-INTEGRITY / staleness concern worth routing there.\n\nCONCLUSION: the spec view reproduces no gold-patch line, carries no diff marker, names no patched file/module/symbol, echoes no hints_text-only vocabulary, and narrates no bug->fix mechanism. It states only the abstract behaviour the public problem_statement already demands ('according to the documentation, it should also be able to take an iterable of splits' / 'Expected to run without errors', with the zero-splits IndexError traceback public). NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE SETUP. Worktree from repos/scikit-learn_scikit-learn.git at base_commit 10dbc142bd17ccf7bd38eec2ac04b52ce0d1009e with patch.diff APPLIED (per instructions: the model describes the FIXED behavior, so base is the reference only for untouched callees). Also ran everything inside swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931 (same environment_setup_commit 1e8a5b833d1b58f3ab84099c4582239af854b23a, version 1.3, 65 compiled .so present), where /testbed sources were diffed against my worktree: _split.py and _validation.py byte-identical, _sequential.py differing by exactly patch.diff. patch.diff applied cleanly in-container. Baseline model.py verifies: exit 0, 36.82s.\n\nWHAT I TRIED TO BREAK. Faithfulness here means: on every input the precondition ADMITS (src.size>0, n_scorings>=1, ledgers at 0, and Implies(src.reusable==False, materialisable(src))), each of the postconditions must be TRUE of the real gold-patched fit. The load-bearing claims I attacked are (a) counts[k]==src.size>=1 for all k, (b) len(counts)==n_scorings with n_scorings = sum_{r<n_iterations}(n_features-r), (c) draws_taken(Result().cv)==scores_kept(Result().cv)==n_scorings with the draw/keep alternation and counts==score_from_draw journal, (d) Implies(src.reusable==False, draws_taken(src)==1 and scores_kept(src)==0), (e) Result().cv.size==src.size and reusable==True.\n\nMEASUREMENT HARNESS. Instrumented the REAL patched repo: wrapped .split on _CVIterableWrapper/KFold/StratifiedKFold/LeaveOneGroupOut/ShuffleSplit/StratifiedShuffleSplit/LeaveOneOut/LeavePOut/TimeSeriesSplit/RepeatedKFold/GroupKFold/PredefinedSplit to count per-draw split families per object identity (ledger 1 + the score_from_draw journal), wrapped _sequential.cross_val_score to count kept scores per cv object identity (ledger 2), wrapped _sequential.check_cv to capture the (argument, result) pair, and wrapped the configured iterable so each fresh traversal is a counted draw of src. Every clause was MEASURED off real events, never assumed.\n\nRESULTS: 0 DIVERGENCES on admissible inputs.\n1) Sweep 1: 400 configs x 4 realizations. Sweep 2: 1400 configs over 7 realizations (logo_gen, oneshot_gen, list, kfold, skfold, shufflesplit, int) x size 1,2,3,4,6 x n_features 2..5 x every k x both directions x n_jobs 1,2. All 80 flagged rows were size==1 ONLY, and all were the REAL repo's own input validation, not spec disagreement: cv=1 hits InvalidParameterError ('cv must be an int in the range [2,inf)') and LeaveOneGroupOut needs >=2 groups. size==1 with a wrapped iterable also failed only from my own probe's degenerate empty-train-set construction. No admissible size>=2 config ever diverged.\n2) n_scorings refinement (mapping.md \u00a74.1, the row a prior revision got WRONG): confirmed exactly. Also confirmed on the paths that could break the formula: n_features_to_select='auto' with tol=0.01/0.0001/1e9 (early break taken at 1e9: real did 9 scorings, and the formula agrees because n_iterations is recomputed), float n_features_to_select=0.5, tol with integer nfs, and negative tol backward. Formula matched real scoring count in every completing case.\n3) Splitter breadth: KFold(3), KFold(5,shuffle), StratifiedKFold(4), ShuffleSplit(7), StratifiedShuffleSplit(3), LeavePOut(2) (family size 1770 \u2014 counts still constant and ==size), TimeSeriesSplit(4), RepeatedKFold(3x2)==6, int 3, int 5, list, tuple, None==5. counts constant and ==size, both ledgers ==n_scorings, in all 13.\n4) One-shot generator (the F2P shape) across size 2..6 x 5 (nf,nfs,direction) shapes, 50 runs: counts==[size] uniformly, draws_taken(src)==1 and scores_kept(src)==0 uniformly \u2014 clause (d) exactly as stated.\n5) Regressor path (classifier=False in check_cv): int, KFold, one-shot generator \u2014 all clean.\n6) Exact F2P test_cv_generator_support reproduced: 90 scorings, sec_draws=90, counts=[2], draws_taken(src)=1, kept_src=0, formula(20,5,forward)=90. Exact match.\n7) check_cv argument consumption measured directly with a traversal tracer: exactly ONE __iter__ call, and the wrapper then presents 3,3,3 \u2014 the A3c/list(cv) claim is real. Bare generator draws (3,0,0) == draw_count(False,3,prior). iter(g) is g confirmed.\n8) StratifiedKFold size preservation on the int path stressed with minority class size 2..20 vs n_splits 2..10 (16 combos): family size always ==n_splits, so Result().size==src.size holds on the branch where check_cv CONSTRUCTS the splitter.\n9) Adversarial materialisable-but-weird iterables that carry no .split so check_cv wraps them \u2014 Shrinking, Growing, OnceThenEmpty, genexpr, map object, list_iterator: all clean, because list(cv) freezes the FIRST traversal, which is exactly what draw_count(False,size,0)==size models.\n\nTHE ONE REAL OVER-CLAIM I FOUND, AND WHY IT IS NOT A DEFECT. The axiom's permission arithmetic (Requires Acc(src.size,1/4) plus Ensures Acc(src.size,1/4) AND Ensures Acc(Result().size) \u2014 a FULL permission) makes result-argument separation derivable: I added Assert(cv is not src) inside the impl region, spec byte-identical (markers.same_spec=True), and it VERIFIED (exit 0, 43.48s). Assert(Implies(src.reusable==True, cv is not src)) also verified. But real check_cv RETURNS ITS ARGUMENT on the pass-through branch (measured: KFold/StratifiedKFold/ShuffleSplit/TimeSeriesSplit all give `out is cv` True), so the model's non-aliasing is strictly stronger than reality. I then tried to turn that into an observable divergence and could NOT: (i) I drove the aliased case (cv=KFold(3)) through the real patched fit and every stated postcondition held \u2014 draws_taken(cv)=7, scores_kept(cv)=7, counts=[3], all ==n_scorings; (ii) the two clauses that WOULD be false under aliasing are exactly the ones the spec guards behind Implies(src.reusable==False, ...) \u2014 under aliasing src.reusable is True, so draws_taken(src)==1/scores_kept(src)==0 are never asserted, and measurement confirms the real aliased run has draws_taken(src)=7, scores_kept(src)=7, which the spec correctly declines to constrain; (iii) I machine-confirmed the proof CANNOT leak the separation into a false claim about src's ledgers: Assert(scores_kept(src)==0) FAILED (exit 1) and Assert(Implies(src.reusable==True, scores_kept(src)==0)) FAILED (exit 1). So the extra separation fact is inert \u2014 it constrains no reported observable. mapping.md \u00a74.3 and refinement.md A1b/A3c document this branch split explicitly and measure all six realizations, and the conditional guarding is argued (correctly) as the weakest sufficient narrowing: an UNCONDITIONAL draw count would be the unfaithful choice.\n\nVACUITY CONTROLS (the guarded-self-call / infeasible-guard trap). Assert(False) in the impl region FAILED (exit 1, 19.62s) and Assert(False) at the pre-return program point FAILED (exit 1, 32.75s) \u2014 the path is feasible, so the verifications above prove something. Assert(src.reusable==False) FAILED (exit 1) \u2014 the reusable==True case is genuinely reachable and not silently excluded, so the postconditions are discharged on BOTH branches, not just the one-shot one. All 7 probe variants passed markers.same_spec against the bundle (spec byte-identical; only the impl region differed), so no probe was measuring a mutated spec.\n\nCONCLUSION: no admissible input on which the modeled function disagrees with the real gold-patched callee. The narrowing to materialisable sources is documented, measured over six realizations, and costs the spec none of the behavior under change (the F2P input is on the admitted side). The one place the model is stronger than reality (result-argument non-aliasing) is provably inert. FAITHFUL. Work confined to /tmp and the container; bundle unmodified.; G-PANEL-3 (leakage): pass \u2014 G-PANEL-3 (leakage / gold-reconstruction), scikit-learn__scikit-learn-25973 nagini. Verdict NO-LEAKAGE. Every claim below is my own measurement in this session; nothing inherited from verdict.md or meta.json prose.\n\nRELAXATION STATUS: NONE CLAIMED, and I checked rather than assumed. `find benchmark-verified/scikit-learn__scikit-learn-25973 -iname '*RELAX*'` -> no matches (instance dir and nagini/ both). meta.json top-level keys are [additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] -- no `relaxed_leakage` (checked: `'relaxed_leakage' in m` -> False), and meta.gates['G-LEAK'].status == 'pass', not 'relaxed'. So there is no documented relaxation and no unavoidability argument to re-derive; I judged the ordinary NO-LEAKAGE/LEAKAGE question, not a relaxed one.\n\nSPEC VIEW COMPUTED, NOT ASSUMED. Built the solver-visible projection myself with swebench_unified.markers.spec_view(model.py, get_backend('nagini')) -> specview.txt, 440 lines (model.py is 478). Confirmed the impl region collapses to the three-line ELISION placeholder (tail of the view is `# impl-start / ...  # implementation elided -- supplied by the consumer / # impl-end`), and that no impl statement survives: `secure_reusable_source(src)`, `used.append`, `while i <` and the whole Invariant block are all absent from the view (nested invariants elide with the impl, as `_python_spec_view` intends -- this is also the path adapter.spec_view() guards). same_spec(model.py, model_prepatch.py) == True, and `python -m swebench_unified.adversary same-spec nagini scikit-learn__scikit-learn-25973 atk.py` (copy of model.py) -> exit 0, 'SAME', so the spec region I audited is the one the gates compare against.\n\nL1 (gold-patch text). Ran leakage._patch_changed_lines over instance.json's patch and checked each changed line normalized against the normalized view. ZERO hits. Explicitly absent: 'cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))', 'from ..model_selection import cross_val_score, check_cv', 'from ..base import BaseEstimator, MetaEstimatorMixin, clone, is_classifier', 'cv=cv,', 'cloned_estimator, X, y, cv, current_mask', and both `_get_best_new_feature_score` signatures. No diff markers ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') in the view.\n\nL2 (paths / symbols) -- hand-grepped, because the mechanical L2 is blind here. I first established the blindness: leakage._patch_changed_symbols(patch) == {'get_best_new_feature_score'} only (check_cv / is_classifier are CALLED, not def'd, in the diff), and my own control -- renaming the axiom `secure_reusable_source` to `check_cv_secure` -- still returned hard_failures == [] from screen(). So the gate would not catch a literal `check_cv` in the view, and the real evidence is my grep: over specview.txt, case-insensitive counts are check_cv 0, is_classifier 0, cross_val_score 0, sklearn 0, model_selection 0, _sequential 0, feature_selection 0, SequentialFeatureSelector 0, n_features_to_select 0, estimator 0, clone 0, mask 0, LeaveOneGroupOut 0, _CVIterableWrapper 0, aggregate_score_dicts 0, generator 0 (the F2P test name is test_cv_generator_support -- 'generator' does not appear at all). 'self.cv' hits at view lines 110/116/117/119 are the model's own SelectionResult.__init__ field, not the repo attribute. Patched file path 'sklearn/feature_selection/_sequential.py' and its dotted form both absent. No spec-view identifier embeds 'get_best_new_feature_score' ('best'/'new_feature' return nothing).\n\nL3 (narration). grep -niE 'bug|fix|patch|gold|regression|previously|incorrectly|wrong|broken|IndexError|hoist|thread|exhaust|first iteration' over the view: zero narration hits. 'deplet' (2), 'consum' (6), 'one-shot' (6) are behavioural domain language about the modelled source's per-draw semantics, not bug->fix narration. The bundle's own prose files DO use 'pre-patch'/'gold' freely (refinement.md, mapping.md) but those are not projected -- only model.py reaches the solver via adapter.spec_view.\n\nMECHANICAL SCREEN, run by me: leakage.screen(model.py, nagini.language, patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Sensitivity controls proving the screen was live on this input, not silently no-op: injecting the gold line 'cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))' into a spec-view comment -> L1 hard failure; injecting '# this fixes the bug where the generator was consumed' -> L3 narration failure on 'fixes'.\n\nGOLD-RECONSTRUCTION (the question the lexer misses). The view describes an OBSERVABLE, not an edit: a 'securing step' yielding a source whose every draw re-presents the configured source's full positive split family, two abstract ledgers (draws_taken / scores_kept) forcing one draw per step in strict alternation, and a journal (score_from_draw) forcing each reported entry to be its own step's draw. Nothing states where to insert a call, which helper to call, which import to add, or that a parameter must be threaded through a second method (grep: 'method' 0, 'parameter' 0, 'thread' 0, 'hoist' 0, 'signature' 0, 'wrapper' 0, 'convert' 0). The single arguably structural line is view:212 '# An unchanged library helper the procedure CALLS (but does not change)' -- it names no helper, is forced by the @ContractOnly A-consumed rubric (a solver must know an axiom stands for a real callee), and adds nothing over the localization the solver already gets in modes 1/2 from meta.changed_files / meta.modeled_functions.\n\nThe hints_text-vs-PS test on the one substantive worry. The deep model draw_count(reusable=False, size, prior>0) == 0 encodes 'a one-shot source presents nothing after its first draw', which is close to the hints-only sentence 'if cv is a generator it will be consumed at the first iteration only'. I judged this derivable from the PUBLIC problem_statement alone: the PS reproduction passes `splits = cv.split(X, y, groups=groups)` (a generator, by public sklearn API) and the PS traceback is public and lands on `scores[0]` / 'IndexError: list index out of range' in _aggregate_score_dicts -- i.e. a later use saw ZERO splits. Zero-splits-on-a-later-use plus Python's own iterator semantics is exactly the one-shot facet; no hints vocabulary is needed and none is echoed (hints-only tokens: 'generator' 0, 'list(' 0, 'clone' 0, 'documentation' 0, '_CVObjects' 0, 'isgenerator' 0, 'GridSearchCV' 0, 'SearchCV' 0, '_parameter_constraints' 0). The facet is also load-bearing rather than decorative, and it is the INPUT domain being modelled, not the fix: without it the spec cannot see the bug at all.\n\nLOAD-BEARING CHECK (strip test, adapted since no relaxation is claimed). `bash scripts/nagini_verify.sh model.py` -> 'Verification successful', 42.63s, exit 0. `bash scripts/nagini_verify.sh model_prepatch.py` (byte-identical spec_view hash b63fb9e0..., confirmed) -> 'Verification failed', model_prepatch.py:382 'Postcondition of select_features might not hold. There might be insufficient permission to access presents_family(Result().cv, src)', 23.09s, exit 1. So the discriminator against the PRE-patch impl is carried by the unforgeable presents_family capability and the ledgers -- spec-region CONTRACT text -- not by prose a solver could pattern-match back into the gold diff.\n\nBUNDLE ADDRESSING THE PANEL: none found, and I looked deliberately. leakage.reviewer_directed() returns [] on model.py, model_prepatch.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, meta.json and verdict.md. Hand-grepped the same set for 'G-PANEL-3', 'leakage panel', 'NO-LEAKAGE', 'attacker 3', 'you must/should submit|record': the only hits are inside meta.json and verdict.md, and they are RECORDS of a prior panel run's own findings and gate names (verdict.md:1673 'Role 3 -- G-PANEL-3 (leakage): pass'), i.e. self-reporting, not an instruction to me. Nothing in the bundle told me which verdict to record. Note: a prior G-PANEL-3 record in verdict.md also concluded NO-LEAKAGE; I did not read it before running my own measurements and my greps/controls above are independent of it.\n\nOUT-OF-FACET OBSERVATION, routed rather than acted on here: meta.json's `region_hashes` block does not match what I recompute from the model.py bytes on disk -- all seven differ (recorded spec_view ff9c629a..., computed b63fb9e0...; recorded impl 6e41c5a2..., computed f0af5a4f...) -- while meta.gates['G-LEAK'].sources['model.py'] == 2239e1e6... which DOES equal the current sha256 of model.py. That reads as a stale region_hashes block from an earlier revision alongside current gate source digests. It does not affect leakage (I audited the projection of the bytes actually on disk, and the two models' spec_views are equal to each other), but it is a G-INTEGRITY / staleness concern worth routing there.\n\nCONCLUSION: the spec view reproduces no gold-patch line, carries no diff marker, names no patched file/module/symbol, echoes no hints_text-only vocabulary, and narrates no bug->fix mechanism. It states only the abstract behaviour the public problem_statement already demands ('according to the documentation, it should also be able to take an iterable of splits' / 'Expected to run without errors', with the zero-splits IndexError traceback public). NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a",
+        "properties.py": "b0b771b8862e0b1cbf3eb01fc224df1e1faded17e7162b472984bffac315e5cd"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T11:48:06+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 12 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_5.py`, `atk_6.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a",
+        "properties.py": "b0b771b8862e0b1cbf3eb01fc224df1e1faded17e7162b472984bffac315e5cd"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T10:30:27+00:00",
+      "code_version": "2c14a3dbf-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE SETUP. Worktree from repos/scikit-learn_scikit-learn.git at base_commit 10dbc142bd17ccf7bd38eec2ac04b52ce0d1009e with patch.diff APPLIED (per instructions: the model describes the FIXED behavior, so base is the reference only for untouched callees). Also ran everything inside swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931 (same environment_setup_commit 1e8a5b833d1b58f3ab84099c4582239af854b23a, version 1.3, 65 compiled .so present), where /testbed sources were diffed against my worktree: _split.py and _validation.py byte-identical, _sequential.py differing by exactly patch.diff. patch.diff applied cleanly in-container. Baseline model.py verifies: exit 0, 36.82s.\n\nWHAT I TRIED TO BREAK. Faithfulness here means: on every input the precondition ADMITS (src.size>0, n_scorings>=1, ledgers at 0, and Implies(src.reusable==False, materialisable(src))), each of the postconditions must be TRUE of the real gold-patched fit. The load-bearing claims I attacked are (a) counts[k]==src.size>=1 for all k, (b) len(counts)==n_scorings with n_scorings = sum_{r<n_iterations}(n_features-r), (c) draws_taken(Result().cv)==scores_kept(Result().cv)==n_scorings with the draw/keep alternation and counts==score_from_draw journal, (d) Implies(src.reusable==False, draws_taken(src)==1 and scores_kept(src)==0), (e) Result().cv.size==src.size and reusable==True.\n\nMEASUREMENT HARNESS. Instrumented the REAL patched repo: wrapped .split on _CVIterableWrapper/KFold/StratifiedKFold/LeaveOneGroupOut/ShuffleSplit/StratifiedShuffleSplit/LeaveOneOut/LeavePOut/TimeSeriesSplit/RepeatedKFold/GroupKFold/PredefinedSplit to count per-draw split families per object identity (ledger 1 + the score_from_draw journal), wrapped _sequential.cross_val_score to count kept scores per cv object identity (ledger 2), wrapped _sequential.check_cv to capture the (argument, result) pair, and wrapped the configured iterable so each fresh traversal is a counted draw of src. Every clause was MEASURED off real events, never assumed.\n\nRESULTS: 0 DIVERGENCES on admissible inputs.\n1) Sweep 1: 400 configs x 4 realizations. Sweep 2: 1400 configs over 7 realizations (logo_gen, oneshot_gen, list, kfold, skfold, shufflesplit, int) x size 1,2,3,4,6 x n_features 2..5 x every k x both directions x n_jobs 1,2. All 80 flagged rows were size==1 ONLY, and all were the REAL repo's own input validation, not spec disagreement: cv=1 hits InvalidParameterError ('cv must be an int in the range [2,inf)') and LeaveOneGroupOut needs >=2 groups. size==1 with a wrapped iterable also failed only from my own probe's degenerate empty-train-set construction. No admissible size>=2 config ever diverged.\n2) n_scorings refinement (mapping.md \u00a74.1, the row a prior revision got WRONG): confirmed exactly. Also confirmed on the paths that could break the formula: n_features_to_select='auto' with tol=0.01/0.0001/1e9 (early break taken at 1e9: real did 9 scorings, and the formula agrees because n_iterations is recomputed), float n_features_to_select=0.5, tol with integer nfs, and negative tol backward. Formula matched real scoring count in every completing case.\n3) Splitter breadth: KFold(3), KFold(5,shuffle), StratifiedKFold(4), ShuffleSplit(7), StratifiedShuffleSplit(3), LeavePOut(2) (family size 1770 \u2014 counts still constant and ==size), TimeSeriesSplit(4), RepeatedKFold(3x2)==6, int 3, int 5, list, tuple, None==5. counts constant and ==size, both ledgers ==n_scorings, in all 13.\n4) One-shot generator (the F2P shape) across size 2..6 x 5 (nf,nfs,direction) shapes, 50 runs: counts==[size] uniformly, draws_taken(src)==1 and scores_kept(src)==0 uniformly \u2014 clause (d) exactly as stated.\n5) Regressor path (classifier=False in check_cv): int, KFold, one-shot generator \u2014 all clean.\n6) Exact F2P test_cv_generator_support reproduced: 90 scorings, sec_draws=90, counts=[2], draws_taken(src)=1, kept_src=0, formula(20,5,forward)=90. Exact match.\n7) check_cv argument consumption measured directly with a traversal tracer: exactly ONE __iter__ call, and the wrapper then presents 3,3,3 \u2014 the A3c/list(cv) claim is real. Bare generator draws (3,0,0) == draw_count(False,3,prior). iter(g) is g confirmed.\n8) StratifiedKFold size preservation on the int path stressed with minority class size 2..20 vs n_splits 2..10 (16 combos): family size always ==n_splits, so Result().size==src.size holds on the branch where check_cv CONSTRUCTS the splitter.\n9) Adversarial materialisable-but-weird iterables that carry no .split so check_cv wraps them \u2014 Shrinking, Growing, OnceThenEmpty, genexpr, map object, list_iterator: all clean, because list(cv) freezes the FIRST traversal, which is exactly what draw_count(False,size,0)==size models.\n\nTHE ONE REAL OVER-CLAIM I FOUND, AND WHY IT IS NOT A DEFECT. The axiom's permission arithmetic (Requires Acc(src.size,1/4) plus Ensures Acc(src.size,1/4) AND Ensures Acc(Result().size) \u2014 a FULL permission) makes result-argument separation derivable: I added Assert(cv is not src) inside the impl region, spec byte-identical (markers.same_spec=True), and it VERIFIED (exit 0, 43.48s). Assert(Implies(src.reusable==True, cv is not src)) also verified. But real check_cv RETURNS ITS ARGUMENT on the pass-through branch (measured: KFold/StratifiedKFold/ShuffleSplit/TimeSeriesSplit all give `out is cv` True), so the model's non-aliasing is strictly stronger than reality.\n\nI then tried to turn that into an observable divergence and could NOT: (i) I drove the aliased case (cv=KFold(3)) through the real patched fit and every stated postcondition held \u2014 draws_taken(cv)=7, scores_kept(cv)=7, counts=[3], all ==n_scorings; (ii) the two clauses that WOULD be false under aliasing are exactly the ones the spec guards behind Implies(src.reusable==False, ...) \u2014 under aliasing src.reusable is True, so draws_taken(src)==1/scores_kept(src)==0 are never asserted, and measurement confirms the real aliased run has draws_taken(src)=7, scores_kept(src)=7, which the spec correctly declines to constrain; (iii) I machine-confirmed the proof CANNOT leak the separation into a false claim about src's ledgers: Assert(scores_kept(src)==0) FAILED (exit 1) and Assert(Implies(src.reusable==True, scores_kept(src)==0)) FAILED (exit 1).\n\nSo the extra separation fact is inert \u2014 it constrains no reported observable. mapping.md \u00a74.3 and refinement.md A1b/A3c document this branch split explicitly and measure all six realizations, and the conditional guarding is argued (correctly) as the weakest sufficient narrowing: an UNCONDITIONAL draw count would be the unfaithful choice.\n\nVACUITY CONTROLS (the guarded-self-call / infeasible-guard trap). Assert(False) in the impl region FAILED (exit 1, 19.62s) and Assert(False) at the pre-return program point FAILED (exit 1, 32.75s) \u2014 the path is feasible, so the verifications above prove something. Assert(src.reusable==False) FAILED (exit 1) \u2014 the reusable==True case is genuinely reachable and not silently excluded, so the postconditions are discharged on BOTH branches, not just the one-shot one. All 7 probe variants passed markers.same_spec against the bundle (spec byte-identical; only the impl region differed), so no probe was measuring a mutated spec.\n\nCONCLUSION: no admissible input on which the modeled function disagrees with the real gold-patched callee. The narrowing to materialisable sources is documented, measured over six realizations, and costs the spec none of the behavior under change (the F2P input is on the admitted side). The one place the model is stronger than reality (result-argument non-aliasing) is provably inert. FAITHFUL. Work confined to /tmp and the container; bundle unmodified.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T10:02:19+00:00",
+      "code_version": "20ab14a10-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "G-PANEL-3 (leakage / gold-reconstruction), scikit-learn__scikit-learn-25973 nagini. Verdict NO-LEAKAGE. Every claim below is my own measurement in this session; nothing inherited from verdict.md or meta.json prose.\n\nRELAXATION STATUS: NONE CLAIMED, and I checked rather than assumed. `find benchmark-verified/scikit-learn__scikit-learn-25973 -iname '*RELAX*'` -> no matches (instance dir and nagini/ both). meta.json top-level keys are [additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version] -- no `relaxed_leakage` (checked: `'relaxed_leakage' in m` -> False), and meta.gates['G-LEAK'].status == 'pass', not 'relaxed'. So there is no documented relaxation and no unavoidability argument to re-derive; I judged the ordinary NO-LEAKAGE/LEAKAGE question, not a relaxed one.\n\nSPEC VIEW COMPUTED, NOT ASSUMED. Built the solver-visible projection myself with swebench_unified.markers.spec_view(model.py, get_backend('nagini')) -> specview.txt, 440 lines (model.py is 478). Confirmed the impl region collapses to the three-line ELISION placeholder (tail of the view is `# impl-start / ...  # implementation elided -- supplied by the consumer / # impl-end`), and that no impl statement survives: `secure_reusable_source(src)`, `used.append`, `while i <` and the whole Invariant block are all absent from the view (nested invariants elide with the impl, as `_python_spec_view` intends -- this is also the path adapter.spec_view() guards). same_spec(model.py, model_prepatch.py) == True, and `python -m swebench_unified.adversary same-spec nagini scikit-learn__scikit-learn-25973 atk.py` (copy of model.py) -> exit 0, 'SAME', so the spec region I audited is the one the gates compare against.\n\nL1 (gold-patch text). Ran leakage._patch_changed_lines over instance.json's patch and checked each changed line normalized against the normalized view. ZERO hits. Explicitly absent: 'cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))', 'from ..model_selection import cross_val_score, check_cv', 'from ..base import BaseEstimator, MetaEstimatorMixin, clone, is_classifier', 'cv=cv,', 'cloned_estimator, X, y, cv, current_mask', and both `_get_best_new_feature_score` signatures. No diff markers ('@@', 'diff --git', '+++ ', '--- ', '\\nindex ') in the view.\n\nL2 (paths / symbols) -- hand-grepped, because the mechanical L2 is blind here. I first established the blindness: leakage._patch_changed_symbols(patch) == {'get_best_new_feature_score'} only (check_cv / is_classifier are CALLED, not def'd, in the diff), and my own control -- renaming the axiom `secure_reusable_source` to `check_cv_secure` -- still returned hard_failures == [] from screen().\n\nSo the gate would not catch a literal `check_cv` in the view, and the real evidence is my grep: over specview.txt, case-insensitive counts are check_cv 0, is_classifier 0, cross_val_score 0, sklearn 0, model_selection 0, _sequential 0, feature_selection 0, SequentialFeatureSelector 0, n_features_to_select 0, estimator 0, clone 0, mask 0, LeaveOneGroupOut 0, _CVIterableWrapper 0, aggregate_score_dicts 0, generator 0 (the F2P test name is test_cv_generator_support -- 'generator' does not appear at all). 'self.cv' hits at view lines 110/116/117/119 are the model's own SelectionResult.__init__ field, not the repo attribute. Patched file path 'sklearn/feature_selection/_sequential.py' and its dotted form both absent. No spec-view identifier embeds 'get_best_new_feature_score' ('best'/'new_feature' return nothing).\n\nL3 (narration). grep -niE 'bug|fix|patch|gold|regression|previously|incorrectly|wrong|broken|IndexError|hoist|thread|exhaust|first iteration' over the view: zero narration hits. 'deplet' (2), 'consum' (6), 'one-shot' (6) are behavioural domain language about the modelled source's per-draw semantics, not bug->fix narration. The bundle's own prose files DO use 'pre-patch'/'gold' freely (refinement.md, mapping.md) but those are not projected -- only model.py reaches the solver via adapter.spec_view.\n\nMECHANICAL SCREEN, run by me: leakage.screen(model.py, nagini.language, patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Sensitivity controls proving the screen was live on this input, not silently no-op: injecting the gold line 'cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))' into a spec-view comment -> L1 hard failure; injecting '# this fixes the bug where the generator was consumed' -> L3 narration failure on 'fixes'.\n\nGOLD-RECONSTRUCTION (the question the lexer misses). The view describes an OBSERVABLE, not an edit: a 'securing step' yielding a source whose every draw re-presents the configured source's full positive split family, two abstract ledgers (draws_taken / scores_kept) forcing one draw per step in strict alternation, and a journal (score_from_draw) forcing each reported entry to be its own step's draw. Nothing states where to insert a call, which helper to call, which import to add, or that a parameter must be threaded through a second method (grep: 'method' 0, 'parameter' 0, 'thread' 0, 'hoist' 0, 'signature' 0, 'wrapper' 0, 'convert' 0). The single arguably structural line is view:212 '# An unchanged library helper the procedure CALLS (but does not change)' -- it names no helper, is forced by the @ContractOnly A-consumed rubric (a solver must know an axiom stands for a real callee), and adds nothing over the localization the solver already gets in modes 1/2 from meta.changed_files / meta.modeled_functions.\n\nThe hints_text-vs-PS test on the one substantive worry. The deep model draw_count(reusable=False, size, prior>0) == 0 encodes 'a one-shot source presents nothing after its first draw', which is close to the hints-only sentence 'if cv is a generator it will be consumed at the first iteration only'. I judged this derivable from the PUBLIC problem_statement alone: the PS reproduction passes `splits = cv.split(X, y, groups=groups)` (a generator, by public sklearn API) and the PS traceback is public and lands on `scores[0]` / 'IndexError: list index out of range' in _aggregate_score_dicts -- i.e. a later use saw ZERO splits. Zero-splits-on-a-later-use plus Python's own iterator semantics is exactly the one-shot facet; no hints vocabulary is needed and none is echoed (hints-only tokens: 'generator' 0, 'list(' 0, 'clone' 0, 'documentation' 0, '_CVObjects' 0, 'isgenerator' 0, 'GridSearchCV' 0, 'SearchCV' 0, '_parameter_constraints' 0). The facet is also load-bearing rather than decorative, and it is the INPUT domain being modelled, not the fix: without it the spec cannot see the bug at all.\n\nLOAD-BEARING CHECK (strip test, adapted since no relaxation is claimed). `bash scripts/nagini_verify.sh model.py` -> 'Verification successful', 42.63s, exit 0. `bash scripts/nagini_verify.sh model_prepatch.py` (byte-identical spec_view hash b63fb9e0..., confirmed) -> 'Verification failed', model_prepatch.py:382 'Postcondition of select_features might not hold. There might be insufficient permission to access presents_family(Result().cv, src)', 23.09s, exit 1. So the discriminator against the PRE-patch impl is carried by the unforgeable presents_family capability and the ledgers -- spec-region CONTRACT text -- not by prose a solver could pattern-match back into the gold diff.\n\nBUNDLE ADDRESSING THE PANEL: none found, and I looked deliberately. leakage.reviewer_directed() returns [] on model.py, model_prepatch.py, mapping.md, refinement.md, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, meta.json and verdict.md. Hand-grepped the same set for 'G-PANEL-3', 'leakage panel', 'NO-LEAKAGE', 'attacker 3', 'you must/should submit|record': the only hits are inside meta.json and verdict.md, and they are RECORDS of a prior panel run's own findings and gate names (verdict.md:1673 'Role 3 -- G-PANEL-3 (leakage): pass'), i.e. self-reporting, not an instruction to me. Nothing in the bundle told me which verdict to record. Note: a prior G-PANEL-3 record in verdict.md also concluded NO-LEAKAGE; I did not read it before running my own measurements and my greps/controls above are independent of it.\n\nOUT-OF-FACET OBSERVATION, routed rather than acted on here: meta.json's `region_hashes` block does not match what I recompute from the model.py bytes on disk -- all seven differ (recorded spec_view ff9c629a..., computed b63fb9e0...; recorded impl 6e41c5a2..., computed f0af5a4f...) -- while meta.gates['G-LEAK'].sources['model.py'] == 2239e1e6... which DOES equal the current sha256 of model.py. That reads as a stale region_hashes block from an earlier revision alongside current gate source digests. It does not affect leakage (I audited the projection of the bytes actually on disk, and the two models' spec_views are equal to each other), but it is a G-INTEGRITY / staleness concern worth routing there.\n\nCONCLUSION: the spec view reproduces no gold-patch line, carries no diff marker, names no patched file/module/symbol, echoes no hints_text-only vocabulary, and narrates no bug->fix mechanism. It states only the abstract behaviour the public problem_statement already demands ('according to the documentation, it should also be able to take an iterable of splits' / 'Expected to run without errors', with the zero-splits IndexError traceback public). NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:21:09+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-record-before-keep",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 117.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-assert-shape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 102.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-countdown-shape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 128.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-pairs-then-report",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 144.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-oneshot-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 128.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-src-size",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 67.1
+          },
+          {
+            "expect": "reject",
+            "id": "echo-no-securing",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 71.6
+          },
+          {
+            "expect": "reject",
+            "id": "launder-value-equal-copy",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 88.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-prepatch-oneshot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 49.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-last-step-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 76.8
+          },
+          {
+            "expect": "reject",
+            "id": "off-value-step0",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 74.9
+          },
+          {
+            "expect": "reject",
+            "id": "undrawn-cached-single-draw",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.6
+          },
+          {
+            "expect": "reject",
+            "id": "undrawn-echo-secured-source",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.7
+          },
+          {
+            "expect": "reject",
+            "id": "drain-tally-then-echo",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.1
+          },
+          {
+            "expect": "reject",
+            "id": "uneven-draw-keep-schedule",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 4,
+          "uniqueness": 10
+        },
+        "manifest_sha256": "b0b771b8862e0b1cbf3eb01fc224df1e1faded17e7162b472984bffac315e5cd",
+        "n_cases": 15,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 15 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a",
+        "properties.py": "b0b771b8862e0b1cbf3eb01fc224df1e1faded17e7162b472984bffac315e5cd"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T04:54:32+00:00",
+      "code_version": "47c964f63-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "995d7df55d93cea83338ed3fb1eb8ccd39e786d688993a5ac29ae656fd4ba070",
+        "patch.diff": "e949cc58c07c8dc5c4f0c2c2b8648ed2ea69a3f7de95a4b62df6761f50746dff"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:01:11+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "wall_time_s": 66.7
+      },
+      "detail": "verified in 66.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2239e1e637688c69860cf1e80faf357c082e362e03d81a44c24f78180c38308a"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-25973",
+  "modeled_functions": [
+    {
+      "carrier_type": "cv source -> SplitSource(size:int, reusable:bool); result -> SelectionResult(counts:List[int], cv:SplitSource); round count -> int; per-round draw semantics over pure int functions",
+      "model_symbol": "select_features",
+      "repo_location": "sklearn/feature_selection/_sequential.py:189 (round loop body 276-284)",
+      "repo_symbol": "sklearn.feature_selection._sequential.SequentialFeatureSelector.fit",
+      "role": "modeled changed function: secures a CV source that presents its split family on every draw ONCE before the round loop (granting the presents_family capability), then draws it on every round and reports the per-round counts together with the source drawn"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "the capability postcondition presents_family(Result().cv) \u2014 the prepatch never secures a source carrying the token (and, when src.reusable==False, also records 0 from round 1 on, contradicting Forall r: counts[r]==src.size)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "where the source presenting its family on every draw is secured: pre-patch draws the configured (possibly one-shot) source DIRECTLY inside the round loop instead of securing such a source once before",
+      "reverted_to": "no secure_reusable_source; draws a cv carrying the configured reusability each round"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "38db67dba04dfb01f4cbcb3bb53784d0dca1316d3c2060bf7c43a7603f10bc47",
+    "impl": "6e41c5a24fc59f16070778d3deec6ee3720f1369333e460713f2871937a7bb3b",
+    "invariants": "8673825968ba694efa75f85352bd8bfe735b2a6d62b298cc7f2df6bf17799b87",
+    "post-conditions": "ca37d63e41af7d6273c5db1b200d8510ab8f2be845ba9ee053c7edf08382bd55",
+    "pre-conditions": "92a2216174f1f147a4b6905a34bbb779a580b65a6086591e6acc89d7c75079cb",
+    "pure": "a1babea182b90c471ed7209c25b298ca1d7f3b681e16d2938db871af669ed21f",
+    "spec_view": "ff9c629ad6b5b4ca331228f0ce24e3201e948961c2f1c08470d83e4059526a2b"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": "none; the bug is control-flow / iterable-reuse. CV source abstracted to (split-family size, per-draw presentation); per-round draw modelled deeply as pure int functions; the materialisation step modelled as the consumed check_cv axiom granting an unforgeable presents_family capability; selection loop modelled deeply by a verified loop.",
+  "version": "1.3"
+}

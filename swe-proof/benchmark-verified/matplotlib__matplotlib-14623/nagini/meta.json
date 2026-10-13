@@ -1,0 +1,410 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "coupled prerequisite, NOT an independently-fixed behaviour. The patch drops increasing=False so the base (linear) locator, like LogLocator, always returns ascending order. Folded into the conditioned_lo/conditioned_hi axiom's always-ascending clause (refinement.md B); no separate model_prepatch because at base_commit it has no observable failure of its own (linear inversion already worked) -- it only prevents a regression the set_*lim* restore would otherwise introduce, guarded by the PASS_TO_PASS linear assertions of test_inverted_limits. Soundness via G-AX (both scales).",
+      "repo_location": "lib/matplotlib/ticker.py:1523",
+      "repo_symbol": "matplotlib.ticker.Locator.nonsingular"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real matplotlib get_major_locator().nonsingular + limit_range_for_scale, asserted against the LITERAL model Ensures (exact min/max on distinct; only-ascending on equal, with an explicit regression guard that the result is NOT the old lo-1/hi+1). 23 boundary pairs (incl. F2P (10,1)/(1,10), multiple equal pairs, high-magnitude distinct pairs up to adjacent integers just below 1e15) + ~650 fuzz pairs per scale spanning the full in-domain range [1,1e15) (no longer the old [1,1e5] window), incl. a near-boundary band and equal-pair fuzz. The 1e15 Requires bound is checked load-bearing: the >=1e15 (linear expansion) and >=1e16 (int->float collision) regimes are confirmed to lie outside the domain and to actually violate. Log scale checked in any state (LogLocator unchanged); linear scale + end-to-end orientation checked once gold applied (auto-detected).",
+      "encoded_property": "for admissible endpoints (positive AND below the order-faithful magnitude bound 1e15) the conditioning always returns ascending order (conditioned_lo < conditioned_hi, for distinct AND equal pairs); for two DISTINCT endpoints it preserves their values exactly (min first, max second). For two EQUAL endpoints NO concrete output value is claimed -- only the always-ascending relation (the earlier revision over-specified the equal case as lo-1/hi+1, which the real callee never produces -- it returns (1,10) log / (4.75,5.25) linear; that over-claim was the G-AX defect and has been removed). Weakest sufficient contract: ascending order + distinct-value preservation; no equal-case magnitude, no decade magnitudes. The 1e15 Requires bound excludes the regime where the non-singular relative-gap expansion (>=1e15, linear) breaks value preservation and where the int->float carrier collides (>=1e16); all tested inputs sit well inside it.",
+      "kind": "A-consumed",
+      "models": "the conditioning composition self.<ax>.get_major_locator().nonsingular(lo, hi) then self.<ax>.limit_range_for_scale(lo, hi); load-bearing referent is the log axis (LogLocator.nonsingular + LogScale.limit_range_for_scale), unchanged by the patch",
+      "name": "conditioned_lo / conditioned_hi",
+      "provenance": "lib/matplotlib/ticker.py:2378 (LogLocator.nonsingular: 'if vmin > vmax: swap' then expand-if-equal -> always ascending) + lib/matplotlib/scale.py:420 (LogScale.limit_range_for_scale: clamp non-positive to minpos, no-op on positive). Coupled base-locator hunk lib/matplotlib/ticker.py:1523 makes the linear locator ascending too.",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "d65c9ca20ddf81ef91199e6d819f9d3506ef477c",
+  "changed_files": [
+    "lib/matplotlib/axes/_base.py",
+    "lib/matplotlib/ticker.py",
+    "lib/mpl_toolkits/mplot3d/axes3d.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:20:18+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK [base (pre-patch) source]: conditioned_lo/conditioned_hi axiom sound against the LITERAL model Ensures (always ascending; exact min/max value-preservation on distinct endpoints; NO equal-case magnitude claimed) over 23 boundary + ~650 fuzz pairs spanning the full in-domain range [1, 1e15); the < 1e15 Requires bound confirmed load-bearing (>=1e15 expansion and >=1e16 float-collision regimes lie outside it and would otherwise violate) (log scale; LogLocator is unchanged by the patch)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ee4398fa4931174409cc1f7e961a8989c500f9da70fd99ecf0c43be1d105913a",
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:21:01+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 220168,
+          "disagreements": 0,
+          "oracle": "real patched set_xlim/set_ylim/set_xlim3d/set_ylim3d/set_zlim3d (called, not transliterated)",
+          "per_site": {
+            "set_xlim/linear": 20024,
+            "set_xlim/log": 20024,
+            "set_xlim3d": 20024,
+            "set_ylim/linear": 20024,
+            "set_ylim/log": 100024,
+            "set_ylim3d": 20024,
+            "set_zlim3d": 20024
+          },
+          "seed": 14623,
+          "shadow": "direct (verbatim impl region, contracts stripped; @ContractOnly callee = real repo conditioning composition)",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"checked\": 220168, \"seed\": 14623, \"disagreements\": 0, \"per_site\": {\"set_ylim/log\": 100024, \"set_ylim/linear\": 20024, \"set_xlim/log\": 20024, \"set_xlim/linear\": 20024, \"set_xlim3d\": 20024, \"set_ylim3d\": 20024, \"set_zlim3d\": 20024}, \"shadow\": \"direct (verbatim impl region, contracts stripped; @ContractOnly callee = real repo conditioning composition)\", \"oracle\": \"real patched set_xlim/set_ylim/set_xlim3d/set_ylim3d/set_zlim3d (called, not transliterated)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "494b105a330933a7a0ac4976e4c8e346386d10d479bf64958f37274daec06783",
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:34:53+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363",
+        "model_prepatch.py": "37d636115641019f8ab1860ecbd2537b52cbee3d100c468912b496c458023bbb"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T16:09:26+00:00",
+      "code_version": "217f97115-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 4 | `atk_1.py`, `atk_3.py`, `atk_4.py`, `atk_5.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_2.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:35:35+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363",
+        "model_prepatch.py": "37d636115641019f8ab1860ecbd2537b52cbee3d100c468912b496c458023bbb"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:20:01+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "3991fb12d283d558a9549fe23ee48feb55c83910b6f431e59375c6d8b0e934dd",
+          "impl": "827218036965c3465c08dfaf77176fe0d9055d626d5e3a67529dcdc93b85ce71",
+          "post-conditions": "f9fd482596551abab810b9654d4c08310679dcf629f9ce7f59ae39b49968b1e9",
+          "pre-conditions": "6e965908eebff837c8a29a5471be2ca09dffc128034155456a48c58bcb5a090f",
+          "pure": "3cc77b77ea1d781bba174953b28f42734ee05d862da84c33d7e1c87fb341eaa6",
+          "spec_view": "5f67e313a90a17fa5b0a8663266780201ba982d9122f96abbf74c23763548fc7"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:20:02+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4bdf88b74cc41a1d494d1dd5eeb6ba15c6d92aab47ca37994b5f21cc3dd32245",
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:20:03+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:36:35+00:00",
+      "code_version": "49a48fd3f-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T16:09:28+00:00",
+      "code_version": "217f97115-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) check on matplotlib__matplotlib-14623 nagini bundle. The only modeling boundary is the @ContractOnly axiom pair conditioned_lo/conditioned_hi standing in for the real conditioning callee (get_major_locator().nonsingular(lo,hi) then limit_range_for_scale(...)). Requires domain: lo>0, hi>0, lo<1e15, hi<1e15. Axiom Ensures: (a) always-ascending conditioned_lo<conditioned_hi; (b) distinct endpoints -> exact min/max value-preservation; (c) equal endpoints -> only ascending (no magnitude claimed).\n\nChecked against REAL matplotlib callee: (1) distinct value-preservation is analytically sound -- mtransforms.nonsingular expands only when gap <= maxabsvalue*1e-15; in-domain maxabsvalue<1e15 => expansion threshold <1.0, while distinct ints have gap>=1, so no expansion fires in-domain, and both LogLocator and the post-patch base Locator sort ascending. Empirically 0 mismatches over ~8000 pairs (boundary + fuzz over full [1,1e15) range) on log and linear. (2) equal-case: real callee always expands to strictly-ascending; axiom claims only ascending -- holds, and correctly does NOT claim the old over-specified lo-1/hi+1. (3) end-to-end gold-patched set_ylim matches all four model postconditions on ~4000 inputs.\n\nSpec region byte-identical (same-spec command exit 0). Model verifies in Nagini (12.7s). model_prepatch drops swapped-restore and fails the orientation postcondition (G-DIFF sensitivity intact). The 1e15 Requires bound is load-bearing and correct, not artificially narrowing. No input in the Requires domain where the modeled function disagrees with the real callee. Spec is not too strong.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (leakage.screen on the actual spec_view -> passed=True, zero hard failures) and independent semantic review confirms NO-LEAKAGE.\n\nPublic problem_statement already discloses the full desired behavior: 'Inverting an axis using its limits does not work for log scale ... I would expect the yaxis to be inverted for both the linear and the log scale.' i.e. set_ylim(hi, lo) with hi>lo must keep the requested descending orientation for the log scale too.\n\nSpec-view assessed line by line:\n- Postconditions on set_axis_interval (Implies(lo>hi, Result()[0]>Result()[1]); ascending-stays-ascending; distinct value-preservation; equal->ascending) restate exactly the publicly-requested orientation-preservation \u2014 the WHAT, already public via the task. Not the edit.\n- Axiom docstrings/comments (conditioned_lo/conditioned_hi) describe the UNCHANGED conditioning callee ('always normalises output to ascending order and never decides the final orientation'). That is matplotlib-internal callee behavior, not the patch's discriminating change.\n- The gold mechanism is HIDDEN: the discriminating edit (swapped = left>right capture + 'if swapped: right,left' restore at the five set_*lim* sites, plus the ticker.py increasing=False drop) lives entirely in the impl region, which is elided in the spec view ('... implementation elided \u2014 supplied by the consumer'). The solver never sees it.\n\nLexical confirmation (all clean): no gold-diff line reproduced (>=8 chars normalized), no diff markers, no patched file path (lib/matplotlib/axes/_base.py, lib/matplotlib/ticker.py, lib/mpl_toolkits/mplot3d/axes3d.py all absent), no patched repo symbol (set_xlim/set_ylim/set_*lim3d/nonsingular/increasing/swapped) embedded in spec-view identifiers or comments, no bug/fix narration. relaxed_leakage flag not set; recorded G-LEAK status 'pass'.\n\nrefinement.md / mapping.md / axiom_check.py are auditor-only artifacts, not part of the solver-visible spec view, so their gold-mechanism prose is out of scope for G-PANEL-3. The spec view leaks nothing about the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) check on matplotlib__matplotlib-14623 nagini bundle. The only modeling boundary is the @ContractOnly axiom pair conditioned_lo/conditioned_hi standing in for the real conditioning callee (get_major_locator().nonsingular(lo,hi) then limit_range_for_scale(...)). Requires domain: lo>0, hi>0, lo<1e15, hi<1e15. Axiom Ensures: (a) always-ascending conditioned_lo<conditioned_hi; (b) distinct endpoints -> exact min/max value-preservation; (c) equal endpoints -> only ascending (no magnitude claimed).\n\nChecked against REAL matplotlib callee: (1) distinct value-preservation is analytically sound -- mtransforms.nonsingular expands only when gap <= maxabsvalue*1e-15; in-domain maxabsvalue<1e15 => expansion threshold <1.0, while distinct ints have gap>=1, so no expansion fires in-domain, and both LogLocator and the post-patch base Locator sort ascending. Empirically 0 mismatches over ~8000 pairs (boundary + fuzz over full [1,1e15) range) on log and linear. (2) equal-case: real callee always expands to strictly-ascending; axiom claims only ascending -- holds, and correctly does NOT claim the old over-specified lo-1/hi+1. (3) end-to-end gold-patched set_ylim matches all four model postconditions on ~4000 inputs.\n\nSpec region byte-identical (same-spec command exit 0). Model verifies in Nagini (12.7s). model_prepatch drops swapped-restore and fails the orientation postcondition (G-DIFF sensitivity intact). The 1e15 Requires bound is load-bearing and correct, not artificially narrowing. No input in the Requires domain where the modeled function disagrees with the real callee. Spec is not too strong.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (leakage.screen on the actual spec_view -> passed=True, zero hard failures) and independent semantic review confirms NO-LEAKAGE.\n\nPublic problem_statement already discloses the full desired behavior: 'Inverting an axis using its limits does not work for log scale ... I would expect the yaxis to be inverted for both the linear and the log scale.' i.e. set_ylim(hi, lo) with hi>lo must keep the requested descending orientation for the log scale too.\n\nSpec-view assessed line by line:\n- Postconditions on set_axis_interval (Implies(lo>hi, Result()[0]>Result()[1]); ascending-stays-ascending; distinct value-preservation; equal->ascending) restate exactly the publicly-requested orientation-preservation \u2014 the WHAT, already public via the task. Not the edit.\n- Axiom docstrings/comments (conditioned_lo/conditioned_hi) describe the UNCHANGED conditioning callee ('always normalises output to ascending order and never decides the final orientation'). That is matplotlib-internal callee behavior, not the patch's discriminating change.\n- The gold mechanism is HIDDEN: the discriminating edit (swapped = left>right capture + 'if swapped: right,left' restore at the five set_*lim* sites, plus the ticker.py increasing=False drop) lives entirely in the impl region, which is elided in the spec view ('... implementation elided \u2014 supplied by the consumer'). The solver never sees it.\n\nLexical confirmation (all clean): no gold-diff line reproduced (>=8 chars normalized), no diff markers, no patched file path (lib/matplotlib/axes/_base.py, lib/matplotlib/ticker.py, lib/mpl_toolkits/mplot3d/axes3d.py all absent), no patched repo symbol (set_xlim/set_ylim/set_*lim3d/nonsingular/increasing/swapped) embedded in spec-view identifiers or comments, no bug/fix narration. relaxed_leakage flag not set; recorded G-LEAK status 'pass'.\n\nrefinement.md / mapping.md / axiom_check.py are auditor-only artifacts, not part of the solver-visible spec view, so their gold-mechanism prose is out of scope for G-PANEL-3. The spec view leaks nothing about the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 4 | `atk_1.py`, `atk_3.py`, `atk_4.py`, `atk_5.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_2.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) check on matplotlib__matplotlib-14623 nagini bundle. The only modeling boundary is the @ContractOnly axiom pair conditioned_lo/conditioned_hi standing in for the real conditioning callee (get_major_locator().nonsingular(lo,hi) then limit_range_for_scale(...)). Requires domain: lo>0, hi>0, lo<1e15, hi<1e15. Axiom Ensures: (a) always-ascending conditioned_lo<conditioned_hi; (b) distinct endpoints -> exact min/max value-preservation; (c) equal endpoints -> only ascending (no magnitude claimed).\n\nChecked against REAL matplotlib callee: (1) distinct value-preservation is analytically sound -- mtransforms.nonsingular expands only when gap <= maxabsvalue*1e-15; in-domain maxabsvalue<1e15 => expansion threshold <1.0, while distinct ints have gap>=1, so no expansion fires in-domain, and both LogLocator and the post-patch base Locator sort ascending. Empirically 0 mismatches over ~8000 pairs (boundary + fuzz over full [1,1e15) range) on log and linear. (2) equal-case: real callee always expands to strictly-ascending; axiom claims only ascending -- holds, and correctly does NOT claim the old over-specified lo-1/hi+1. (3) end-to-end gold-patched set_ylim matches all four model postconditions on ~4000 inputs.\n\nSpec region byte-identical (same-spec command exit 0). Model verifies in Nagini (12.7s). model_prepatch drops swapped-restore and fails the orientation postcondition (G-DIFF sensitivity intact). The 1e15 Requires bound is load-bearing and correct, not artificially narrowing. No input in the Requires domain where the modeled function disagrees with the real callee. Spec is not too strong.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (leakage.screen on the actual spec_view -> passed=True, zero hard failures) and independent semantic review confirms NO-LEAKAGE.\n\nPublic problem_statement already discloses the full desired behavior: 'Inverting an axis using its limits does not work for log scale ... I would expect the yaxis to be inverted for both the linear and the log scale.' i.e. set_ylim(hi, lo) with hi>lo must keep the requested descending orientation for the log scale too.\n\nSpec-view assessed line by line:\n- Postconditions on set_axis_interval (Implies(lo>hi, Result()[0]>Result()[1]); ascending-stays-ascending; distinct value-preservation; equal->ascending) restate exactly the publicly-requested orientation-preservation \u2014 the WHAT, already public via the task. Not the edit.\n- Axiom docstrings/comments (conditioned_lo/conditioned_hi) describe the UNCHANGED conditioning callee ('always normalises output to ascending order and never decides the final orientation'). That is matplotlib-internal callee behavior, not the patch's discriminating change.\n- The gold mechanism is HIDDEN: the discriminating edit (swapped = left>right capture + 'if swapped: right,left' restore at the five set_*lim* sites, plus the ticker.py increasing=False drop) lives entirely in the impl region, which is elided in the spec view ('... implementation elided \u2014 supplied by the consumer'). The solver never sees it.\n\nLexical confirmation (all clean): no gold-diff line reproduced (>=8 chars normalized), no diff markers, no patched file path (lib/matplotlib/axes/_base.py, lib/matplotlib/ticker.py, lib/mpl_toolkits/mplot3d/axes3d.py all absent), no patched repo symbol (set_xlim/set_ylim/set_*lim3d/nonsingular/increasing/swapped) embedded in spec-view identifiers or comments, no bug/fix narration. relaxed_leakage flag not set; recorded G-LEAK status 'pass'.\n\nrefinement.md / mapping.md / axiom_check.py are auditor-only artifacts, not part of the solver-visible spec view, so their gold-mechanism prose is out of scope for G-PANEL-3. The spec view leaks nothing about the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T18:13:07+00:00",
+      "code_version": "47ecb2867-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-branch-select",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-descending",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 14.1
+          },
+          {
+            "expect": "reject",
+            "id": "reject-no-restore",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.6
+          },
+          {
+            "expect": "reject",
+            "id": "reject-cmp-lt",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.2
+          },
+          {
+            "expect": "reject",
+            "id": "reject-cmp-ge",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.9
+          },
+          {
+            "expect": "reject",
+            "id": "reject-partial-no-expand",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.9
+          },
+          {
+            "expect": "reject",
+            "id": "reject-always-swap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 11.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "6efafd52422fec2fe1050ace92ad8963dba6560123535429ee67c7b4a66449e4",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363",
+        "properties.py": "6efafd52422fec2fe1050ace92ad8963dba6560123535429ee67c7b4a66449e4"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T14:37:59+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:36:50+00:00",
+      "code_version": "49a48fd3f-dirty",
+      "data": {
+        "wall_time_s": 12.6
+      },
+      "detail": "verified in 12.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "789d4cfbe9779a50b2401ae0c09353e4e320245336428f9e4c050d79c232e363"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "matplotlib__matplotlib-14623",
+  "modeled_functions": [
+    {
+      "carrier_type": "float endpoints -> int (order-faithful: tested behaviour depends only on endpoint order, not magnitude); 2-tuple -> Tuple[int, int]",
+      "model_symbol": "set_axis_interval",
+      "repo_location": "lib/matplotlib/axes/_base.py:3161 (set_xlim), :3540 (set_ylim); lib/mpl_toolkits/mplot3d/axes3d.py:589/646/704",
+      "repo_symbol": "matplotlib.axes._base.Axes.set_xlim / set_ylim; mpl_toolkits.mplot3d.axes3d.Axes3D.set_xlim3d / set_ylim3d / set_zlim3d",
+      "role": "modeled changed function: capture requested orientation, apply the unchanged conditioning callee, restore the orientation. One model function is the faithful skeleton of all five identically-shaped sites."
+    }
+  ],
+  "numeric_modeling": "float endpoints abstracted to int (order-faithful): the modeled function performs only an orientation comparison (lo > hi) and a value-preserving swap, never magnitude arithmetic, so int preserves the tested control/data flow exactly; precision is NOT the behaviour (float_encoding null).",
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; 3 files / 5 set_*lim* hunks + 1 ticker hunk)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(lo > hi, Result()[0] > Result()[1]) (a descending request stored ascending)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "set_*lim* orientation: keep the requested (descending) orientation through the conditioning step",
+      "reverted_to": "no swapped-capture and no if-swapped restore; the always-ascending conditioned pair is stored as-is (the pre-3.1.0 / PR#13409 regression)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3991fb12d283d558a9549fe23ee48feb55c83910b6f431e59375c6d8b0e934dd",
+    "impl": "827218036965c3465c08dfaf77176fe0d9055d626d5e3a67529dcdc93b85ce71",
+    "post-conditions": "f9fd482596551abab810b9654d4c08310679dcf629f9ce7f59ae39b49968b1e9",
+    "pre-conditions": "4e5dd961235298cf64d8335865fb36c33a77a85c481900f28e1bca97ea80ea1c",
+    "pure": "3cc77b77ea1d781bba174953b28f42734ee05d862da84c33d7e1c87fb341eaa6",
+    "spec_view": "78e9b2d8e4f80ae17bce53c61c14de899c34b1f32100be7a00e296ff694e3008"
+  },
+  "repo": "matplotlib/matplotlib",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "3.1"
+}

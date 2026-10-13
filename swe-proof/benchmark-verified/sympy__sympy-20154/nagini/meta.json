@@ -1,0 +1,407 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "all four `yield ms` / `yield sum(ms.values()), ms` -> `... ms.copy()` are the SAME single behavioural change (independent per-step snapshot vs live alias); modeled by one gather function + the per-step independence postcondition. The gold patch also deletes the docstring caveat about the reused dict (iterables.py:1741-1754) -- documentation only, no behavioural content.",
+      "repo_location": "sympy/utilities/iterables.py:1805,1807,1845,1847",
+      "repo_symbol": "partitions: the four yields handing out the live ms ( iterables.py:1805,1807 first partition; 1845,1847 loop partition)"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "bdb49c4abfb35554a3c8ce761696ffff3bb837fe",
+  "changed_files": [
+    "sympy/utilities/iterables.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): a pure-stdlib dict.copy() independence probe (distinct object, equal contents, source-mutation-isolated) PLUS the real sympy.utilities.iterables.partitions generator on 15 boundary + 400 fuzz argument tuples -- asserts the snapshot history matches one-at-a-time truth with pairwise-distinct neighbours, and that the no-copy gather collapses to the single shared object (the modeled defect). Robust to pre- and post-patch installed partitions.",
+      "encoded_property": "recording an INDEPENDENT per-step snapshot: a gathered record is captured by value (a fresh object equal to the working state at the moment of the yield) and is thereafter isolated from later mutations of the working state; therefore the gathered list recovers the genuine, pairwise-distinct per-step history (Result()[i] == state_at(i)) rather than collapsing every entry onto the final state",
+      "kind": "A-reference",
+      "models": "dict.copy() at each yield (CPython stdlib) -- the ms.copy() the gold patch adds",
+      "name": "snap = work (by-value per-step capture)",
+      "provenance": "https://docs.python.org/3/library/stdtypes.html#dict.copy ; the gold hunk `yield ms` -> `yield ms.copy()` at sympy/utilities/iterables.py:1805,1807,1845,1847",
+      "role": "deep model (impl region) of the changed copy operation; NOT a consumed axiom -- there is no dict_copy @ContractOnly axiom and the proof is pure value/structure logic"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T07:46:10+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: dict.copy independence probe passed; real partitions() snapshot history matches one-at-a-time truth with pairwise-distinct neighbours, and the no-copy gather collapses to the final shared object (the modeled defect) -- deep by-value snapshot model sound.",
+      "gate": "G-AX",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "724ca59680e4293f27e0e5b66f5450dcdac9e0f73c34765a4e2e6081684a8881",
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T07:46:38+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 163,
+          "checked": 100000,
+          "disagreements": 0,
+          "exhaustive": 5096,
+          "fuzz": 94741,
+          "oracle": "called: sympy.utilities.iterables.partitions (patched), gathered into a list",
+          "seed": 20154,
+          "shadow": "direct (contract-stripped impl region of model.py)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"boundary\": 163, \"exhaustive\": 5096, \"fuzz\": 94741, \"disagreements\": 0, \"seed\": 20154, \"shadow\": \"direct (contract-stripped impl region of model.py)\", \"oracle\": \"called: sympy.utilities.iterables.partitions (patched), gathered into a list\"}",
+      "gate": "G-CONF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "fdd5abd5c384d1f31ed04f78a8aa3c7ce03f11901e0bb726eb9e89e148f1168b",
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:23:58+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26",
+        "model_prepatch.py": "07d606ee1be36cd5bf568feb4d020335ab87a7ba43c9d3f7864f15d5d955a253"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T12:02:01+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:24:45+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26",
+        "model_prepatch.py": "07d606ee1be36cd5bf568feb4d020335ab87a7ba43c9d3f7864f15d5d955a253"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T07:45:58+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "25673c4ea25f947324095dd760c55b3140558a22a1e53ef3c3e327fed5d9c374",
+          "impl": "49cf97df5c4122677cff0f821548635dfc9ae2eeba43a56306605e426a95d99f",
+          "invariants": "7bcd50253d2efe9d986db0fc583f702cd776296fcefc7c74be4d81918cb61a5e",
+          "post-conditions": "203e772c798963d6ade3200db3a3d1afe280b03bf1442538d7decd4589a8045f",
+          "pre-conditions": "0ee719c28e8ff415092a4402dbaadc56d883c5db1f944ed1b9e8c00b90aed0e7",
+          "pure": "59b18675ff98d0ce0e6aa3b7a37c3af441c5015449b34384db7783386618e62b",
+          "spec_view": "194baf2185c96ed5346ef658810745aec9b7af8dec954cb3a91b7ffd9a75c0cd"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T07:45:58+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "482c18297ddca39aead17d36c15226d068a0dadd443bf1ffa65a40efc8af9137",
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T07:45:58+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:44:03+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "judged": 12,
+        "killed": 12,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 12,
+        "unjudged": []
+      },
+      "detail": "killed 12/12 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T12:02:03+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Spec region byte-identical (same-spec exit 0). Model models list(partitions(...)) via gather_walk with state_at(i)=i+1 (strictly increasing => pairwise-distinct, independent per-step records), abstracting the yield ms.copy() change. Verified against the REAL repo at base_commit bdb49c4 ($SCRATCH & _patch): (1) pre-patch list(partitions(6,k=2)) returns [{1:6},{1:6},{1:6},{1:6}] all aliasing one dict = modeled defect; true history is 4 distinct dicts. (2) Post-patch yields ms.copy(): gathered records are independent objects and pairwise-distinct partitions. Fuzzed 5000 arg tuples incl size=True and n=0/1 edges: 0 runs with non-distinct or aliased gathered partitions -> the strictly-increasing/distinct abstraction is faithful (not stronger than reality) on the observable the F2P tests probe. model.py verifies (16.9s); model_prepatch.py fails the value postcondition (spec is discriminating, non-vacuous); MustTerminate rules out vacuous divergence; axiom_check.py (G-AX) passes against the real partitions(). No input found where the modeled function disagrees with the real callee. Spec is faithful, not too strong.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view (docstring + axioms/pure/pre/post regions; impl elided) does not leak the gold edit beyond the public problem_statement. The public problem_statement already discloses the entire defect and fix: partitions() reuses/aliases the output dictionaries so list(partitions()) gives an apparently wrong result, and the remedy is to copy the dictionary before yielding. The spec view only restates this discriminator abstractly: gathered record i must reflect the state at its own step (independent snapshots, strictly-increasing => pairwise-distinct) vs the ruled-out defect where records alias the live working state and all collapse to the FINAL state. No leak-vectors present: (a) no gold-diff line reproduced (e.g. 'yield ms.copy()' not present); (b) no diff markers; (c) no patched file path/module (sympy/utilities/iterables.py) or repo symbols (partitions, ms, .copy) named anywhere in the spec view; (d) no narration terms (bug/fix/patch/regression/etc.). Mechanical G-LEAK screen (leakage.screen over nagini spec_view vs frozen patch+problem_statement) returns passed=True with zero hard failures. The MustTerminate(2) precondition is a Nagini partial-correctness modeling artifact (vacuous-divergence guard), not a disclosure of the gold edit. mapping.md/refinement.md/axiom_check.py are audit-only artifacts, not part of the solver-visible spec view. All discriminating behavior in the spec is already public via the task statement, so no gold reconstruction beyond problem_statement is possible.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Spec region byte-identical (same-spec exit 0). Model models list(partitions(...)) via gather_walk with state_at(i)=i+1 (strictly increasing => pairwise-distinct, independent per-step records), abstracting the yield ms.copy() change. Verified against the REAL repo at base_commit bdb49c4 ($SCRATCH & _patch): (1) pre-patch list(partitions(6,k=2)) returns [{1:6},{1:6},{1:6},{1:6}] all aliasing one dict = modeled defect; true history is 4 distinct dicts. (2) Post-patch yields ms.copy(): gathered records are independent objects and pairwise-distinct partitions. Fuzzed 5000 arg tuples incl size=True and n=0/1 edges: 0 runs with non-distinct or aliased gathered partitions -> the strictly-increasing/distinct abstraction is faithful (not stronger than reality) on the observable the F2P tests probe. model.py verifies (16.9s); model_prepatch.py fails the value postcondition (spec is discriminating, non-vacuous); MustTerminate rules out vacuous divergence; axiom_check.py (G-AX) passes against the real partitions(). No input found where the modeled function disagrees with the real callee. Spec is faithful, not too strong.; G-PANEL-3 (leakage): pass \u2014 Spec view (docstring + axioms/pure/pre/post regions; impl elided) does not leak the gold edit beyond the public problem_statement. The public problem_statement already discloses the entire defect and fix: partitions() reuses/aliases the output dictionaries so list(partitions()) gives an apparently wrong result, and the remedy is to copy the dictionary before yielding. The spec view only restates this discriminator abstractly: gathered record i must reflect the state at its own step (independent snapshots, strictly-increasing => pairwise-distinct) vs the ruled-out defect where records alias the live working state and all collapse to the FINAL state. No leak-vectors present: (a) no gold-diff line reproduced (e.g. 'yield ms.copy()' not present); (b) no diff markers; (c) no patched file path/module (sympy/utilities/iterables.py) or repo symbols (partitions, ms, .copy) named anywhere in the spec view; (d) no narration terms (bug/fix/patch/regression/etc.). Mechanical G-LEAK screen (leakage.screen over nagini spec_view vs frozen patch+problem_statement) returns passed=True with zero hard failures. The MustTerminate(2) precondition is a Nagini partial-correctness modeling artifact (vacuous-divergence guard), not a disclosure of the gold edit. mapping.md/refinement.md/axiom_check.py are audit-only artifacts, not part of the solver-visible spec view. All discriminating behavior in the spec is already public via the task statement, so no gold reconstruction beyond problem_statement is possible.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec region byte-identical (same-spec exit 0). Model models list(partitions(...)) via gather_walk with state_at(i)=i+1 (strictly increasing => pairwise-distinct, independent per-step records), abstracting the yield ms.copy() change. Verified against the REAL repo at base_commit bdb49c4 ($SCRATCH & _patch): (1) pre-patch list(partitions(6,k=2)) returns [{1:6},{1:6},{1:6},{1:6}] all aliasing one dict = modeled defect; true history is 4 distinct dicts. (2) Post-patch yields ms.copy(): gathered records are independent objects and pairwise-distinct partitions. Fuzzed 5000 arg tuples incl size=True and n=0/1 edges: 0 runs with non-distinct or aliased gathered partitions -> the strictly-increasing/distinct abstraction is faithful (not stronger than reality) on the observable the F2P tests probe. model.py verifies (16.9s); model_prepatch.py fails the value postcondition (spec is discriminating, non-vacuous); MustTerminate rules out vacuous divergence; axiom_check.py (G-AX) passes against the real partitions(). No input found where the modeled function disagrees with the real callee. Spec is faithful, not too strong.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view (docstring + axioms/pure/pre/post regions; impl elided) does not leak the gold edit beyond the public problem_statement. The public problem_statement already discloses the entire defect and fix: partitions() reuses/aliases the output dictionaries so list(partitions()) gives an apparently wrong result, and the remedy is to copy the dictionary before yielding. The spec view only restates this discriminator abstractly: gathered record i must reflect the state at its own step (independent snapshots, strictly-increasing => pairwise-distinct) vs the ruled-out defect where records alias the live working state and all collapse to the FINAL state.\n\nNo leak-vectors present: (a) no gold-diff line reproduced (e.g. 'yield ms.copy()' not present); (b) no diff markers; (c) no patched file path/module (sympy/utilities/iterables.py) or repo symbols (partitions, ms, .copy) named anywhere in the spec view; (d) no narration terms (bug/fix/patch/regression/etc.). Mechanical G-LEAK screen (leakage.screen over nagini spec_view vs frozen patch+problem_statement) returns passed=True with zero hard failures. The MustTerminate(2) precondition is a Nagini partial-correctness modeling artifact (vacuous-divergence guard), not a disclosure of the gold edit. mapping.md/refinement.md/axiom_check.py are audit-only artifacts, not part of the solver-visible spec view. All discriminating behavior in the spec is already public via the task statement, so no gold reconstruction beyond problem_statement is possible.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:28:24+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-direct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 47.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-3-step-walk",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 45.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-aliasing-collapse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.0
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-off-by-one-snapshot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 52.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-partial-first-element",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.2
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-length-divergence",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.9
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-reversed-order",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 60.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-nonterminating",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 52.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "45c90ccd21630d7c8cdeaeeeea9e578b38ad43a57637293858526d3f461ebbf6",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17598bb4d71d2d8773c2e5e253020841708c7d1e07be1042b96b5c9064650b26",
+        "properties.py": "45c90ccd21630d7c8cdeaeeeea9e578b38ad43a57637293858526d3f461ebbf6"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T03:28:35+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-13T20:37:42+00:00",
+      "code_version": "78ae167c7-dirty",
+      "data": {
+        "wall_time_s": 29.4
+      },
+      "detail": "verified in 29.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "570ea576e841",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-20154",
+  "modeled_functions": [
+    {
+      "carrier_type": "the reused working dict ms -> a single working integer advanced in place; the gathered records / list(partitions(...)) -> List[int]; the per-yield ms.copy() -> by-value per-step snapshot; per-step dict content -> state_at(i)=i+1 (strictly increasing)",
+      "model_symbol": "gather_walk",
+      "repo_location": "sympy/utilities/iterables.py:1696 (partitions); yields at 1805,1807,1845,1847",
+      "repo_symbol": "list(sympy.utilities.iterables.partitions(...))",
+      "role": "modeled changed behaviour: GATHERING the partitions generator into a list (as every F2P test does), where the changed op is the per-yield ms.copy(); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; F2P test_partitions + test_uniq fail pre-patch and pass post-patch, locally confirmed)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Forall i: Result()[i] == state_at(i) (the per-step snapshot guarantee)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the per-yield independence of gathered records (ms.copy() vs live ms alias)",
+      "reverted_to": "yield the LIVE working record on every step (the inner write-back loop re-aliases every already-gathered record to the current working value), so the gathered list collapses every entry onto the final state"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "25673c4ea25f947324095dd760c55b3140558a22a1e53ef3c3e327fed5d9c374",
+    "impl": "ab361051d03884b133edb73a8536916264da0c7170dff3d429f23a5f10e63241",
+    "invariants": "555dff81e245cdf2be51dfcaf7b2130e6fa582ec5a0a69c4aea0d2177498b27a",
+    "post-conditions": "203e772c798963d6ade3200db3a3d1afe280b03bf1442538d7decd4589a8045f",
+    "pre-conditions": "4bcbe7a2c8fac9c2130a3e7d1394b2bfebe452669f18c7fe6a779c5267093e3a",
+    "pure": "59b18675ff98d0ce0e6aa3b7a37c3af441c5015449b34384db7783386618e62b",
+    "spec_view": "1a0793a24d896f8f3f879d08c5bae94398ba10c3fd36175f0827d08ef3731378"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "n/a (no strings). The reused working dict and its per-yield copy are abstracted to the value domain: a working integer advanced in place per step and a List[int] of per-step snapshots; the independence guarantee of ms.copy() is modeled deeply as by-value capture and validated == real dict.copy()/partitions semantics by G-AX.",
+  "version": "1.7"
+}

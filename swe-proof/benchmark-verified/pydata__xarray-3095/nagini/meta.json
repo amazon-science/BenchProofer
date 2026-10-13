@@ -1,0 +1,375 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the CALLER rewired from the inlined PandasIndexAdapter(self._data.array.copy(deep=True)) (drops dtype -> re-derives -> casts <U* to object) to self._data.copy(deep=deep) (the new adapter_copy). No separate modeled function: its observable effect (duplicate dtype == original dtype) is exactly what adapter_copy pins; exercised end-to-end by the F2P regression and validated by G-AX (axiom_check.py F3).",
+      "repo_location": "xarray/core/variable.py:1920 (body 1944-1952)",
+      "repo_symbol": "xarray.core.variable.IndexVariable.copy"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "1757dffac2fa493d7b9a074b84cf8c830a706688",
+  "changed_files": [
+    "xarray/core/indexing.py",
+    "xarray/core/variable.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): F1 supplied-dtype preserved + text re-derivation collapses to object (lossy, array_kind != stored_dtype); F2 PandasIndexAdapter.copy(deep=True/False) preserves dtype for text/int/float/datetime; F3 IndexVariable.copy(deep=True/False) preserves '<U*' (the F2P regression)",
+      "encoded_property": "derive_dtype(array_kind, given): given verbatim when given != NO_DTYPE, else re-derive from buffer (lossy: a fixed-width-text pandas Index re-derives to OBJECT_DTYPE). adapter_copy: Result() == Old(self.stored_dtype) (the duplicate reports the ORIGINAL stored dtype regardless of array_kind, including the <U* case where array_kind == OBJECT_DTYPE != stored_dtype).",
+      "kind": "A-reference",
+      "models": "xarray.core.indexing.PandasIndexAdapter.__init__ dtype-determination + the patch's new PandasIndexAdapter.copy",
+      "name": "derive_dtype / adapter_copy",
+      "provenance": "xarray/core/indexing.py:1232-1244 (__init__; the patch adds 'else: dtype = np.dtype(dtype)') and the new copy method; lossy re-derivation via utils.safe_cast_to_index (utils.py:69) + is_valid_numpy_dtype (utils.py:236)",
+      "role": "deep model (pure region + verified impl) of the changed dtype-determination/duplication; NOT a consumed axiom -- there is no @ContractOnly axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:05:18+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: derive_dtype + adapter_copy deep models faithful to real PandasIndexAdapter construction/copy; re-derivation of fixed-width text collapses to object (lossy) while copy preserves the original dtype for text/int/float/datetime across deep in {True,False}; F2P IndexVariable.copy(deep=True/False) preserves '<U*'.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ea70789491845593ee37bc7592a9fa48e0e8970e3e2e87a9c27ae46fb6d81ea8",
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:05:24+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: shadow (impl region of adapter_copy + derive_dtype) agrees with the real patched duplication method on 100154 Requires-satisfying inputs (boundary matrix + 100000 fuzz draws, seed 3095); duplicate's reported element type always equals the original's stored type, independent of deep.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "9c608c0352e93f2fbe1ed545dc133946e0ecc09e9d4d6fc9d3f387196d6c3079",
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:45:18+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620",
+        "model_prepatch.py": "18f7e84c24e36a6482738e60d1c551abd6de3bbc067444a0f0caacc484370555"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T22:51:07+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:45:50+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620",
+        "model_prepatch.py": "18f7e84c24e36a6482738e60d1c551abd6de3bbc067444a0f0caacc484370555"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:05:09+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "e2357a445d422c3bbc67dd4d765a39c56821bd5407ba62be48dc1add0c52a4ca",
+          "impl": "b8df47e2e296cfa4c16455a2a5d2ee1991a56851fccc30902a2b5281d4183b20",
+          "post-conditions": "0cad87f8952666a7ce2496f7ed6197910c95020954bd11c018a5b1918459acfb",
+          "pre-conditions": "28d06bfe659ed72ea86528ebf0f5a07aa125e3b5aee45dc8f78b21f7bc9f409b",
+          "pure": "a7b1eb9bc34f1180058865549638f0d87c63080995ba3fc6aa587e6d6073af91",
+          "spec_view": "b3567207561a9dd3ab2c7e94bbf43bdefa4444243ef3ad8c67c8af0a1bbb722c"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:05:09+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "3e724a86fd622922fb245dde72515d56e714d0e8244c9e630d039fc74963553a",
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:05:10+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T10:20:20+00:00",
+      "code_version": "cef05a441-dirty",
+      "data": {},
+      "detail": "no impl mutants (assignment-only impl)",
+      "gate": "G-MUT",
+      "harness_digest": "e329a7d0cb6c",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T22:51:08+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break attack: no divergence found. The modeled adapter_copy pins Result()==Old(self.stored_dtype) (duplicate always reports the original's stored element type). Real callee = patch's new PandasIndexAdapter.copy: `array = self.array.copy(deep=True) if deep else self.array; return PandasIndexAdapter(array, self._dtype)`, which via __init__'s patched `else: dtype = np.dtype(dtype)` sets duplicate.dtype = np.dtype(self._dtype). Since self._dtype is always an already-normalized np.dtype (idempotent under np.dtype) and never None, the duplicate's dtype equals the original's on every input \u2014 exactly the modeled postcondition. Evidence, all against the REAL patched callee (gold patch applied to $SCRATCH at base_commit 1757dff): (1) bundle conformance_check.py exit 0 over 100,154 inputs (boundary matrix + 100k fuzz, seed 3095), zero disagreements; (2) bundle axiom_check.py (G-AX F1/F2/F3 against real PandasIndexAdapter + IndexVariable) exit 0; (3) my independent differential probe of 310 inputs (text/int/float/bool/complex/datetime/timedelta/period/categorical/object buffers + MultiIndex, \u00d7 supplied dtypes {None,O,<U3,<U32,int64,int32,float64,float32,bool,complex128,M8,m8} \u00d7 deep\u2208{True,False}) found 0 dtype divergences \u2014 only construction-time exceptions that never reach copy. Confirmed self._dtype is never None post-construction, so the domain restriction stored_dtype != NO_DTYPE excludes no real copy invocation. Model verifies under pinned Nagini (6.88s); spec region byte-identical (same-spec exit 0 on identity). The spec is not too strong: it captures precisely the discriminating dtype-preservation guarantee (including the <U* case where re-derivation collapses to object) without over-strengthening. No diverging input exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view verified: spec_view(model.py, nagini) reproduced byte-for-byte; its sha256 (2eada5fb...1bed265) matches meta.json region_hashes.spec_view, and the impl region is elided ('... implementation elided \u2014 supplied by the consumer'). The public problem_statement already discloses the full desired behaviour: copy(deep=True/False) must NOT cast '<U*' (fixed-width unicode) IndexVariables to object \u2014 dtype must be preserved across duplication (with a worked <U3->object example). The spec view only restates this in abstracted, repo-agnostic terms (a wrapper preserves the element type it was constructed with; a duplicate must report the SAME element type; postcondition Result() == Old(self.stored_dtype)), plus an explanation of WHY re-derivation is lossy for fixed-width text \u2014 a mechanism explanation, not the gold code.\n\nLexical screen over the spec view for gold-edit tokens: NONE present. PandasIndexAdapter, IndexVariable.copy, indexing.py, variable.py, self._data, standalone _dtype, np.dtype, safe_cast_to_index, deep=deep, npcompat, DTypeLike all ABSENT from the solver's view (the sole substring hit for '_dtype' is inside stored_dtype/derive_dtype, not the repo attribute). None of the gold's discriminating edits are disclosed: no 'add a copy method', no 'else: dtype = np.dtype(dtype)', no 'self._data.copy(deep=deep)' rewire, no 'pass self._dtype'. Those repo symbols appear only in audit artifacts (mapping.md/refinement.md/meta.json), not the spec view.\n\nThe consumer must still author the duplication implementation and locate it in the real repo; the postcondition is a faithful abstraction of the public bug report and does not exceed it. Concurs with recorded G-LEAK (spec view clean) and G-PANEL-3.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break attack: no divergence found. The modeled adapter_copy pins Result()==Old(self.stored_dtype) (duplicate always reports the original's stored element type). Real callee = patch's new PandasIndexAdapter.copy: `array = self.array.copy(deep=True) if deep else self.array; return PandasIndexAdapter(array, self._dtype)`, which via __init__'s patched `else: dtype = np.dtype(dtype)` sets duplicate.dtype = np.dtype(self._dtype). Since self._dtype is always an already-normalized np.dtype (idempotent under np.dtype) and never None, the duplicate's dtype equals the original's on every input \u2014 exactly the modeled postcondition. Evidence, all against the REAL patched callee (gold patch applied to $SCRATCH at base_commit 1757dff): (1) bundle conformance_check.py exit 0 over 100,154 inputs (boundary matrix + 100k fuzz, seed 3095), zero disagreements; (2) bundle axiom_check.py (G-AX F1/F2/F3 against real PandasIndexAdapter + IndexVariable) exit 0; (3) my independent differential probe of 310 inputs (text/int/float/bool/complex/datetime/timedelta/period/categorical/object buffers + MultiIndex, \u00d7 supplied dtypes {None,O,<U3,<U32,int64,int32,float64,float32,bool,complex128,M8,m8} \u00d7 deep\u2208{True,False}) found 0 dtype divergences \u2014 only construction-time exceptions that never reach copy. Confirmed self._dtype is never None post-construction, so the domain restriction stored_dtype != NO_DTYPE excludes no real copy invocation. Model verifies under pinned Nagini (6.88s); spec region byte-identical (same-spec exit 0 on identity). The spec is not too strong: it captures precisely the discriminating dtype-preservation guarantee (including the <U* case where re-derivation collapses to object) without over-strengthening. No diverging input exists.; G-PANEL-3 (leakage): pass \u2014 Spec view verified: spec_view(model.py, nagini) reproduced byte-for-byte; its sha256 (2eada5fb...1bed265) matches meta.json region_hashes.spec_view, and the impl region is elided ('... implementation elided \u2014 supplied by the consumer'). The public problem_statement already discloses the full desired behaviour: copy(deep=True/False) must NOT cast '<U*' (fixed-width unicode) IndexVariables to object \u2014 dtype must be preserved across duplication (with a worked <U3->object example). The spec view only restates this in abstracted, repo-agnostic terms (a wrapper preserves the element type it was constructed with; a duplicate must report the SAME element type; postcondition Result() == Old(self.stored_dtype)), plus an explanation of WHY re-derivation is lossy for fixed-width text \u2014 a mechanism explanation, not the gold code.\n\nLexical screen over the spec view for gold-edit tokens: NONE present. PandasIndexAdapter, IndexVariable.copy, indexing.py, variable.py, self._data, standalone _dtype, np.dtype, safe_cast_to_index, deep=deep, npcompat, DTypeLike all ABSENT from the solver's view (the sole substring hit for '_dtype' is inside stored_dtype/derive_dtype, not the repo attribute). None of the gold's discriminating edits are disclosed: no 'add a copy method', no 'else: dtype = np.dtype(dtype)', no 'self._data.copy(deep=deep)' rewire, no 'pass self._dtype'. Those repo symbols appear only in audit artifacts (mapping.md/refinement.md/meta.json), not the spec view.\n\nThe consumer must still author the duplication implementation and locate it in the real repo; the postcondition is a faithful abstraction of the public bug report and does not exceed it. Concurs with recorded G-LEAK (spec view clean) and G-PANEL-3.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break attack: no divergence found. The modeled adapter_copy pins Result()==Old(self.stored_dtype) (duplicate always reports the original's stored element type). Real callee = patch's new PandasIndexAdapter.copy: `array = self.array.copy(deep=True) if deep else self.array; return PandasIndexAdapter(array, self._dtype)`, which via __init__'s patched `else: dtype = np.dtype(dtype)` sets duplicate.dtype = np.dtype(self._dtype). Since self._dtype is always an already-normalized np.dtype (idempotent under np.dtype) and never None, the duplicate's dtype equals the original's on every input \u2014 exactly the modeled postcondition. Evidence, all against the REAL patched callee (gold patch applied to $SCRATCH at base_commit 1757dff):\n\n(1) bundle conformance_check.py exit 0 over 100,154 inputs (boundary matrix + 100k fuzz, seed 3095), zero disagreements;\n\n(2) bundle axiom_check.py (G-AX F1/F2/F3 against real PandasIndexAdapter + IndexVariable) exit 0;\n\n(3) my independent differential probe of 310 inputs (text/int/float/bool/complex/datetime/timedelta/period/categorical/object buffers + MultiIndex, \u00d7 supplied dtypes {None,O,<U3,<U32,int64,int32,float64,float32,bool,complex128,M8,m8} \u00d7 deep\u2208{True,False}) found 0 dtype divergences \u2014 only construction-time exceptions that never reach copy. Confirmed self._dtype is never None post-construction, so the domain restriction stored_dtype != NO_DTYPE excludes no real copy invocation. Model verifies under pinned Nagini (6.88s); spec region byte-identical (same-spec exit 0 on identity). The spec is not too strong: it captures precisely the discriminating dtype-preservation guarantee (including the <U* case where re-derivation collapses to object) without over-strengthening. No diverging input exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view verified: spec_view(model.py, nagini) reproduced byte-for-byte; its sha256 (2eada5fb...1bed265) matches meta.json region_hashes.spec_view, and the impl region is elided ('... implementation elided \u2014 supplied by the consumer'). The public problem_statement already discloses the full desired behaviour: copy(deep=True/False) must NOT cast '<U*' (fixed-width unicode) IndexVariables to object \u2014 dtype must be preserved across duplication (with a worked <U3->object example). The spec view only restates this in abstracted, repo-agnostic terms (a wrapper preserves the element type it was constructed with; a duplicate must report the SAME element type; postcondition Result() == Old(self.stored_dtype)), plus an explanation of WHY re-derivation is lossy for fixed-width text \u2014 a mechanism explanation, not the gold code.\n\nLexical screen over the spec view for gold-edit tokens: NONE present. PandasIndexAdapter, IndexVariable.copy, indexing.py, variable.py, self._data, standalone _dtype, np.dtype, safe_cast_to_index, deep=deep, npcompat, DTypeLike all ABSENT from the solver's view (the sole substring hit for '_dtype' is inside stored_dtype/derive_dtype, not the repo attribute). None of the gold's discriminating edits are disclosed: no 'add a copy method', no 'else: dtype = np.dtype(dtype)', no 'self._data.copy(deep=deep)' rewire, no 'pass self._dtype'. Those repo symbols appear only in audit artifacts (mapping.md/refinement.md/meta.json), not the spec view.\n\nThe consumer must still author the duplication implementation and locate it in the real repo; the postcondition is a faithful abstraction of the public bug report and does not exceed it. Concurs with recorded G-LEAK (spec view clean) and G-PANEL-3.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:58:06+00:00",
+      "code_version": "1471e0937-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder-locals",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-direct-carryover",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 12.7
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-text-witness",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 12.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-stored-dtype",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-rederive-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-const-object",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 3
+        },
+        "manifest_sha256": "0bb832766a2adec0ebfffc677633e8ae0cffd4fdc840304f9053868ddfe99260",
+        "n_cases": 6,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 6 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620",
+        "properties.py": "0bb832766a2adec0ebfffc677633e8ae0cffd4fdc840304f9053868ddfe99260"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:36:56+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T10:19:31+00:00",
+      "code_version": "cef05a441-dirty",
+      "data": {
+        "wall_time_s": 18.5
+      },
+      "detail": "verified in 18.5s",
+      "gate": "G-VERIFY",
+      "harness_digest": "e329a7d0cb6c",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0869a22f03433ad15887aab3d0bcb654ec57c4dd6ba34ee4a46917ba17de0620"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-3095",
+  "modeled_functions": [
+    {
+      "carrier_type": "numpy/pandas dtype -> int element-type code; dtype=None sentinel -> NO_DTYPE=-1; np.dtype('O') -> OBJECT_DTYPE=0; PandasIndexAdapter -> minimal class IndexWrapper(array_kind, stored_dtype)",
+      "model_symbol": "adapter_copy",
+      "repo_location": "xarray/core/indexing.py (new method added by the patch, after __repr__)",
+      "repo_symbol": "xarray.core.indexing.PandasIndexAdapter.copy",
+      "role": "modeled changed function: duplicate the index wrapper preserving the original element type (dtype) rather than re-deriving it from the duplicated buffer"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check passes)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == Old(self.stored_dtype) (model_prepatch.py:100); for the <U* witness array_kind == OBJECT_DTYPE != stored_dtype",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "PandasIndexAdapter duplication preserving the original dtype",
+      "reverted_to": "inlined reconstruction without the original dtype (IndexWrapper(array_kind, derive_dtype(array_kind, NO_DTYPE)) == array_kind), the pre-patch PandasIndexAdapter(self._data.array.copy(deep=True))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "e2357a445d422c3bbc67dd4d765a39c56821bd5407ba62be48dc1add0c52a4ca",
+    "impl": "b8df47e2e296cfa4c16455a2a5d2ee1991a56851fccc30902a2b5281d4183b20",
+    "post-conditions": "0cad87f8952666a7ce2496f7ed6197910c95020954bd11c018a5b1918459acfb",
+    "pre-conditions": "cc19e1cd4fb009b69786f5829ce66e23d79f5785688f7caa6758ecc1ab0aefdd",
+    "pure": "a7b1eb9bc34f1180058865549638f0d87c63080995ba3fc6aa587e6d6073af91",
+    "spec_view": "2eada5fb5c418065e39006dcb24db73fdd46088cdd33b97533f7c4adc1bed265"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "string_modeling": "none (dtypes modelled as int element-type codes; no string carrier needed)",
+  "version": "0.12"
+}

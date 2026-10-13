@@ -1,0 +1,1050 @@
+{
+  "axioms": [],
+  "carriers": [
+    "Expr  (structure { tag : Nat })  -- a general sympy expression: the only kind admissible as a substitution VALUE",
+    "SymE  (structure { tag : Nat })  -- a sympy Symbol: the kind a ConditionSet may be BOUND over, i.e. self.sym. Its own carrier because the assembly routine's first position is defined on a symbol and, for an arbitrary condition, on nothing else. One-way into Expr via symExpr; nothing maps back",
+    "Cond  (structure { tag : Nat })  -- a sympy Boolean: the ConditionSet.condition component",
+    "SetE  (structure { tag : Nat })  -- a sympy Set: both the ConditionSet.base_set component and the RESULT type of the modeled routine. No projections: a set does not in general expose a bound variable, a condition or a base",
+    "CondSet { sym : SymE, cond : Cond, base : SetE }  -- the INPUT type only: a set already known to be of the three-part shape, so reading its three components is exactly as defined as _eval_subs' own reads. Used inside an implementation it denotes the (sym, condition, base_set) argument triple about to be handed to the assembly routine; no set exists until mkSet is applied",
+    "NOTE the carriers are kept DISTINCT on purpose: a Lean `opaque` is total, and a record projection is total, where the sympy operation each models is partial. Measured at base_commit: the assembly routine raises ValueError('non-symbol dummy not recognized in condition') for a bound variable that is not a Symbol and does not occur in the condition -- gold itself raises it, e.g. ConditionSet(2*x, Eq(2*x,y), Reals).subs(x,3); Contains raises TypeError unless its second argument is a Set; Basic.subs raises when the replacement value is a Set (SympifyError) or a Boolean (TypeError); and an ASSEMBLED set raises AttributeError for .sym/.condition/.base_set whenever the assembly routine canonicalised it away (ConditionSet(x, S.true, Interval(0,3)) is Interval(0,3)) -- which is the very sub-domain the modeled change decides. A single carrier for everything, an untyped binding position, or a three-field record for the RESULT, would let an implementation name a call the elaborator accepts and _eval_subs could not make. Measured cost of the untyped binding position: 1980 raises in 39016 well-typed compositions at the four triples the F2P + P2P tests push through this branch, against 0 raises in 6516 with the position typed by SymE. With the kinds separated every such term is a Lean type error. The `.tag` field has NO python counterpart: it exists only to make each carrier Inhabited + DecidableEq and to let a G-PBT witness name a particular element; no spec clause and no modeled callee reads it. See mapping.md sections 'Carrier discipline', 'Residual partialities', 'Assembly normalises' and 'Modeled vocabulary'."
+  ],
+  "conf_skip": false,
+  "deep_model_references": [
+    {
+      "lean": "subsCond cs.cond old new",
+      "python": "self.condition.subs(old, new)",
+      "validated_by": "G-CONF (A-reference; genuine Basic.subs at the Boolean condition, exercised in-process)"
+    },
+    {
+      "lean": "subsSet cs.base old new",
+      "python": "self.base_set.subs(old, new)",
+      "validated_by": "G-CONF (A-reference; the same Basic.subs at the Set base, exercised in-process)"
+    },
+    {
+      "lean": "mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new)",
+      "python": "self.func(self.sym, cond, base)",
+      "validated_by": "G-CONF (A-reference; the genuine unchanged ConditionSet.__new__, called directly by the shadow, so the shadow is a literal reading of the spec right-hand side. LEG 2 additionally measures the domain rule behind the SymE first argument: the routine raises for a non-Symbol bound variable and returns for a Symbol one)"
+    },
+    {
+      "lean": "mkMemberSet new base'",
+      "python": "ConditionSet(new, Contains(new, base), base)",
+      "validated_by": "G-CONF LEG 3 (A-reference, prepatch-only; the deleted expression as one fused routine, measured total on the base sets this branch ranges over)"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:31:04+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "{\"status\": \"skip\", \"reason\": \"no consumed axioms; mkSet/subsCond/subsSet are A-references validated by G-CONF\"}",
+      "gate": "G-AX",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "axiom_check.py": "3328036ffe7542e6b3c9487cbf5877ce53cb09e8dd7a4b91a405625d73ee9a09"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:32:11+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "conformance: legs_passed=5/5",
+      "gate": "G-CONF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "conformance_check.py": "24e285a7e4d6bfd723a6bfd3acbdfad98f3944f2cda945c58a92670fc72df6ca"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:26:08+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "Solution_prepatch.lean": "782a171ba72d16a2f93f4895469005c879b3a93876edf974c73282a9961796d5"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T16:44:41+00:00",
+      "code_version": "f5ec966db-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 21 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_7.lean`, `atk_8.lean`, `atk_9.lean`, `atk_17.lean`, `atk_18.lean`, `atk_R1.lean`, `atk_R2.lean`, `atk_R3.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_10.lean`, `atk_11.lean`, `atk_12.lean`, `atk_13.lean`, `atk_14.lean`, `atk_15.lean`, `atk_16.lean` |\n\n**Non-vacuity.** The positive control `pc.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T16:47:08+00:00",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "properties.py": "86c792b89e402b1b78c4ddc181089b642d92a59d025ea545c167bd9abf1013b9"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:26:35+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "Solution_prepatch.lean": "782a171ba72d16a2f93f4895469005c879b3a93876edf974c73282a9961796d5"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:25:57+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "718580b80e27318bdfb333d508e934476681298ee3d7c9fdfce7899624398415",
+          "impl": "c7f5d81da65a3a079c2a4fcc979782ede10a9ca5513cb1dd50e119666ca8bbb1",
+          "post-conditions": "a8d34bb7269290fc3b4062eeea0dd538d2ad16b878ec0b9c4582da6d3172af4a",
+          "proof": "f967d85c448a8e0c372672f72945a2afbd1c8047f7d9adf6f9d6e7000d47a7b1",
+          "pure": "fc311a57cec195709790b73a09c3631f17a0113019b2a74b938235b95419f919",
+          "spec_view": "c433efc53b4b57d133e57df9c997bf28a40d04d899469c7270c8f21899a5c8d9"
+        }
+      },
+      "detail": "imports/markers/regions/axioms clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:25:58+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "instance.json": "48108902ddb9079a36006163cb519cc230053966c8bb9c8996abf2d527e35f56"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:25:59+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:27:04+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "judged": 3,
+        "killed": 3,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 3,
+        "unjudged": []
+      },
+      "detail": "killed 3/3 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T15:46:59+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS-BREAK ATTACK \u2014 no divergence found between the modeled function and the real callee on the reference (base_commit 25fbcce5b1 + patch.diff APPLIED, worktree, verified `git diff` == patch.diff exactly, docstring hunks included).\n\nMODELED FUNCTION: ConditionSet._eval_subs(self, old, new), sympy/sets/conditionset.py:206, on the `else` branch (old != sym) with self.sym a Symbol. Post-patch body is exactly the three ops the spec states:\n  cond = self.condition.subs(old, new); base = self.base_set.subs(old, new); return self.func(self.sym, cond, base)\nSPEC: result = mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new) \u2014 an op-for-op equation, no added strength. Read against the PATCHED reference (not base), so the deleted `if cond is S.true: return ConditionSet(new, Contains(new, base), base)` special case is correctly absent from the spec rather than a drift.\n\nA. DIFFERENTIAL (spec transliteration vs REAL cs._eval_subs, strict ==, my own independent harness, not the bundle's):\n  - pan2_19495_fuzz.py: 5 syms x 18 conds x 15 bases x 6 olds x 17 news = 111,690 in-branch cases. 0 divergences. 0 SetE carrier escapes (subsSet never left the carrier). 0 mkSet nondeterminism. 936 inputs where BOTH legs raise the identical exception (BadSignatureError / ZeroDivisionError / SympifyError) \u2014 i.e. the model's partiality matches the callee's, no case where the shadow succeeds and the real routine raises or vice versa.\n  - pan2_19495_nd2.py: 48,600 cases over 18 ImageSet/Intersection/Union/Complement bases x 12 conds (incl. Symbol('lambda') collision conds) x 5 syms. 0 issues.\n  - pan2_19495_nd3.py: 17,952 cases, 18 further bases incl. asin/log/sqrt/acos/atanh/gamma ImageSets. 0 issues.\n  TOTAL ~178k independent in-branch inputs, 0 disagreements.\n\nB. CONTROL (proves the harness discriminates, not vacuous): the same fuzz script against the UNPATCHED base (, `git checkout` of conditionset.py) reports 616 divergences, e.g. ConditionSet(x, Contains(y,Interval(0,oo)), Integers).subs(y,1/3) -> base gives EmptySet where the spec gives Integers, and the ImageSet family where base rebinds to ConditionSet(1/3, Contains(1/3, ...)). So a real divergence WOULD have been caught. This is exactly the delta the patch introduces \u2014 reporting it would have been the trap; it is not a spec defect.\n\nC. THE ONE REAL OVER-STRENGTH ROUTE \u2014 mkSet nondeterminism \u2014 attacked directly and closed. The spec asserts an EQUATION between mkSet results, so it is too strong iff ConditionSet.__new__ can mint a fresh Dummy (its rename arm) at an in-carrier argument triple. That arm fires only when the base handed to it is ITSELF a top-level ConditionSet. I searched for a SetE-valued base (not condition-restricted) whose .subs produces a TOP-LEVEL ConditionSet: pan2_19495_top.py + nd3 over ~34 ImageSet/Intersection/Complement/Union bases x 25 substitution values found 0. Many NESTED ConditionSets do appear (e.g. Intersection(ImageSet(Lambda(n,asin(n*y)),Integers),Reals).subs(y,pi) -> ImageSet(Lambda(x,re(asin(pi*x))), ConditionSet(n,Eq(im(asin(pi*n)),0),Integers))) but nesting does not reach __new__'s `isinstance(base_set, cls)` test, and I ran the full differential + 3x-repeat determinism check on every one of those shapes: 0 mkSet-nd, 0 real-nd, 0 SPEC-DIVERGE. The refinement's own acknowledged nondeterministic input (base = Intersection(ConditionSet(y, x+y<w, Reals), Reals)) is honestly excluded: its base IS top-level condition-restricted, so it is AsmSet, not SetE \u2014 and I confirmed no in-carrier input reaches that shape.\n\nD. BRANCH GUARD (`old \u2260 symExpr cs.sym` structural vs sympy's semantic `old == sym`) \u2014 the guard is the other place a spec can drift. pan2_19495_guard.py over a 13-value pool incl. Float(2.0)/Integer(2)/Rational(2,1)/Dummy('x')/positive-x against sym = x: 0 pairs where semantic == and structural identity disagree. Every Float-vs-Integer disagreement mapping.md documents needs a NON-Symbol bound variable to sit on, and the branch guard narrows sym to Symbol, so the two coincide on the modeled domain. Narrowing costs no coverage: all 4 in-branch calls the F2P+8 P2P tests make have a Symbol bound variable.\n\nE. MECHANICAL:\n  - scripts/lean_verify.sh Solution.lean -> exit 0 (compiles, no sorry).\n  - `#print axioms correct_freeSubs` -> \"does not depend on any axioms\" (no sorryAx, no propositional axiom about mkSet/subsCond/subsSet \u2014 congruence is genuinely the only route to the equation, so all three argument positions are load-bearing; the prepatch, which hands `new` != cs.sym in the collapse case, cannot close, and Solution_prepatch.lean indeed carries `sorry` and fails G-DIFF).\n  - markers.same_spec(Solution.lean, Solution_prepatch.lean, LeanBackend()) = True; axioms and post-conditions regions byte-identical by diff; live region_hashes == the six recorded in meta.json G-HYGIENE (spec_view c433efc5...). Spec region is unmodified.\n  - Bundle conformance_check.py re-run in-process against the patched worktree: legs_passed=5/5, LEG 1 ran=80299 disagreements=0 collapse-inputs=959 outside-carriers=0 escapes cond=0 base=0 \u2014 the bundle's own numbers reproduce.\n  - F2P test_subs_CondSet + P2P (test_CondSet, test_dummy_eq, test_contains, test_free_symbols) on the reference: 7 passed. Reference is the resolved behavior.\n\nSpec is neither too strong nor drifted: it is a faithful op-for-op equation on a domain where every modeled callee is total and deterministic, and the corner case it forbids (rebinding to `new`) is precisely the bug the patch removes.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "MEASUREMENTS I RAN (nothing inherited; the stamped G-PANEL-3 pass and the prior panel note in verdict.md are BOTH stale for these bytes -- see item 8).\n\n0. NO RELAXATION IN THIS BUNDLE. `find benchmark-verified/sympy__sympy-19495 -iname '*relax*'` => nothing; no RELAXED_LEAKAGE.md anywhere in the instance dir; `'relaxed_leakage' in meta` => False (the only /relax/i hits in meta.json are inside prior agents' prose notes, not a flag). So there is no unavoidability argument to credit or re-derive: I judged STRICTLY against the public problem_statement. instance['hints_text'] has len 0, so there is no non-public hints channel that could be echoed at all.\n\n1. SPEC REGION FROZEN. markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('lean')) => True; spec_signature equal on both legs; spec_view sha256 IDENTICAL on both legs = c433efc53b4b57d1... My recomputed region_hashes: axioms=718580b80e27, pure=fc311a57cec1, post-conditions=a8d34bb72692, impl=c7f5d81da65a, proof=f967d85c448a, spec_view=c433efc53b4b. The two files differ ONLY in the impl body (prepatch adds `if isTrue cond' then return mkMemberSet new base'`) and the proof (`intro cs old new _; rfl` vs `sorry`) -- both regions the spec view elides. Current Solution.lean sha256 = e49826469d9e6c66...\n\n2. STRICT SCREEN, RE-RUN BY ME. leakage.screen(Solution.lean, lean.language, instance.patch, instance.problem_statement, instance.test_patch) => LeakageReport(hard_failures=[], warnings=[]). patch.diff == instance['patch'] (confirmed True). Independently: iterated EVERY +/- line of the gold patch, alphanumeric-normalized, against the spec view => 0 verbatim reproductions. Explicitly checked each of the gold's ADDED lines: the four-line comment it introduces (\"The condition may have become true due to assumptions on 'sym' ... assumptions are ignored\") is ABSENT from the view -- the view never mentions assumptions, `__new__`, or constructor consistency. Probed the view for repo vocabulary: _eval_subs, eval_subs, S.true, base_set, self.func, __new__, dummy_eq, Contains, ConditionSet, conditionset, .py, sympy, Interval, ImageSet, FiniteSet, solveset, xreplace, simultaneous, asin, Lambda, Basic, EmptySet, UniversalSet, 'Notes' -- ALL absent. The four apparent hits (Symbol/Dummy/Boolean/sym) are, on line-by-line inspection, ordinary English inside prose: \"bound/dummy variable\", \"a symbol, a number, an applied function\", \"a boolean-valued symbolic object\", \"the symbol being substituted\" -- no repo identifier, no file or module path, no diff marker.\n\n3. LOAD-BEARING (STRIP) TEST -- RUN, NOT ASSERTED. I mechanically deleted every doc comment (/-! -/, /-- -/) and every non-marker `--` line from both legs, keeping only region markers + code, and re-verified under scripts/lean_verify.sh. Stripped GOLD => exit 0 (still verifies, 66 lines). Stripped PREPATCH with the gold proof body substituted for `sorry` => exit 1: \"Tactic `rfl` failed: The left-hand side `new` is not definitionally equal to the right-hand side implementation_freeSubs cs old new\". So ALL the narration is inert prose carrying ZERO verification weight; the actual discriminator is argument position 1 of the single equation `result = mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new)` -- the INPUT's bound variable occupies slot 1, and the prepatch's rebinding to `new` is refuted exactly there.\n\n4. IS THE DISCRIMINATOR DERIVABLE FROM problem_statement ALONE? YES, line by line. Public Out[75] displays the wrong object as {1/3 | 1/3 in {2*pi*n+asin(1/3)|n in Z} AND (1/3 in {...})} -- i.e. verbatim `ConditionSet(new, Contains(new, base), base)`: the substituted value 1/3 sitting in the bound-variable slot, with the original condition `y in [-1,1]` gone and replaced by a membership of 1/3 in the base set. The reporter states the diagnosis outright: \"It's as if the bound variable `x` of the ConditionSet were mistaken for a `y`\", and gives the desired results in Out[78]/Out[80]. The collapse-to-true TRIGGER is also public: Out[71]/Out[72] show the FiniteSet analogue where the condition becomes true, and in Out[75] the original condition has evidently evaluated away (1/3 in [-1,1] is true). So (a) preserve the bound variable, (b) the substituted value must not take its place, (c) the corner case is the condition collapsing to true, and (d) the membership-on-`new` shape is what must NOT be produced -- each is readable off the public transcript. I also confirmed in the real worktree (, sympy/sets/conditionset.py) that the pre-patch `if cond is S.true: return ConditionSet(new, Contains(new, base), base)` is ALREADY VISIBLE SOURCE at base_commit; the only secret is that the gold DELETES it, which is precisely what the public bug report demands. The spec view says no more than that.\n\n5. FACET RE-CONFIRMED, and nothing outside it. The view is the `old != sym` FREE-SYMBOL branch contract only: it does not describe the bound-variable-rename branch, the Tuple/equation-set early return, the constructor's canonicalisation semantics, the default-universal-set behavior, or ANY of the gold patch's docstring hunks (the `Notes` heading removal, the duplicated-clause typo fix, the trailing blank line) -- I checked each of those hunks against the view and none is echoed. `isTrue` and `mkMemberSet` are declared but UNUSED by the gold spec and impl: that is a structural consequence of same_spec (the prepatch leg's callees must live in the shared view), and both name shapes are displayed verbatim in public Out[75]. mkMemberSet's docstring calls itself \"the shape that the corner case must NOT produce\" -- that is Out[75] restated, not the edit.\n\n6. CORE GATES THE DISPOSITION LEANS ON, RE-RUN BY ME. scripts/lean_verify.sh Solution.lean => exit 0. Appending `#print axioms correct_freeSubs` / `implementation_freeSubs` / `problem_spec_freeSubs` and re-verifying prints \"does not depend on any axioms\" for ALL THREE -- no sorryAx, the proof is genuine (closes by rfl), and the opaques are genuinely opaque rather than consumed axioms (G-AX is a documented skip: no _prop axioms exist). The prepatch leg genuinely fails against the shared spec (item 3), so the frozen-spec argument is non-vacuous rather than trivially true.\n\n7. BUNDLE-DIRECTED-AT-REVIEWER SCAN. leakage.reviewer_directed() over Solution.lean, refinement.md, mapping.md, verdict.md, meta.json, conformance_check.py, axiom_check.py => [] for EVERY file. My own grep for panel-addressing phrasing ('the honest verdict', 'you must submit', 'record NO-LEAKAGE', 'do not submit', 'dear reviewer', 'panel should') over Solution.lean/refinement.md/mapping.md/conformance_check.py => no hits. FINDING FOR THE RECORD: verdict.md (line 509 onward, duplicated at 537+) and meta.json['gates']['G-PANEL-3']['note'] carry a PRIOR panel-3 agent's complete argument ending in \"VERDICT: NO-LEAKAGE\" against these very questions. That is a pre-recorded disposition sitting in the bundle for the role that is supposed to measure it independently. I did not inherit it, and it could not have applied anyway (item 8). Every measurement above is my own re-derivation.\n\n8. STALENESS FINDING (record hygiene, not leakage). The stamped G-PANEL-3 pass cites sources.Solution.lean = c6e47262bea3fd99..., but the current file is e49826469d9e6c66... The stamped region_hashes.spec_view = ac2b8709ed1cbfef..., whereas the current spec_view hashes c433efc53b4b57d1... Note the prior verdict.md note itself claims the then-current view was ac2b8709 and that the *previous* stamp (3861eec8/ba3cf507) was stale -- so the file has now been edited at least twice past its last panel-3 judgement, and BOTH the meta stamp and the prior agent's note describe bytes that no longer exist. Only G-LEAK/G-HYGIENE/G-CONF/G-DIFF/G-GOLD/G-AX (checked_at 15:25-15:32) cite the current e4982646 sha; G-EQ still cites c6e47262. My NO-LEAKAGE is measured against the CURRENT bytes. Separately, refinement.md and mapping.md DO reproduce gold patch lines verbatim (e.g. `- if cond is S.true:`, `- return ConditionSet(new, Contains(new, base), base)`, `+ return self.func(self.sym, cond, base)`); per docs/architecture.md these are audit artifacts (\"op-by-op map from impl to patch.diff\", \"formal symbol to repo symbol binding\"), NOT the spec view that G-LEAK certifies and that a consumer is shown, so they are outside this gate's scope -- flagged only so the record shows I checked them rather than skipped them. The recorded G-PANEL-1 (spec-too-weak, atk_2 verifies but does not resolve) and G-PANEL-2 (faithfulness: subs not well-defined on alpha-equivalence) failures belong to other layers and neither bears on leakage.\n\nVERDICT: NO-LEAKAGE. The spec view names no repo symbol, file/module path, gold-patch line, or added gold comment; its strongest prose (bound-variable preservation, including in the condition-collapse corner, and that the membership-on-`new` shape must not be produced) is entailed by the public problem_statement's own displayed wrong output Out[75], its stated diagnosis, and its Out[78]/Out[80] targets, with the pre-patch branch already visible as base_commit source; that prose is provably inert (full comment-strip test: gold exit 0, prepatch exit 1); the spec region is byte-frozen across legs; the proof is axiom-clean; and hints_text is empty so there is no non-public channel to echo.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS-BREAK ATTACK \u2014 no divergence found between the modeled function and the real callee on the reference (base_commit 25fbcce5b1 + patch.diff APPLIED, worktree, verified `git diff` == patch.diff exactly, docstring hunks included).\n\nMODELED FUNCTION: ConditionSet._eval_subs(self, old, new), sympy/sets/conditionset.py:206, on the `else` branch (old != sym) with self.sym a Symbol. Post-patch body is exactly the three ops the spec states:\n  cond = self.condition.subs(old, new); base = self.base_set.subs(old, new); return self.func(self.sym, cond, base)\nSPEC: result = mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new) \u2014 an op-for-op equation, no added strength. Read against the PATCHED reference (not base), so the deleted `if cond is S.true: return ConditionSet(new, Contains(new, base), base)` special case is correctly absent from the spec rather than a drift.\n\nA. DIFFERENTIAL (spec transliteration vs REAL cs._eval_subs, strict ==, my own independent harness, not the bundle's):\n  - pan2_19495_fuzz.py: 5 syms x 18 conds x 15 bases x 6 olds x 17 news = 111,690 in-branch cases. 0 divergences. 0 SetE carrier escapes (subsSet never left the carrier). 0 mkSet nondeterminism. 936 inputs where BOTH legs raise the identical exception (BadSignatureError / ZeroDivisionError / SympifyError) \u2014 i.e. the model's partiality matches the callee's, no case where the shadow succeeds and the real routine raises or vice versa.\n  - pan2_19495_nd2.py: 48,600 cases over 18 ImageSet/Intersection/Union/Complement bases x 12 conds (incl. Symbol('lambda') collision conds) x 5 syms. 0 issues.\n  - pan2_19495_nd3.py: 17,952 cases, 18 further bases incl. asin/log/sqrt/acos/atanh/gamma ImageSets. 0 issues.\n  TOTAL ~178k independent in-branch inputs, 0 disagreements.\n\nB. CONTROL (proves the harness discriminates, not vacuous): the same fuzz script against the UNPATCHED base (, `git checkout` of conditionset.py) reports 616 divergences, e.g. ConditionSet(x, Contains(y,Interval(0,oo)), Integers).subs(y,1/3) -> base gives EmptySet where the spec gives Integers, and the ImageSet family where base rebinds to ConditionSet(1/3, Contains(1/3, ...)). So a real divergence WOULD have been caught. This is exactly the delta the patch introduces \u2014 reporting it would have been the trap; it is not a spec defect.\n\nC. THE ONE REAL OVER-STRENGTH ROUTE \u2014 mkSet nondeterminism \u2014 attacked directly and closed. The spec asserts an EQUATION between mkSet results, so it is too strong iff ConditionSet.__new__ can mint a fresh Dummy (its rename arm) at an in-carrier argument triple. That arm fires only when the base handed to it is ITSELF a top-level ConditionSet. I searched for a SetE-valued base (not condition-restricted) whose .subs produces a TOP-LEVEL ConditionSet: pan2_19495_top.py + nd3 over ~34 ImageSet/Intersection/Complement/Union bases x 25 substitution values found 0. Many NESTED ConditionSets do appear (e.g. Intersection(ImageSet(Lambda(n,asin(n*y)),Integers),Reals).subs(y,pi) -> ImageSet(Lambda(x,re(asin(pi*x))), ConditionSet(n,Eq(im(asin(pi*n)),0),Integers))) but nesting does not reach __new__'s `isinstance(base_set, cls)` test, and I ran the full differential + 3x-repeat determinism check on every one of those shapes: 0 mkSet-nd, 0 real-nd, 0 SPEC-DIVERGE. The refinement's own acknowledged nondeterministic input (base = Intersection(ConditionSet(y, x+y<w, Reals), Reals)) is honestly excluded: its base IS top-level condition-restricted, so it is AsmSet, not SetE \u2014 and I confirmed no in-carrier input reaches that shape.\n\nD. BRANCH GUARD (`old \u2260 symExpr cs.sym` structural vs sympy's semantic `old == sym`) \u2014 the guard is the other place a spec can drift. pan2_19495_guard.py over a 13-value pool incl. Float(2.0)/Integer(2)/Rational(2,1)/Dummy('x')/positive-x against sym = x: 0 pairs where semantic == and structural identity disagree. Every Float-vs-Integer disagreement mapping.md documents needs a NON-Symbol bound variable to sit on, and the branch guard narrows sym to Symbol, so the two coincide on the modeled domain. Narrowing costs no coverage: all 4 in-branch calls the F2P+8 P2P tests make have a Symbol bound variable.\n\nE. MECHANICAL:\n  - scripts/lean_verify.sh Solution.lean -> exit 0 (compiles, no sorry).\n  - `#print axioms correct_freeSubs` -> \"does not depend on any axioms\" (no sorryAx, no propositional axiom about mkSet/subsCond/subsSet \u2014 congruence is genuinely the only route to the equation, so all three argument positions are load-bearing; the prepatch, which hands `new` != cs.sym in the collapse case, cannot close, and Solution_prepatch.lean indeed carries `sorry` and fails G-DIFF).\n  - markers.same_spec(Solution.lean, Solution_prepatch.lean, LeanBackend()) = True; axioms and post-conditions regions byte-identical by diff; live region_hashes == the six recorded in meta.json G-HYGIENE (spec_view c433efc5...). Spec region is unmodified.\n  - Bundle conformance_check.py re-run in-process against the patched worktree: legs_passed=5/5, LEG 1 ran=80299 disagreements=0 collapse-inputs=959 outside-carriers=0 escapes cond=0 base=0 \u2014 the bundle's own numbers reproduce.\n  - F2P test_subs_CondSet + P2P (test_CondSet, test_dummy_eq, test_contains, test_free_symbols) on the reference: 7 passed. Reference is the resolved behavior.\n\nSpec is neither too strong nor drifted: it is a faithful op-for-op equation on a domain where every modeled callee is total and deterministic, and the corner case it forbids (rebinding to `new`) is precisely the bug the patch removes.; G-PANEL-3 (leakage): pass \u2014 MEASUREMENTS I RAN (nothing inherited; the stamped G-PANEL-3 pass and the prior panel note in verdict.md are BOTH stale for these bytes -- see item 8).\n\n0. NO RELAXATION IN THIS BUNDLE. `find benchmark-verified/sympy__sympy-19495 -iname '*relax*'` => nothing; no RELAXED_LEAKAGE.md anywhere in the instance dir; `'relaxed_leakage' in meta` => False (the only /relax/i hits in meta.json are inside prior agents' prose notes, not a flag). So there is no unavoidability argument to credit or re-derive: I judged STRICTLY against the public problem_statement. instance['hints_text'] has len 0, so there is no non-public hints channel that could be echoed at all.\n\n1. SPEC REGION FROZEN. markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('lean')) => True; spec_signature equal on both legs; spec_view sha256 IDENTICAL on both legs = c433efc53b4b57d1... My recomputed region_hashes: axioms=718580b80e27, pure=fc311a57cec1, post-conditions=a8d34bb72692, impl=c7f5d81da65a, proof=f967d85c448a, spec_view=c433efc53b4b. The two files differ ONLY in the impl body (prepatch adds `if isTrue cond' then return mkMemberSet new base'`) and the proof (`intro cs old new _; rfl` vs `sorry`) -- both regions the spec view elides. Current Solution.lean sha256 = e49826469d9e6c66...\n\n2. STRICT SCREEN, RE-RUN BY ME. leakage.screen(Solution.lean, lean.language, instance.patch, instance.problem_statement, instance.test_patch) => LeakageReport(hard_failures=[], warnings=[]). patch.diff == instance['patch'] (confirmed True). Independently: iterated EVERY +/- line of the gold patch, alphanumeric-normalized, against the spec view => 0 verbatim reproductions. Explicitly checked each of the gold's ADDED lines: the four-line comment it introduces (\"The condition may have become true due to assumptions on 'sym' ... assumptions are ignored\") is ABSENT from the view -- the view never mentions assumptions, `__new__`, or constructor consistency. Probed the view for repo vocabulary: _eval_subs, eval_subs, S.true, base_set, self.func, __new__, dummy_eq, Contains, ConditionSet, conditionset, .py, sympy, Interval, ImageSet, FiniteSet, solveset, xreplace, simultaneous, asin, Lambda, Basic, EmptySet, UniversalSet, 'Notes' -- ALL absent. The four apparent hits (Symbol/Dummy/Boolean/sym) are, on line-by-line inspection, ordinary English inside prose: \"bound/dummy variable\", \"a symbol, a number, an applied function\", \"a boolean-valued symbolic object\", \"the symbol being substituted\" -- no repo identifier, no file or module path, no diff marker.\n\n3. LOAD-BEARING (STRIP) TEST -- RUN, NOT ASSERTED. I mechanically deleted every doc comment (/-! -/, /-- -/) and every non-marker `--` line from both legs, keeping only region markers + code, and re-verified under scripts/lean_verify.sh. Stripped GOLD => exit 0 (still verifies, 66 lines). Stripped PREPATCH with the gold proof body substituted for `sorry` => exit 1: \"Tactic `rfl` failed: The left-hand side `new` is not definitionally equal to the right-hand side implementation_freeSubs cs old new\". So ALL the narration is inert prose carrying ZERO verification weight; the actual discriminator is argument position 1 of the single equation `result = mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new)` -- the INPUT's bound variable occupies slot 1, and the prepatch's rebinding to `new` is refuted exactly there.\n\n4. IS THE DISCRIMINATOR DERIVABLE FROM problem_statement ALONE? YES, line by line. Public Out[75] displays the wrong object as {1/3 | 1/3 in {2*pi*n+asin(1/3)|n in Z} AND (1/3 in {...})} -- i.e. verbatim `ConditionSet(new, Contains(new, base), base)`: the substituted value 1/3 sitting in the bound-variable slot, with the original condition `y in [-1,1]` gone and replaced by a membership of 1/3 in the base set. The reporter states the diagnosis outright: \"It's as if the bound variable `x` of the ConditionSet were mistaken for a `y`\", and gives the desired results in Out[78]/Out[80]. The collapse-to-true TRIGGER is also public: Out[71]/Out[72] show the FiniteSet analogue where the condition becomes true, and in Out[75] the original condition has evidently evaluated away (1/3 in [-1,1] is true). So (a) preserve the bound variable, (b) the substituted value must not take its place, (c) the corner case is the condition collapsing to true, and (d) the membership-on-`new` shape is what must NOT be produced -- each is readable off the public transcript. I also confirmed in the real worktree (, sympy/sets/conditionset.py) that the pre-patch `if cond is S.true: return ConditionSet(new, Contains(new, base), base)` is ALREADY VISIBLE SOURCE at base_commit; the only secret is that the gold DELETES it, which is precisely what the public bug report demands. The spec view says no more than that.\n\n5. FACET RE-CONFIRMED, and nothing outside it. The view is the `old != sym` FREE-SYMBOL branch contract only: it does not describe the bound-variable-rename branch, the Tuple/equation-set early return, the constructor's canonicalisation semantics, the default-universal-set behavior, or ANY of the gold patch's docstring hunks (the `Notes` heading removal, the duplicated-clause typo fix, the trailing blank line) -- I checked each of those hunks against the view and none is echoed. `isTrue` and `mkMemberSet` are declared but UNUSED by the gold spec and impl: that is a structural consequence of same_spec (the prepatch leg's callees must live in the shared view), and both name shapes are displayed verbatim in public Out[75]. mkMemberSet's docstring calls itself \"the shape that the corner case must NOT produce\" -- that is Out[75] restated, not the edit.\n\n6. CORE GATES THE DISPOSITION LEANS ON, RE-RUN BY ME. scripts/lean_verify.sh Solution.lean => exit 0. Appending `#print axioms correct_freeSubs` / `implementation_freeSubs` / `problem_spec_freeSubs` and re-verifying prints \"does not depend on any axioms\" for ALL THREE -- no sorryAx, the proof is genuine (closes by rfl), and the opaques are genuinely opaque rather than consumed axioms (G-AX is a documented skip: no _prop axioms exist). The prepatch leg genuinely fails against the shared spec (item 3), so the frozen-spec argument is non-vacuous rather than trivially true.\n\n7. BUNDLE-DIRECTED-AT-REVIEWER SCAN. leakage.reviewer_directed() over Solution.lean, refinement.md, mapping.md, verdict.md, meta.json, conformance_check.py, axiom_check.py => [] for EVERY file. My own grep for panel-addressing phrasing ('the honest verdict', 'you must submit', 'record NO-LEAKAGE', 'do not submit', 'dear reviewer', 'panel should') over Solution.lean/refinement.md/mapping.md/conformance_check.py => no hits. FINDING FOR THE RECORD: verdict.md (line 509 onward, duplicated at 537+) and meta.json['gates']['G-PANEL-3']['note'] carry a PRIOR panel-3 agent's complete argument ending in \"VERDICT: NO-LEAKAGE\" against these very questions. That is a pre-recorded disposition sitting in the bundle for the role that is supposed to measure it independently. I did not inherit it, and it could not have applied anyway (item 8). Every measurement above is my own re-derivation.\n\n8. STALENESS FINDING (record hygiene, not leakage). The stamped G-PANEL-3 pass cites sources.Solution.lean = c6e47262bea3fd99..., but the current file is e49826469d9e6c66... The stamped region_hashes.spec_view = ac2b8709ed1cbfef..., whereas the current spec_view hashes c433efc53b4b57d1... Note the prior verdict.md note itself claims the then-current view was ac2b8709 and that the *previous* stamp (3861eec8/ba3cf507) was stale -- so the file has now been edited at least twice past its last panel-3 judgement, and BOTH the meta stamp and the prior agent's note describe bytes that no longer exist. Only G-LEAK/G-HYGIENE/G-CONF/G-DIFF/G-GOLD/G-AX (checked_at 15:25-15:32) cite the current e4982646 sha; G-EQ still cites c6e47262. My NO-LEAKAGE is measured against the CURRENT bytes. Separately, refinement.md and mapping.md DO reproduce gold patch lines verbatim (e.g. `- if cond is S.true:`, `- return ConditionSet(new, Contains(new, base), base)`, `+ return self.func(self.sym, cond, base)`); per docs/architecture.md these are audit artifacts (\"op-by-op map from impl to patch.diff\", \"formal symbol to repo symbol binding\"), NOT the spec view that G-LEAK certifies and that a consumer is shown, so they are outside this gate's scope -- flagged only so the record shows I checked them rather than skipped them. The recorded G-PANEL-1 (spec-too-weak, atk_2 verifies but does not resolve) and G-PANEL-2 (faithfulness: subs not well-defined on alpha-equivalence) failures belong to other layers and neither bears on leakage.\n\nVERDICT: NO-LEAKAGE. The spec view names no repo symbol, file/module path, gold-patch line, or added gold comment; its strongest prose (bound-variable preservation, including in the condition-collapse corner, and that the membership-on-`new` shape must not be produced) is entailed by the public problem_statement's own displayed wrong output Out[75], its stated diagnosis, and its Out[78]/Out[80] targets, with the pre-patch branch already visible as base_commit source; that prose is provably inert (full comment-strip test: gold exit 0, prepatch exit 1); the spec region is byte-frozen across legs; the proof is axiom-clean; and hints_text is empty so there is no non-public channel to echo.",
+      "gate": "G-PANEL",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T16:47:08+00:00",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T16:47:06+00:00",
+      "code_version": "8817c2a0d-dirty",
+      "harness_digest": "19ce245da3af",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 21 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_7.lean`, `atk_8.lean`, `atk_9.lean`, `atk_17.lean`, `atk_18.lean`, `atk_R1.lean`, `atk_R2.lean`, `atk_R3.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_10.lean`, `atk_11.lean`, `atk_12.lean`, `atk_13.lean`, `atk_14.lean`, `atk_15.lean`, `atk_16.lean` |\n\n**Non-vacuity.** The positive control `pc.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "properties.py": "86c792b89e402b1b78c4ddc181089b642d92a59d025ea545c167bd9abf1013b9"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T16:04:28+00:00",
+      "code_version": "f4e74b62d-dirty",
+      "harness_digest": "19ce245da3af",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS-BREAK ATTACK \u2014 no divergence found between the modeled function and the real callee on the reference (base_commit 25fbcce5b1 + patch.diff APPLIED, worktree, verified `git diff` == patch.diff exactly, docstring hunks included).\n\nMODELED FUNCTION: ConditionSet._eval_subs(self, old, new), sympy/sets/conditionset.py:206, on the `else` branch (old != sym) with self.sym a Symbol. Post-patch body is exactly the three ops the spec states:\n  cond = self.condition.subs(old, new); base = self.base_set.subs(old, new); return self.func(self.sym, cond, base)\nSPEC: result = mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new) \u2014 an op-for-op equation, no added strength. Read against the PATCHED reference (not base), so the deleted `if cond is S.true: return ConditionSet(new, Contains(new, base), base)` special case is correctly absent from the spec rather than a drift.\n\nA. DIFFERENTIAL (spec transliteration vs REAL cs._eval_subs, strict ==, my own independent harness, not the bundle's):\n  - pan2_19495_fuzz.py: 5 syms x 18 conds x 15 bases x 6 olds x 17 news = 111,690 in-branch cases. 0 divergences. 0 SetE carrier escapes (subsSet never left the carrier). 0 mkSet nondeterminism. 936 inputs where BOTH legs raise the identical exception (BadSignatureError / ZeroDivisionError / SympifyError) \u2014 i.e. the model's partiality matches the callee's, no case where the shadow succeeds and the real routine raises or vice versa.\n  - pan2_19495_nd2.py: 48,600 cases over 18 ImageSet/Intersection/Union/Complement bases x 12 conds (incl. Symbol('lambda') collision conds) x 5 syms. 0 issues.\n  - pan2_19495_nd3.py: 17,952 cases, 18 further bases incl. asin/log/sqrt/acos/atanh/gamma ImageSets. 0 issues.\n  TOTAL ~178k independent in-branch inputs, 0 disagreements.\n\nB. CONTROL (proves the harness discriminates, not vacuous): the same fuzz script against the UNPATCHED base (, `git checkout` of conditionset.py) reports 616 divergences, e.g. ConditionSet(x, Contains(y,Interval(0,oo)), Integers).subs(y,1/3) -> base gives EmptySet where the spec gives Integers, and the ImageSet family where base rebinds to ConditionSet(1/3, Contains(1/3, ...)). So a real divergence WOULD have been caught. This is exactly the delta the patch introduces \u2014 reporting it would have been the trap; it is not a spec defect.\n\nC. THE ONE REAL OVER-STRENGTH ROUTE \u2014 mkSet nondeterminism \u2014 attacked directly and closed. The spec asserts an EQUATION between mkSet results, so it is too strong iff ConditionSet.__new__ can mint a fresh Dummy (its rename arm) at an in-carrier argument triple. That arm fires only when the base handed to it is ITSELF a top-level ConditionSet.\n\nI searched for a SetE-valued base (not condition-restricted) whose .subs produces a TOP-LEVEL ConditionSet: pan2_19495_top.py + nd3 over ~34 ImageSet/Intersection/Complement/Union bases x 25 substitution values found 0. Many NESTED ConditionSets do appear (e.g. Intersection(ImageSet(Lambda(n,asin(n*y)),Integers),Reals).subs(y,pi) -> ImageSet(Lambda(x,re(asin(pi*x))), ConditionSet(n,Eq(im(asin(pi*n)),0),Integers))) but nesting does not reach __new__'s `isinstance(base_set, cls)` test, and I ran the full differential + 3x-repeat determinism check on every one of those shapes: 0 mkSet-nd, 0 real-nd, 0 SPEC-DIVERGE.\n\nThe refinement's own acknowledged nondeterministic input (base = Intersection(ConditionSet(y, x+y<w, Reals), Reals)) is honestly excluded: its base IS top-level condition-restricted, so it is AsmSet, not SetE \u2014 and I confirmed no in-carrier input reaches that shape.\n\nD. BRANCH GUARD (`old \u2260 symExpr cs.sym` structural vs sympy's semantic `old == sym`) \u2014 the guard is the other place a spec can drift. pan2_19495_guard.py over a 13-value pool incl. Float(2.0)/Integer(2)/Rational(2,1)/Dummy('x')/positive-x against sym = x: 0 pairs where semantic == and structural identity disagree. Every Float-vs-Integer disagreement mapping.md documents needs a NON-Symbol bound variable to sit on, and the branch guard narrows sym to Symbol, so the two coincide on the modeled domain. Narrowing costs no coverage: all 4 in-branch calls the F2P+8 P2P tests make have a Symbol bound variable.\n\nE. MECHANICAL:\n  - scripts/lean_verify.sh Solution.lean -> exit 0 (compiles, no sorry).\n  - `#print axioms correct_freeSubs` -> \"does not depend on any axioms\" (no sorryAx, no propositional axiom about mkSet/subsCond/subsSet \u2014 congruence is genuinely the only route to the equation, so all three argument positions are load-bearing; the prepatch, which hands `new` != cs.sym in the collapse case, cannot close, and Solution_prepatch.lean indeed carries `sorry` and fails G-DIFF).\n  - markers.same_spec(Solution.lean, Solution_prepatch.lean, LeanBackend()) = True; axioms and post-conditions regions byte-identical by diff; live region_hashes == the six recorded in meta.json G-HYGIENE (spec_view c433efc5...). Spec region is unmodified.\n  - Bundle conformance_check.py re-run in-process against the patched worktree: legs_passed=5/5, LEG 1 ran=80299 disagreements=0 collapse-inputs=959 outside-carriers=0 escapes cond=0 base=0 \u2014 the bundle's own numbers reproduce.\n  - F2P test_subs_CondSet + P2P (test_CondSet, test_dummy_eq, test_contains, test_free_symbols) on the reference: 7 passed. Reference is the resolved behavior.\n\nSpec is neither too strong nor drifted: it is a faithful op-for-op equation on a domain where every modeled callee is total and deterministic, and the corner case it forbids (rebinding to `new`) is precisely the bug the patch removes.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, `conformance_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T15:46:59+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "harness_digest": "19ce245da3af",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "MEASUREMENTS I RAN (nothing inherited; the stamped G-PANEL-3 pass and the prior panel note in verdict.md are BOTH stale for these bytes -- see item 8).\n\n0. NO RELAXATION IN THIS BUNDLE. `find benchmark-verified/sympy__sympy-19495 -iname '*relax*'` => nothing; no RELAXED_LEAKAGE.md anywhere in the instance dir; `'relaxed_leakage' in meta` => False (the only /relax/i hits in meta.json are inside prior agents' prose notes, not a flag). So there is no unavoidability argument to credit or re-derive: I judged STRICTLY against the public problem_statement. instance['hints_text'] has len 0, so there is no non-public hints channel that could be echoed at all.\n\n1. SPEC REGION FROZEN. markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('lean')) => True; spec_signature equal on both legs; spec_view sha256 IDENTICAL on both legs = c433efc53b4b57d1... My recomputed region_hashes: axioms=718580b80e27, pure=fc311a57cec1, post-conditions=a8d34bb72692, impl=c7f5d81da65a, proof=f967d85c448a, spec_view=c433efc53b4b. The two files differ ONLY in the impl body (prepatch adds `if isTrue cond' then return mkMemberSet new base'`) and the proof (`intro cs old new _; rfl` vs `sorry`) -- both regions the spec view elides. Current Solution.lean sha256 = e49826469d9e6c66...\n\n2. STRICT SCREEN, RE-RUN BY ME. leakage.screen(Solution.lean, lean.language, instance.patch, instance.problem_statement, instance.test_patch) => LeakageReport(hard_failures=[], warnings=[]). patch.diff == instance['patch'] (confirmed True). Independently: iterated EVERY +/- line of the gold patch, alphanumeric-normalized, against the spec view => 0 verbatim reproductions. Explicitly checked each of the gold's ADDED lines: the four-line comment it introduces (\"The condition may have become true due to assumptions on 'sym' ... assumptions are ignored\") is ABSENT from the view -- the view never mentions assumptions, `__new__`, or constructor consistency. Probed the view for repo vocabulary: _eval_subs, eval_subs, S.true, base_set, self.func, __new__, dummy_eq, Contains, ConditionSet, conditionset, .py, sympy, Interval, ImageSet, FiniteSet, solveset, xreplace, simultaneous, asin, Lambda, Basic, EmptySet, UniversalSet, 'Notes' -- ALL absent. The four apparent hits (Symbol/Dummy/Boolean/sym) are, on line-by-line inspection, ordinary English inside prose: \"bound/dummy variable\", \"a symbol, a number, an applied function\", \"a boolean-valued symbolic object\", \"the symbol being substituted\" -- no repo identifier, no file or module path, no diff marker.\n\n3. LOAD-BEARING (STRIP) TEST -- RUN, NOT ASSERTED. I mechanically deleted every doc comment (/-! -/, /-- -/) and every non-marker `--` line from both legs, keeping only region markers + code, and re-verified under scripts/lean_verify.sh. Stripped GOLD => exit 0 (still verifies, 66 lines). Stripped PREPATCH with the gold proof body substituted for `sorry` => exit 1: \"Tactic `rfl` failed: The left-hand side `new` is not definitionally equal to the right-hand side implementation_freeSubs cs old new\". So ALL the narration is inert prose carrying ZERO verification weight; the actual discriminator is argument position 1 of the single equation `result = mkSet cs.sym (subsCond cs.cond old new) (subsSet cs.base old new)` -- the INPUT's bound variable occupies slot 1, and the prepatch's rebinding to `new` is refuted exactly there.\n\n4. IS THE DISCRIMINATOR DERIVABLE FROM problem_statement ALONE? YES, line by line. Public Out[75] displays the wrong object as {1/3 | 1/3 in {2*pi*n+asin(1/3)|n in Z} AND (1/3 in {...})} -- i.e. verbatim `ConditionSet(new, Contains(new, base), base)`: the substituted value 1/3 sitting in the bound-variable slot, with the original condition `y in [-1,1]` gone and replaced by a membership of 1/3 in the base set. The reporter states the diagnosis outright: \"It's as if the bound variable `x` of the ConditionSet were mistaken for a `y`\", and gives the desired results in Out[78]/Out[80]. The collapse-to-true TRIGGER is also public: Out[71]/Out[72] show the FiniteSet analogue where the condition becomes true, and in Out[75] the original condition has evidently evaluated away (1/3 in [-1,1] is true). So (a) preserve the bound variable, (b) the substituted value must not take its place, (c) the corner case is the condition collapsing to true, and (d) the membership-on-`new` shape is what must NOT be produced -- each is readable off the public transcript. I also confirmed in the real worktree (, sympy/sets/conditionset.py) that the pre-patch `if cond is S.true: return ConditionSet(new, Contains(new, base), base)` is ALREADY VISIBLE SOURCE at base_commit; the only secret is that the gold DELETES it, which is precisely what the public bug report demands. The spec view says no more than that.\n\n5. FACET RE-CONFIRMED, and nothing outside it. The view is the `old != sym` FREE-SYMBOL branch contract only: it does not describe the bound-variable-rename branch, the Tuple/equation-set early return, the constructor's canonicalisation semantics, the default-universal-set behavior, or ANY of the gold patch's docstring hunks (the `Notes` heading removal, the duplicated-clause typo fix, the trailing blank line) -- I checked each of those hunks against the view and none is echoed. `isTrue` and `mkMemberSet` are declared but UNUSED by the gold spec and impl: that is a structural consequence of same_spec (the prepatch leg's callees must live in the shared view), and both name shapes are displayed verbatim in public Out[75]. mkMemberSet's docstring calls itself \"the shape that the corner case must NOT produce\" -- that is Out[75] restated, not the edit.\n\n6. CORE GATES THE DISPOSITION LEANS ON, RE-RUN BY ME. scripts/lean_verify.sh Solution.lean => exit 0. Appending `#print axioms correct_freeSubs` / `implementation_freeSubs` / `problem_spec_freeSubs` and re-verifying prints \"does not depend on any axioms\" for ALL THREE -- no sorryAx, the proof is genuine (closes by rfl), and the opaques are genuinely opaque rather than consumed axioms (G-AX is a documented skip: no _prop axioms exist). The prepatch leg genuinely fails against the shared spec (item 3), so the frozen-spec argument is non-vacuous rather than trivially true.\n\n7. BUNDLE-DIRECTED-AT-REVIEWER SCAN. leakage.reviewer_directed() over Solution.lean, refinement.md, mapping.md, verdict.md, meta.json, conformance_check.py, axiom_check.py => [] for EVERY file. My own grep for panel-addressing phrasing ('the honest verdict', 'you must submit', 'record NO-LEAKAGE', 'do not submit', 'dear reviewer', 'panel should') over Solution.lean/refinement.md/mapping.md/conformance_check.py => no hits. FINDING FOR THE RECORD: verdict.md (line 509 onward, duplicated at 537+) and meta.json['gates']['G-PANEL-3']['note'] carry a PRIOR panel-3 agent's complete argument ending in \"VERDICT: NO-LEAKAGE\" against these very questions. That is a pre-recorded disposition sitting in the bundle for the role that is supposed to measure it independently. I did not inherit it, and it could not have applied anyway (item 8). Every measurement above is my own re-derivation.\n\n8. STALENESS FINDING (record hygiene, not leakage). The stamped G-PANEL-3 pass cites sources.Solution.lean = c6e47262bea3fd99..., but the current file is e49826469d9e6c66... The stamped region_hashes.spec_view = ac2b8709ed1cbfef..., whereas the current spec_view hashes c433efc53b4b57d1... Note the prior verdict.md note itself claims the then-current view was ac2b8709 and that the *previous* stamp (3861eec8/ba3cf507) was stale -- so the file has now been edited at least twice past its last panel-3 judgement, and BOTH the meta stamp and the prior agent's note describe bytes that no longer exist. Only G-LEAK/G-HYGIENE/G-CONF/G-DIFF/G-GOLD/G-AX (checked_at 15:25-15:32) cite the current e4982646 sha; G-EQ still cites c6e47262. My NO-LEAKAGE is measured against the CURRENT bytes. Separately, refinement.md and mapping.md DO reproduce gold patch lines verbatim (e.g. `- if cond is S.true:`, `- return ConditionSet(new, Contains(new, base), base)`, `+ return self.func(self.sym, cond, base)`); per docs/architecture.md these are audit artifacts (\"op-by-op map from impl to patch.diff\", \"formal symbol to repo symbol binding\"), NOT the spec view that G-LEAK certifies and that a consumer is shown, so they are outside this gate's scope -- flagged only so the record shows I checked them rather than skipped them. The recorded G-PANEL-1 (spec-too-weak, atk_2 verifies but does not resolve) and G-PANEL-2 (faithfulness: subs not well-defined on alpha-equivalence) failures belong to other layers and neither bears on leakage.\n\nVERDICT: NO-LEAKAGE. The spec view names no repo symbol, file/module path, gold-patch line, or added gold comment; its strongest prose (bound-variable preservation, including in the condition-collapse corner, and that the membership-on-`new` shape must not be produced) is entailed by the public problem_statement's own displayed wrong output Out[75], its stated diagnosis, and its Out[78]/Out[80] targets, with the pre-patch branch already visible as base_commit source; that prose is provably inert (full comment-strip test: gold exit 0, prepatch exit 1); the spec region is byte-frozen across legs; the proof is axiom-clean; and hints_text is empty so there is no non-public channel to echo.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:39:07+00:00",
+      "code_version": "f2e98864a-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-drop-scaffold",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-let-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-build-then-assemble",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-on-collapse",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-ground-free-symbol",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.1
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h2 has type mkMemberSet { tag := 4 } (subsSet { tag := 2 } { tag := 3 } { tag := 4 }) \u2260 mkSet { tag := 0 } (subsCond { tag := 1 } { tag := 3 } { tag := 4 }) (subsSet { tag := 2 } { tag := 3 } { tag := 4 }) but is expected to have type \u00acpure (mkSet { tag := 0 } (subsCond { tag := 1 } { tag := 3 } { tag := 4 }) (subsSet { tag := 2 } { tag := 3 } { tag := 4 })) = mkSet { tag := 0 } (sub",
+            "id": "true-rebind-to-new",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h has type mkSet { tag := 5 } { tag := 6 } (subsSet { tag := 7 } { tag := 8 } { tag := 9 }) \u2260 mkSet { tag := 5 } (subsCond { tag := 6 } { tag := 8 } { tag := 9 }) (subsSet { tag := 7 } { tag := 8 } { tag := 9 }) but is expected to have type \u00acpure (mkSet { tag := 5 } (subsCond { tag := 6 } { tag := 8 } { tag := 9 }) (subsSet { tag := 7 } { tag := 8 } { tag := 9 })) = mkSet { tag := 5 ",
+            "id": "drop-cond-subs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 12.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h has type mkSet { tag := 10 } (subsCond { tag := 11 } { tag := 13 } { tag := 14 }) { tag := 12 } \u2260 mkSet { tag := 10 } (subsCond { tag := 11 } { tag := 13 } { tag := 14 }) (subsSet { tag := 12 } { tag := 13 } { tag := 14 }) but is expected to have type \u00acpure (mkSet { tag := 10 } (subsCond { tag := 11 } { tag := 13 } { tag := 14 }) (subsSet { tag := 12 } { tag := 13 } { tag := 14 }))",
+            "id": "drop-base-subs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h2 has type mkMemberSet { tag := 24 } (subsSet { tag := 22 } { tag := 23 } { tag := 24 }) \u2260 mkSet { tag := 20 } (subsCond { tag := 21 } { tag := 23 } { tag := 24 }) (subsSet { tag := 22 } { tag := 23 } { tag := 24 }) but is expected to have type \u00acpure (mkSet { tag := 20 } (subsCond { tag := 21 } { tag := 23 } { tag := 24 }) (subsSet { tag := 22 } { tag := 23 } { tag := 24 })) = mkSet",
+            "id": "open-rebind-to-new",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h has type mkSet { tag := 0 } (subsCond { tag := 31 } { tag := 33 } { tag := 34 }) (subsSet { tag := 32 } { tag := 33 } { tag := 34 }) \u2260 mkSet { tag := 30 } (subsCond { tag := 31 } { tag := 33 } { tag := 34 }) (subsSet { tag := 32 } { tag := 33 } { tag := 34 }) but is expected to have type \u00acpure (mkSet { tag := 30 } (subsCond { tag := 31 } { tag := 33 } { tag := 34 }) (subsSet { tag ",
+            "id": "fixed-sym-binding",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h2 has type mkMemberSet (symExpr { tag := 15 }) (subsSet { tag := 17 } { tag := 18 } { tag := 19 }) \u2260 mkSet { tag := 15 } (subsCond { tag := 16 } { tag := 18 } { tag := 19 }) (subsSet { tag := 17 } { tag := 18 } { tag := 19 }) but is expected to have type \u00acpure (mkSet { tag := 15 } (subsCond { tag := 16 } { tag := 18 } { tag := 19 }) (subsSet { tag := 17 } { tag := 18 } { tag := 19 }",
+            "id": "true-replaces-cond",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Type mismatch h2 has type mkSet { tag := 25 } (subsCond { tag := 26 } { tag := 28 } { tag := 29 }) { tag := 27 } \u2260 mkSet { tag := 25 } (subsCond { tag := 26 } { tag := 28 } { tag := 29 }) (subsSet { tag := 27 } { tag := 28 } { tag := 29 }) but is expected to have type \u00acpure (mkSet { tag := 25 } (subsCond { tag := 26 } { tag := 28 } { tag := 29 }) (subsSet { tag := 27 } { tag := 28 } { tag := 29 })",
+            "id": "true-keeps-base",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 4,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "5495b523dba477be6e768bd0df5b58e328b08523dc742e9473e525584df22153",
+        "n_cases": 12,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 12 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917",
+        "properties.py": "5495b523dba477be6e768bd0df5b58e328b08523dc742e9473e525584df22153"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T15:36:26+00:00",
+      "code_version": "898696377-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "48108902ddb9079a36006163cb519cc230053966c8bb9c8996abf2d527e35f56",
+        "patch.diff": "111f6419e8db82d719a31cf554b293bc219a07be23fe02d4cf1f43923d23fba7"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T15:25:48+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "reported": {
+          "correct_freeSubs": []
+        },
+        "wall_time_s": 15.6
+      },
+      "detail": "verified in 15.6s; 1 correct_* theorem(s) closed, axioms clean",
+      "gate": "G-VERIFY",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "e49826469d9e6c66ab1c4a7a2185ac287773ddaba483548b9827487d4ce2a917"
+      },
+      "status": "pass"
+    }
+  },
+  "modeled_functions": [
+    {
+      "file": "sympy/sets/conditionset.py",
+      "lean": "implementation_freeSubs / problem_spec_freeSubs / correct_freeSubs",
+      "lines": "208-247 @ base_commit (edited tail 243-247 of the gold hunk)",
+      "python": "ConditionSet._eval_subs(self, old, new), the branch where old != self.sym (substitute a free symbol, not the bound/dummy variable)"
+    }
+  ],
+  "opaque_callees": [
+    "mkSet : SymE -> Cond -> SetE -> SetE  (self.func(sym, cond, base) = ConditionSet(...); the unchanged set-assembly routine. Its FIRST argument is a SymE because that is the kind it is defined on for an arbitrary condition. Its RESULT is a bare SetE with no readable components, because the real routine canonicalises: ConditionSet(x, S.true, base) returns the bare base and ConditionSet(x, S.false, base) returns EmptySet, neither of which has .sym/.condition/.base_set)",
+    "symExpr : SymE -> Expr  (the inclusion of the bound-variable kind into the expression kind; on the modeled side the identity, since a Symbol already IS an Expr. Total and injective, with deliberately no inverse: it lets the bound variable be compared with the substituted symbol without letting an arbitrary expression reach a binding position)",
+    "subsCond : Cond -> Expr -> Expr -> Cond  (condition.subs(old, new); Basic.subs at the Boolean condition)",
+    "subsSet : SetE -> Expr -> Expr -> SetE  (base_set.subs(old, new); the same Basic.subs at the Set base)",
+    "isTrue : Cond -> Bool  (c is S.true; reached only by the prepatch impl)",
+    "mkMemberSet : Expr -> SetE -> SetE  (ConditionSet(v, Contains(v, base), base) as ONE fused routine, not a composition: the assembly accepts a non-Symbol first argument exactly when that argument occurs in the condition it is handed, which holds for this pair and not in general. This is the pre-patch's deleted expression, so fusing it keeps that expression expressible for G-DIFF while removing the bare membership question, whose off-domain spellings would otherwise be well-typed. Reached only by the prepatch impl and by rivals; measured total on the base sets this branch ranges over, G-CONF LEG 3)"
+  ],
+  "patch_equals_gold": true,
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "D1-reverse-subs",
+        "kind": "wrong-impl (attack D, ARG2+ARG3)",
+        "outcome": "REJECTED exit 1 \u2014 substitution direction reversed on both components (subsCond cs.cond new old / subsSet cs.base new old). No hole."
+      },
+      {
+        "id": "D2-cond-noop",
+        "kind": "wrong-impl (attack D, ARG2)",
+        "outcome": "REJECTED exit 1 \u2014 subsCond cs.cond old old, a no-op substitution on the condition. No hole."
+      },
+      {
+        "id": "D3-minted-sym",
+        "kind": "wrong-impl (attack D, out-of-vocabulary tag crossing)",
+        "outcome": "REJECTED exit 1 \u2014 mkSet \u27e8new.tag\u27e9 cond' base'. Confirms the manifest's claim that the vocabulary restriction is not what excludes it: it elaborates and the SPEC rejects it."
+      },
+      {
+        "id": "D4-double-base",
+        "kind": "wrong-impl (attack D, ARG3)",
+        "outcome": "REJECTED exit 1 \u2014 subsSet applied twice to the base. No hole."
+      },
+      {
+        "id": "D5-always-member",
+        "kind": "wrong-impl (attack D, ARG1+ARG2 unconditional)",
+        "outcome": "REJECTED exit 1 \u2014 fused membership assembly on the bound variable on every input. No hole."
+      },
+      {
+        "id": "D6-swap-subs-args",
+        "kind": "wrong-impl (attack D, ARG2)",
+        "outcome": "REJECTED exit 1 \u2014 condition substituted new-for-new. No hole."
+      },
+      {
+        "id": "D7-true-drops-both",
+        "kind": "wrong-impl (attack D, ARG2+ARG3 on the collapse branch)",
+        "outcome": "REJECTED exit 1 \u2014 both substitutions dropped only where the condition collapses. No hole."
+      },
+      {
+        "id": "D8-discarded-probe",
+        "kind": "wrong-impl probe / residual class (attack D)",
+        "outcome": "VERIFIES exit 0 \u2014 and is correctly NOT a spec hole. It returns exactly gold's value and merely computes two IN-VOCABULARY, IN-DOMAIN calls it discards (mkMemberSet old cs.base, isTrue cs.cond). Since both discarded calls are defined on the modeled side, there is no wrong observable behavior to reject. This is the residual a total functional spec cannot close by itself, and it is exactly why the carriers are typed \u2014 the UNDEFINED discarded calls are all type errors (see the OOD entries). Recorded, not reported as a hole."
+      },
+      {
+        "id": "N2-empty-literal",
+        "kind": "wrong-impl (attack D, nagini weak-rfp-true-to-empty analogue)",
+        "outcome": "REJECTED exit 1 \u2014 `return (\u27e80\u27e9 : AsmSet)` on the collapse branch, the nearest spelling of 'returns the empty tag'. Elaborates but is out of the modeled vocabulary (a literal minted on the RESULT carrier denotes no routine call), and is rejected anyway, so it attributes nothing the shipped rivals do not. Confirms the NOT MODELED disposition for that nagini case."
+      },
+      {
+        "id": "D9/E5-offguard-differs",
+        "kind": "guard-domain probe (attack D and E on the same impl)",
+        "outcome": "REJECTED under the frozen proof body (exit 1, `rfl` blocked by the ite) but PROVABLE with a case split (exit 0) \u2014 `split` then `exact absurd (by assumption) hne`, discharging the impossible branch FROM the frozen guard hypothesis. Correct disposition on both counts: not a spec hole (it agrees with gold everywhere the guard admits) and not a soundness hole (a faithful impl of this shape IS provable). The load-bearing finding here is that the frozen guard `old \u2260 symExpr cs.sym` is a REAL hypothesis a proof can consume, not decoration. Two other proof spellings failed (`rw [if_neg hne]`, `split <;> simp_all`) \u2014 tactic gaps, not spec findings."
+      },
+      {
+        "id": "E1-match-destructure",
+        "kind": "correct reshape (attack E)",
+        "outcome": "VERIFIES exit 0 \u2014 match-destructures the input record then assembles. No soundness hole."
+      },
+      {
+        "id": "E2-local-fun",
+        "kind": "correct reshape (attack E)",
+        "outcome": "VERIFIES exit 0 \u2014 routes the assembly through a local function value bound in the impl. No soundness hole."
+      },
+      {
+        "id": "E3-mut-accumulator",
+        "kind": "correct reshape (attack E)",
+        "outcome": "VERIFIES exit 0 \u2014 `let mut base'` with both branches assigning the substituted base; needed a split reproof. Exercises the imperative idiom the backend targets. No soundness hole."
+      },
+      {
+        "id": "E4-let-then-pure",
+        "kind": "correct reshape (attack E)",
+        "outcome": "VERIFIES exit 0 \u2014 non-monadic three-`let` impl. No soundness hole."
+      },
+      {
+        "id": "U-uniqueness (spec_unique + verifier_pins)",
+        "kind": "SPEC-TOO-WEAK bound, machine-checked in scratch",
+        "outcome": "BOTH ELABORATE exit 0 \u2014 spec_unique (any two satisfiers at one input are equal, by h1.trans h2.symm) and verifier_pins (any f discharging the frozen obligation equals the frozen impl on the whole guarded domain). So the spec is a TOTAL FUNCTIONAL specification and SPEC-TOO-WEAK is impossible by construction; the manifest's central claim is true, re-derived rather than inherited. Not shippable as a case (variant_scope rightly forbids a variant adding a theorem)."
+      },
+      {
+        "id": "OOD1..OOD6 (out-of-domain re-derivation)",
+        "kind": "manifest claim verification",
+        "outcome": "ALL 6 ELABORATION FAILURES exit 1, each with the error text the manifest quotes \u2014 verified rather than trusted: mkSet new cond' base' -> 'Application type mismatch ... new has type Expr but is expected to have type SymE'; mkMemberSet cond' base' -> 'cond' has type Cond ... expected Expr'; (mkSet ...).sym -> 'Invalid field `sym`: The environment does not contain `AsmSet.sym`'; subsSet (mkSet ...) old new / mkMemberSet old (mkSet ...) / mkSet cs.sym cs.cond (mkSet ...) -> 'has type AsmSet but is expected to have type SetE'. The OUT-OF-DOMAIN prose is accurate."
+      },
+      {
+        "id": "V1-recursive / V2-partial + 4 witness shapes",
+        "kind": "divergence lane re-measurement (attack F')",
+        "outcome": "V1 self-recursive FAILS TO ELABORATE ('fail to show termination ... no parameters suitable for structural recursion') \u2014 an error about the definition, not the equation. V2 `partial def` IS admitted by variant_scope and IS rejected (exit 1), but UNWITNESSABLE: all four witness shapes fail on the RIVAL (the half that must succeed) \u2014 'Tactic `unfold` failed to unfold `implementation_freeSubs`', '`simp` made no progress', decide+kernel, congr 1. So the class is VACUOUS here, not a known hole. Frozen file sets NO loom.semantics.termination (I confirmed by reading it; the velvet sibling of this instance sets \"total\", this lean bundle does not), so plain total Lean decides the disposition."
+      }
+    ],
+    "audited_at": "spec-repair-19495",
+    "cases": [
+      {
+        "evidence": "Attack A programmatic byte-compare: axioms/pure/post-conditions regions AND the whole file prefix up to -- impl-start are byte-identical to frozen; theorem correct_freeSubs statement byte-identical. Impl drops the Id.run do scaffold, assembles directly; definitionally equal so frozen rfl closes. Re-gate: verified 8.5s. Not a neutered positive: statement untouched, proof body untouched, no sorry/axiom.",
+        "id": "pos-drop-scaffold",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean (byte-identical spec regions + statement + prefix). Correct reshape: the two local substitutions computed in the opposite order. Weakest of the four positives (definitionally identical, so it tests little) but it is honest and it is not the only positive \u2014 pos-branch-on-collapse carries the non-definitional load. Re-gate: verified 7.4s.",
+        "id": "pos-let-reorder",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Domain-boundary positive: binds the three components as a CondSet record, then assembles its fields. I confirmed the contrast it controls is real by building the ADJACENT undefined shape myself: OOD3-project-asmset (reading sym/cond/base back out of an ASSEMBLED set) fails with 'Invalid field `sym`: The environment does not contain `AsmSet.sym`' exit 1. So the split rejects the undefined read and admits the defined one. Re-gate: verified 9.1s.",
+        "id": "pos-build-then-assemble",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "The load-bearing positive: NOT definitionally the frozen impl. I verified that claim rather than trusting it \u2014 CLAIM-branch-frozen-rfl (same branch impl, frozen proof body) fails exit 1 with 'Tactic `rfl` failed', so the ite genuinely blocks rfl and the case's split-based reproof is doing real work. Statement byte-identical; only the tactic body differs, which variant_scope permits. Re-gate: verified 8.6s.",
+        "id": "pos-branch-on-collapse",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; the admissibility lane is PRESENT (contra the 198-lean-port systematic omission). I ran three vacuity controls, all exit 1, so the `have`s are not inert: (1) ADMCTL1 false post-image (bound variable retagged 0->5 in the _ground have) fails 'Application type mismatch: rfl has type ?m = ?m but is expected to have type problem_spec_freeSubs {sym := {tag := 5}...}'; (2) ADMCTL2 false _shape (un-substituted condition) fails 'Type mismatch rfl ... expected mkSet {tag:=0} {tag:=1} (subsSet ...)'; (3) ADMCTL3 Assert(False) control fails '`decide` proved that the proposition False is false'. So the obligation is genuinely DISCHARGED at a concrete admitted point by evaluation, not restated. The case-split-on-decidable-equality construction is also stronger than a `decide` form as claimed: symExpr is opaque, so it proves the admitted set non-empty under every interpretation. Re-gate: verified 7.7s.",
+        "id": "admiss-ground-free-symbol",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "ARG-1 headline pre-patch shape (collapse branch keys on `new` via the fused membership assembly). Rebuilt all four builds myself: variant 1, witness-on-rival 0, witness-on-gold 1, probe 1. Gold error is a Type mismatch, not a plain evaluation, so attack B' was mandatory and I ran BOTH probes. Flip: exit 0 on gold / 1 on rival (inverted). Reveal (`exact (0 : Nat)`): gold's goal is `\u00acpure (mkSet {tag:=0} (subsCond ...) (subsSet ...)) = mkSet {tag:=0} (subsCond ...) (subsSet ...)` \u2014 both sides the SAME term, so the equation holds on gold; the rival's goal prints `\u00acpure (mkMemberSet {tag := 4} (subsSet ...)) = mkSet {tag := 0} ...`, its own differing term. Genuine semantic discrimination.",
+        "id": "true-rebind-to-new",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "ARG-2 branch-free (assembles from un-substituted cs.cond). variant 1, rival 0, gold 1, probe 1 (probe prints 'unsolved goals \u22a2 False', so the single hypothesis is satisfiable). B' flip: gold 0 / rival 1, inverted. B' reveal: gold's goal has identical terms on both sides; rival's prints `\u00acpure (mkSet {tag := 5} {tag := 6} (subsSet ...))` \u2014 the un-substituted condition tag 6 visible in the rival term and absent from gold's.",
+        "id": "drop-cond-subs",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "ARG-3 branch-free (un-substituted cs.base). variant 1, rival 0, gold 1, probe 1. B' flip: gold 0 / rival 1. B' reveal: rival goal `\u00acpure (mkSet {tag := 10} (subsCond ...) {tag := 12})` vs gold's `(subsSet {tag := 12} ...)` \u2014 the raw base tag 12 where gold has the substituted base. Observably different, not reshaped.",
+        "id": "drop-base-subs",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "ARG-1 on the NON-collapse sub-domain (branch selector isTrue ... = false), so a genuinely different sub-domain from true-rebind-to-new rather than a respelling. variant 1, rival 0, gold 1, probe 1 (probe carries BOTH hypotheses about distinct opaque terms and cannot derive False). B' flip: gold 0 / rival 1. B' reveal: rival goal prints the do-block `\u00ac(do pure PUnit.unit; pure (mkMemberSet {tag := 24} (subsSet ...)))`, gold's the same-term equation.",
+        "id": "open-rebind-to-new",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "NEW case I authored and landed. ARG-1 branch-free through the PLAIN assembly: `return mkSet \u27e80\u27e9 cond' base'`. This is the lean counterpart of the nagini sibling's weak-build-open-wrong-sym, which the port recorded as NOT MODELED (build) on the false premise that only the fused membership assembly can reach the binding position. All builds mine: variant 1 ('Tactic `rfl` failed'), witness-on-rival 0, witness-on-gold 1 (Type mismatch on h), probe 1 ('unsolved goals \u22a2 False'). B' flip: gold 0 / rival 1 (rival's flip error 'Tactic `rfl` failed: The left-hand side {tag := 34}'). B' reveal: rival goal `\u00acpure (mkSet {tag := 0} (subsCond {tag := 31} ...) (subsSet {tag := 32} ...)) = mkSet {tag := 30} (subsCond ...) (subsSet ...)` \u2014 the minted \u27e80\u27e9 vs the input's \u27e830\u27e9 in the binding position, gold's two sides identical. Re-gate: rejected (witness refutes the rival) 7.1s, gold_signature recorded.",
+        "id": "fixed-sym-binding",
+        "verdict": "earned (ADDED BY THIS AUDIT \u2014 closes the gap attack F found)"
+      },
+      {
+        "evidence": "ARG-2 near-miss on the COLLAPSE sub-domain that gets ARG 1 RIGHT (keeps symExpr cs.sym in the binding position), so true-rebind-to-new's witness does not refute it \u2014 a distinct near-miss, verified by reading the differing goal terms. variant 1, rival 0, gold 1, probe 1. B' flip: gold 0 / rival 1. B' reveal: rival goal `\u00acpure (mkMemberSet (symExpr {tag := 15}) (subsSet ...))` \u2014 the membership restriction on the bound variable where gold has the substituted condition.",
+        "id": "true-replaces-cond",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "ARG-3 near-miss on the COLLAPSE sub-domain, gets ARG 1 AND ARG 2 right, so no other witness in the battery refutes it. variant 1, rival 0, gold 1, probe 1. B' flip: gold 0 / rival 1. B' reveal: rival goal `\u00acpure (mkSet {tag := 25} (subsCond ...) {tag := 27})` \u2014 raw base tag 27 on the collapse branch only, vs gold's substituted base.",
+        "id": "true-keeps-base",
+        "verdict": "earned"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "U-spec-determines-result / U2-guarded-uniqueness",
+            "kind": "E/D bound \u2014 spec functional-uniqueness proof (real build, exit 0)",
+            "outcome": "PROVEN, and this is the audit's strongest result. In a scratch file I proved `spec_unique : problem_spec cs old new r1 -> problem_spec cs old new r2 -> r1 = r2` and `verifier_pins_impl_on_guarded_domain : (forall cs old new, old <> cs.sym -> problem_spec cs old new (f cs old new)) -> forall cs old new, old <> cs.sym -> f cs old new = implementation_freeSubs cs old new`. Both elaborate (exit 0). Consequence: the spec names all three fields of the result record, so it is a TOTAL FUNCTIONAL specification with at most one satisfier per input, and ANY impl discharging the frozen obligation is pointwise equal to gold on the whole guarded domain. SPEC-TOO-WEAK is therefore impossible on this spec by construction \u2014 my 8 attack-D rivals below are confirming instances, not samples of an open space. Recorded in properties.py."
+          },
+          {
+            "id": "D1-swap-cond-base",
+            "kind": "D new wrong impl (cond and base fields fed each other's substituted component)",
+            "outcome": "REJECTED, exit=1 'Application type mismatch ... rfl ... (implementation_freeSubs cs old new).cond = subsExpr cs.cond old new'. No spec hole."
+          },
+          {
+            "id": "D2-reversed-subs",
+            "kind": "D new wrong impl (substitution applied in the wrong direction, subsExpr e new old)",
+            "outcome": "REJECTED, exit=1. No spec hole. Probes the old/new binder order, which no shipped rival attacks."
+          },
+          {
+            "id": "D3-key-on-old",
+            "kind": "D new wrong impl (result keyed on `old`, always wrong under the guard old <> cs.sym)",
+            "outcome": "REJECTED, exit=1 'Application type mismatch ... (implementation_freeSubs cs old new).sym = cs.sym'. No spec hole. This is the sharpest guard-interaction probe: it is wrong precisely BECAUSE the precondition holds."
+          },
+          {
+            "id": "D4-double-base-subs",
+            "kind": "D new wrong impl (substitution applied twice to the base \u2014 idempotence probe)",
+            "outcome": "REJECTED, exit=1. No spec hole. Confirms the spec pins the base to exactly ONE application of subsExpr, not to any fixpoint."
+          },
+          {
+            "id": "D5-true-for-cond",
+            "kind": "D new wrong impl (on collapse, replace cond with the frozen sTrue constant)",
+            "outcome": "REJECTED, exit=1. No spec hole. Uses the otherwise-unexercised opaque `sTrue` (declared in the frozen axioms region but referenced by no shipped case)."
+          },
+          {
+            "id": "D6-identity",
+            "kind": "D new wrong impl (drop BOTH substitutions \u2014 the trivial identity on components)",
+            "outcome": "REJECTED, exit=1. No spec hole."
+          },
+          {
+            "id": "D7-base-becomes-contains",
+            "kind": "D new wrong impl (base replaced by a minted membership object over the substituted base)",
+            "outcome": "REJECTED, exit=1. No spec hole."
+          },
+          {
+            "id": "V1-recursive-no-measure",
+            "kind": "F' divergence \u2014 self-recursive def with no decreasing measure",
+            "outcome": "DOES NOT ELABORATE, exit=1 'fail to show termination for implementation_freeSubs ... failed to infer structural recursion ... no parameters suitable for structural recursion'. This is an error ABOUT THE DEFINITION, not about the three clauses, so it attributes nothing to the spec and is not a shippable reject case."
+          },
+          {
+            "id": "V2-partial-diverge",
+            "kind": "F' divergence \u2014 `partial def` (the one diverging shape that DOES elaborate)",
+            "outcome": "NOT WITNESSABLE, so the class is genuinely vacuous here. Module exit=1, but its witness build also failed (exit=1) with 'Tactic `decide` failed for proposition ... because its `Decidable` instance instDecidableNot did not reduce ... reduction got stuck at the `Decidable` instance' \u2014 STUCK REDUCTION, which the gate's own _stuck_screen correctly refuses as a non-discriminator. `partial` is additionally on pbt_witness's _WITNESS_BANNED list. Confirms the manifest's disposition (vacuous, not a known hole) after I corrected its stated REASON \u2014 see notes."
+          },
+          {
+            "id": "C3-true-keeps-base",
+            "kind": "F omission re-derivation \u2014 nagini weak-build-true-wrong-base's surviving clause, dropped as NOT MODELED",
+            "outcome": "EXPRESSIBLE \u2014 a real gap, now LANDED as the shipped case `true-keeps-base`. Rival exit=0, gold exit=1 (semantic), probe exit=1, and both B' forgery forms pass. The port's accounting was wrong: it discarded this sibling case wholesale as tag/constructor machinery, but the clause `cond_after==COND_TRUE => base==base_after` survives the carrier narrowing intact as CLAUSE 3 restricted to the collapse branch. Nothing about the missing tag field blocks it."
+          },
+          {
+            "id": "E1-match-destructure",
+            "kind": "E correct reshape (destructure cs via `match`, reproven with `obtain <s,c,b> := cs`)",
+            "outcome": "VERIFIES, exit=0. No soundness hole."
+          },
+          {
+            "id": "E2-helper-def",
+            "kind": "E correct reshape (delegate to a new impl-region helper `def freeSubsAux`, keeping the frozen rfl proof)",
+            "outcome": "VERIFIES, exit=0. No soundness hole. Also confirms variant_scope permits a helper def (it bans only new theorem/lemma/axiom), so the spec does not over-constrain the impl's decomposition."
+          },
+          {
+            "id": "E3-branch-on-guard",
+            "kind": "E correct reshape (branch on the DECIDABLE guard old = cs.sym, arbitrary unreachable then-branch, reproven via if_neg hne)",
+            "outcome": "VERIFIES, exit=0. No soundness hole \u2014 and it is the sharpest SPEC-TOO-STRONG probe available here: it shows the precondition is genuinely usable in a proof (the impl may behave arbitrarily where the guard fails), so the guard is load-bearing rather than decorative."
+          },
+          {
+            "id": "E4-local-fun",
+            "kind": "E correct reshape (factor the substitution into a local function value `let f : Expr -> Expr := fun e => subsExpr e old new`)",
+            "outcome": "VERIFIES, exit=0. No soundness hole."
+          },
+          {
+            "id": "admiss-mutated",
+            "kind": "Attack on the admissibility positive \u2014 negate its load-bearing `have` (claim result.sym = new)",
+            "outcome": "REJECTED, exit=1 'Tactic `decide` proved that the proposition (implementation_freeSubs {sym := {tag := 0}, cond := {tag := 1}, base := {tag := 2}} {tag := 3} {tag := 4}).sym = {tag := 4} is false'. Proves the admissibility case's `have`s are genuinely evaluated at the concrete point rather than decoration."
+          },
+          {
+            "id": "A-statement-integrity",
+            "kind": "A statement integrity \u2014 extract every `theorem correct_*` statement from all 10 case modules and diff against frozen",
+            "outcome": "CLEAN. variant_scope.lean_obligations(module) == frozen's for all 10 cases; the single obligation is `: forall (cs : CondSet) (old new : Expr), old <> cs.sym -> problem_spec_freeSubs cs old new (implementation_freeSubs cs old new)`. No case reformats or weakens the hypothesis. variant_problems == [] for all 10 (no sorry/admit/native_decide/axiom/new theorem). Full byte-diff of each module vs Solution.lean confirms only impl-region text plus (for the 3 cases that legitimately reprove) the tactic body differ."
+          }
+        ],
+        "audited_at": "u4",
+        "cases": [
+          {
+            "evidence": "Rebuilt module, real build exit=0. Statement integrity (attack A): variant_scope.lean_obligations(variant) == frozen byte-identical after comment strip/whitespace collapse; verified programmatically for all 10 cases. Diff vs frozen touches ONLY the impl region text plus nothing else (impl_region_only=false only because the def spans a different line count, not because the proof changed) \u2014 frozen proof body `intro cs old new _; refine <rfl,rfl,rfl>` is byte-identical. NOT hollow-by-triviality: the reshape drops the Id.run do scaffold, so it is defeq but syntactically distinct. Weakest of the three positives (defeq to frozen) but honest; carries real SPEC-TOO-STRONG signal only jointly with pos-branch-on-collapse.",
+            "id": "pos-drop-scaffold",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Real build exit=0. impl_region_only=TRUE (only lines inside -- impl-start/-- impl-end differ; line count preserved) \u2014 the cleanest case in the battery. Obligation statement byte-identical. Defeq reshape (let order swapped), so like pos-drop-scaffold it tests SPEC-TOO-STRONG only weakly, but the declared reason (`each field bound to the same value`) is true as written.",
+            "id": "pos-let-reorder",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Real build exit=0. THIS is the positive that carries the soundness lane: its impl is NOT definitionally the frozen one (an `ite` on the opaque `isTrue cond'` blocks rfl), so it genuinely needs the reproof `unfold; simp only [Id.run]; split <;> exact <rfl,rfl,rfl>`. I confirmed the reproof is necessary rather than decorative: every reject rival that adds the same `if isTrue cond'` shape fails the FROZEN rfl proof (e.g. true-rebind-to-new module exit=1 `Application type mismatch ... rfl`), so the ite really does defeat rfl. Tactic body differs but statement is byte-identical, which variant_scope permits. Not neutered: no sorry/axiom/native_decide (variant_problems=[]), and it closes the real three-clause goal on both branches.",
+            "id": "pos-branch-on-collapse",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Real build exit=0. Attack: I MUTATED the load-bearing `have` to claim the opposite (result.sym = <4>, i.e. the bound variable becomes `new`) and rebuilt: exit=1 with `Tactic decide proved that the proposition (implementation_freeSubs {sym:={tag:=0},...} {tag:=3} {tag:=4}).sym = {tag:=4} is false`. So the `have`s are genuinely evaluated by the kernel at the concrete F2P-shaped point, not decoration \u2014 the case would fail if the obligation were unsatisfiable there. This is the correct total-carrier analogue of PRECOND-TOO-STRONG per the brief (obligation discharged at a concrete input by evaluation as `have`s, before closing the frozen forall verbatim). The manifest's own retraction of the earlier `lane is subsumed` argument is accurate. Admissibility lane is PRESENT, not dropped.",
+            "id": "admiss-ground-free-symbol",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt all three gate builds myself: rival exit=0, gold exit=1, probe exit=1. Gold error is a PLAIN EVALUATION (`Tactic decide proved that the proposition \u00ac(pure {sym:={tag:=0},...}).sym = {tag:=0} is false`) \u2014 decide actually evaluated the claim on gold's record, so no forgery test was strictly required; I ran the flip anyway (see witnesses_rebuilt: flip on gold exit=0, on rival exit=1 \u2014 exact mirror), which is conclusive. Rival IS observably wrong (attack C): on the collapse branch it returns sym:=new, and tags 0 vs 4 are distinct DecidableEq values, so it is not a reshape. Witness mentions the discriminating input (tags 0,1,2/3/4) and is not a tautology. Probe exit=1 (`simp_all made no progress`) => single hypothesis about one opaque term is satisfiable. This is the faithful pre-patch shape; refinement prose is accurate.",
+            "id": "true-rebind-to-new",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival exit=0, gold exit=1, probe exit=1. gold_signature is `Application type mismatch`, NOT a plain evaluation, so attack B' was MANDATORY and I ran BOTH forms. (1) FLIP: asserting the spec IS satisfied at the same point builds on gold exit=0 and FAILS on rival exit=1 \u2014 the exact mirror, so gold's exit code demonstrably tracks the claim. (2) REVEAL TYPE (`exact (hcond : Nat)`): gold prints hcond's real type as `(pure {... cond := subsExpr {tag:=6} {tag:=8} {tag:=9} ...}).cond = subsExpr {tag:=6} {tag:=8} {tag:=9}` while rival prints `(pure {... cond := {tag:=6} ...}).cond = subsExpr ...`. The hypothesis type differs EXACTLY in the cond field the case claims, and is a concrete equation on both sides (never `True`, i.e. simp never silently proved it). Genuine semantic refutation. Rival observably wrong: returns un-substituted cs.cond.",
+            "id": "drop-cond-subs",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival exit=0, gold exit=1, probe exit=1. gold_signature is `Application type mismatch`, so I ran both B' forms. FLIP: gold exit=0 / rival exit=1 (exact mirror). REVEAL TYPE: gold prints `(pure {... base := subsExpr {tag:=12} {tag:=13} {tag:=14}}).base = subsExpr ...`, rival prints `(pure {... base := {tag:=12}}).base = subsExpr ...` \u2014 differs exactly in the base field claimed, concrete equation on both sides, never `has type True`. Real discriminator. Rival observably wrong (returns un-substituted cs.base).",
+            "id": "drop-base-subs",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival exit=0, gold exit=1, probe exit=1. Gold error is a plain evaluation (`decide proved ... \u00ac(...).sym = {tag:=20} is false`); flip run anyway: gold exit=0 / rival exit=1, exact mirror. NOT a respelling of true-rebind-to-new (attack C): its witness conditions on `isTrue (subsExpr <21> <23> <24>) = false`, the COMPLEMENTARY branch, and the rival preserves the binding on the collapse branch where true-rebind-to-new breaks it \u2014 so neither witness refutes the other's rival. Disjoint input point (tags 20-24). The manifest's retraction of the earlier `NOT MODELED (tag)` record for this sibling case is correct: keying the open-branch result on `new` is a CLAUSE 1 violation this spec does state.",
+            "id": "open-rebind-to-new",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival exit=0, gold exit=1, probe exit=1. gold_signature is `Application type mismatch`, so both B' forms run. FLIP: gold exit=0 / rival exit=1 (mirror). REVEAL TYPE: gold prints hcond as `(pure {... cond := subsExpr {tag:=16} {tag:=18} {tag:=19} ...}).cond = subsExpr ...`; rival prints `(pure {... cond := containsExpr {tag:=15} (subsExpr {tag:=17} {tag:=18} {tag:=19}) ...}).cond = subsExpr ...`. Differs exactly in the minted-membership cond the case claims; concrete equations, never `True`. Genuine near-miss: it SATISFIES clause 1, and I confirmed true-rebind-to-new's witness cannot refute it (different rival shape, sym preserved). Two hypotheses are about DISTINCT opaque terms (isTrue(subsExpr <16>..) and containsExpr <15> (subsExpr <17>..)); probe exit=1 with goal False unsolved => jointly satisfiable, not witness-inconsistent.",
+            "id": "true-replaces-cond",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "New case I authored to close the clause-3 collapse-branch gap (see omissions_reviewed / attacks_tried C3). Fully validated before landing: rival exit=0, gold exit=1 (semantic `Application type mismatch` on Eq.symm hbase), probe exit=1 (goal False unsolved with h1/h2 in context => hypotheses jointly satisfiable). B' FLIP: gold exit=0 / rival exit=1, exact mirror. B' REVEAL TYPE: gold prints hbase as `(pure {... base := subsExpr {tag:=27} {tag:=28} {tag:=29}}).base = subsExpr ...`, rival prints `(pure {... base := {tag:=27}}).base = subsExpr ...` \u2014 differs exactly in the base field on the collapse branch, concrete equation on both sides. Distinct from drop-base-subs (branch-free, wrong everywhere) and refuted by no other witness in the battery since it satisfies clauses 1 AND 2. Fresh disjoint input point (tags 25-29). Gate re-run records it `rejected (witness refutes the rival)`.",
+            "id": "true-keeps-base",
+            "verdict": "earned (ADDED BY THIS AUDIT)"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "SUMMARY: the recorded SOUND was substantially earned, but the battery was UNDERPORTED by one case and carried two false prose claims. All three defects are now fixed in properties.py; the frozen artifact was not touched (Solution.lean, meta.json, instance.json all verified UNCHANGED via git diff --quiet; meta.json was rewritten only by the gate's own stamp on re-run). Verdict REPAIRED, gate re-runs pass :: SOUND at 10 cases.\n\nWHAT I RAN: 24 builds reproducing every gate build for the original 9 cases (all matched meta.json exactly, including all five gold_signatures byte-for-byte); 29 attack builds; 8 more for round 2/3; 4 forgery builds for my new case. ~65 real lean_verify.sh builds total; logs  (201 files). Scratch under a mktemp -d /tmp dir per the /tmp-reaping and repo-root rules; nothing written into the bundle or repo.\n\nDEFECT 1 (fixed, the substantive one) \u2014 UNDERPORTED clause-3 coverage. The port dropped nagini's weak-build-true-wrong-base as 'NOT MODELED (build)', lumping it with the tag/constructor family. But the clause it attacks (collapse => base is the substitution-applied base) survives the carrier narrowing as CLAUSE 3 on the collapse branch. Before my repair, clause 3 was the ONLY clause attacked on just one side of the collapse test, by the branch-free drop-base-subs \u2014 i.e. the least-probed clause sat exactly on the branch the modeled change lives in. Landed `true-keeps-base` at a fresh disjoint input point (tags 25-29), fully B'-validated before landing.\n\nDEFECT 2 (fixed) \u2014 false claim in the DIVERGENCE paragraph: 'a diverging implementation cannot be written at all'. `partial def` writes one and elaborates. Disposition (vacuous) is right, reason was wrong; rewritten with the measured evidence, including that the partial witness dies on stuck reduction which the gate's own _stuck_screen refuses.\n\nDEFECT 3 (fixed) \u2014 the accounting table's stale duplicate row for admiss-rfp-true ('(none) SUBSUMED') contradicting the live RE-EXPRESSED row. Corrected the NOT-MODELED prose block; the stale row's own retraction text already existed further down, so the manifest was self-contradictory as shipped.\n\nADDED EVIDENCE, not a defect: I proved the frozen spec is a TOTAL FUNCTIONAL specification with the real verifier (both theorems elaborate, exit 0) \u2014 any impl discharging the frozen obligation is pointwise equal to gold on the entire guarded domain. This is why spec_holes is empty as a matter of proof rather than of sampling: SPEC-TOO-WEAK is impossible on this spec, so no attack-D rival could ever verify. All 8 of mine were duly rejected. That makes SPEC-TOO-STRONG the only live risk direction, which is why I pushed hardest on attack E (4 new correct reshapes, all verify, incl. E3-branch-on-guard proving the precondition is genuinely usable). I recorded the two theorems in properties.py prose but could NOT ship them as a case \u2014 variant_scope rightly forbids a variant adding a theorem \u2014 so they remain audit-scratch evidence.\n\nON THE TWO WEAK POSITIVES: pos-drop-scaffold and pos-let-reorder are both definitionally equal to the frozen impl, so each on its own is close to the 'passes honestly while testing nothing' shape the brief warns about. I did not flag them as defects because pos-branch-on-collapse carries the lane properly (its ite genuinely defeats the frozen rfl \u2014 confirmed, since every reject rival sharing that shape fails the frozen proof), and my E1-E4 reshapes independently confirm no SPEC-TOO-STRONG hole. Worth noting for the record rather than acting on.\n\nCOVERAGE: reporter clean before and after (10 cases, binders=3, pts=6-6, 0 findings). Per attack G I checked the variation is meaningful rather than two spellings of one point: the six reject points are pairwise disjoint in all five tags AND each clause is now attacked on both sides of the collapse test by rivals that are mutually non-refuting (each near-miss satisfies the clauses its siblings attack), which I verified case by case r",
+        "omissions_reviewed": [
+          {
+            "evidence": "FINDING, now FIXED. The port recorded this as 'NOT MODELED (build)' \u2014 dismissed along with the tag/constructor family. That is wrong: the sibling clause it attacks, `cond_after==COND_TRUE => base==base_after`, does not depend on the tag field at all. Stripped of tag machinery it is exactly CLAUSE 3 restricted to the collapse branch, which this carrier states. I built the rival (return cs.base un-substituted only when isTrue cond' fires) and landed it as the shipped case `true-keeps-base`: rival exit=0, gold exit=1 with a semantic Application type mismatch, probe exit=1 (h1/h2 consistent), flip mirror gold=0/rival=1, reveal-type showing the base field differing exactly as claimed. It is not a respelling of drop-base-subs, which is branch-free and therefore wrong on every input; true-keeps-base is correct off the collapse branch and satisfies CLAUSES 1 and 2, so no other witness in the battery refutes it. Gate re-run records it rejected.",
+            "nagini_case": "weak-build-true-wrong-base",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "AGREE with the port, on a demonstrated reason. The rival asserts the collapse yields the EMPTY domain rather than the base domain \u2014 its content is the existence of a distinguished EMPTY result tag. This carrier's CondSet is a bare three-field record (sym, cond, base : Expr) with no tag/kind field, no EMPTY or BASE constructor, and no constructor function inside the impl region. There is no impl-region edit that can return 'the empty tag', because no term of CondSet denotes it; any attempt degenerates into some OTHER (sym, cond, base) triple, which is then just one of the clause-1/2/3 rivals already shipped. Genuine carrier narrowing, not effort. Note this is the only sibling case I did not attempt to land, and the reason is a missing carrier constructor, not proof difficulty and not an opaque guard.",
+            "nagini_case": "weak-rfp-true-to-empty",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "AGREE with the port, on a demonstrated reason \u2014 with one caveat recorded honestly. The rival attacks the CONSTRUCTOR's own bound-symbol propagation (build mints the open ConditionSet on a fixed constant 0 rather than the passed sym). This bundle models only the free-symbol substitution branch; there is no `build`/constructor function in the impl region to mis-key, so the rival has no counterpart as written. The caveat: the OBSERVABLE consequence \u2014 a result keyed on the wrong symbol \u2014 IS expressible here, and I verified the spec catches it. My attack-D rival D3-key-on-old keys the result on `old` and is REJECTED (exit=1, 'Application type mismatch ... (implementation_freeSubs cs old new).sym = cs.sym'), as are the two shipped clause-1 rivals on both sides of the collapse test. So the behavior is covered even though the sibling's constructor-level rival is not portable, and nothing shippable is missing.",
+            "nagini_case": "weak-build-open-wrong-sym",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Listed here because the port's accounting table contains a stale duplicate row mapping it to '(none) SUBSUMED' alongside the live row mapping it to admiss-ground-free-symbol. The lane is PRESENT and earned: I mutated its load-bearing `have` and the case flips to exit=1 (see attacks_tried/admiss-mutated), proving the obligation is evaluated at a concrete F2P-shaped point rather than assumed. The sibling's literal shape (a self-call asserting the post-image) has no analogue on a total carrier where there is no precondition to violate at runtime; the brief's prescribed analogue \u2014 discharge the obligation at an F2P-shaped concrete input by evaluation, as `have`s, before closing the frozen obligation verbatim \u2014 is exactly what this case does. The systematic admissibility-lane omission the brief warns about does NOT apply to this cell.",
+            "nagini_case": "admiss-rfp-true",
+            "verdict": "inexpressible (as a self-call; correctly RE-EXPRESSED, not dropped)"
+          },
+          {
+            "evidence": "AGREE. meta.json records axioms == [] and the frozen file declares no `axiom` \u2014 the four opaque callees (subsExpr, sTrue, isTrue, containsExpr) carry NO constraining axiom, so there is no consumed axiom for this gate to probe. The sibling's axiom case is an A-reference-vs-real-callee conformance check (real patched SymPy run in Docker), which is G-CONF's and G-AX's lane, not G-PBT's; conf_skip is false, so G-CONF does run it. Empty AXIOM_TESTS is correct.",
+            "nagini_case": "AXIOM_TESTS: ax-ref-build-evalsubs-soundness",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "AGREE, and the porting map records this class as vacuous on lean generally. Nagini's fractional-permission frame (Acc(.,1/2)) has no analogue: Lean is referentially transparent, cs/old/new are immutable values with no heap footprint, there is no mut binder over an input and no aliasing, so no write-through-input rival can be written. Not a fabricated justification.",
+            "nagini_case": "FRAME / PERMISSION MUTATION class",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "AGREE with the disposition (vacuous) but I CORRECTED the port's stated reason, which was the too-glib 'a diverging implementation cannot be written at all'. Per attack F', I first checked the semantics this bundle actually sets: there is NO `set_option loom.semantics.termination` line in Solution.lean (nor in any lean bundle in the corpus \u2014 0 files match), so this is plain total Lean where the elaborator discharges termination. Measured both diverging shapes: (a) a self-recursive plain `def` does NOT elaborate ('fail to show termination ... no parameters suitable for structural recursion') \u2014 an error about the definition, not the spec, so nothing shippable; (b) `partial def` DOES elaborate, so the port's claim was literally false, but its witness cannot discriminate \u2014 'Tactic `decide` failed ... reduction got stuck at the `Decidable` instance', which the gate's own _stuck_screen refuses, and `partial` is on pbt_witness's banned-token list. So: vacuous class, correct disposition, wrong reason \u2014 now rewritten in properties.py with the measured error text.",
+            "nagini_case": "DIVERGENCE / NON-TERMINATION class",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "AGREE. Every clause is grounded in the input carriers \u2014 clauses 2 and 3 through the unchanged subsExpr applied to cs.cond/cs.base, clause 1 as the literal binding-structure identity result.sym = cs.sym. No clause equates the result to an axiomatized answer-key term that a rival could echo back, so there is no oracle to attack.",
+            "nagini_case": "UNGROUNDED-ORACLE ECHO class",
+            "verdict": "inexpressible"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "forgery_error": "flip-on-gold: NO ERROR (exit 0 \u2014 gold satisfies the spec at tags cs=(0,1,2) old=3 new=4, the exact mirror of the witness); flip-on-rival: 'error: Application type mismatch: The argument rfl' \u2014 so gold's exit code tracks the claim. Base gold error was already a plain evaluation: 'Tactic `decide` proved that the proposition \u00ac(pure { sym := { tag := 0 }, cond := subsExpr { tag := 1 } { tag := 3 } { tag := 4 }, base := subsExpr { tag := 2 } { tag := 3 } { tag := 4 } }).sym = { tag := 0 } is false'",
+            "forgery_exit": "flip-on-gold=0, flip-on-rival=1",
+            "gold_exit": 1,
+            "id": "true-rebind-to-new",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip-on-gold: NO ERROR (exit 0, exact mirror). reveal-on-gold: 'error: Type mismatch / hcond has type (pure { sym := { tag := 5 }, cond := subsExpr { tag := 6 } { tag := 8 } { tag := 9 }, base := subsExpr { tag := 7 } { tag := 8 } { tag := 9 } }).cond = subsExpr { tag := 6 } { tag := 8 } { tag := 9 } of sort Prop but is expected to have type \u2115'. reveal-on-rival: same but 'cond := { tag := 6 }'. Concrete equations, never 'has type True' => simp proved nothing; hypothesis type differs exactly in the claimed cond field.",
+            "forgery_exit": "flip-on-gold=0, flip-on-rival=1; reveal-on-gold=1, reveal-on-rival=1",
+            "gold_exit": 1,
+            "id": "drop-cond-subs",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip-on-gold: NO ERROR (exit 0, exact mirror). reveal-on-gold: 'error: Type mismatch / hbase has type (pure { sym := { tag := 10 }, cond := subsExpr { tag := 11 } { tag := 13 } { tag := 14 }, base := subsExpr { tag := 12 } { tag := 13 } { tag := 14 } }).base = subsExpr { tag := 12 } { tag := 13 } { tag := 14 } of sort Prop but is expected to have type \u2115'. reveal-on-rival: same but 'base := { tag := 12 }'. Differs exactly in the claimed base field; no 'True'.",
+            "forgery_exit": "flip-on-gold=0, flip-on-rival=1; reveal-on-gold=1, reveal-on-rival=1",
+            "gold_exit": 1,
+            "id": "drop-base-subs",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip-on-gold: NO ERROR (exit 0, exact mirror); flip-on-rival: 'error: Application type mismatch: The argument rfl'. Base gold error was a plain evaluation: 'Tactic `decide` proved that the proposition \u00ac(pure { sym := { tag := 20 }, cond := subsExpr { tag := 21 } { tag := 23 } { tag := 24 }, base := subsExpr { tag := 22 } { tag := 23 } { tag := 24 } }).sym = { tag := 20 } is false'",
+            "forgery_exit": "flip-on-gold=0, flip-on-rival=1",
+            "gold_exit": 1,
+            "id": "open-rebind-to-new",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "flip-on-gold: NO ERROR (exit 0, exact mirror). reveal-on-gold: 'error: Type mismatch / hcond has type (pure { sym := { tag := 15 }, cond := subsExpr { tag := 16 } { tag := 18 } { tag := 19 }, ... }).cond = subsExpr { tag := 16 } { tag := 18 } { tag := 19 } of sort Prop but is expected to have type \u2115'. reveal-on-rival: same but 'cond := containsExpr { tag := 15 } (subsExpr { tag := 17 } { tag := 18 } { tag := 19 })'. Differs exactly in the minted membership predicate the case claims; no 'True'.",
+            "forgery_exit": "flip-on-gold=0, flip-on-rival=1; reveal-on-gold=1, reveal-on-rival=1",
+            "gold_exit": 1,
+            "id": "true-replaces-cond",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "NEW case added by this audit; forgery-tested before landing. flip-on-gold: NO ERROR (exit 0, exact mirror); flip-on-rival: 'error: Application type mismatch: The argument rfl'. reveal-on-gold: 'error: Type mismatch / hbase has type (pure { sym := { tag := 25 }, cond := subsExpr { tag := 26 } { tag := 28 } { tag := 29 }, base := subsExpr { tag := 27 } { tag := 28 } { tag := 29 } }).base = subsExpr { tag := 27 } { tag := 28 } { tag := 29 } of sort Prop but is expected to have type \u2115'. reveal-on-rival: same but 'base := { tag := 27 }'. Probe printed 'unsolved goals / h1 : _root_.isTrue (subsExpr {tag:=26} {tag:=28} {tag:=29}) = true, h2 : \u00acsubsExpr {tag:=27} {tag:=28} {tag:=29} = {tag:=27} \u22a2 False' => consistent.",
+            "forgery_exit": "flip-on-gold=0, flip-on-rival=1; reveal-on-gold=1, reveal-on-rival=1",
+            "gold_exit": 1,
+            "id": "true-keeps-base",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 6
+      },
+      {
+        "agent_verdict": "",
+        "attacks_tried": [],
+        "audited_at": "weakgold",
+        "cases": null,
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "",
+        "omissions_reviewed": [],
+        "spec_holes": [],
+        "witness_evidence": null,
+        "witnesses_rebuilt": null
+      }
+    ],
+    "notes": "SCOPE OF EVIDENCE. Every exit code reported is from a build I ran myself with scripts/lean_verify.sh (900s cap) in a private scratch dir (mktemp -d), logs. Nothing is inherited from the port's record or from the Aug-13 audit logs I found already in that results dir (I used a fresh subdirectory to avoid reading stale results as mine). 57 builds total.\n\nWHAT THE RECORDED SOUND WAS HIDING. The 11 shipped cases all genuinely earned their outcomes \u2014 no neutered positive, no vacuous rival, no hollow witness. The defect was an UNDERPORT justified by a false structural claim: the manifest asserted twice (in BINDER STRUCTURE and in the accounting block) that the carrier split left the fused membership assembly as the ONLY route into the binding position, and used that to record the sibling's bound-symbol-propagation rival as NOT MODELED. The claim is false \u2014 a bound variable is directly constructible and the plain assembly takes one \u2014 and the manifest's own ATTACK D record contradicted it in passing (it noted `mkSet \u27e8new.tag\u27e9 cond' base'` elaborates). I landed the missing rival as `fixed-sym-binding` and drew the principled vocabulary cut the old prose blurred: a literal minted on an ARGUMENT carrier denotes a defined call (the assembly on some other bound variable) and is in scope; a literal minted on the RESULT carrier denotes no call at all (nothing but the assembly produces an AsmSet) and is out. I measured both sides of that cut (fixed-sym-binding ships; N2-empty-literal is rejected and out of vocabulary).\n\nADMISSIBILITY LANE. Present and non-vacuous, against the corpus-wide pattern where 198 lean ports carry none. I did not take it on trust: three controls (false post-image, false shape, Assert(False)) all fail exit 1, so the `have`s are load-bearing rather than inert.\n\nD8 IS NOT A SPEC HOLE, and I want to be explicit since it VERIFIED. It returns gold's exact value and discards two calls that are both defined on the modeled side, so there is no wrong observable behavior for the spec to reject. Reporting it as a hole would be wrong; the genuinely dangerous version of that shape \u2014 a discarded call that is UNDEFINED on the modeled side \u2014 is what the typed carriers turn into type errors, and I verified all six such shapes fail to elaborate with the errors the manifest quotes.\n\nFROZEN ARTIFACT UNTOUCHED. Solution.lean, meta.json and instance.json were not edited by me; meta.json's only change is the gate's own fresh stamp from my re-run. A concurrent fleet checkpoint commit (d061dd586) picked up my properties.py edits, which is why git status shows only meta.json modified.\n\nPROSE EDITS MADE (all to properties.py, all correcting statements that machine evidence contradicted): retracted the 'only route to the binding position' claim in two places; corrected the accounting line for weak-build-open-wrong-sym from NOT MODELED to RE-EXPRESSED; redrew the minted-literal vocabulary rule to distinguish argument from result carriers; updated six->seven reject-witness counts and the disjoint-input-point list; rewrote the ATTACK A/B/B'/C/D/E/F' audit-record entries with the exit codes and error texts from THIS pass, including the two-probe forgery method (flip AND goal-reveal) and the D8 residual; updated the coverage line to the re-run value obl=1 cases=12 (+5/-7) binders=3 pts=7-7. Leak discipline kept: no gold-patch line, patched file/function name, or bug-to-fix narration added.",
+    "omissions_reviewed": [
+      {
+        "evidence": "THE FINDING OF THIS AUDIT, and it is now fixed. The port recorded this as NOT MODELED (build) on the stated premise that the carrier split left the fused membership assembly as the ONLY route into the binding position. That premise is false: a bound variable is directly constructible on this carrier (\u27e8k\u27e9 : SymE) and the plain assembly's first position accepts one, so the sibling's 'open case keyed on a fixed constant 0' (Result0(K_SET, 0, base, cond)) transliterates to `mkSet \u27e80\u27e9 cond' base'`, which elaborates, is REJECTED, and carries a discriminating witness. I landed it as `fixed-sym-binding` (rival 0 / gold 1 / probe 1, flip inverted gold 0 / rival 1). It closes a real gap rather than adding a respelling: both pre-existing ARG-1 rivals are branch-conditioned AND both swap the assembly ROUTINE along with its first argument, so neither of them tested that the PLAIN assembly's first argument is pinned to cs.sym. Gate re-ran: SOUND, 12 cases.",
+        "nagini_case": "weak-build-open-wrong-sym",
+        "verdict": "expressible"
+      },
+      {
+        "evidence": "Demonstrated, not argued. What this case asserts is the EXISTENCE of a distinguished EMPTY result tag (the collapse yields the empty domain rather than the base domain). That is a property of the ASSEMBLY routine's normalisation, which this spec deliberately leaves opaque \u2014 mkSet's result is a bare AsmSet with no tag field and no readable components, so there is no impl-region edit that can express 'returns the empty tag'. I built the nearest spelling myself (N2-empty-literal, `return (\u27e80\u27e9 : AsmSet)` on the collapse branch): it elaborates and is REJECTED exit 1, and it is a literal minted on the RESULT carrier, which denotes no routine call at all (nothing but the assembly produces an AsmSet), so it attributes nothing the shipped rivals do not already. Genuine carrier narrowing.",
+        "nagini_case": "weak-rfp-true-to-empty",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Attacks build's postcondition base_kind==BASE_EMPTY => kind==K_EMPTY, i.e. the constructor's empty-base collapse over the EMPTY/LISTED/MERGED base-kind taxonomy. This lean bundle models only the free-symbol substitution branch; SetE is a base set given outright with no kind discriminator and AsmSet carries no tag, so there is no term in the modeled vocabulary that can state 'the base domain was empty' or 'the result is the empty tag'. Same demonstrated basis as weak-rfp-true-to-empty (the N2 minted-AsmSet measurement).",
+        "nagini_case": "weak-build-drop-empty-base",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Attacks build's BASE_LISTED reduction (listed_kind / listed_base). The lean carrier has no LISTED base kind and no member list \u2014 SetE is a single opaque carrier of base sets given outright \u2014 so the clause has no counterpart term. Not an effort omission: the clause is about the assembly routine's normalisation, which is opaque here by design.",
+        "nagini_case": "weak-build-listed-ignore-members",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Attacks the BASE_LISTED sub-case's bound-symbol propagation (listed_kind==K_SET => sym==sym). The bound-symbol propagation clause AS SUCH is now covered on this carrier by the case I added (fixed-sym-binding); what remains inexpressible is specifically its restriction to the LISTED base kind, since no such kind exists here. Recorded as inexpressible for the base-kind restriction, with the general clause shipped.",
+        "nagini_case": "weak-build-listed-wrong-sym",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Attacks build's BASE_MERGED reduction (merged_sym propagation) \u2014 the arm where the real constructor renames a colliding bound variable. No MERGED base kind on this carrier, and deliberately so: the manifest's measurement is that a condition-restricted base is where the assembly can mint a FRESH name per call and stop being a function of its arguments, which is exactly why SetE is narrowed to base sets given outright. Such a set is not an inhabitant of SetE, and the one way an impl could manufacture one lands on AsmSet, which no routine consumes (I verified all six OOD shapes are type errors).",
+        "nagini_case": "weak-build-merged-keeps-outer-sym",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same BASE_MERGED taxonomy as above (merged_base propagation); same demonstrated basis \u2014 no MERGED base kind, and the narrowing that removes it is what makes mkSet a genuine function so the spec can state its requirement as an equation.",
+        "nagini_case": "weak-build-merged-keeps-outer-base",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Divergence family, re-measured against the semantics THIS bundle sets (attack F'). The frozen lean file sets NO loom.semantics.termination option \u2014 I confirmed by reading it, and note the velvet sibling of this same instance DOES set \"total\", so the settings genuinely differ per bundle. Under plain total Lean a self-recursive impl FAILS TO ELABORATE ('fail to show termination for implementation_freeSubs ... no parameters suitable for structural recursion'), an error about the definition rather than the equation, so it attributes nothing to the spec. The one shape that does elaborate, `partial def`, is admitted by variant_scope and rejected but UNWITNESSABLE: I tried four witness shapes and every one fails on the RIVAL (the half that must succeed), because `partial` makes the function opaque to the kernel. A rival whose witness cannot be built is a non-discriminator. VACUOUS class, not a known hole.",
+        "nagini_case": "weak-rfp-never-delivers-selfcall",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same divergence family, same re-measured basis: no termination option in this bundle, so a loop with no decreasing measure is an elaboration failure rather than a spec-level rejection, and the `partial` escape is unwitnessable (all four witness shapes fail on the rival).",
+        "nagini_case": "weak-rfp-never-delivers-loop",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same divergence family. A 'measure not kept' rival presupposes a verifier that discharges a separate termination obligation the impl can fail; under plain total Lean the elaborator refuses the definition outright, so there is no shippable rival.",
+        "nagini_case": "weak-rfp-measure-not-kept",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same divergence family; this is precisely the `partial def` shape I measured. variant_scope ADMITS it and it is rejected (exit 1), but no witness can refute it \u2014 'Tactic `unfold` failed to unfold `implementation_freeSubs`' on the rival build. Note the port's earlier prose claim that `partial` is on pbt_witness's banned-token list was FALSE (a previous audit revision already corrected it); the exclusion rests on the measured unwitnessability, which I re-confirmed.",
+        "nagini_case": "weak-rfp-partial-then-never-delivers",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Divergence inside the sibling's `build` deep-model. Doubly unavailable here: the divergence basis above, plus `build` itself is not a modeled function (the assembly is the opaque mkSet with no reduction to attack).",
+        "nagini_case": "weak-build-never-delivers",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Correctly dropped as out of this gate's lane. The lean bundle consumes NO axiom: the opaque callees (subsCond/subsSet/mkSet/mkMemberSet/symExpr/isTrue) carry no constraining _prop axiom, and the changed behavior is modeled DEEPLY in the frozen spec. I confirmed by reading Solution.lean \u2014 the axioms region contains only `structure`/`opaque` declarations, no `axiom`. Axiom-reference soundness is G-AX's and G-CONF's job; AXIOM_TESTS is legitimately empty.",
+        "nagini_case": "AXIOM_TESTS: ax-ref-build-evalsubs-soundness",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not omissions \u2014 all six ARE ported and shipped (pos-let-reorder, pos-drop-scaffold, admiss-ground-free-symbol, true-rebind-to-new, open-rebind-to-new, true-keeps-base respectively), and each is audited under its own per-case verdict above with rebuilt exit codes. Listed here only so the 18-case sibling accounting is complete rather than implied.",
+        "nagini_case": "pos-build-reorder / pos-rfp-inline / admiss-rfp-true / weak-rfp-true-keyed-on-new / weak-rfp-open-keyed-on-new / weak-build-true-wrong-base",
+        "verdict": "expressible"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "forgery_error": "flip-on-gold printed NO error (exit 0, the flipped claim is PROVABLE on gold by rfl); flip-on-rival: 'error: Tactic `rfl` failed: The left-hand side { tag := 4 } is not definitionally equal to the right-hand side implementation_freeSubs ...'; reveal-on-gold: 'error: Type mismatch 0 has type \u2115 ... but is expected to have type \u00acpure (mkSet { tag := 0 } (subsCond ...) (subsSet ...)) = mkSet { tag := 0 } (subsCond ...) (subsSet ...)' (SAME term both sides => equation holds on gold); reveal-on-rival: same shape but '\u00acpure (mkMemberSet { tag := 4 } (subsSet ...)) = mkSet { tag := 0 } ...'",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "true-rebind-to-new",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip-on-gold: no error, exit 0; flip-on-rival: 'error: Tactic `rfl` failed: The left-hand side { tag := 9 } is not definitionally equal to the right-hand side implementation_freeSubs ...'; reveal-on-rival: 'expected to have type \u00acpure (mkSet { tag := 5 } { tag := 6 } (subsSet { tag := 7 } { tag := 8 } { tag := 9 })) = mkSet { tag := 5 } (subsCond { tag := 6 } ...) (subsSet ...)'; reveal-on-gold: both sides identical",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "drop-cond-subs",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip-on-gold: no error, exit 0; flip-on-rival: 'error: Tactic `rfl` failed: The left-hand side { tag := 14 } is not definitionally equal to the right-hand side implementation_freeSubs ...'; reveal-on-rival: 'expected to have type \u00acpure (mkSet { tag := 10 } (subsCond { tag := 11 } ...) { tag := 12 }) = mkSet { tag := 10 } (subsCond ...) (subsSet { tag := 12 } ...)'",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "drop-base-subs",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip-on-gold: no error, exit 0; flip-on-rival: 'error: Tactic `rfl` failed: The left-hand side { tag := 24 } is not definitionally equal to the right-hand side implementation_freeSubs ...'; reveal-on-rival: 'expected to have type \u00ac(do pure PUnit.unit; pure (mkMemberSet { tag := 24 } (subsSet { tag := 22 } ...))) = mkSet { tag := 20 } (subsCond ...) (subsSet ...)'",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "open-rebind-to-new",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip-on-gold: no error, exit 0; flip-on-rival: 'error: Tactic `rfl` failed: The left-hand side { tag := 34 } is not definitionally equal to the right-hand side implementation_freeSubs { sym := { tag := 30 }, ... }'; reveal-on-rival: 'expected to have type \u00acpure (mkSet { tag := 0 } (subsCond { tag := 31 } ...) (subsSet { tag := 32 } ...)) = mkSet { tag := 30 } (subsCond ...) (subsSet ...)' (minted \u27e80\u27e9 vs input \u27e830\u27e9 in the binding position); reveal-on-gold: both sides identical; probe: 'unsolved goals ... \u22a2 False'",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "fixed-sym-binding",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip-on-gold: no error, exit 0; flip-on-rival: 'error: Tactic `rfl` failed: The left-hand side { tag := 19 } is not definitionally equal to the right-hand side implementation_freeSubs ...'; reveal-on-rival: 'expected to have type \u00acpure (mkMemberSet (symExpr { tag := 15 }) (subsSet { tag := 17 } ...)) = mkSet { tag := 15 } (subsCond ...) (subsSet ...)'",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "true-replaces-cond",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip-on-gold: no error, exit 0; flip-on-rival: 'error: Tactic `rfl` failed'; reveal-on-rival: 'expected to have type \u00acpure (mkSet { tag := 25 } (subsCond { tag := 26 } ...) { tag := 27 }) = mkSet { tag := 25 } (subsCond ...) (subsSet { tag := 27 } ...)'; reveal-on-gold: both sides identical",
+        "forgery_exit": "flip: gold 0 / rival 1; reveal: gold 1 / rival 1",
+        "gold_exit": 1,
+        "id": "true-keeps-base",
+        "probe_exit": 1,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 7
+  },
+  "prepatch_variants": [
+    "Solution_prepatch.lean (reintroduces the deleted `if cond' is true` special case: assembles the set on `new` via the fused membership assembly `mkMemberSet new base' : SetE`, mirroring `ConditionSet(new, Contains(new, base), base)` op-for-op -> assembles on `new` where the spec's first argument position is `cs.sym`, so `correct_freeSubs` cannot close)"
+  ],
+  "region_hashes": {
+    "axioms": "3dd0ac6dcf4d5656a8c39e6030a99c0ac2065f16ed96483029bc6520ffff6e00",
+    "impl": "3682868a3084108498a937d3d7a93239c328a098b988314e44045f2bc730de75",
+    "post-conditions": "e687c64fc158457fd1a80513f8a6edebbabd79495bdf2f8b8861faaab0057606",
+    "proof": "f967d85c448a8e0c372672f72945a2afbd1c8047f7d9adf6f9d6e7000d47a7b1",
+    "pure": "06dd1caddd08d3c8ac8164b82f9706f544f45c82688113a371d539eba5d232ac",
+    "spec_view": "ac2b8709ed1cbfef9c4e3a9c02300555c55048a28591680320b43451a7e36446"
+  },
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "verifier_pins": {
+    "conf_seed": 19495,
+    "lean_toolchain": "lean_shared (direct-Mathlib workspace)",
+    "verify_timeout_seconds": 300
+  }
+}

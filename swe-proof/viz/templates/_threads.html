@@ -1,0 +1,48 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{# per-instance comment threads (recursive, multi-round). Included in instance.html sidebar. #}
+{% if not threads %}
+  <div class="empty">No comments yet. Flag a weak spec or imprecise axiom below.</div>
+{% endif %}
+
+{% macro comment_node(c, iid) %}
+  {# `maintainers` is a template global (settings.MAINTAINERS): a deployment that
+     clears it gets no accent, which is what clearing it asks for. #}
+  <div class="cmt {{ 'reply' if c.depth and c.depth>0 }} {{ 'maintainer' if c.author|lower in maintainers }}">
+    <div class="meta">
+      <span class="who">{{ c.author }}</span>
+      <span>· {{ c.created_at | ts }}</span>
+      {% if c.flag and not c.parent_id %}<span class="flag-tag">{{ c.flag }}</span>{% endif %}
+      {% if not c.parent_id %}
+        <span class="status-{{ c.status }}" style="margin-left:auto">{{ c.status }}{% if c.status=='resolved' and c.resolved_by %} by {{ c.resolved_by }}{% endif %}</span>
+      {% endif %}
+    </div>
+    <div class="md">{{ c.body | md | safe }}</div>
+    <div class="row" style="margin-top:7px">
+      {% if not c.parent_id %}
+      <form method="post" action="/{{ bm }}/{{ bk }}/comment/{{ c.id }}/status" style="display:inline">
+        <input type="hidden" name="back" value="/{{ bm }}/{{ bk }}/i/{{ iid }}#comments">
+        <input type="hidden" name="who" class="author-hidden" value="">
+        <input type="hidden" name="status" value="{{ 'pending' if c.status=='resolved' else 'resolved' }}">
+        <button class="btn sm" type="submit">{{ 'reopen' if c.status=='resolved' else 'mark resolved' }}</button>
+      </form>
+      {% endif %}
+      <details class="collapse replybox" style="border:none;margin:0;flex:1">
+        <summary style="padding:3px 0;font-size:.8rem;font-weight:550">reply</summary>
+        <form method="post" action="/{{ bm }}/{{ bk }}/i/{{ iid }}/comment" class="cmt-form" style="margin-top:6px">
+          <input type="hidden" name="parent_id" value="{{ c.id }}">
+          <input type="text" name="author" placeholder="your name" class="author-field" required>
+          <textarea name="body" placeholder="reply (Markdown ok)" required></textarea>
+          <button class="btn primary sm" type="submit" style="align-self:flex-start">reply</button>
+        </form>
+      </details>
+    </div>
+    {% for child in c.replies %}
+      {{ comment_node(child, iid) }}
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% for t in threads %}
+  {{ comment_node(t, iid) }}
+{% endfor %}

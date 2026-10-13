@@ -1,0 +1,471 @@
+{
+  "additional_change_sites": [],
+  "adversary_battery": {
+    "attacks_all_rejected": [
+      "atk_7 (THE re-audit's named surviving CE: builds verbatim values, returns WITHOUT calling assemble): FAILS the postcondition combined_collection(ToSeq(Result()), ToSeq(resid)) -- 'insufficient permission' to the token that only assemble grants. Confirmed NOT-A-COUNTEREXAMPLE via `adversary weakness`.",
+      "atk_fresh (calls assemble to obtain the token, then returns a FRESH equal copy to launder it): FAILS combined_collection -- the token is on assemble's output, not on the fresh copy",
+      "atk_1 (prepatch bug, discard=False, calls assemble): FAILS all_equal(carried_seq(False, resid))",
+      "atk_4 (wrong roundtrip data: assembles resid instead of values): FAILS the roundtrip postcondition ToSeq(Result())==ToSeq(data)",
+      "atk_empty (returns empty): FAILS len(Result())==n (and lacks the token)",
+      "[prior pass, still rejected] atk_2 (discard=False + fabricated all-equal resid): FAILS distinct_residuals; atk_drop (drops last member but calls assemble): FAILS len(resid)==len(slices)"
+    ],
+    "positive_control": "pc.py (structurally-different forward append+take correct impl, calls assemble) VERIFIES (29.6s, same-spec) -> non-vacuous"
+  },
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real .sel(drop=False/True).squeeze(drop=True) on the issue's single-position-axis stacked array; residual coordinate 'y' survives iff drop=False, carrying distinct per-member values",
+      "encoded_property": "carried(False, position) == position (drop=False keeps the residual position coordinate, carrying that member's own position); carried(True, position) == shared_value() (drop=True drops it, so every slice carries the single no-distinguishing-annotation value)",
+      "models": "DataArray.sel(indexers, drop=drop) followed by .squeeze(drop=True): the annotation a per-member slice carries for its position",
+      "name": "carried",
+      "provenance": "xarray/core/dataarray.py:1068 (sel; docstring: 'If drop=True, drop coordinates variables in indexers instead of making them scalar'); xarray/core/common.py:343 (squeeze drops only size-one dimensions, NOT scalar coordinates). docs.xarray.dev DataArray.sel",
+      "purity": "@Pure @ContractOnly (used inside Ensures / other contracts)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): with drop=True the residual coordinate 'y' does NOT survive onto any squeezed slice (all members agree)",
+      "encoded_property": "a fixed constant identical across all members (Ensures(True); only its constancy across calls is used)",
+      "models": "the single common (no-distinguishing-position) annotation a drop=True slice carries",
+      "name": "shared_value",
+      "provenance": "xarray/core/dataarray.py:1068 (sel drop=True) -> the residual position coordinate is dropped, so every slice carries the same state",
+      "purity": "@Pure @ContractOnly"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real Dataset(data_dict) rejects the drop=False slices (conflicting 'y') and succeeds + recovers the original Dataset verbatim for drop=True; UNCHANGED callees only (does not call the function under change)",
+      "encoded_property": "Requires(distinct_residuals(resid)) and Requires(all_equal(carried_seq(discard, resid))) (the merge is rejected unless the annotations the slices carry under the SAME selection over the members' distinct positions agree); Ensures(ToSeq(Result()) == ToSeq(slices)) (recovers each member's data verbatim) and Ensures(combined_collection(ToSeq(Result()), ToSeq(resid))) (grants the combination-output token on its result)",
+      "models": "Dataset(data_dict) constructor / coordinate merge",
+      "name": "assemble",
+      "provenance": "xarray/core/dataset.py Dataset.__init__ -> variable/coordinate merge; a coordinate shared by name with conflicting values raises MergeError ('conflicting values for variable y ...', the exact error in the issue)",
+      "purity": "@ContractOnly (non-pure; called in the impl, not inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the recovered (original-equal) collection is exactly xr.Dataset(good)'s output; a bare per-member mapping that skips the merge (`return data_dict`, the surviving counterexample's refinement) is a plain dict, is NOT a Dataset, and is NOT identical to the original -- so the token (held only by the merge's output) cannot be obtained by bypassing the merge",
+      "encoded_property": "abstract predicate over (members, positions); held only by assemble's Result; required by to_unstacked's postcondition. Carries no value the impl can echo (it is a capability, not an answer-key oracle).",
+      "models": "the abstract 'this collection is the OUTPUT of the Dataset(data_dict) merge' capability -- an abstract @ContractOnly @Predicate token granted ONLY by assemble's postcondition and unforgeable by the impl (Nagini rejects Fold of an abstract predicate; a result not produced by assemble lacks the token's permission)",
+      "name": "combined_collection",
+      "provenance": "xarray/core/dataarray.py:1967 `return Dataset(data_dict)` -- the reconstruction's only return is the Dataset constructor's output; there is no other producer of the unstacked collection in the function body. The token captures 'the result came through the merge', so the merge cannot be bypassed.",
+      "purity": "@ContractOnly @Predicate (abstract, body-less; granted by assemble.Ensures)"
+    }
+  ],
+  "base_commit": "a64cf2d5476e7bbda099b34c40b7be1880dbd39a",
+  "changed_files": [
+    "xarray/core/dataarray.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:09:32+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: carried(discard, .) matches the real .sel(drop=...).squeeze (residual position coordinate survives iff drop=False, carrying distinct per-member values), and the combination (Dataset merge) rejects the conflicting kept residual / recovers data verbatim when discarded -- both axioms sound against the real xarray callees.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "1f5b3dd30c5bd3cf633a855e5b5dfe9077e1e004bd142419ae08f0df586cf2cf",
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:18:49+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100064,
+          "disagreements": 0,
+          "seed": 4094,
+          "shadow": "direct (contract-stripped impl region; assemble calls the real constructor/merge over real slices)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100064, \"disagreements\": 0, \"seed\": 4094, \"shadow\": \"direct (contract-stripped impl region; assemble calls the real constructor/merge over real slices)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "9a743c12bcda21434cf84ba25a22c644269f61d494aeecf2b9673056ea593fbc",
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:47:42+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6",
+        "model_prepatch.py": "0aa5b4fa787c2fe407a6ef9ba4aa1e26d89343920dff9b54e27f9c581ca82cd5"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T12:51:17+00:00",
+      "code_version": "153e845a4-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_launder.py`, `atk_prepatch.py`, `atk_noassemble.py`, `atk_fresh.py`, `atk_wrongdata.py`, `atk_partial.py`, `atk_control_flow.py` |\n\n**Non-vacuity.** The positive control `pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:48:39+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6",
+        "model_prepatch.py": "0aa5b4fa787c2fe407a6ef9ba4aa1e26d89343920dff9b54e27f9c581ca82cd5"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:09:24+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "ecebddef8b859e094055b2f70768b8dc0d2fee808329d63dd5989ee2c60de2cb",
+          "impl": "f3984b5da2b2c1e5e71f168795149272eb063b450a255a63c4bd4ec8f5c9ac41",
+          "invariants": "8463678e0bfed33ac807d849d6af7c7c832c84a32f1e9e3c3928ecfcb7201fdb",
+          "post-conditions": "a8bf3cb5ec7a9318348f76c3cda54b98047be44852d96265e7feccca89d67e26",
+          "pre-conditions": "cc62398faa8db76dc349d6261f991c86b0292b55c70c180a1ae04d4c1f792362",
+          "pure": "3a2b250561d3f5ee0ae35b8f5048c6a561eb159ca6373e889b206b31b5ec4c10",
+          "spec_view": "09b7efe1a4741fef46cc24f5db287e5089c0e1e11d3ba7a9a4b93f2d89433827"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:09:25+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4cf80fee73cfa2a5ea92c4d966c9189d0ce8df5d4cdda414ab547ed74be0a8bb",
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:09:26+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:59:34+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "judged": 12,
+        "killed": 12,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 12,
+        "unjudged": []
+      },
+      "detail": "killed 12/12 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T12:51:19+00:00",
+      "code_version": "153e845a4-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong) review: does the modeled to_unstacked disagree with the real patched DataArray.to_unstacked_dataset on any precondition-satisfying input? No such divergence found.\n\nDecisive machine evidence:\n- G-CONF (differential conformance) PASS on 100,064 inputs (64 boundary + 100k fuzz, seed 4094), 0 disagreements. This directly tests my question: the contract-stripped impl region, with `assemble` realized by the REAL xr.Dataset(...) constructor/merge over REAL .sel({variable_dim:k}, drop=discard).squeeze(drop=True) slices, is compared against the REAL PATCHED to_unstacked_dataset across the entire Requires domain (n>=2, len(data)==len(resid)==n, resid pairwise-distinct). Outcome and recovered per-member values agree on every case.\n- G-AX PASS (in-container): carried(False,pos)==pos and carried(True,pos)==shared_value() match real .sel(drop=...).squeeze; the Dataset merge rejects the conflicting kept residual (drop=False) and recovers verbatim (drop=True). Axioms model only UNCHANGED callees.\n- G-GOLD PASS: gold-faithful model.py verifies.\n\nPostcondition tightness does not overshoot reality: with the gold's discard=True, distinct_residuals implies all_equal(carried_seq(True,resid)) (lemma_carried_all_equal), so the real merge always succeeds, recovers data verbatim (ToSeq(Result())==ToSeq(data)), and grants the combined_collection token. Nothing the spec Ensures fails on the real function for any precondition-satisfying input.\n\nNote on the recorded G-EQ=fail: it is a spec-too-WEAK break (atk_launder verifies but its faithful patch does not resolve \u2014 the combined_collection token was value-keyed, allowing a merge-skipping launder impl). That is the OPPOSITE direction from this gate (spec-too-weak admits a wrong impl; it does not make the gold-faithful model diverge from the real callee). It is not a faithfulness/spec-too-strong defect, so it does not support UNFAITHFUL here.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view for pydata__xarray-4094/nagini does not leak the gold edit beyond the public problem_statement. Gold edit = one-line `drop=True` addition at xarray/core/dataarray.py:1964 (`self.sel({variable_dim: k}, drop=True).squeeze(drop=True)`). Checks: (1) impl region is correctly elided to `...` in the spec_view projection (verified via markers.spec_view over NaginiBackend); the discriminating choice `discard = True` lives only in the elided impl, not in the visible spec. (2) The literal `drop=True`, the repo callees (sel/squeeze/Dataset/merge), the file path, and the MergeError are absent from the spec view \u2014 they appear only in mapping.md/refinement.md, which are NOT part of the consumer spec view. (3) All spec-view identifiers (to_unstacked, carried, shared_value, assemble, combined_collection, distinct_residuals, carried_seq, all_equal) are invented abstract model names, not patched repo symbols. (4) The only patched repo symbol, to_unstacked_dataset, is already public in the problem_statement title and does not appear verbatim in the spec view. (5) No diff markers, no gold-line reproduction (>=8-char normalized), no narration words. Mechanical confirmation: leakage.screen(model.py, NaginiBackend, real dataset gold patch, problem_statement) returned PASSED with zero hard failures; _patch_changed_symbols={to_unstacked_dataset} (public), _patch_changed_lines contain no >=8-char normalized substring of the spec view. The behavioral narrative faithfully restates the public issue (roundtrip should recover values; combination rejected on conflicting shared-name annotation / MergeError) without disclosing the repo-level fix. NOTE: meta.json's patch_diff field is a placeholder string ('gold patch verbatim...') rather than the real diff; the real gold patch was fetched from data/swe_bench_verified/test.jsonl for the screen.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong) review: does the modeled to_unstacked disagree with the real patched DataArray.to_unstacked_dataset on any precondition-satisfying input? No such divergence found.\n\nDecisive machine evidence:\n- G-CONF (differential conformance) PASS on 100,064 inputs (64 boundary + 100k fuzz, seed 4094), 0 disagreements. This directly tests my question: the contract-stripped impl region, with `assemble` realized by the REAL xr.Dataset(...) constructor/merge over REAL .sel({variable_dim:k}, drop=discard).squeeze(drop=True) slices, is compared against the REAL PATCHED to_unstacked_dataset across the entire Requires domain (n>=2, len(data)==len(resid)==n, resid pairwise-distinct). Outcome and recovered per-member values agree on every case.\n- G-AX PASS (in-container): carried(False,pos)==pos and carried(True,pos)==shared_value() match real .sel(drop=...).squeeze; the Dataset merge rejects the conflicting kept residual (drop=False) and recovers verbatim (drop=True). Axioms model only UNCHANGED callees.\n- G-GOLD PASS: gold-faithful model.py verifies.\n\nPostcondition tightness does not overshoot reality: with the gold's discard=True, distinct_residuals implies all_equal(carried_seq(True,resid)) (lemma_carried_all_equal), so the real merge always succeeds, recovers data verbatim (ToSeq(Result())==ToSeq(data)), and grants the combined_collection token. Nothing the spec Ensures fails on the real function for any precondition-satisfying input.\n\nNote on the recorded G-EQ=fail: it is a spec-too-WEAK break (atk_launder verifies but its faithful patch does not resolve \u2014 the combined_collection token was value-keyed, allowing a merge-skipping launder impl). That is the OPPOSITE direction from this gate (spec-too-weak admits a wrong impl; it does not make the gold-faithful model diverge from the real callee). It is not a faithfulness/spec-too-strong defect, so it does not support UNFAITHFUL here.; G-PANEL-3 (leakage): pass \u2014 Spec view for pydata__xarray-4094/nagini does not leak the gold edit beyond the public problem_statement. Gold edit = one-line `drop=True` addition at xarray/core/dataarray.py:1964 (`self.sel({variable_dim: k}, drop=True).squeeze(drop=True)`). Checks: (1) impl region is correctly elided to `...` in the spec_view projection (verified via markers.spec_view over NaginiBackend); the discriminating choice `discard = True` lives only in the elided impl, not in the visible spec. (2) The literal `drop=True`, the repo callees (sel/squeeze/Dataset/merge), the file path, and the MergeError are absent from the spec view \u2014 they appear only in mapping.md/refinement.md, which are NOT part of the consumer spec view. (3) All spec-view identifiers (to_unstacked, carried, shared_value, assemble, combined_collection, distinct_residuals, carried_seq, all_equal) are invented abstract model names, not patched repo symbols. (4) The only patched repo symbol, to_unstacked_dataset, is already public in the problem_statement title and does not appear verbatim in the spec view. (5) No diff markers, no gold-line reproduction (>=8-char normalized), no narration words. Mechanical confirmation: leakage.screen(model.py, NaginiBackend, real dataset gold patch, problem_statement) returned PASSED with zero hard failures; _patch_changed_symbols={to_unstacked_dataset} (public), _patch_changed_lines contain no >=8-char normalized substring of the spec view. The behavioral narrative faithfully restates the public issue (roundtrip should recover values; combination rejected on conflicting shared-name annotation / MergeError) without disclosing the repo-level fix. NOTE: meta.json's patch_diff field is a placeholder string ('gold patch verbatim...') rather than the real diff; the real gold patch was fetched from data/swe_bench_verified/test.jsonl for the screen.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_launder.py`, `atk_prepatch.py`, `atk_noassemble.py`, `atk_fresh.py`, `atk_wrongdata.py`, `atk_partial.py`, `atk_control_flow.py` |\n\n**Non-vacuity.** The positive control `pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong) review: does the modeled to_unstacked disagree with the real patched DataArray.to_unstacked_dataset on any precondition-satisfying input? No such divergence found.\n\nDecisive machine evidence:\n- G-CONF (differential conformance) PASS on 100,064 inputs (64 boundary + 100k fuzz, seed 4094), 0 disagreements. This directly tests my question: the contract-stripped impl region, with `assemble` realized by the REAL xr.Dataset(...) constructor/merge over REAL .sel({variable_dim:k}, drop=discard).squeeze(drop=True) slices, is compared against the REAL PATCHED to_unstacked_dataset across the entire Requires domain (n>=2, len(data)==len(resid)==n, resid pairwise-distinct). Outcome and recovered per-member values agree on every case.\n- G-AX PASS (in-container): carried(False,pos)==pos and carried(True,pos)==shared_value() match real .sel(drop=...).squeeze; the Dataset merge rejects the conflicting kept residual (drop=False) and recovers verbatim (drop=True). Axioms model only UNCHANGED callees.\n- G-GOLD PASS: gold-faithful model.py verifies.\n\nPostcondition tightness does not overshoot reality: with the gold's discard=True, distinct_residuals implies all_equal(carried_seq(True,resid)) (lemma_carried_all_equal), so the real merge always succeeds, recovers data verbatim (ToSeq(Result())==ToSeq(data)), and grants the combined_collection token. Nothing the spec Ensures fails on the real function for any precondition-satisfying input.\n\nNote on the recorded G-EQ=fail: it is a spec-too-WEAK break (atk_launder verifies but its faithful patch does not resolve \u2014 the combined_collection token was value-keyed, allowing a merge-skipping launder impl). That is the OPPOSITE direction from this gate (spec-too-weak admits a wrong impl; it does not make the gold-faithful model diverge from the real callee). It is not a faithfulness/spec-too-strong defect, so it does not support UNFAITHFUL here.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec view for pydata__xarray-4094/nagini does not leak the gold edit beyond the public problem_statement. Gold edit = one-line `drop=True` addition at xarray/core/dataarray.py:1964 (`self.sel({variable_dim: k}, drop=True).squeeze(drop=True)`). Checks:\n\n(1) impl region is correctly elided to `...` in the spec_view projection (verified via markers.spec_view over NaginiBackend); the discriminating choice `discard = True` lives only in the elided impl, not in the visible spec.\n\n(2) The literal `drop=True`, the repo callees (sel/squeeze/Dataset/merge), the file path, and the MergeError are absent from the spec view \u2014 they appear only in mapping.md/refinement.md, which are NOT part of the consumer spec view.\n\n(3) All spec-view identifiers (to_unstacked, carried, shared_value, assemble, combined_collection, distinct_residuals, carried_seq, all_equal) are invented abstract model names, not patched repo symbols.\n\n(4) The only patched repo symbol, to_unstacked_dataset, is already public in the problem_statement title and does not appear verbatim in the spec view.\n\n(5) No diff markers, no gold-line reproduction (>=8-char normalized), no narration words. Mechanical confirmation: leakage.screen(model.py, NaginiBackend, real dataset gold patch, problem_statement) returned PASSED with zero hard failures; _patch_changed_symbols={to_unstacked_dataset} (public), _patch_changed_lines contain no >=8-char normalized substring of the spec view. The behavioral narrative faithfully restates the public issue (roundtrip should recover values; combination rejected on conflicting shared-name annotation / MergeError) without disclosing the repo-level fix. NOTE: meta.json's patch_diff field is a placeholder string ('gold patch verbatim...') rather than the real diff; the real gold patch was fetched from data/swe_bench_verified/test.jsonl for the screen.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:01:18+00:00",
+      "code_version": "7cbe2b8df-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 51.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-singleton-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 52.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-precond-holds",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 53.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-data",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 49.7
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-resid",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 49.9
+          },
+          {
+            "expect": "reject",
+            "id": "atk-bypass-assemble",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.7
+          },
+          {
+            "expect": "reject",
+            "id": "atk-launder-fresh-copy",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 57.1
+          },
+          {
+            "expect": "reject",
+            "id": "atk-discard-false",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.6
+          },
+          {
+            "expect": "reject",
+            "id": "atk-fabricate-allequal-resid",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-wrong-roundtrip-data",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-drop-last-member",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.5
+          },
+          {
+            "expect": "reject",
+            "id": "atk-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 9
+        },
+        "manifest_sha256": "3f71a44d473d4c38323c396d35ee7222e20371b6d71fc842e717b8142c8a94f3",
+        "n_cases": 12,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 12 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6",
+        "properties.py": "3f71a44d473d4c38323c396d35ee7222e20371b6d71fc842e717b8142c8a94f3"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:51:02+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:47:11+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "wall_time_s": 42.8
+      },
+      "detail": "verified in 42.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b523c3551703e720c6d0ac973e4d5425a0e5c854d4ee9801acbb64b4862239c6"
+      },
+      "status": "pass"
+    }
+  },
+  "ghost_lemmas": [
+    "lemma_carried_len: len(carried_seq(discard, positions)) == len(positions)",
+    "lemma_carried_all_equal: all_equal(carried_seq(True, positions)) (every slice carries the single shared value)"
+  ],
+  "instance_id": "pydata__xarray-4094",
+  "modeled_functions": [
+    {
+      "carrier_type": "stacked DataArray (MultiIndex over (variable, position) pairs, single sample axis) -> n members 0..n-1 with per-member value data[k] (int) and residual position-coordinate value resid[k]; specification over PSeq[int]",
+      "model_symbol": "to_unstacked",
+      "repo_location": "xarray/core/dataarray.py:1901 (changed body line 1964)",
+      "repo_symbol": "xarray.core.dataarray.DataArray.to_unstacked_dataset",
+      "role": "modeled changed function (the stacked-collection reconstruction; inverse of Dataset.to_stacked_array); single contracted+implemented function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; one-line drop=True addition)",
+  "prepatch_models": [
+    {
+      "fails_on": "the precondition all_equal(carried_seq(discard, ToSeq(resid))) of the assembly callee: with discard=False each slice carries its own distinct position, so the annotations are not all-equal -> the Dataset merge is rejected (the issue's MergeError)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the per-member selection's drop argument (residual-coordinate discard)",
+      "reverted_to": "self.sel({variable_dim: k}) with the default drop=False (discard=False), so the residual coordinate is kept on each slice"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "ed70869aef8760215f761b4893639205bb1d152216c6d00b7d85e8f3ebd7a703",
+    "impl": "f3984b5da2b2c1e5e71f168795149272eb063b450a255a63c4bd4ec8f5c9ac41",
+    "invariants": "8463678e0bfed33ac807d849d6af7c7c832c84a32f1e9e3c3928ecfcb7201fdb",
+    "post-conditions": "f3d4a287daacebe6b3299fe523dc35b252bdbe053e2a3a33adaff2f7be2b4208",
+    "pre-conditions": "cc62398faa8db76dc349d6261f991c86b0292b55c70c180a1ae04d4c1f792362",
+    "pure": "3a2b250561d3f5ee0ae35b8f5048c6a561eb159ca6373e889b206b31b5ec4c10",
+    "spec_view": "755fcf96a2ef2b39408217bf9275aa1bcfa9f5b57640244a522fdc110c2aecb6"
+  },
+  "repo": "pydata/xarray",
+  "respec_note": "2nd-pass fix after the re-audit (STILL-NEEDS-REFINEMENT). v1 hole (free `keep`) was already closed by the single-`discard`-knob + distinct_residuals guard. The re-audit found a RESIDUAL G-EQ hole: counterexample atk_7 built the verbatim per-member values and returned them WITHOUT calling `assemble`, so the merge guard (where the bug lives) was OPTIONAL -- the value-only postcondition ToSeq(Result())==ToSeq(data) is discharge-able without the merge (the values are discard-independent, so NO value-level postcondition can separate gold from a merge-skipping impl). FIX (this pass): made the combination MANDATORY on the result path via an abstract @ContractOnly @Predicate token `combined_collection(Result, resid)` that ONLY assemble's postcondition grants and that the impl cannot fabricate (Nagini rejects Fold of an abstract predicate; a result not produced by assemble lacks the token). to_unstacked now Ensures the token, so a verifying impl MUST route its result through assemble (= the Dataset merge), whose guard rejects discard=False. This is the re-audit's endorsed fix ('result-permission can only originate from assemble'); it is a capability, not an answer-key oracle (carries no value the impl echoes). Re-verified: atk_7 (the named CE) and atk_fresh (calls assemble then returns a fresh copy to launder the token) both FAIL; prepatch (discard=False) FAILS on the merge guard; a structurally-different forward-append positive control VERIFIES. Also de-leaked a stray 'fixed' in the docstring ('determined') and documented the token's soundness in axiom_check.py.",
+  "schema_version": 1,
+  "string_modeling": "no strings; the stacked DataArray is abstracted to n members with an int value and an int residual-coordinate label per member; specification carried by PSeq[int] via ToSeq",
+  "version": "0.12"
+}

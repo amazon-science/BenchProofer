@@ -1,0 +1,468 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real gcd on 7 code-0 (returns != 1) + 6 code-1 (returns == 1) operand pairs",
+      "encoded_property": "value on handleable operand shapes: common_factor(1)==1 (trivial / S.One), common_factor(0)!=1 (a genuine OPAQUE non-trivial factor; exact value unpinned so a caller must invoke the routine, never fabricate a literal, SPEC_GUIDE 8)",
+      "kind": "A-consumed",
+      "models": "sympy.gcd (value facet)",
+      "name": "common_factor",
+      "provenance": "sympy/polys/polytools.py:5281 (gcd); called gcd(p, q) at sympy/core/mod.py:169",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real gcd on 5 code-2 (Piecewise / case-split) pairs RAISES PolynomialError",
+      "encoded_property": "normal-return Ensures(code!=2) and Ensures(Result()==common_factor(code)) for shapes 0,1; Exsures(FactorUnavailable, code==2) for the case-split (Piecewise) shape. Same gcd(p,q) call as common_factor (raising facet); the impl rebinds G = common_factor(code) so the factor is syntactically the value facet (Nagini does not apply congruence from a derived G==common_factor(code) to a @ContractOnly callee's args).",
+      "kind": "A-consumed",
+      "models": "sympy.gcd (call/raising facet)",
+      "name": "common_factor_compute",
+      "provenance": "the gcd(p, q) call at sympy/core/mod.py:169; raises sympy.polys.polyerrors.PolynomialError via _parallel_poly_from_expr at sympy/polys/polytools.py:4399 ('Piecewise generators do not make sense')",
+      "purity": "non-pure @ContractOnly (may raise; used only in impl, never in Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): 2 code-0 operand-transform assertions post-fix, incl. the F2P test_Mod's own (12*x+18*y)%(3*x)==3*Mod(6*y,x) -- the regroup that dropping breaks the F2P",
+      "encoded_property": "Requires(factor != 1) (the guard under which the real call is made); value OPAQUE (no Ensures). The opacity is load-bearing for SPEC STRENGTH (not soundness): the model cannot prove divide_out(p,G)==p, so only an impl that actually performs the regroup can discharge clause (3a) -- this closes the verdict's G-EQ hole.",
+      "kind": "A-consumed",
+      "models": "sympy.core.exprtools.gcd_terms",
+      "name": "divide_out",
+      "provenance": "sympy/core/exprtools.py:989 (gcd_terms); called gcd_terms(i/G, clear=False, fraction=False) at sympy/core/mod.py:171-172",
+      "purity": "@Pure @ContractOnly"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): exercised via the code-0 operand-transform end-to-end assertions (the built result reflects the rewritten operands post-fix)",
+      "encoded_property": "OPAQUE (Ensures(True)); two applications equal only when all three args provably equal, so the produced value observably depends on whether each operand was rewritten -- makes the operand post-state observable in the postcondition (the abstraction no longer discards it; the verdict's root-cause fix)",
+      "kind": "A-consumed",
+      "models": "the block's G*cls(p, q, ...) construction (unchanged Mul/Mod)",
+      "name": "build_result",
+      "provenance": "sympy/core/mod.py: the value Mod.eval builds from G and the (possibly rewritten) operands after the 'extract gcd' block (return G*cls(p, q, ...))",
+      "purity": "@Pure @ContractOnly"
+    }
+  ],
+  "base_commit": "624217179aaf8d094e6ff75b7493ad1ee47599b0",
+  "changed_files": [
+    "sympy/core/mod.py"
+  ],
+  "deep_model_references": [],
+  "exception_modeling": "PolynomialError -> user-defined FactorUnavailable (a builtin exception in an Exsures crashes the Nagini translator, SPEC_GUIDE 2); the fix's no-propagation is pinned by the ABSENCE of any Exsures on the modeled function",
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:30:26+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: common_factor / common_factor_compute axioms sound on 7 code-0 (!= 1), 6 code-1 (== 1), 5 code-2 (Piecewise->refuse) operand pairs; FAIL_TO_PASS Mod/is_zero complete without raising and 2 code-0 operand-transform assertions (divide_out/build_result) hold post-fix",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "133fe6916e56ac90d5cf53d459846cebaebdba2e5155912f23801431a2b0fb11",
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:35:47+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "backend": "nagini",
+          "boundary": 39,
+          "branches": {
+            "no_transform": 21700,
+            "refusal": 34269,
+            "transform": 44031
+          },
+          "checked": 100000,
+          "codes": {
+            "0": 44031,
+            "1": 21700,
+            "2": 34269
+          },
+          "disagreements": 0,
+          "f2p_shapes_recovered_in_situ": "2/2",
+          "insitu_checked": 24,
+          "insitu_unreached": 15,
+          "instance": "sympy__sympy-21379",
+          "oracle": "sympy/core/mod.py Mod.eval 'extract gcd' block (patched), source-lifted (all inputs) + in-situ traced (sample)",
+          "out_of_domain": 0,
+          "seed": 21379,
+          "shadow": "model.py impl-start/impl-end region, verbatim minus contracts",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"instance\": \"sympy__sympy-21379\", \"backend\": \"nagini\", \"oracle\": \"sympy/core/mod.py Mod.eval 'extract gcd' block (patched), source-lifted (all inputs) + in-situ traced (sample)\", \"shadow\": \"model.py impl-start/impl-end region, verbatim minus contracts\", \"checked\": 100000, \"boundary\": 39, \"codes\": {\"0\": 44031, \"1\": 21700, \"2\": 34269}, \"branches\": {\"transform\": 44031, \"refusal\": 34269, \"no_transform\": 21700}, \"insitu_checked\": 24, \"insitu_unreached\": 15, \"f2p_shapes_recovered_in_situ\": \"2/2\", \"out_of_domain\": 0, \"disagreements\": 0, \"seed\": 21379}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "35eea44b3e73af39e7c2e4bbd6fd1dcd90190af4c25351d386257ef2a3341db7",
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:25:01+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8",
+        "model_prepatch.py": "efd8bc6404aba660b32fc798798114e5e0aa66fc29d83e3757953e575f1df470"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T12:10:09+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:25:34+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8",
+        "model_prepatch.py": "efd8bc6404aba660b32fc798798114e5e0aa66fc29d83e3757953e575f1df470"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:30:19+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "adf20169dfdb8cd39fd54240fe8fb202b5d69e673ac326d1cc94665a2332fe27",
+          "impl": "bb570806b4cfad6c7e769fd8f43749247f1217df88f5daf8870ae945845b82be",
+          "post-conditions": "7150d9b32702b22dca77e49de66cd925665d6c65ec536802259825db0f88b691",
+          "pre-conditions": "23ab1ebe78182720afa4ea20875b9e3d990d03edd584730e5d2b33f0f26898ba",
+          "pure": "d9af1f7a7e2a75bcad78589d4d51c1b41e92cdbeed3adbcb378c57a83a03f486",
+          "spec_view": "1c9380cb7bacd772fe824fee9658f8f940d1c225776de246521df66947b49c42"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:30:20+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "e2fafee94e7961004cad9840f136ceab10502151871e2d60b702cd97199fd5cf",
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:30:20+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:37:48+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "judged": 5,
+        "killed": 5,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 5,
+        "unjudged": []
+      },
+      "detail": "killed 5/5 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T12:10:11+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "No spec drift found; the modeled function agrees with the real Mod.eval 'extract gcd' block on every shape code.\n\nEvidence:\n1. Spec region: model.py verifies (Nagini, 10.95s); model_prepatch.py (unguarded gcd call) fails exactly on 'method raises no exceptions' \u2014 the frozen no-Exsures postcondition senses the real bug (unguarded gcd raising PolynomialError on Piecewise operands).\n2. Axiom soundness vs REAL repo (axiom_check.py run with PYTHONPATH=$SCRATCH, exit 0): common_factor/common_factor_compute \u2194 sympy.gcd is faithful \u2014 7 code-0 pairs return !=1 normally, 6 code-1 pairs return ==1 normally, 5 code-2 (Piecewise/z etc.) pairs RAISE PolynomialError. Independently confirmed.\n3. Behavioral correspondence per code:\n   - code 2: real post-fix catches PolynomialError, sets G=S.One, leaves operands unchanged, no exception escapes -> spec clause Implies(code==2, Result()==build_result(1,p,q)) + absence of Exsures. Matches.\n   - code 1 (gcd==1): if-branch skipped, operands unchanged -> clause 3b. Matches.\n   - code 0 (gcd!=1): each operand rewritten via gcd_terms(i/G) before result built -> clause 3a; opaque divide_out/build_result force the transform. Verified real block yields 3*Mod(6*y,x) = F2P assertion for (12*x+18*y)%(3*x).\n4. Termination: MustTerminate(2)/(1) faithfully models the bounded straight-line real block (one gcd call, optional pair of gcd_terms, one construction; no loop/recursion).\n5. Searched for divergence: probed edge inputs (gcd(0,0), gcd(x,0), gcd(1/x,y)) \u2014 real gcd returns normally, never raises a non-PolynomialError on in-domain shapes, so the no-Exsures obligation is not over-strong. The three-code partition covers the real branch structure exactly; no input where the modeled function disagrees with the real callee.\n\nConclusion: the spec is neither too strong nor drifting from real repo behavior. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view (model.py projected via markers.spec_view, impl elided) reviewed for leakage of the gold edit beyond the public problem_statement. Gold edit: wrap `G = gcd(p, q); if G!=1: gcd_terms(...)` block in `try/except PolynomialError: G = S.One` in sympy/core/mod.py Mod.eval, plus a PolynomialError import. \n\nMechanical G-LEAK screen PASSES (verified via leakage.screen): no diff markers, no gold-patch line reproduced (>=8 chars normalized), no patched file path `sympy/core/mod.py`, no patched module path echoed, no patched symbols (`eval`,`doit`) embedded in spec-view identifiers or named in comments/docstrings, and no narration terms (bug/fix/patch/etc.).\n\nSemantic gold-reconstruction review: the spec view is written entirely in repo-neutral, abstract vocabulary \u2014 an integer `code` classifying three cases, opaque axiom callees `common_factor`/`common_factor_compute`/`divide_out`/`build_result`, and a generic 'helper/factor/operand/transform'. None of the gold-edit localizers appear anywhere in the view: `gcd`, `gcd_terms`, `Mod.eval`, `PolynomialError`, `Piecewise`, `S.One`, `mod.py`, `sympy/core`, `polys`, `singleton`, `subs`, `sinh/cosh/tanh`, `try`, or the issue number `21373`. (The only `except` substring hits are inside the abstract word 'exception'; the string `21379` is only the public instance-id in the module-header docstring, i.e. the solver's task name, not an edit locator.)\n\nThe contract the spec encodes (the operation must catch the helper's raise rather than propagate it, yielding the identity factor with unchanged operands) is the abstract behavior any faithful spec of this fix must state; it does not reveal WHERE in the repo the edit lives or the concrete mechanism (try/except PolynomialError around gcd). The public problem_statement already exposes the symptom (`PolynomialError: Piecewise generators do not make sense`), so the spec view discloses nothing that would let a solver reconstruct the gold patch beyond what is already public. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 No spec drift found; the modeled function agrees with the real Mod.eval 'extract gcd' block on every shape code.\n\nEvidence:\n1. Spec region: model.py verifies (Nagini, 10.95s); model_prepatch.py (unguarded gcd call) fails exactly on 'method raises no exceptions' \u2014 the frozen no-Exsures postcondition senses the real bug (unguarded gcd raising PolynomialError on Piecewise operands).\n2. Axiom soundness vs REAL repo (axiom_check.py run with PYTHONPATH=$SCRATCH, exit 0): common_factor/common_factor_compute \u2194 sympy.gcd is faithful \u2014 7 code-0 pairs return !=1 normally, 6 code-1 pairs return ==1 normally, 5 code-2 (Piecewise/z etc.) pairs RAISE PolynomialError. Independently confirmed.\n3. Behavioral correspondence per code:\n   - code 2: real post-fix catches PolynomialError, sets G=S.One, leaves operands unchanged, no exception escapes -> spec clause Implies(code==2, Result()==build_result(1,p,q)) + absence of Exsures. Matches.\n   - code 1 (gcd==1): if-branch skipped, operands unchanged -> clause 3b. Matches.\n   - code 0 (gcd!=1): each operand rewritten via gcd_terms(i/G) before result built -> clause 3a; opaque divide_out/build_result force the transform. Verified real block yields 3*Mod(6*y,x) = F2P assertion for (12*x+18*y)%(3*x).\n4. Termination: MustTerminate(2)/(1) faithfully models the bounded straight-line real block (one gcd call, optional pair of gcd_terms, one construction; no loop/recursion).\n5. Searched for divergence: probed edge inputs (gcd(0,0), gcd(x,0), gcd(1/x,y)) \u2014 real gcd returns normally, never raises a non-PolynomialError on in-domain shapes, so the no-Exsures obligation is not over-strong. The three-code partition covers the real branch structure exactly; no input where the modeled function disagrees with the real callee.\n\nConclusion: the spec is neither too strong nor drifting from real repo behavior. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view (model.py projected via markers.spec_view, impl elided) reviewed for leakage of the gold edit beyond the public problem_statement. Gold edit: wrap `G = gcd(p, q); if G!=1: gcd_terms(...)` block in `try/except PolynomialError: G = S.One` in sympy/core/mod.py Mod.eval, plus a PolynomialError import. \n\nMechanical G-LEAK screen PASSES (verified via leakage.screen): no diff markers, no gold-patch line reproduced (>=8 chars normalized), no patched file path `sympy/core/mod.py`, no patched module path echoed, no patched symbols (`eval`,`doit`) embedded in spec-view identifiers or named in comments/docstrings, and no narration terms (bug/fix/patch/etc.).\n\nSemantic gold-reconstruction review: the spec view is written entirely in repo-neutral, abstract vocabulary \u2014 an integer `code` classifying three cases, opaque axiom callees `common_factor`/`common_factor_compute`/`divide_out`/`build_result`, and a generic 'helper/factor/operand/transform'. None of the gold-edit localizers appear anywhere in the view: `gcd`, `gcd_terms`, `Mod.eval`, `PolynomialError`, `Piecewise`, `S.One`, `mod.py`, `sympy/core`, `polys`, `singleton`, `subs`, `sinh/cosh/tanh`, `try`, or the issue number `21373`. (The only `except` substring hits are inside the abstract word 'exception'; the string `21379` is only the public instance-id in the module-header docstring, i.e. the solver's task name, not an edit locator.)\n\nThe contract the spec encodes (the operation must catch the helper's raise rather than propagate it, yielding the identity factor with unchanged operands) is the abstract behavior any faithful spec of this fix must state; it does not reveal WHERE in the repo the edit lives or the concrete mechanism (try/except PolynomialError around gcd). The public problem_statement already exposes the symptom (`PolynomialError: Piecewise generators do not make sense`), so the spec view discloses nothing that would let a solver reconstruct the gold patch beyond what is already public. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "No spec drift found; the modeled function agrees with the real Mod.eval 'extract gcd' block on every shape code.\n\nEvidence:\n1. Spec region: model.py verifies (Nagini, 10.95s); model_prepatch.py (unguarded gcd call) fails exactly on 'method raises no exceptions' \u2014 the frozen no-Exsures postcondition senses the real bug (unguarded gcd raising PolynomialError on Piecewise operands).\n2. Axiom soundness vs REAL repo (axiom_check.py run with PYTHONPATH=$SCRATCH, exit 0): common_factor/common_factor_compute \u2194 sympy.gcd is faithful \u2014 7 code-0 pairs return !=1 normally, 6 code-1 pairs return ==1 normally, 5 code-2 (Piecewise/z etc.) pairs RAISE PolynomialError. Independently confirmed.\n3. Behavioral correspondence per code:\n   - code 2: real post-fix catches PolynomialError, sets G=S.One, leaves operands unchanged, no exception escapes -> spec clause Implies(code==2, Result()==build_result(1,p,q)) + absence of Exsures. Matches.\n   - code 1 (gcd==1): if-branch skipped, operands unchanged -> clause 3b. Matches.\n   - code 0 (gcd!=1): each operand rewritten via gcd_terms(i/G) before result built -> clause 3a; opaque divide_out/build_result force the transform. Verified real block yields 3*Mod(6*y,x) = F2P assertion for (12*x+18*y)%(3*x).\n4. Termination: MustTerminate(2)/(1) faithfully models the bounded straight-line real block (one gcd call, optional pair of gcd_terms, one construction; no loop/recursion).\n5. Searched for divergence: probed edge inputs (gcd(0,0), gcd(x,0), gcd(1/x,y)) \u2014 real gcd returns normally, never raises a non-PolynomialError on in-domain shapes, so the no-Exsures obligation is not over-strong. The three-code partition covers the real branch structure exactly; no input where the modeled function disagrees with the real callee.\n\nConclusion: the spec is neither too strong nor drifting from real repo behavior. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view (model.py projected via markers.spec_view, impl elided) reviewed for leakage of the gold edit beyond the public problem_statement. Gold edit: wrap `G = gcd(p, q); if G!=1: gcd_terms(...)` block in `try/except PolynomialError: G = S.One` in sympy/core/mod.py Mod.eval, plus a PolynomialError import. \n\nMechanical G-LEAK screen PASSES (verified via leakage.screen): no diff markers, no gold-patch line reproduced (>=8 chars normalized), no patched file path `sympy/core/mod.py`, no patched module path echoed, no patched symbols (`eval`,`doit`) embedded in spec-view identifiers or named in comments/docstrings, and no narration terms (bug/fix/patch/etc.).\n\nSemantic gold-reconstruction review: the spec view is written entirely in repo-neutral, abstract vocabulary \u2014 an integer `code` classifying three cases, opaque axiom callees `common_factor`/`common_factor_compute`/`divide_out`/`build_result`, and a generic 'helper/factor/operand/transform'. None of the gold-edit localizers appear anywhere in the view: `gcd`, `gcd_terms`, `Mod.eval`, `PolynomialError`, `Piecewise`, `S.One`, `mod.py`, `sympy/core`, `polys`, `singleton`, `subs`, `sinh/cosh/tanh`, `try`, or the issue number `21373`. (The only `except` substring hits are inside the abstract word 'exception'; the string `21379` is only the public instance-id in the module-header docstring, i.e. the solver's task name, not an edit locator.)\n\nThe contract the spec encodes (the operation must catch the helper's raise rather than propagate it, yielding the identity factor with unchanged operands) is the abstract behavior any faithful spec of this fix must state; it does not reveal WHERE in the repo the edit lives or the concrete mechanism (try/except PolynomialError around gcd). The public problem_statement already exposes the symptom (`PolynomialError: Piecewise generators do not make sense`), so the spec view discloses nothing that would let a solver reconstruct the gold patch beyond what is already public. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:58:47+00:00",
+      "code_version": "2afb2f9ba-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-result-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-tuple-transform",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-incode-range",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 12.8
+          },
+          {
+            "expect": "reject",
+            "id": "drop-operand-regroup",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.2
+          },
+          {
+            "expect": "reject",
+            "id": "hardcode-trivial-always",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.7
+          },
+          {
+            "expect": "reject",
+            "id": "fabricate-literal-factor",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.1
+          },
+          {
+            "expect": "reject",
+            "id": "unguarded-raise-escapes",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 11.4
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-factor-on-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 12.0
+          },
+          {
+            "expect": "reject",
+            "id": "operand-overwrite-on-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 11.5
+          },
+          {
+            "expect": "reject",
+            "id": "drop-one-operand-transform",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 11.8
+          },
+          {
+            "expect": "reject",
+            "id": "diverge-before-return",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 11.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "328b458c95d93c48959f65aaf0381e551c61788667eca21bbb5881adce7566ab",
+        "n_cases": 11,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 11 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c1ea48ee03519b7ebf849df747af0e5e08411f3fa3763d32ccfb629d5df50f8",
+        "properties.py": "328b458c95d93c48959f65aaf0381e551c61788667eca21bbb5881adce7566ab"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T08:35:44+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-13T21:12:22+00:00",
+      "code_version": "78ae167c7-dirty",
+      "data": {
+        "wall_time_s": 8.6
+      },
+      "detail": "verified in 8.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "570ea576e841",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-21379",
+  "modeled_functions": [
+    {
+      "carrier_type": "SymPy Expr operand pair (p, q) -> integer case code (0/1/2) + opaque int value carriers; extracted factor G -> int (1 = identity / S.One); the block's produced value -> opaque build_result(G, p, q)",
+      "model_symbol": "reduce_extract_common_factor",
+      "repo_location": "sympy/core/mod.py:38 (block at body lines 168-172)",
+      "repo_symbol": "sympy.core.mod.Mod.eval ('extract gcd' block)",
+      "role": "modeled changed code: the optional common-factor extraction Mod.eval performs before finishing, wrapped by the fix in try/except so the gcd call's raise no longer propagates; the modeled function returns the value the block feeds into Mod.eval's tail (G*cls(p, q)) so the operand regroup is observable in the postcondition"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "the frozen spec's no-exception obligation -- 'method raises no exceptions' might not hold, because on the case-split shape (code 2) the gcd call's raise propagates",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the unguarded common-factor extraction in Mod.eval's 'extract gcd' block",
+      "reverted_to": "G = common_factor_compute(code) with no try/except (the pre-patch G = gcd(p, q))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "5854ce5d90e29867d8236bfbc2d24c7e6f562c473490b465944524bc3a450957",
+    "impl": "bb570806b4cfad6c7e769fd8f43749247f1217df88f5daf8870ae945845b82be",
+    "post-conditions": "7150d9b32702b22dca77e49de66cd925665d6c65ec536802259825db0f88b691",
+    "pre-conditions": "0c292c85f299b33e0bac1d2f8e6975d1545ca58b10f39e23700f9c92521e7de9",
+    "pure": "d9af1f7a7e2a75bcad78589d4d51c1b41e92cdbeed3adbcb378c57a83a03f486",
+    "spec_view": "1fcf7e834fe6c1554095571e3febeedb2a1d19d44fffb11c2834fe4023c62d10"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "1.9"
+}

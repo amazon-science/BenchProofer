@@ -1,0 +1,71 @@
+name: Nightly
+
+# The smoke cases CI cannot run on every push, because they reach the network. They
+# answer a question the offline suite cannot: are the datasets still where their pins
+# say they are, and do the adapters still normalize what upstream ships?
+#
+# A failure here is as often an upstream change as a defect in this repository, which
+# is the point: it is how a moved dataset becomes visible before someone's run fails.
+#
+# The `oracles` profile is available through the run-workflow button. It judges a real
+# SWE-bench instance in its own container image, so it needs a Docker daemon and tens
+# of gigabytes of disk, which a hosted runner may not have.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Smoke profile to run"
+        type: choice
+        default: benchmarks
+        options:
+          - benchmarks
+          - oracles
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: smoke (${{ github.event.inputs.profile || 'benchmarks' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    # The documented environment, because the Nagini toolchain is built from conda and
+    # the `all` profile covers the cases that need it.
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          environment-file: environment.yml
+          activate-environment: benchproofer
+
+      - name: Install
+        run: bash scripts/setup.sh --no-doctor
+
+      - name: Install the pinned verifier toolchains
+        run: make toolchains
+
+      - name: Report what this machine can do
+        run: python -m benchproofer doctor
+
+      # Through the environment rather than inline, so the workflow reads the input as
+      # data and never as shell.
+      - name: Smoke
+        env:
+          PROFILE: ${{ github.event.inputs.profile || 'benchmarks' }}
+        run: bash scripts/smoke.sh "${PROFILE}"
+
+      - name: Upload the smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ github.event.inputs.profile || 'benchmarks' }}
+          path: smoke-out/
+          if-no-files-found: ignore

@@ -1,0 +1,562 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real decimal.Decimal on 21 accepted + 13 malformed + 13 type-error + 17 value-error + 9 range-error boundary inputs + the 8 F2P invalid values + 8000 fuzz, plus a 40000-input cross-arm census that found no fifth rejection class; asserts every rejection is EXACTLY one of {InvalidOperation, TypeError, ValueError, OverflowError} and accepted inputs return normally",
+      "encoded_property": "kind 2 -> returns normally AND the accepted return equals accepted_value(2) (pinned to the constructor's own token, not an arbitrary literal); kind 3 -> raises ConstructorMalformedError (InvalidOperation); kind 4 -> raises ConstructorOperandError (TypeError); kind 5 -> raises ConstructorDomainError (ValueError); kind 6 -> raises ConstructorRangeError (OverflowError), the rejection shape the coercion does NOT classify, so it propagates to the caller unchanged. Weakest contract: which exception class each rejection raises plus the accepted-value pin (the latter required because P2P test_to_python observes the accepted Decimal directly).",
+      "kind": "A-consumed",
+      "models": "decimal.Decimal(value) (CPython stdlib decimal module)",
+      "name": "construct_numeric",
+      "provenance": "decimal.Decimal.__new__: numeric-literal parse -> InvalidOperation (ConversionSyntax) on bad str/bytes literal; type-dispatch fallthrough -> TypeError on unsupported types (dict/set/object/complex/bytes/...); list/tuple coordinate path -> ValueError on bad shape (empty/non-3-length); docs.python.org/3/library/decimal.html#decimal.Decimal. Called at django/db/models/fields/__init__.py:1503",
+      "purity": "@ContractOnly (not @Pure; its Ensures/Exsures are consumed in the impl; its accepted-value Ensures references the @Pure accepted_value accessor)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real decimal.Decimal returns a non-null Decimal instance on all 21 accepted boundary inputs; only non-null-ness is claimed so the axiom never over-claims",
+      "encoded_property": "Requires(kind == 2); Ensures(Result() is not None): the accepted-path constructor returns a non-null token, value abstract. Pins the kind-2 accepted result to the constructor's own value (Result() == accepted_value(kind)), symmetric with from_floating, so the value P2P test_to_python observes is anchored to the callee (closes the spec-too-weak hole flagged by the adversarial panel: a not-None-only kind-2 postcondition admitted return-1 / return-from_floating() impls that verify but break test_to_python).",
+      "kind": "A-consumed",
+      "models": "decimal.Decimal(value)'s returned Decimal on an accepted value (same CPython stdlib callee, viewed as a value accessor)",
+      "name": "accepted_value",
+      "provenance": "decimal.Decimal(value) at django/db/models/fields/__init__.py:1503 returns the constructed Decimal for any accepted value; docs.python.org/3/library/decimal.html#decimal.Decimal",
+      "purity": "@Pure @ContractOnly (referenced inside the post-condition Result() == accepted_value(kind))"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real create_decimal_from_float (prec=4 ctx, as the F2P field) on 22 boundary floats (incl. inf/-inf/nan, sys.float_info.max/min, 5e-324 and a genuine float subclass) + 2000 fuzz; asserts a normal return every time. Genuine floats are the accepted case and never reject.",
+      "encoded_property": "Ensures(True): a @Pure VALUE accessor for the token the floating conversion returns on an operand it ACCEPTS; value abstract, never fabricated by the proof. The floating branch returns EXACTLY this token (Result() == from_floating()), pinning the floating result to its callee (G-MUT tightness). It claims nothing about the refusal case, which the paired convert_floating axiom carries.",
+      "kind": "A-consumed",
+      "models": "decimal.Context.create_decimal_from_float(value)'s returned Decimal on an operand it accepts (CPython stdlib)",
+      "name": "from_floating",
+      "provenance": "self.context.create_decimal_from_float(value) at django/db/models/fields/__init__.py:1501; converts every genuine float (incl. inf/-inf/nan and float subclasses) to a Decimal without raising, the field's context precision only rounding the value; docs.python.org/3/library/decimal.html#decimal.Context.create_decimal_from_float",
+      "purity": "@Pure @ContractOnly (referenced inside the post-condition Result() == from_floating())"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real create_decimal_from_float (prec=4 ctx) on 22 boundary + 2000 fuzz genuine floats returns normally (kind 1); and each of 10 shapes that satisfy the coercion's floating-branch isinstance(value, float) test WITHOUT being a real float (django.utils.functional.SimpleLazyObject x6, MagicMock/Mock/NonCallableMock(spec=float), __class__-attribute and __class__-property spoofers) is asserted to FIRST satisfy that test (else the probe is reported ineffective) and THEN be refused with EXACTLY TypeError (kind 7). Separately, 3 int-payload `__class__ = float` spoofers past the conversion context's Emax are asserted to be refused with a DISTINCT out-of-range class that is neither TypeError nor the constructor's OverflowError (kind 8), with the accepting side of that boundary (10**Emax) still converting normally. Genuine floats cap near 1e308, far inside Emax = 999999, so neither the genuine-float pool nor the object-payload spoofers can reach that boundary.",
+      "encoded_property": "Requires(kind == 1 or kind == 7 or kind == 8); Ensures(kind == 1) - returns normally iff the conversion accepts the operand; Ensures(Implies(kind == 1, Result() == from_floating())) - the accepted return is EXACTLY this callee's token; Exsures(ConstructorOperandError, kind == 7) - it refuses a value that satisfies the coercion's floating-branch test without being one of the operand types it accepts; Exsures(ConversionRangeError, kind == 8) - it refuses a value whose operand type it DOES accept but whose magnitude lies beyond its own context's representable range, with a class distinct from both the wrong-typed-operand one and the constructor's out-of-range one. Weakest contract: accept-or-refuse-two-ways plus the accepted-value pin; a contract carrying only the wrong-typed-operand refusal would claim that is the callee's ONLY rejection, which is false of it.",
+      "kind": "A-consumed",
+      "models": "decimal.Context.create_decimal_from_float(value) (CPython stdlib), as the accept-or-refuse callee the floating branch dispatches to",
+      "name": "convert_floating",
+      "provenance": "self.context.create_decimal_from_float(value) at django/db/models/fields/__init__.py:1501 - called ABOVE and OUTSIDE the try that opens at line 1502, so its own rejection is never converted by the handler at line 1504. Line 1500 guards on isinstance(value, float) while the C _decimal accelerator's create_decimal_from_float does an EXACT PyFloat/PyLong type check (no duck-typed __float__ call), so the guard admits strictly more than the conversion accepts: a value whose __class__ is float without being a real float takes the branch and is refused with TypeError, which escapes to_python raw. Measured identically on the base and gold-patched trees (witness: DecimalField(max_digits=4, decimal_places=2).to_python(SimpleLazyObject(lambda: 1.5)) -> raw TypeError), so this is NOT part of the patch delta. The callee accepts int operands too (its exact check is PyFloat/PyLong), so an int SUBCLASS carrying `__class__ = float` passes both the branch's guard and the callee's type check and is then refused by the conversion context's Overflow trap once its magnitude exceeds Emax = 999999: witness DecimalField(max_digits=4, decimal_places=2).to_python(v) -> raw decimal.Overflow for an int-subclass float-spoofer carrying 10**1000000, while 10**999999 still converts normally, the threshold being precision-independent. Measured identically on the base and gold-patched trees, so this second refusal is NOT part of the patch delta either. docs.python.org/3/library/decimal.html#decimal.Context.create_decimal_from_float",
+      "purity": "@ContractOnly (not @Pure; it can raise and its Ensures/Exsures are consumed in the impl; its accepted-value Ensures references the @Pure from_floating accessor)"
+    }
+  ],
+  "base_commit": "f83b44075dafa429d59e8755aa47e15577cc49f9",
+  "changed_files": [
+    "django/db/models/fields/__init__.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T00:31:52+00:00",
+      "code_version": "33a8ddde2-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: construct_numeric axiom sound against real decimal.Decimal on 21 accepted + 13 malformed + 13 type-error + 17 value-error + 9 range-error boundary inputs, the 8 F2P invalid values, and 8000 fuzz inputs; every rejection is exactly one of {InvalidOperation, TypeError, ValueError, OverflowError}, and a 40000-input cross-arm census found NO fifth class (kind histogram [(2, 2867), (3, 6340), (4, 1836), (5, 26157), (6, 2800)]). accepted_value axiom sound: real decimal.Decimal returned a non-null Decimal on all 21 accepted inputs. from_floating/convert_floating axioms sound: create_decimal_from_float returned normally on 22 boundary + 2000 fuzz floats (incl. inf/-inf/nan and float subclasses), and refused all 10 floating-branch operand spoofers (values satisfying the branch's isinstance test without being real floats) with EXACTLY the wrong-typed-operand class, which escapes the coercion unconverted because that call sits outside the try; and refused 3 int-payload spoofers past the conversion context's Emax with a DISTINCT out-of-range class (neither TypeError nor the constructor's OverflowError), with the accepting side of that boundary (10**Emax) still converting normally. value_kind axiom sound: 118 probe values lowered to a kind in 0..8 with every kind witnessed (histogram [(0, 1), (1, 24), (2, 21), (3, 14), (4, 18), (5, 19), (6, 9), (7, 10), (8, 2)]), so the tag every callee site is required to equal is always defined for the value in scope.",
+      "gate": "G-AX",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "22c508b71ec85d8ef920da0885779fb88a2c4600c25df38e66a8e9377c8afc01",
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T03:41:31+00:00",
+      "code_version": "69dfa6a4e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100136,
+          "disagreements": 0,
+          "out_of_domain": 0,
+          "seed": 130230,
+          "shadow": "direct (contract-stripped impl region; axiomatized callees call the real decimal constructor / float-context conversion)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100136, \"disagreements\": 0, \"seed\": 130230, \"out_of_domain\": 0, \"shadow\": \"direct (contract-stripped impl region; axiomatized callees call the real decimal constructor / float-context conversion)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e102bf3dfe58db5eac67adb4e2252d218598916ba4e1568900e90634e47ff570",
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:50:04+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece",
+        "model_prepatch.py": "a3da040f5516b75bbd9af023d9ba6d1dacc6897e578496a8251c725a9cf69f13"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T04:07:18+00:00",
+      "code_version": "c92235f44-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1_prepatch.py`, `atk_2_kind8_to_validation.py`, `atk_3_float_class_swap.py`, `atk_4_kind8_normal_return.py`, `atk_5_float_token_literal.py`, `atk_8_kind6_as_conversion_range.py`, `atk_9_literal_tag.py`, `atk_10_reverse_token_crossing.py`, `atk_12_vacuity_kind8.py`, `atk_13_diverge_kind8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_6_float_echo.py`, `atk_7_double_call.py`, `atk_11_full_echo.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T04:30:34+00:00",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece",
+        "properties.py": "9b24491b1decc08ddaa6abafa29578fcfb2c525f966703f4d434273d6e03811a"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:50:50+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece",
+        "model_prepatch.py": "a3da040f5516b75bbd9af023d9ba6d1dacc6897e578496a8251c725a9cf69f13"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T23:59:19+00:00",
+      "code_version": "4e1b31ab6-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "af29735cccc3fe1f6a186b05e49135cd1042393350c6dd4a7a296014ddfffa02",
+          "impl": "35536c294ec77f1294deb9889d382c06fece7bbdbc100511dbe0145aa93463ed",
+          "post-conditions": "f75ad1db72651891872fb3bfddfd10b9d36a6a72d50a59592b89e152c1f15c6b",
+          "pre-conditions": "bff03a3cc2aae030cc342bf3f5c8bb9c9a1e78af065278a8612f4227446f8294",
+          "pure": "0b39ccb6a609029fee728e1b7bdade2861925cbe3e806cf1b7cece51610f727c",
+          "spec_view": "a1d1a8ca2dc2f5ba752f9e8b70ada6f3e8d6e1cef4bcd8d22c03c1482cfd0f9f"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T23:59:19+00:00",
+      "code_version": "4e1b31ab6-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "6f746ecca44c834fa1fa8324a1073c0c4c0d8ca6e6258341cab7cf3d69948b73",
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T23:59:20+00:00",
+      "code_version": "4e1b31ab6-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T23:58:38+00:00",
+      "code_version": "4e1b31ab6-dirty",
+      "data": {
+        "judged": 14,
+        "killed": 14,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 14,
+        "unjudged": []
+      },
+      "detail": "killed 14/14 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T03:55:35+00:00",
+      "code_version": "99654c693-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS-BREAK attack on django__django-13023/nagini. Reference = base_commit f83b4407 worktree () with patch.diff APPLIED (), per the brief; base used only for callees the patch does not touch. Bundle unmodified; all work in /tmp.\n\nSPEC INTEGRITY: `adversary same-spec` on an unmodified copy of model.py => exit 0 (byte-identical spec region). `nagini_verify.sh` on it => Verification successful (14.2s).\n\nWHAT THE SPEC CLAIMS (coerce_to_numeric, kinds 0..8): normal return only on 0/1/2 with the result value-pinned (0->None, 1->from_floating(), 2->accepted_value(kind)); ValidationFailure on exactly {3,4,5}; and three RAW-PROPAGATION legs, ConstructorRangeError on 6, ConstructorOperandError on 7, ConversionRangeError on 8. The propagation legs are where a too-strong spec would hide, so I attacked totality of the value->kind map and each leg's real class.\n\nEVIDENCE THE SPEC IS NOT TOO STRONG (real repo == modeled function):\n1. Per-config differential sweep (defin.py): 12 DecimalField configs (max_digits in {None,1,2,4,5,10,28,50,1000,999999,True}) x 862 values = 10344 comparisons; each value lowered to a kind by the REAL callees, spec prediction vs real to_python. Result: 0 DIVERGENCES, 0 NO-KIND. Kind histogram {0:12,1:156,2:336,3:4704,4:120,5:4632,6:312,7:72}.\n2. Value fuzz (fuzz.py): 24018 probes (random strings over printable+unicode-digit+inf/nan alphabets, random coordinate tuples/lists straddling the C ssize_t/long boundaries, random ints/floats/Decimals, float subclasses, +-0.0, +-inf, nan, float_info.max/min, 5e-324) => 0 divergences, 0 NO-KIND.\n3. Broad type sweep (final.py): 36 exotic types (memoryview, deque, array, Fraction, PurePath, datetime, uuid, generators, slice, property, bare classes, ...) => 0 divergences. Values with exception-raising __repr__/__str__/__hash__ still yield ValidationError (kind 4/5), so ValidationError construction does not leak a foreign class.\n4. Each propagation leg confirmed on the REAL patched tree, and confirmed NOT a patch delta (base==patched):\n   - kind 6: to_python((0,(1,),2**63)) and ((0,(10**100,),0)) raise raw OverflowError on BOTH base and patched. Boundary respected: (0,(1,),2**63-1)/(0,(1,),-2**63) are kind 3 (-> ValidationError).\n   - kind 7: isinstance(v,float) True while create_decimal_from_float refuses with TypeError. 13 independent witnesses all give raw TypeError on BOTH trees: SimpleLazyObject(lambda:1.5), __class__-attribute spoofer, __class__-property spoofer, MagicMock/Mock/NonCallableMock(spec=float), str/Decimal/bytes/tuple/complex subclasses with __class__=float. Correctly NOT confused with kind 4: SimpleLazyObject(lambda:3) and (lambda:'a') are isinstance-False and give ValidationError.\n   - kind 8: IntSpoofFloat(int) with __class__=float. 10**1000000 -> raw decimal.Overflow at line 1501 (isinstance(...,TypeError/ValueError/OverflowError/InvalidOperation) all False); decimal.Decimal(W) succeeds, so genuinely NOT the kind-6 constructor arm. Accepting side of the Emax boundary holds: 10**999999 converts normally (kind 1). Precision-independent (Emax stays 999999 for every max_digits).\n5. No 5th rejection class found for either callee. Constructor under MAXIMAL thread-context traps (Overflow/Inexact/Rounded/Subnormal/Underflow/Clamped/FloatOperation all on, prec=1, Emax=1): every rejection still lands in {InvalidOperation,TypeError,ValueError,OverflowError} - no undeclared class. create_decimal_from_float over prec in {1,4,28,50} on genuine floats incl. subnormals/subclasses/inf/nan: 0 raises; on guard-satisfiers only TypeError or decimal.Overflow.\n6. Thread-local decimal context axis (ctxaxis.py): default, all-traps-OFF (where 'abc'/''/1e(9*400) legitimately become kind 2 and to_python returns Decimal('NaN')), and prec=1/Emax=2/InvalidOperation-trapped. The spec tracks the real function in ALL three because the kind is derived from the real callee under the same context - 0 divergences. So the spec is not silently pinned to one context.\n\nPATCH DELTA CORRECTLY LOCATED (basepatch.py, base vs patched): {} , () , b'1', set(), complex(1), [1,2] flip from raw TypeError/ValueError to ValidationError (= kinds 4/5, the classified legs). The three propagation legs (kind 6 OverflowError, kind 7 TypeError) are IDENTICAL on both trees, so declaring them is faithful widening, not spec drift onto the patch delta.\n\nNON-VACUITY / TIGHTNESS CONTROLS (all keep the spec byte-identical via same-spec, all correctly FAIL to verify - so the propagation legs are not escape hatches):\n  ctlA Assert(False) -> 'Assertion False might not hold' (spec is not vacuous)\n  ctlB returns normally on kind 7 -> fails Ensures(kind==0 or 1 or 2)\n  ctlC prepatch shape (kinds 4/5 escape) -> fails Exsures(...,kind==7): declaring kind 7 does NOT open a door for kind 4, despite both being TypeError\n  ctlD blanket handler also swallowing kind 6 -> fails Exsures(ValidationFailure, kind in {3,4,5})\n  ctlE drops the kind-2 value pin (return 1) -> fails Result()==accepted_value(kind)\n\nBUNDLE GATES REPRODUCED: axiom_check.py exit 0 (no 5th constructor class in a 40000-input cross-arm census; both float-callee refusals confirmed with the accepting side of the Emax boundary). conformance_check.py against my patched tree => 'G-CONF OK ... 100136 inputs (136 boundary + 100000 fuzz), 0 disagreements, out_of_domain 0'.\n\nHOST ARTIFACT RULED OUT (recorded so it is not re-litigated as a finding): my first bare `python3 conformance_check.py` reported a DISAGREEMENT on {} (shadow=validation-failure vs real=raw TypeError). That was NOT a spec defect - `django` resolved to an unrelated, UNPATCHED copy of Django, so the oracle side of the comparison was the pre-patch function. The gate itself runs this in docker against a patched /testbed. Pinned to the patched tree instead, and with `PATCHED` confirmed by inspecting the imported to_python source, the check passes clean. Judging that echo as UNFAITHFUL would have invented spec drift out of an environment defect.\n\nONE HONEST SCOPE NOTE (not a defect): outside the field's documented domain the modeled function can be out-run by the real one - max_digits values that make decimal.Context(prec=...) itself raise (0, -1, 4.5, '4', >MAX_PREC) make to_python(1.5) raise raw ValueError/TypeError/OverflowError from the `self.context` property at line 1501, before any modeled callee. Those values lower to NO kind. But this is a field-CONFIGURATION axis, not the coercion's `value` argument, which is what the spec's domain (0<=kind<=8, kind==value_kind()) quantifies over; max_digits<=0 is rejected by Django's own system check fields.E133, and non-int max_digits is outside the field's contract. mapping.md declares the modeled binding as the F2P shape DecimalField(max_digits=4, decimal_places=2) and the callee is applied to the value in scope. For every well-configured field I tested (11 configs, incl. max_digits=None/1/True/999999) the value->kind map is TOTAL and the spec agrees exactly.\n\nCONCLUSION: I could not find any input on which the modeled coercion disagrees with the real patched DecimalField.to_python. The spec is total over the rejection space (four mutually exclusive Exsures legs plus three value-pinned normal returns), each propagation leg is a measured property of the real function on BOTH trees rather than a weakening, and the tightness controls confirm the legs do not admit the prepatch or a blanket handler. Verdict FAITHFUL; no diverging input.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "STRICT-MODE JUDGEMENT \u2014 NO RELAXATION IN PLAY. I checked for the documented-relaxation shape first and it does NOT apply to this bundle: (a) no RELAXED_LEAKAGE.md in the nagini bundle (`find` over the nagini dir -> nothing; the ONLY RELAXED_LEAKAGE.md under this instance is in the sibling **velvet** bundle, a different bundle whose disposition does not travel here); (b) `meta.json` has NO `relaxed_leakage` key (top-level keys enumerated: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, refinement_history, region_hashes, repo, schema_version, string_modeling, version); (c) live gate run `gates.leak.run(Bundle('django__django-13023', get_backend('nagini')))` -> status=pass, detail='spec view clean', failures=[] \u2014 i.e. status is 'pass', not 'relaxed'. So there is no relaxation argument to re-derive; this is an ordinary strict leakage judgement, and I made it from my own measurements.\n\nBUNDLE-DIRECTED-AT-ME CHECK: ran `leakage.reviewer_directed()` over all 11 bundle files (model.py, model_prepatch.py, mapping.md, refinement.md, verdict.md, meta.json, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, plus one transient build artifact) -> [] for every one. No file addresses me, instructs me how to record, or names an 'honest' verdict. meta.json DOES carry a prior G-PANEL-3 note stamped NO-LEAKAGE; I treated that as a ledger entry only and re-derived every measurement below independently. Bundle never modified (all work in /tmp; `git status --porcelain` on the instance dir shows only pre-existing modifications to conformance_check.py/meta.json, none from me).\n\nPROCESS NOTE (measurement hygiene): my first spec-view dump went to a fixed path specview.txt and came back with docstring line 1 reading `django__django-13410` \u2014 a concurrent agent had clobbered the file. I discarded that scan entirely and redid it against a `mktemp` path (sv3_wAz4bP.txt, line 1 = `django__django-13023`). Every token count below is from the re-run.\n\nWHAT THE GOLD EDIT IS. Single hunk, django/db/models/fields/__init__.py:1504: `except decimal.InvalidOperation:` -> `except (decimal.InvalidOperation, TypeError, ValueError):`. Public problem_statement names only: DecimalField.to_python, dict values, TypeError, ValidationError. Token scan of the PS: `ValueError` 0 hits, `InvalidOperation` 0 hits. hints_text is EMPTY (len 0), so nothing here is excused by the hints exclusion.\n\n1. SPEC VIEW DERIVED MECHANICALLY (not by eye): `markers.spec_view(model.py, nagini)` -> 321 lines / 17729 chars, impl region correctly collapsed to `...  # implementation elided`. Spec-region integrity: `adversary same-spec nagini django__django-13023` on a verbatim copy -> exit 0 ('SAME'). `scripts/nagini_verify.sh` on the verbatim model -> 'Verification successful', 13.34s, exit 0 (positive control holds).\n\n2. MECHANICAL SCREEN: `leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch)` -> passed=True, hard_failures=[], warnings=[]. Independent regex probe of the rendered view: ZERO hits for InvalidOperation | TypeError | ValueError | OverflowError | ValidationError | decimal | Decimal | to_python | DecimalField | create_decimal_from_float | fields/__init__ | db.models | 'except decimal' | 'sequence of length' | max_digits | Emax | isinstance | float( | tuple | list | dict, and zero for every diff marker (@@, 'diff --git', '+++ ', '--- ', '\\nindex '), zero for line numbers 1501/1503/1504/1509. `leakage._NARRATION_RE` -> 0 matching lines. 'django' appears exactly once, in the instance label `django__django-13023` on docstring line 1 (already agent-visible). Symbol collision: the patch's only distinctive changed symbol is `to_python`; the spec view's 24 identifiers (coerce_to_numeric, construct_numeric, convert_floating, value_kind, accepted_value, from_floating, ConstructorMalformedError/OperandError/DomainError/RangeError, ConversionRangeError, ValidationFailure, ...) embed none of it.\n\n3. THE ONE NON-PS FACET, AND WHY IT IS NOT A LEAK. The spec pins THREE converted rejection shapes: kind 3 'malformed-literal', kind 4 'wrong-typed-operand', kind 5 'out-of-domain argument'. Kind 4 is the PS's own TypeError-on-dict facet; kind 3 is pre-patch repo behavior the solver reads straight off base_commit (`except decimal.InvalidOperation:` is the UNCHANGED line, and pre-existing P2P test_to_python already pinned 'abc' -> ValidationError). Kind 5 is the only shape with no PS token. I confirmed it is load-bearing spec weight rather than smuggled narration by the strip test: atk_no_kind5.py deletes ONLY `except ConstructorDomainError: raise ValidationFailure()` from the IMPL region (same-spec -> exit 0, spec byte-identical) and nagini_verify -> 'Verification failed ... Assertion \"method only raises exceptions of types ValidationFailure, ConstructorRangeError, ConstructorOperandError, ConversionRangeError\" might not hold.' Stripping it breaks the proof, so the clause carries real weight. It is also oracle-forced, not gratuitous: I executed the real constructor \u2014 decimal.Decimal(()) and decimal.Decimal([]) raise **ValueError** ('argument must be a sequence of length 3'), while {} / set() / object() / complex() / b'non-numeric' all raise TypeError and 'abc' raises InvalidOperation. F2P test_invalid_value (read from test_patch) asserts ValidationError for all eight of (), [], {}, set(), object(), complex(), 'non-numeric string', b'non-numeric byte-string' \u2014 so a spec omitting kind 5 could not imply G-RESOLVE. Control: stripping the PS-PUBLIC kind-4 handler also fails verification, confirming the strip test discriminates rather than always failing.\n\n4. WHY THE FACET DOES NOT RECONSTRUCT THE EDIT. Kind 5 is named only as an abstract acceptance shape \u2014 'the constructor rejects the value as an out-of-domain argument' \u2014 over an integer tag, with a user-defined stand-in class `ConstructorDomainError`. Nothing maps it onto `ValueError`, onto the tuple/list-of-wrong-length input family, onto `except`, onto a tuple-broadening edit, or onto to_python's source. A consumer reading the spec view learns 'three classified rejection shapes must all surface as one uniform validation failure' \u2014 the abstract desired behavior the issue demands \u2014 not 'add TypeError and ValueError to the except clause on line 1504'. Crucially the spec view is stated purely as DESIRED behavior with no prepatch contrast: I scanned for comparative/mechanism phrasing (no longer, used to, previously, instead of, formerly, now also, was only, single-member, three-member, broaden, widen, added, omitted, missing, failed to, only one, narrow) -> ZERO hits. There is no bug->fix narration to invert. The spec view also pins three UNCLASSIFIED escape shapes (kinds 6/7/8) that are NOT part of the gold edit at all, which further dilutes rather than localizes any edit signal.\n\n5. CORE GATES I CONFIRMED MYSELF (so the record is my measurement): G-LEAK live re-run -> pass/clean/[]. G-VERIFY positive control -> 'Verification successful' 13.34s. G-DIFF -> model_prepatch.py shares the spec (same-spec exit 0) and FAILS for the right reason ('Postcondition ... Assertion (kind == 7) might not hold'), so the spec does see the delta. G-RESOLVE recorded resolved (attempts 1, flaky false).\n\nCONCLUSION: the spec view reveals no gold-diff line, no patched file/function/line, no identifier echoing a patched symbol, and no bug->fix mechanism. The single non-PS facet (a third converted rejection shape) is F2P-forced, load-bearing under a machine strip test, and stated at an abstraction level that does not reconstruct the edit. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS-BREAK attack on django__django-13023/nagini. Reference = base_commit f83b4407 worktree () with patch.diff APPLIED (), per the brief; base used only for callees the patch does not touch. Bundle unmodified; all work in /tmp.\n\nSPEC INTEGRITY: `adversary same-spec` on an unmodified copy of model.py => exit 0 (byte-identical spec region). `nagini_verify.sh` on it => Verification successful (14.2s).\n\nWHAT THE SPEC CLAIMS (coerce_to_numeric, kinds 0..8): normal return only on 0/1/2 with the result value-pinned (0->None, 1->from_floating(), 2->accepted_value(kind)); ValidationFailure on exactly {3,4,5}; and three RAW-PROPAGATION legs, ConstructorRangeError on 6, ConstructorOperandError on 7, ConversionRangeError on 8. The propagation legs are where a too-strong spec would hide, so I attacked totality of the value->kind map and each leg's real class.\n\nEVIDENCE THE SPEC IS NOT TOO STRONG (real repo == modeled function):\n1. Per-config differential sweep (defin.py): 12 DecimalField configs (max_digits in {None,1,2,4,5,10,28,50,1000,999999,True}) x 862 values = 10344 comparisons; each value lowered to a kind by the REAL callees, spec prediction vs real to_python. Result: 0 DIVERGENCES, 0 NO-KIND. Kind histogram {0:12,1:156,2:336,3:4704,4:120,5:4632,6:312,7:72}.\n2. Value fuzz (fuzz.py): 24018 probes (random strings over printable+unicode-digit+inf/nan alphabets, random coordinate tuples/lists straddling the C ssize_t/long boundaries, random ints/floats/Decimals, float subclasses, +-0.0, +-inf, nan, float_info.max/min, 5e-324) => 0 divergences, 0 NO-KIND.\n3. Broad type sweep (final.py): 36 exotic types (memoryview, deque, array, Fraction, PurePath, datetime, uuid, generators, slice, property, bare classes, ...) => 0 divergences. Values with exception-raising __repr__/__str__/__hash__ still yield ValidationError (kind 4/5), so ValidationError construction does not leak a foreign class.\n4. Each propagation leg confirmed on the REAL patched tree, and confirmed NOT a patch delta (base==patched):\n   - kind 6: to_python((0,(1,),2**63)) and ((0,(10**100,),0)) raise raw OverflowError on BOTH base and patched. Boundary respected: (0,(1,),2**63-1)/(0,(1,),-2**63) are kind 3 (-> ValidationError).\n   - kind 7: isinstance(v,float) True while create_decimal_from_float refuses with TypeError. 13 independent witnesses all give raw TypeError on BOTH trees: SimpleLazyObject(lambda:1.5), __class__-attribute spoofer, __class__-property spoofer, MagicMock/Mock/NonCallableMock(spec=float), str/Decimal/bytes/tuple/complex subclasses with __class__=float. Correctly NOT confused with kind 4: SimpleLazyObject(lambda:3) and (lambda:'a') are isinstance-False and give ValidationError.\n   - kind 8: IntSpoofFloat(int) with __class__=float. 10**1000000 -> raw decimal.Overflow at line 1501 (isinstance(...,TypeError/ValueError/OverflowError/InvalidOperation) all False); decimal.Decimal(W) succeeds, so genuinely NOT the kind-6 constructor arm. Accepting side of the Emax boundary holds: 10**999999 converts normally (kind 1). Precision-independent (Emax stays 999999 for every max_digits).\n5. No 5th rejection class found for either callee. Constructor under MAXIMAL thread-context traps (Overflow/Inexact/Rounded/Subnormal/Underflow/Clamped/FloatOperation all on, prec=1, Emax=1): every rejection still lands in {InvalidOperation,TypeError,ValueError,OverflowError} - no undeclared class. create_decimal_from_float over prec in {1,4,28,50} on genuine floats incl. subnormals/subclasses/inf/nan: 0 raises; on guard-satisfiers only TypeError or decimal.Overflow.\n6. Thread-local decimal context axis (ctxaxis.py): default, all-traps-OFF (where 'abc'/''/1e(9*400) legitimately become kind 2 and to_python returns Decimal('NaN')), and prec=1/Emax=2/InvalidOperation-trapped. The spec tracks the real function in ALL three because the kind is derived from the real callee under the same context - 0 divergences. So the spec is not silently pinned to one context.\n\nPATCH DELTA CORRECTLY LOCATED (basepatch.py, base vs patched): {} , () , b'1', set(), complex(1), [1,2] flip from raw TypeError/ValueError to ValidationError (= kinds 4/5, the classified legs). The three propagation legs (kind 6 OverflowError, kind 7 TypeError) are IDENTICAL on both trees, so declaring them is faithful widening, not spec drift onto the patch delta.\n\nNON-VACUITY / TIGHTNESS CONTROLS (all keep the spec byte-identical via same-spec, all correctly FAIL to verify - so the propagation legs are not escape hatches):\n  ctlA Assert(False) -> 'Assertion False might not hold' (spec is not vacuous)\n  ctlB returns normally on kind 7 -> fails Ensures(kind==0 or 1 or 2)\n  ctlC prepatch shape (kinds 4/5 escape) -> fails Exsures(...,kind==7): declaring kind 7 does NOT open a door for kind 4, despite both being TypeError\n  ctlD blanket handler also swallowing kind 6 -> fails Exsures(ValidationFailure, kind in {3,4,5})\n  ctlE drops the kind-2 value pin (return 1) -> fails Result()==accepted_value(kind)\n\nBUNDLE GATES REPRODUCED: axiom_check.py exit 0 (no 5th constructor class in a 40000-input cross-arm census; both float-callee refusals confirmed with the accepting side of the Emax boundary). conformance_check.py against my patched tree => 'G-CONF OK ... 100136 inputs (136 boundary + 100000 fuzz), 0 disagreements, out_of_domain 0'.\n\nHOST ARTIFACT RULED OUT (recorded so it is not re-litigated as a finding): my first bare `python3 conformance_check.py` reported a DISAGREEMENT on {} (shadow=validation-failure vs real=raw TypeError). That was NOT a spec defect - `django` resolved to an unrelated, UNPATCHED copy of Django, so the oracle side of the comparison was the pre-patch function. The gate itself runs this in docker against a patched /testbed. Pinned to the patched tree instead, and with `PATCHED` confirmed by inspecting the imported to_python source, the check passes clean. Judging that echo as UNFAITHFUL would have invented spec drift out of an environment defect.\n\nONE HONEST SCOPE NOTE (not a defect): outside the field's documented domain the modeled function can be out-run by the real one - max_digits values that make decimal.Context(prec=...) itself raise (0, -1, 4.5, '4', >MAX_PREC) make to_python(1.5) raise raw ValueError/TypeError/OverflowError from the `self.context` property at line 1501, before any modeled callee. Those values lower to NO kind. But this is a field-CONFIGURATION axis, not the coercion's `value` argument, which is what the spec's domain (0<=kind<=8, kind==value_kind()) quantifies over; max_digits<=0 is rejected by Django's own system check fields.E133, and non-int max_digits is outside the field's contract. mapping.md declares the modeled binding as the F2P shape DecimalField(max_digits=4, decimal_places=2) and the callee is applied to the value in scope. For every well-configured field I tested (11 configs, incl. max_digits=None/1/True/999999) the value->kind map is TOTAL and the spec agrees exactly.\n\nCONCLUSION: I could not find any input on which the modeled coercion disagrees with the real patched DecimalField.to_python. The spec is total over the rejection space (four mutually exclusive Exsures legs plus three value-pinned normal returns), each propagation leg is a measured property of the real function on BOTH trees rather than a weakening, and the tightness controls confirm the legs do not admit the prepatch or a blanket handler. Verdict FAITHFUL; no diverging input.; G-PANEL-3 (leakage): pass \u2014 STRICT-MODE JUDGEMENT \u2014 NO RELAXATION IN PLAY. I checked for the documented-relaxation shape first and it does NOT apply to this bundle: (a) no RELAXED_LEAKAGE.md in the nagini bundle (`find` over the nagini dir -> nothing; the ONLY RELAXED_LEAKAGE.md under this instance is in the sibling **velvet** bundle, a different bundle whose disposition does not travel here); (b) `meta.json` has NO `relaxed_leakage` key (top-level keys enumerated: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, refinement_history, region_hashes, repo, schema_version, string_modeling, version); (c) live gate run `gates.leak.run(Bundle('django__django-13023', get_backend('nagini')))` -> status=pass, detail='spec view clean', failures=[] \u2014 i.e. status is 'pass', not 'relaxed'. So there is no relaxation argument to re-derive; this is an ordinary strict leakage judgement, and I made it from my own measurements.\n\nBUNDLE-DIRECTED-AT-ME CHECK: ran `leakage.reviewer_directed()` over all 11 bundle files (model.py, model_prepatch.py, mapping.md, refinement.md, verdict.md, meta.json, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, plus one transient build artifact) -> [] for every one. No file addresses me, instructs me how to record, or names an 'honest' verdict. meta.json DOES carry a prior G-PANEL-3 note stamped NO-LEAKAGE; I treated that as a ledger entry only and re-derived every measurement below independently. Bundle never modified (all work in /tmp; `git status --porcelain` on the instance dir shows only pre-existing modifications to conformance_check.py/meta.json, none from me).\n\nPROCESS NOTE (measurement hygiene): my first spec-view dump went to a fixed path specview.txt and came back with docstring line 1 reading `django__django-13410` \u2014 a concurrent agent had clobbered the file. I discarded that scan entirely and redid it against a `mktemp` path (sv3_wAz4bP.txt, line 1 = `django__django-13023`). Every token count below is from the re-run.\n\nWHAT THE GOLD EDIT IS. Single hunk, django/db/models/fields/__init__.py:1504: `except decimal.InvalidOperation:` -> `except (decimal.InvalidOperation, TypeError, ValueError):`. Public problem_statement names only: DecimalField.to_python, dict values, TypeError, ValidationError. Token scan of the PS: `ValueError` 0 hits, `InvalidOperation` 0 hits. hints_text is EMPTY (len 0), so nothing here is excused by the hints exclusion.\n\n1. SPEC VIEW DERIVED MECHANICALLY (not by eye): `markers.spec_view(model.py, nagini)` -> 321 lines / 17729 chars, impl region correctly collapsed to `...  # implementation elided`. Spec-region integrity: `adversary same-spec nagini django__django-13023` on a verbatim copy -> exit 0 ('SAME'). `scripts/nagini_verify.sh` on the verbatim model -> 'Verification successful', 13.34s, exit 0 (positive control holds).\n\n2. MECHANICAL SCREEN: `leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch)` -> passed=True, hard_failures=[], warnings=[]. Independent regex probe of the rendered view: ZERO hits for InvalidOperation | TypeError | ValueError | OverflowError | ValidationError | decimal | Decimal | to_python | DecimalField | create_decimal_from_float | fields/__init__ | db.models | 'except decimal' | 'sequence of length' | max_digits | Emax | isinstance | float( | tuple | list | dict, and zero for every diff marker (@@, 'diff --git', '+++ ', '--- ', '\\nindex '), zero for line numbers 1501/1503/1504/1509. `leakage._NARRATION_RE` -> 0 matching lines. 'django' appears exactly once, in the instance label `django__django-13023` on docstring line 1 (already agent-visible). Symbol collision: the patch's only distinctive changed symbol is `to_python`; the spec view's 24 identifiers (coerce_to_numeric, construct_numeric, convert_floating, value_kind, accepted_value, from_floating, ConstructorMalformedError/OperandError/DomainError/RangeError, ConversionRangeError, ValidationFailure, ...) embed none of it.\n\n3. THE ONE NON-PS FACET, AND WHY IT IS NOT A LEAK. The spec pins THREE converted rejection shapes: kind 3 'malformed-literal', kind 4 'wrong-typed-operand', kind 5 'out-of-domain argument'. Kind 4 is the PS's own TypeError-on-dict facet; kind 3 is pre-patch repo behavior the solver reads straight off base_commit (`except decimal.InvalidOperation:` is the UNCHANGED line, and pre-existing P2P test_to_python already pinned 'abc' -> ValidationError). Kind 5 is the only shape with no PS token. I confirmed it is load-bearing spec weight rather than smuggled narration by the strip test: atk_no_kind5.py deletes ONLY `except ConstructorDomainError: raise ValidationFailure()` from the IMPL region (same-spec -> exit 0, spec byte-identical) and nagini_verify -> 'Verification failed ... Assertion \"method only raises exceptions of types ValidationFailure, ConstructorRangeError, ConstructorOperandError, ConversionRangeError\" might not hold.' Stripping it breaks the proof, so the clause carries real weight. It is also oracle-forced, not gratuitous: I executed the real constructor \u2014 decimal.Decimal(()) and decimal.Decimal([]) raise **ValueError** ('argument must be a sequence of length 3'), while {} / set() / object() / complex() / b'non-numeric' all raise TypeError and 'abc' raises InvalidOperation. F2P test_invalid_value (read from test_patch) asserts ValidationError for all eight of (), [], {}, set(), object(), complex(), 'non-numeric string', b'non-numeric byte-string' \u2014 so a spec omitting kind 5 could not imply G-RESOLVE. Control: stripping the PS-PUBLIC kind-4 handler also fails verification, confirming the strip test discriminates rather than always failing.\n\n4. WHY THE FACET DOES NOT RECONSTRUCT THE EDIT. Kind 5 is named only as an abstract acceptance shape \u2014 'the constructor rejects the value as an out-of-domain argument' \u2014 over an integer tag, with a user-defined stand-in class `ConstructorDomainError`. Nothing maps it onto `ValueError`, onto the tuple/list-of-wrong-length input family, onto `except`, onto a tuple-broadening edit, or onto to_python's source. A consumer reading the spec view learns 'three classified rejection shapes must all surface as one uniform validation failure' \u2014 the abstract desired behavior the issue demands \u2014 not 'add TypeError and ValueError to the except clause on line 1504'. Crucially the spec view is stated purely as DESIRED behavior with no prepatch contrast: I scanned for comparative/mechanism phrasing (no longer, used to, previously, instead of, formerly, now also, was only, single-member, three-member, broaden, widen, added, omitted, missing, failed to, only one, narrow) -> ZERO hits. There is no bug->fix narration to invert. The spec view also pins three UNCLASSIFIED escape shapes (kinds 6/7/8) that are NOT part of the gold edit at all, which further dilutes rather than localizes any edit signal.\n\n5. CORE GATES I CONFIRMED MYSELF (so the record is my measurement): G-LEAK live re-run -> pass/clean/[]. G-VERIFY positive control -> 'Verification successful' 13.34s. G-DIFF -> model_prepatch.py shares the spec (same-spec exit 0) and FAILS for the right reason ('Postcondition ... Assertion (kind == 7) might not hold'), so the spec does see the delta. G-RESOLVE recorded resolved (attempts 1, flaky false).\n\nCONCLUSION: the spec view reveals no gold-diff line, no patched file/function/line, no identifier echoing a patched symbol, and no bug->fix mechanism. The single non-PS facet (a third converted rejection shape) is F2P-forced, load-bearing under a machine strip test, and stated at an abstraction level that does not reconstruct the edit. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T04:30:34+00:00",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T04:10:46+00:00",
+      "code_version": "c92235f44-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1_prepatch.py`, `atk_2_kind8_to_validation.py`, `atk_3_float_class_swap.py`, `atk_4_kind8_normal_return.py`, `atk_5_float_token_literal.py`, `atk_8_kind6_as_conversion_range.py`, `atk_9_literal_tag.py`, `atk_10_reverse_token_crossing.py`, `atk_12_vacuity_kind8.py`, `atk_13_diverge_kind8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_6_float_echo.py`, `atk_7_double_call.py`, `atk_11_full_echo.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece",
+        "properties.py": "9b24491b1decc08ddaa6abafa29578fcfb2c525f966703f4d434273d6e03811a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T04:30:33+00:00",
+      "code_version": "6076372c4-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS-BREAK attack on django__django-13023/nagini. Reference = base_commit f83b4407 worktree () with patch.diff APPLIED (), per the brief; base used only for callees the patch does not touch. Bundle unmodified; all work in /tmp.\n\nSPEC INTEGRITY: `adversary same-spec` on an unmodified copy of model.py => exit 0 (byte-identical spec region). `nagini_verify.sh` on it => Verification successful (14.2s).\n\nWHAT THE SPEC CLAIMS (coerce_to_numeric, kinds 0..8): normal return only on 0/1/2 with the result value-pinned (0->None, 1->from_floating(), 2->accepted_value(kind)); ValidationFailure on exactly {3,4,5}; and three RAW-PROPAGATION legs, ConstructorRangeError on 6, ConstructorOperandError on 7, ConversionRangeError on 8. The propagation legs are where a too-strong spec would hide, so I attacked totality of the value->kind map and each leg's real class.\n\nEVIDENCE THE SPEC IS NOT TOO STRONG (real repo == modeled function):\n1. Per-config differential sweep (defin.py): 12 DecimalField configs (max_digits in {None,1,2,4,5,10,28,50,1000,999999,True}) x 862 values = 10344 comparisons; each value lowered to a kind by the REAL callees, spec prediction vs real to_python. Result: 0 DIVERGENCES, 0 NO-KIND. Kind histogram {0:12,1:156,2:336,3:4704,4:120,5:4632,6:312,7:72}.\n2. Value fuzz (fuzz.py): 24018 probes (random strings over printable+unicode-digit+inf/nan alphabets, random coordinate tuples/lists straddling the C ssize_t/long boundaries, random ints/floats/Decimals, float subclasses, +-0.0, +-inf, nan, float_info.max/min, 5e-324) => 0 divergences, 0 NO-KIND.\n3. Broad type sweep (final.py): 36 exotic types (memoryview, deque, array, Fraction, PurePath, datetime, uuid, generators, slice, property, bare classes, ...) => 0 divergences. Values with exception-raising __repr__/__str__/__hash__ still yield ValidationError (kind 4/5), so ValidationError construction does not leak a foreign class.\n4. Each propagation leg confirmed on the REAL patched tree, and confirmed NOT a patch delta (base==patched):\n   - kind 6: to_python((0,(1,),2**63)) and ((0,(10**100,),0)) raise raw OverflowError on BOTH base and patched. Boundary respected: (0,(1,),2**63-1)/(0,(1,),-2**63) are kind 3 (-> ValidationError).\n   - kind 7: isinstance(v,float) True while create_decimal_from_float refuses with TypeError. 13 independent witnesses all give raw TypeError on BOTH trees: SimpleLazyObject(lambda:1.5), __class__-attribute spoofer, __class__-property spoofer, MagicMock/Mock/NonCallableMock(spec=float), str/Decimal/bytes/tuple/complex subclasses with __class__=float. Correctly NOT confused with kind 4: SimpleLazyObject(lambda:3) and (lambda:'a') are isinstance-False and give ValidationError.\n   - kind 8: IntSpoofFloat(int) with __class__=float. 10**1000000 -> raw decimal.Overflow at line 1501 (isinstance(...,TypeError/ValueError/OverflowError/InvalidOperation) all False); decimal.Decimal(W) succeeds, so genuinely NOT the kind-6 constructor arm. Accepting side of the Emax boundary holds: 10**999999 converts normally (kind 1). Precision-independent (Emax stays 999999 for every max_digits).\n5. No 5th rejection class found for either callee. Constructor under MAXIMAL thread-context traps (Overflow/Inexact/Rounded/Subnormal/Underflow/Clamped/FloatOperation all on, prec=1, Emax=1): every rejection still lands in {InvalidOperation,TypeError,ValueError,OverflowError} - no undeclared class. create_decimal_from_float over prec in {1,4,28,50} on genuine floats incl. subnormals/subclasses/inf/nan: 0 raises; on guard-satisfiers only TypeError or decimal.Overflow.\n6. Thread-local decimal context axis (ctxaxis.py): default, all-traps-OFF (where 'abc'/''/1e(9*400) legitimately become kind 2 and to_python returns Decimal('NaN')), and prec=1/Emax=2/InvalidOperation-trapped. The spec tracks the real function in ALL three because the kind is derived from the real callee under the same context - 0 divergences. So the spec is not silently pinned to one context.\n\nPATCH DELTA CORRECTLY LOCATED (basepatch.py, base vs patched): {} , () , b'1', set(), complex(1), [1,2] flip from raw TypeError/ValueError to ValidationError (= kinds 4/5, the classified legs). The three propagation legs (kind 6 OverflowError, kind 7 TypeError) are IDENTICAL on both trees, so declaring them is faithful widening, not spec drift onto the patch delta.\n\nNON-VACUITY / TIGHTNESS CONTROLS (all keep the spec byte-identical via same-spec, all correctly FAIL to verify - so the propagation legs are not escape hatches):\n  ctlA Assert(False) -> 'Assertion False might not hold' (spec is not vacuous)\n  ctlB returns normally on kind 7 -> fails Ensures(kind==0 or 1 or 2)\n  ctlC prepatch shape (kinds 4/5 escape) -> fails Exsures(...,kind==7): declaring kind 7 does NOT open a door for kind 4, despite both being TypeError\n  ctlD blanket handler also swallowing kind 6 -> fails Exsures(ValidationFailure, kind in {3,4,5})\n  ctlE drops the kind-2 value pin (return 1) -> fails Result()==accepted_value(kind)\n\nBUNDLE GATES REPRODUCED: axiom_check.py exit 0 (no 5th constructor class in a 40000-input cross-arm census; both float-callee refusals confirmed with the accepting side of the Emax boundary). conformance_check.py against my patched tree => 'G-CONF OK ... 100136 inputs (136 boundary + 100000 fuzz), 0 disagreements, out_of_domain 0'.\n\nHOST ARTIFACT RULED OUT (recorded so it is not re-litigated as a finding): my first bare `python3 conformance_check.py` reported a DISAGREEMENT on {} (shadow=validation-failure vs real=raw TypeError). That was NOT a spec defect - `django` resolved to an unrelated, UNPATCHED copy of Django, so the oracle side of the comparison was the pre-patch function. The gate itself runs this in docker against a patched /testbed. Pinned to the patched tree instead, and with `PATCHED` confirmed by inspecting the imported to_python source, the check passes clean. Judging that echo as UNFAITHFUL would have invented spec drift out of an environment defect.\n\nONE HONEST SCOPE NOTE (not a defect): outside the field's documented domain the modeled function can be out-run by the real one - max_digits values that make decimal.Context(prec=...) itself raise (0, -1, 4.5, '4', >MAX_PREC) make to_python(1.5) raise raw ValueError/TypeError/OverflowError from the `self.context` property at line 1501, before any modeled callee. Those values lower to NO kind. But this is a field-CONFIGURATION axis, not the coercion's `value` argument, which is what the spec's domain (0<=kind<=8, kind==value_kind()) quantifies over; max_digits<=0 is rejected by Django's own system check fields.E133, and non-int max_digits is outside the field's contract. mapping.md declares the modeled binding as the F2P shape DecimalField(max_digits=4, decimal_places=2) and the callee is applied to the value in scope. For every well-configured field I tested (11 configs, incl. max_digits=None/1/True/999999) the value->kind map is TOTAL and the spec agrees exactly.\n\nCONCLUSION: I could not find any input on which the modeled coercion disagrees with the real patched DecimalField.to_python. The spec is total over the rejection space (four mutually exclusive Exsures legs plus three value-pinned normal returns), each propagation leg is a measured property of the real function on BOTH trees rather than a weakening, and the tightness controls confirm the legs do not admit the prepatch or a blanket handler. Verdict FAITHFUL; no diverging input.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T03:55:35+00:00",
+      "code_version": "99654c693-dirty",
+      "harness_digest": "b2861d5ca6c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "STRICT-MODE JUDGEMENT \u2014 NO RELAXATION IN PLAY. I checked for the documented-relaxation shape first and it does NOT apply to this bundle: (a) no RELAXED_LEAKAGE.md in the nagini bundle (`find` over the nagini dir -> nothing; the ONLY RELAXED_LEAKAGE.md under this instance is in the sibling **velvet** bundle, a different bundle whose disposition does not travel here); (b) `meta.json` has NO `relaxed_leakage` key (top-level keys enumerated: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, refinement_history, region_hashes, repo, schema_version, string_modeling, version); (c) live gate run `gates.leak.run(Bundle('django__django-13023', get_backend('nagini')))` -> status=pass, detail='spec view clean', failures=[] \u2014 i.e. status is 'pass', not 'relaxed'. So there is no relaxation argument to re-derive; this is an ordinary strict leakage judgement, and I made it from my own measurements.\n\nBUNDLE-DIRECTED-AT-ME CHECK: ran `leakage.reviewer_directed()` over all 11 bundle files (model.py, model_prepatch.py, mapping.md, refinement.md, verdict.md, meta.json, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, plus one transient build artifact) -> [] for every one. No file addresses me, instructs me how to record, or names an 'honest' verdict. meta.json DOES carry a prior G-PANEL-3 note stamped NO-LEAKAGE; I treated that as a ledger entry only and re-derived every measurement below independently. Bundle never modified (all work in /tmp; `git status --porcelain` on the instance dir shows only pre-existing modifications to conformance_check.py/meta.json, none from me).\n\nPROCESS NOTE (measurement hygiene): my first spec-view dump went to a fixed path specview.txt and came back with docstring line 1 reading `django__django-13410` \u2014 a concurrent agent had clobbered the file. I discarded that scan entirely and redid it against a `mktemp` path (sv3_wAz4bP.txt, line 1 = `django__django-13023`). Every token count below is from the re-run.\n\nWHAT THE GOLD EDIT IS. Single hunk, django/db/models/fields/__init__.py:1504: `except decimal.InvalidOperation:` -> `except (decimal.InvalidOperation, TypeError, ValueError):`. Public problem_statement names only: DecimalField.to_python, dict values, TypeError, ValidationError. Token scan of the PS: `ValueError` 0 hits, `InvalidOperation` 0 hits. hints_text is EMPTY (len 0), so nothing here is excused by the hints exclusion.\n\n1. SPEC VIEW DERIVED MECHANICALLY (not by eye): `markers.spec_view(model.py, nagini)` -> 321 lines / 17729 chars, impl region correctly collapsed to `...  # implementation elided`. Spec-region integrity: `adversary same-spec nagini django__django-13023` on a verbatim copy -> exit 0 ('SAME'). `scripts/nagini_verify.sh` on the verbatim model -> 'Verification successful', 13.34s, exit 0 (positive control holds).\n\n2. MECHANICAL SCREEN: `leakage.screen(model.py, nagini, gold_patch, problem_statement, test_patch)` -> passed=True, hard_failures=[], warnings=[]. Independent regex probe of the rendered view: ZERO hits for InvalidOperation | TypeError | ValueError | OverflowError | ValidationError | decimal | Decimal | to_python | DecimalField | create_decimal_from_float | fields/__init__ | db.models | 'except decimal' | 'sequence of length' | max_digits | Emax | isinstance | float( | tuple | list | dict, and zero for every diff marker (@@, 'diff --git', '+++ ', '--- ', '\\nindex '), zero for line numbers 1501/1503/1504/1509. `leakage._NARRATION_RE` -> 0 matching lines. 'django' appears exactly once, in the instance label `django__django-13023` on docstring line 1 (already agent-visible). Symbol collision: the patch's only distinctive changed symbol is `to_python`; the spec view's 24 identifiers (coerce_to_numeric, construct_numeric, convert_floating, value_kind, accepted_value, from_floating, ConstructorMalformedError/OperandError/DomainError/RangeError, ConversionRangeError, ValidationFailure, ...) embed none of it.\n\n3. THE ONE NON-PS FACET, AND WHY IT IS NOT A LEAK. The spec pins THREE converted rejection shapes: kind 3 'malformed-literal', kind 4 'wrong-typed-operand', kind 5 'out-of-domain argument'. Kind 4 is the PS's own TypeError-on-dict facet; kind 3 is pre-patch repo behavior the solver reads straight off base_commit (`except decimal.InvalidOperation:` is the UNCHANGED line, and pre-existing P2P test_to_python already pinned 'abc' -> ValidationError). Kind 5 is the only shape with no PS token. I confirmed it is load-bearing spec weight rather than smuggled narration by the strip test: atk_no_kind5.py deletes ONLY `except ConstructorDomainError: raise ValidationFailure()` from the IMPL region (same-spec -> exit 0, spec byte-identical) and nagini_verify -> 'Verification failed ... Assertion \"method only raises exceptions of types ValidationFailure, ConstructorRangeError, ConstructorOperandError, ConversionRangeError\" might not hold.' Stripping it breaks the proof, so the clause carries real weight. It is also oracle-forced, not gratuitous: I executed the real constructor \u2014 decimal.Decimal(()) and decimal.Decimal([]) raise **ValueError** ('argument must be a sequence of length 3'), while {} / set() / object() / complex() / b'non-numeric' all raise TypeError and 'abc' raises InvalidOperation. F2P test_invalid_value (read from test_patch) asserts ValidationError for all eight of (), [], {}, set(), object(), complex(), 'non-numeric string', b'non-numeric byte-string' \u2014 so a spec omitting kind 5 could not imply G-RESOLVE. Control: stripping the PS-PUBLIC kind-4 handler also fails verification, confirming the strip test discriminates rather than always failing.\n\n4. WHY THE FACET DOES NOT RECONSTRUCT THE EDIT. Kind 5 is named only as an abstract acceptance shape \u2014 'the constructor rejects the value as an out-of-domain argument' \u2014 over an integer tag, with a user-defined stand-in class `ConstructorDomainError`. Nothing maps it onto `ValueError`, onto the tuple/list-of-wrong-length input family, onto `except`, onto a tuple-broadening edit, or onto to_python's source. A consumer reading the spec view learns 'three classified rejection shapes must all surface as one uniform validation failure' \u2014 the abstract desired behavior the issue demands \u2014 not 'add TypeError and ValueError to the except clause on line 1504'. Crucially the spec view is stated purely as DESIRED behavior with no prepatch contrast: I scanned for comparative/mechanism phrasing (no longer, used to, previously, instead of, formerly, now also, was only, single-member, three-member, broaden, widen, added, omitted, missing, failed to, only one, narrow) -> ZERO hits. There is no bug->fix narration to invert. The spec view also pins three UNCLASSIFIED escape shapes (kinds 6/7/8) that are NOT part of the gold edit at all, which further dilutes rather than localizes any edit signal.\n\n5. CORE GATES I CONFIRMED MYSELF (so the record is my measurement): G-LEAK live re-run -> pass/clean/[]. G-VERIFY positive control -> 'Verification successful' 13.34s. G-DIFF -> model_prepatch.py shares the spec (same-spec exit 0) and FAILS for the right reason ('Postcondition ... Assertion (kind == 7) might not hold'), so the spec does see the delta. G-RESOLVE recorded resolved (attempts 1, flaky false).\n\nCONCLUSION: the spec view reveals no gold-diff line, no patched file/function/line, no identifier echoing a patched symbol, and no bug->fix mechanism. The single non-PS facet (a third converted rejection shape) is F2P-forced, load-bearing under a machine strip test, and stated at an abstraction level that does not reconstruct the edit. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:16:05+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-explicit-reraise",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 51.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder-fastpaths",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 49.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-accepted-shape",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 56.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch-only-malformed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-kind4-escape",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.3
+          },
+          {
+            "expect": "reject",
+            "id": "cflow-swallow-reject",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 38.7
+          },
+          {
+            "expect": "reject",
+            "id": "cflow-reraise-raw",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-const-kind2",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-fromfloat-kind2",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-const-kind1",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.6
+          },
+          {
+            "expect": "reject",
+            "id": "over-convert-unclassified",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.2
+          },
+          {
+            "expect": "reject",
+            "id": "return-on-unclassified",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 40.2
+          },
+          {
+            "expect": "reject",
+            "id": "over-convert-floating-branch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.9
+          },
+          {
+            "expect": "reject",
+            "id": "return-on-floating-refused",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.5
+          },
+          {
+            "expect": "reject",
+            "id": "over-convert-float-range",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.2
+          },
+          {
+            "expect": "reject",
+            "id": "return-on-float-range",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.5
+          },
+          {
+            "expect": "reject",
+            "id": "swap-float-refusals",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 14
+        },
+        "manifest_sha256": "9b24491b1decc08ddaa6abafa29578fcfb2c525f966703f4d434273d6e03811a",
+        "n_cases": 17,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 17 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece",
+        "properties.py": "9b24491b1decc08ddaa6abafa29578fcfb2c525f966703f4d434273d6e03811a"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T00:00:05+00:00",
+      "code_version": "4e1b31ab6-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "6f746ecca44c834fa1fa8324a1073c0c4c0d8ca6e6258341cab7cf3d69948b73",
+        "patch.diff": "fa928203a98f8e88897bd3435095cd22a4e44a74a6fd88a98624ae0e611596fb"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T23:56:37+00:00",
+      "code_version": "c84b4ced5-dirty",
+      "data": {
+        "wall_time_s": 11.7
+      },
+      "detail": "verified in 11.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0df2b3d5c103c4959a5665987897370229c48cb7a7cfb9da71a12e7b21c85ece"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13023",
+  "modeled_functions": [
+    {
+      "carrier_type": "arbitrary value -> int acceptance kind {0 absent, 1 floating-accepted, 2 constructor-accepted, 3 InvalidOperation, 4 TypeError (constructor, inside the try), 5 ValueError, 6 OverflowError, 7 TypeError (floating conversion, outside the try), 8 decimal.Overflow (floating conversion, operand type accepted but magnitude beyond its context's Emax, outside the try)}; result Optional[int] (null token = absent, non-null token = constructed)",
+      "model_symbol": "coerce_to_numeric",
+      "repo_location": "django/db/models/fields/__init__.py:1497",
+      "repo_symbol": "django.db.models.fields.DecimalField.to_python",
+      "role": "modeled changed function (value -> Decimal coercion); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; single hunk, line 1504: except decimal.InvalidOperation -> except (decimal.InvalidOperation, TypeError, ValueError))",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition 'method only raises exceptions of types ValidationFailure, ConstructorRangeError, ConstructorOperandError, ConversionRangeError' \u2014 on kind 4 (TypeError from the constructor, inside the try) and kind 5 (ValueError) it lets the constructor's own ConstructorOperandError/ConstructorDomainError escape, which the ValidationFailure leg forbids: kind 4 must be CONVERTED (the ConstructorOperandError propagation leg is guarded by kind == 7 only, i.e. the floating conversion outside the try), and kind 5 has no propagation leg at all",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "DecimalField.to_python() exception classification: every constructor rejection must become a ValidationError",
+      "reverted_to": "old `except decimal.InvalidOperation:` (catches only the malformed-literal rejection)"
+    }
+  ],
+  "refinement_history": [
+    {
+      "cycle": "adversarial-panel batch01",
+      "defect": "kind-2 (constructor-accepted) result was pinned only to Result() is not None while the kind-1 float result was value-pinned to from_floating(). This asymmetry admitted verifying-but-non-resolving impls (atk_10b: 'if kind==2: return 1'; atk_10: 'if kind==2: return from_floating()') whose faithful refinement returns a constant/wrong Decimal, breaking P2P test_to_python (assertEqual(f.to_python(3), Decimal('3'))). mapping.md also falsely claimed the accepted value's numeric content was unobserved.",
+      "fix": "STRENGTHENED the spec (no contract weakened): added @Pure @ContractOnly accepted_value(kind) accessor (models decimal.Decimal(value)'s accepted return, symmetric with from_floating); construct_numeric now Ensures(Implies(kind==2, Result()==accepted_value(2))); coerce_to_numeric kind-2 postcondition now Result() is not None and Result()==accepted_value(kind). Corrected mapping.md sec2 to state the accepted value IS observed by P2P and must be pinned. Verified: gold-faithful model verifies (38.4s); atk_10b now FAILS on the new kind-2 postcondition. Spec regions changed (axioms, post-conditions) were applied identically to model_prepatch.py; same_spec True.",
+      "verdict": "NEEDS-REFINEMENT (G-EQ spec-too-weak)"
+    },
+    {
+      "cycle": "adversarial-panel faithfulness",
+      "defect": "The floating branch was modeled by a single non-raising callee (@Pure @ContractOnly from_floating with Ensures(True) and no Exsures), so the spec asserted that EVERY value the coercion routes to the floating branch returns normally. The real callee does not guarantee that: the branch guards on isinstance(value, float) while create_decimal_from_float does an exact PyFloat/PyLong check in the C _decimal accelerator, so a value whose __class__ is float without being a real float (e.g. django.utils.functional.SimpleLazyObject(lambda: 1.5), or MagicMock(spec=float)) takes the branch and is refused with TypeError -- and because that call sits ABOVE the try, the TypeError escapes to_python unconverted, identically on the base and gold-patched trees. The spec was therefore strictly STRONGER than the real function on a declared-in-domain input class: an implementation faithful to the repo FAILED it (machine-checked: replacing only the floating branch's body with the real outcome fails the 'method only raises exceptions of types ...' postcondition). Both executable checkers shared the blind spot -- each fed the floating path GENUINE floats only, so the gap between 'every genuine float converts' (true) and 'every value the branch admits converts' (false) was never probed.",
+      "fix": "REALIGNED the spec to the real callee; the domain was WIDENED, not narrowed, and no contract was deleted or disjoined. Split the floating callee into the axiom PAIR it really is: the new @ContractOnly convert_floating(kind) carries accept-or-refuse (Ensures(kind == 1), Ensures(Implies(kind == 1, Result() == from_floating())), Exsures(ConstructorOperandError, kind == 7)), while from_floating remains the @Pure value accessor for the accepted token. Preconditions widened to 0 <= kind <= 7 (MustTerminate(8)); added the postcondition leg Exsures(ConstructorOperandError, kind == 7); the impl's floating branch became 'if kind == 1 or kind == 7: return convert_floating(kind)'. Because kind 7 propagates the SAME low-level class the constructor raises on kind 4 -- which the coercion DOES convert -- the new leg also PINS that boundary rather than relaxing it: an impl that lets kind 4 escape, that moves the floating conversion inside the try, that returns normally on kind 7, or that blankets every rejection all still fail. Two new reject cases added to the battery (over-convert-floating-branch, return-on-floating-refused); no existing case weakened or removed. Closed both checkers' blind spot: axiom_check.py and conformance_check.py now probe 10 guard-satisfying non-float shapes (asserting the guard really is satisfied, then that the refusal class is EXACTLY TypeError) alongside float subclasses and float_info extremes. Spec regions were applied byte-identically to model_prepatch.py and properties.py; the prepatch twin still FAILS.",
+      "verdict": "UNFAITHFUL (G-PANEL-2: spec strictly stronger than the real callee)"
+    },
+    {
+      "cycle": "adversarial-panel faithfulness (floating branch's second refusal)",
+      "defect": "The kind-7 cycle enumerated only ONE refusal for the floating callee. create_decimal_from_float's exact operand check is PyFloat/PyLong, so it accepts int operands too: an int SUBCLASS carrying `__class__ = float` passes BOTH the branch's isinstance guard and the callee's type check, and is then refused by the conversion context's Overflow trap once its magnitude exceeds Emax. Witness: an int-subclass float-spoofer carrying 10**1000000 -> raw decimal.Overflow at line 1501, measured on the base AND gold-patched trees, at max_digits in {1,4,28,50,None} and for to_python/clean/get_prep_value alike; the Emax = 999999 threshold is precision-independent and 10**999999 is still kind 1. decimal.Overflow's MRO is Overflow -> Inexact -> Rounded -> DecimalException -> ArithmeticError -> Exception, so it is a subclass of NONE of InvalidOperation / TypeError / ValueError / OverflowError and matched no declared stand-in. value_kind()'s Ensures(0 <= Result() <= 7) and mapping.md sec 2's totality claim were therefore both false of this value, and an implementation faithful to the repo violated the 'method only raises exceptions of types ...' postcondition: the spec was strictly STRONGER than the real callee on an input species the kind-7 cycle had itself declared in-domain. Both executable checkers shared the blind spot -- conformance_check's value_kind funnelled the undeclared class into a silent 'return None' that shadow_outcome reported as out-of-domain (a WARNING, not a failure), and axiom_check's float-arm probe used genuine floats plus object-payload TypeError spoofers only, and genuine floats cap near 1e308, far inside Emax, so neither pool could reach the boundary.",
+      "fix": "REALIGNED the spec to the real callee; the domain was WIDENED again, not narrowed, and no contract was deleted or disjoined. Added a fifth stand-in ConversionRangeError bound to decimal.Overflow and a kind 8 = 'floating-branch value whose operand type the conversion accepts but whose magnitude lies beyond its context's representable range'. value_kind()'s range became Ensures(0 <= Result() <= 8); convert_floating carries Exsures(ConversionRangeError, kind == 8) alongside its kind-1 and kind-7 legs; coerce_to_numeric's precondition became 0 <= kind <= 8 and it gained the propagating postcondition leg Exsures(ConversionRangeError, kind == 8); the impl's floating branch became 'if kind == 1 or kind == 7 or kind == 8: return convert_floating(kind)'. Nothing the earlier cycles pinned was relaxed: kinds 3/4/5 still convert to the uniform ValidationFailure and kinds 6/7 still propagate their own classes, and an impl that swallows kind 8 into the validation failure, that returns normally on it, or that swaps its class against kind 6's or kind 7's all still fail (three new reject cases in the battery; no existing case weakened or removed). Corrected mapping.md sec 3.2's and refinement.md's 'TypeError is the ONLY rejection class this callee produces there' claim, which the kind-7 cycle had left standing. Closed both checkers' blind spot: conformance_check.py now treats a value that lowers to NO declared kind as a HARD FAILURE rather than a warning, and both checkers now probe int-payload `__class__ = float` spoofers straddling the conversion context's Emax (10**Emax converts normally; 10**(Emax+1) and its negation are refused, asserted NOT to be an OverflowError). Spec regions were applied byte-identically to model_prepatch.py and properties.py; the prepatch twin still FAILS. Re-checked after the widening: the model verifies, G-MUT killed 14/14 with no survivors, G-AX and G-PBT sound, and G-CONF compares the witness rather than skipping it (shadow and real both raw Overflow).",
+      "verdict": "UNFAITHFUL (G-PANEL-2: spec strictly stronger than the real callee on the floating branch's second refusal)"
+    },
+    {
+      "cycle": "post-repair prose alignment + independent re-derivation (kind-8 leg)",
+      "defect": "The kind-8 repair had landed in model.py / properties.py / model_prepatch.py and in both executable checkers, and meta.json's axiom and carrier records had been brought up to it, but three audit-read prose statements still described the PRE-kind-8 kind range -- so mapping.md contradicted the artifact on exactly the axiom range the faithfulness break had exploited. mapping.md sec 3.4 stated the value_kind axiom as `Ensures(0 <= Result() and Result() <= 7)` and called that \"exactly sec 2's totality claim\", while sec 2 already claimed totality over 0..8; the same section asserted the body is verified \"at every kind in 0..7\". refinement.md's kind-7 and kind-6 faithfulness paragraphs each still gave the CURRENT domain as `0 <= kind <= 7`, and refinement.md carried no kind-8 faithfulness paragraph parallel to its kind-6 and kind-7 ones. No gate digests either document (every gate's `reads` covers the solution, the battery, the checkers and instance.json only), so the contradiction was invisible to every freshness check and would have been read as-is by the next faithfulness re-judge.",
+      "fix": "Prose-only alignment inside the cell: no spec, battery or checker byte changed, so every gate keeps the digest it was stamped against. mapping.md sec 3.4 now states the range as `Ensures(0 <= Result() and Result() <= 8)` and says WHY the bound is 8 and not 7 (the floating callee has TWO refusals, so a bound of 7 would force a kind-8 value into a kind whose declared outcome it does not have -- the one way a nullary accessor could make the spec stronger than the real function); its control list now names the kind-8 controls. refinement.md's two domain statements now read `0 <= kind <= 8` and attribute each widening to the cycle that made it, and a new \"Why the kind-8 leg is required for faithfulness, not a weakening\" paragraph carries the argument in the same shape as the kind-6 and kind-7 ones. INDEPENDENT RE-DERIVATION on the current bytes, all machine-checked: the real repo at base_commit f83b44075d and at base+patch.diff both raise a raw decimal.Overflow for an int-subclass float-spoofer carrying 10**1000000, for to_python / clean(v, None) / get_prep_value alike, while 10**999999 still converts to 1.000E+999999 (kind 1); the current bridge lowers that witness to kind 8 (the panel had recorded the pre-repair bridge returning ('out-of-domain',) for it), convert_floating(8) on it raises ConversionRangeError exactly as the axiom leg names, and shadow_outcome == real_outcome == ('raw','Overflow'); model.py verifies (18.0s); model_prepatch.py FAILS; `Assert(False)` at the head of the impl FAILS, so the rejections are not vacuous; an impl returning normally on kind 8 FAILS the `kind == 0 or kind == 1 or kind == 2` leg; an impl routing the kind-8 refusal into the uniform validation failure FAILS the `kind == 3 or kind == 4 or kind == 5` leg; and on the reconstructed PRE-repair spec (range 0..7, no kind-8 leg) an impl producing the real outcome FAILS at EVERY one of kinds 0..7 on the implicit \"method only raises exceptions of types ...\" postcondition, which is the panel's kind-by-kind disagreement table made machine-checked. A targeted probe of exotic constructor operands (million-digit ints, string exponents past ssize_t, memoryview/bytearray, __float__ / __index__ / __str__ carriers, Decimal and int subclasses, coordinate forms on both sides of the C ssize_t/long boundary) produced no fifth constructor rejection class and no float-branch class beyond TypeError and decimal.Overflow, consistent with axiom_check.py's 40000-input cross-arm census, so the 0..8 range is total on every shape probed. The differential bridge's kind-8 leg is also non-vacuous: with the kind-8 branch removed from the shadow impl, the shadow returns a million-digit Decimal normally where the real function raises Overflow, i.e. G-CONF would report the disagreement.",
+      "verdict": "FAITHFUL (G-PANEL-2 pass at 2026-08-16T04:30:33Z on these bytes, G-PANEL-1 SOUND, G-PANEL-3 NO-LEAKAGE, G-EQ pass; this cycle only aligns the audit-read prose to them)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "af29735cccc3fe1f6a186b05e49135cd1042393350c6dd4a7a296014ddfffa02",
+    "impl": "35536c294ec77f1294deb9889d382c06fece7bbdbc100511dbe0145aa93463ed",
+    "post-conditions": "f75ad1db72651891872fb3bfddfd10b9d36a6a72d50a59592b89e152c1f15c6b",
+    "pre-conditions": "bff03a3cc2aae030cc342bf3f5c8bb9c9a1e78af065278a8612f4227446f8294",
+    "pure": "0b39ccb6a609029fee728e1b7bdade2861925cbe3e806cf1b7cece51610f727c",
+    "spec_view": "a1d1a8ca2dc2f5ba752f9e8b70ada6f3e8d6e1cef4bcd8d22c03c1482cfd0f9f"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none (value collapsed to integer acceptance kind; the discriminating observable is which outcome the coercion produces, not the value's contents). Exceptions modeled as user-defined classes (builtin-exception Exsures crashes the translator): ConstructorMalformedError/OperandError/DomainError/RangeError stand in for InvalidOperation/TypeError/ValueError/OverflowError, and ConversionRangeError stands in for decimal.Overflow, the floating conversion's out-of-representable-range refusal (a subclass of none of the other four, so no handler catches it); ValidationFailure stands in for exceptions.ValidationError.",
+  "version": "3.2"
+}

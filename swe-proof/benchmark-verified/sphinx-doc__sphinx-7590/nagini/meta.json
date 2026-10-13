@@ -1,0 +1,504 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "support code for the same fix; does not change the modeled id/str observable; carried verbatim by patch.diff",
+      "repo_location": "sphinx/util/cfamily.py, sphinx/domains/cpp.py",
+      "repo_symbol": "udl_identifier_re + 'udl' description mode + ASTIdentifier.describe_signature 'udl' branch + symbol.get_lookup_key inlining + 2 TODO comments"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real ASTIdentifier.get_id(3/4) == str(len)+ident on boundary (incl. std-neighbours stdx/st/astd) + 5000 in-domain fuzz UDL-alphabet identifiers; AND check_excluded_branch asserts the real get_id DEVIATES from the length-prefixed claim on std/~dtor/@anon (so the over-claim is caught, not hidden, and the exclusion is justified)",
+      "domain_restriction": "ident != 'std' (code points 115,116,100) and len(ident)>0; load-bearing and complete (the only reachable v3/v4 special-case a UDL suffix can hit is 'std'; '~'/'@' are unreachable as UDL idents)",
+      "encoded_property": "Requires len(ident)>0 and ident != PSeq(115,116,100); Ensures len(Result()) > len(ident) and Result().drop(len-len(ident)) == ident (the identifier text is a strict, length-prefixed suffix of its id) \u2014 the weakest contract the UDL mangling needs, on the domain where the real generator is length-prefixed",
+      "models": "ASTIdentifier.get_id (UNCHANGED, sphinx/domains/cpp.py:578)",
+      "name": "ident_mangle",
+      "provenance": "v3/v4 non-special branch: str(len(self.identifier)) + self.identifier. The real get_id special-cases the reserved identifier 'std' -> 'St' (and '~...' -> 'D0', '@...' -> 'Ut..'), where the length-prefixed claim FAILS. The udl_identifier_re ([a-zA-Z_][a-zA-Z0-9_]*) cannot start with '~'/'@', but a UDL suffix CAN be 'std' (e.g. 5std parses as a UDL with identifier std), so the axiom is contracted over a RESTRICTED domain that excludes 'std' (code points 115,116,100) by precondition. The F2P never exercises a 'std' UDL suffix.",
+      "purity": "@Pure @ContractOnly (used inside udl_id_seq, which appears in an Ensures)"
+    }
+  ],
+  "base_commit": "2e506c5ab457cba743bb47eb5b8c8eb9dd51d23d",
+  "changed_files": [
+    "sphinx/domains/cpp.py",
+    "sphinx/domains/c.py",
+    "sphinx/util/cfamily.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real ASTUserDefinedLiteral.get_id(3/4) and end-to-end DefinitionParser parse+id == model on 37 numerics x 4 idents and 60 F2P UDL tokens incl. 6.62607015e-34q_J",
+      "encoded_property": "udl_id_seq(lit, ident) = 'clL_Zli'(PSeq(99,108,76,95,90,108,105)) + ident_mangle(ident) + 'E'(69) + number_id_seq(lit) + 'E'(69)",
+      "kind": "A-reference",
+      "models": "ASTUserDefinedLiteral.get_id (new class, sphinx/domains/cpp.py)",
+      "name": "udl_id_seq",
+      "provenance": "get_id body: 'clL_Zli{}E{}E'.format(self.ident.get_id(version), self.literal.get_id(version)); F2P test_domain_cpp.py::test_expressions expectations (clL_Zli3q_JEL6.62607015e-34EE, etc.)",
+      "role": "deep model (pure region) of the NEW user-defined-literal mangling; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real ASTNumberLiteral.get_id(3/4) == model on 37 F2P numeric literals",
+      "encoded_property": "number_id_seq(lit) = PSeq(76) + lit + PSeq(69), i.e. 'L' + text + 'E'",
+      "kind": "A-reference",
+      "models": "ASTNumberLiteral.get_id (UNCHANGED, sphinx/domains/cpp.py:832)",
+      "name": "number_id_seq",
+      "provenance": "return \"L%sE\" % self.data",
+      "role": "deep model (pure region) of the trivial number-literal id framing; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real C-domain _parse_literal produced ASTNumberLiteral.data == model text on an 888-token (literal x trail) matrix + 2000 fuzz, with the pre-patch maximal-run behaviour asserted to diverge on every non-recognised run (1902 cases)",
+      "encoded_property": "valid => ToSeq(Result()) == number_id_seq(ToSeq(lit) + ToSeq(trail)); not valid => ToSeq(Result()) == number_id_seq(ToSeq(lit)); the decision modeled DEEPLY as a branch on `valid`, the id framing via the shared number_id_seq",
+      "kind": "A-reference",
+      "models": "sphinx.domains.c.DefinitionParser._parse_literal number-literal branch (the parallel simpler-dialect rewrite)",
+      "name": "c_number_literal_id (suffix-vs-not decision + text)",
+      "provenance": "post-patch: `self.match(*_literal_suffix_re); return ASTNumberLiteral(self.definition[pos:self.pos])` -- a recognised suffix run is consumed into the literal text, a non-recognised run is not (the pre-patch `while self.current_char in 'uUlLfF'` loop consumed any run unconditionally). A \\b-terminated suffix regex matches the whole maximal run or nothing, so the consumed suffix is exactly `trail` (valid) or empty (not valid).",
+      "role": "deep model (impl region of c_number_literal_id) of the simpler-dialect suffix-vs-not decision; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:51:52+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: ident_mangle (A-consumed) sound on the contracted domain (boundary set incl. std-neighbours + 5000 in-domain fuzz idents); domain restriction proven load-bearing + complete on 5 excluded special-branch idents (std/~dtor/@anon all deviate from the length-prefixed claim); number_id_seq + udl_id_seq deep models == real callees on 37 numerics x 4 idents; real parser decision+mangling == model on 60 F2P UDL tokens; the simpler-dialect c_number_literal_id == real C-domain _parse_literal on 888 (literal x trail) cases + 2000 fuzz (with 1902 non-recognised runs where the pre-patch maximal-run behaviour provably diverges)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "9b5cde332b4e6faff17ed2422a8045462db27dfbd8e3f4b6c90d6ed1c184352a",
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:52:01+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100000,
+          "disagreements": 0,
+          "seed": 7590,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"disagreements\": 0, \"seed\": 7590, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "11bf031bc1974573297eb568282340d50acaccebd4cb7dd4526cd346de27d48d",
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:05:10+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba",
+        "model_prepatch.py": "148c04d64141ca98d0ee9e44761ce18fec6b23305b80d30d0d7db6643d27bb63"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T12:42:15+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 6 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_swapguard.py`, `atk_c_nofold.py`, `atk_c_swap.py`, `atk_partial.py`, `atk_boundary.py`, `atk_oracle.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:06:32+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba",
+        "model_prepatch.py": "148c04d64141ca98d0ee9e44761ce18fec6b23305b80d30d0d7db6643d27bb63"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:51:43+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "fc1bf3a41671fc26c521f137dc70ffd4c86cbf351cf0324c7dfeea8552d6d8e1",
+          "impl": "334a255dfa6fc761636a715c0ec7120b0b7ef74f7e79912dfd0b3282ab71f8a1",
+          "post-conditions": "3376ede84c8cec8dd28f8e31f2c55734d04eb7fcabd6c0200442b2ca811a547e",
+          "pre-conditions": "362cefe071ab9332a83bff5866be883100e8976944441375d9787ec8c28bb708",
+          "pure": "aee16885e546cacff1763005364865a5e623bf39e76038e535463377bd57ed0c",
+          "spec_view": "599e4f16799db56986a14ea2df3e71406d251d1f8f519412baa40106fa0c670c"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:51:43+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "99bfacc6bff7bf523e13a6f92c1c7e2c83bd64444a8f75b6872eef9c1666d604",
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:51:44+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:51:18+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {
+        "judged": 16,
+        "killed": 16,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": [
+          "line 146: '+' -> '-'",
+          "line 146: '+' -> '-'",
+          "line 184: '+' -> '-'",
+          "line 188: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 16/16 (100%); no verdict on 4: [\"line 146: '+' -> '-'\", \"line 146: '+' -> '-'\", \"line 184: '+' -> '-'\", \"line 188: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T12:42:16+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Independent faithfulness audit of the modeled functions number_literal_id (cpp) and c_number_literal_id (C-domain) against the real patched repo at base_commit 2e506c5ab457 (worktree $SCRATCH, git status confirms gold mods on cpp.py/c.py/cfamily.py). No diverging input found; the spec is not too strong / does not drift.\n\nMethod & evidence:\n1) same-spec / byte-identical spec region: model verifies with the frozen spec; bundle's own G-AX axiom_check.py runs GREEN against the patched worktree (exit 0): ident_mangle sound on contracted domain (boundary + 5000 fuzz), exclusions proven load-bearing, number_id_seq/udl_id_seq deep models == real ASTNumberLiteral.get_id/ASTUserDefinedLiteral.get_id, 60 F2P UDL tokens, 888+2000 C-domain cases.\n2) cpp differential fuzz: 20,000 numeric-led tokens (int/float/hex/oct/bin x trailing UDL identifiers/suffixes), model-predicted get_id(3) vs real _parse_literal().get_id(3) reconstructed via the real match pipeline -> 0 mismatches.\n3) C-domain differential fuzz: 30,000 tokens (literal x trailing uUlLfF run), model fold decision (valid=>L+lit+trail+E, not valid=>L+lit+E) vs real ASTNumberLiteral.data id -> 0 mismatches.\n4) Key suspicion REFUTED: the suffixed/valid branches return number_id_seq(lit)=L+lit+E and appear to drop the suffix, but lit maps to definition[pos:self.pos] which the real parser builds AFTER consuming the suffix, so data already includes it (5u->L5uE, 5.0f->L5.0fE, 0xFul->L0xFulE). Confirmed on hand tokens and in both fuzzes.\n5) Load-bearing abstraction claim (whole-maximal-run-or-nothing for the \\b-terminated suffix regex, on which the C-domain trail/valid carrier depends): exhaustively tested all uUlLfF runs up to length 5 x boundary tails -> 0 proper-prefix violations, so consumed suffix is exactly trail (valid) or empty (not valid).\n6) std-UDL edge: precondition ident != PSeq(115,116,100) restricts the domain; on the contracted domain the length-prefixed identifier mangling is exact (real get_id maps std->St), G-AX proves the exclusion load-bearing. This is a (justified) domain restriction, not a spec-too-strong divergence. ~/@ cannot begin a udl_identifier_re identifier.\n\nConclusion: on every constructible in-domain input the modeled functions agree with the real callees. Spec is FAITHFUL (not too strong).",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view regenerated via swebench_unified.markers.spec_view (nagini LanguageTables); sha256 dae0697383b3b1b7afec3c1131025ceff7a6fb32cc27e3d7c4577407cda3f300, byte-identical to meta.region_hashes.spec_view. Both impl regions correctly elided.\n\nThe view is a pure behavioural specification: it states required input->output relations (UDL mangled id = clL_Zli<ident-id>E<num-id>E; ordinary numeric-literal id = L+text+E; length-prefixed identifier mangling; the suffix-vs-identifier decision; the simpler dialect's suffix/word-boundary rule). Specifying the exact mangled-id output is what a postcondition MUST do -- it is the correctness contract, and the clL_Zli constant is the mandated Itanium-ABI observable, not a leaked edit site.\n\nNo gold-edit fingerprints present beyond problem_statement: no patch/diff tokens, no file names (cpp.py/c.py/cfamily.py/sphinx), no repo symbols (_parse_literal, ASTUserDefinedLiteral, ASTNumberLiteral, ASTIdentifier, get_id), no udl_identifier_re/self.match/regex, no base_commit, and no reproduction of the pre-patch `while self.current_char in 'uUlLfF'` loop. All edit-locating detail is confined to mapping.md/refinement.md (audit docs, not the consumer view).\n\nThe public problem_statement already frames the whole task ('C++ User Defined Literals not supported... add those', example token 6.62607015e-34q_J, link to sphinx/domains/cpp.py). The only datum beyond it -- the second (C-domain) dialect's suffix handling -- is stated as desired behaviour, naming no repo location, so it does not reconstruct the gold edit. A solver must still discover which files/classes/parser branch to change and how (regexes, new AST class, parse rewrite). Legitimate spec content, not gold reconstruction.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 6 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Independent faithfulness audit of the modeled functions number_literal_id (cpp) and c_number_literal_id (C-domain) against the real patched repo at base_commit 2e506c5ab457 (worktree $SCRATCH, git status confirms gold mods on cpp.py/c.py/cfamily.py). No diverging input found; the spec is not too strong / does not drift.\n\nMethod & evidence:\n1) same-spec / byte-identical spec region: model verifies with the frozen spec; bundle's own G-AX axiom_check.py runs GREEN against the patched worktree (exit 0): ident_mangle sound on contracted domain (boundary + 5000 fuzz), exclusions proven load-bearing, number_id_seq/udl_id_seq deep models == real ASTNumberLiteral.get_id/ASTUserDefinedLiteral.get_id, 60 F2P UDL tokens, 888+2000 C-domain cases.\n2) cpp differential fuzz: 20,000 numeric-led tokens (int/float/hex/oct/bin x trailing UDL identifiers/suffixes), model-predicted get_id(3) vs real _parse_literal().get_id(3) reconstructed via the real match pipeline -> 0 mismatches.\n3) C-domain differential fuzz: 30,000 tokens (literal x trailing uUlLfF run), model fold decision (valid=>L+lit+trail+E, not valid=>L+lit+E) vs real ASTNumberLiteral.data id -> 0 mismatches.\n4) Key suspicion REFUTED: the suffixed/valid branches return number_id_seq(lit)=L+lit+E and appear to drop the suffix, but lit maps to definition[pos:self.pos] which the real parser builds AFTER consuming the suffix, so data already includes it (5u->L5uE, 5.0f->L5.0fE, 0xFul->L0xFulE). Confirmed on hand tokens and in both fuzzes.\n5) Load-bearing abstraction claim (whole-maximal-run-or-nothing for the \\b-terminated suffix regex, on which the C-domain trail/valid carrier depends): exhaustively tested all uUlLfF runs up to length 5 x boundary tails -> 0 proper-prefix violations, so consumed suffix is exactly trail (valid) or empty (not valid).\n6) std-UDL edge: precondition ident != PSeq(115,116,100) restricts the domain; on the contracted domain the length-prefixed identifier mangling is exact (real get_id maps std->St), G-AX proves the exclusion load-bearing. This is a (justified) domain restriction, not a spec-too-strong divergence. ~/@ cannot begin a udl_identifier_re identifier.\n\nConclusion: on every constructible in-domain input the modeled functions agree with the real callees. Spec is FAITHFUL (not too strong).; G-PANEL-3 (leakage): pass \u2014 Spec view regenerated via swebench_unified.markers.spec_view (nagini LanguageTables); sha256 dae0697383b3b1b7afec3c1131025ceff7a6fb32cc27e3d7c4577407cda3f300, byte-identical to meta.region_hashes.spec_view. Both impl regions correctly elided.\n\nThe view is a pure behavioural specification: it states required input->output relations (UDL mangled id = clL_Zli<ident-id>E<num-id>E; ordinary numeric-literal id = L+text+E; length-prefixed identifier mangling; the suffix-vs-identifier decision; the simpler dialect's suffix/word-boundary rule). Specifying the exact mangled-id output is what a postcondition MUST do -- it is the correctness contract, and the clL_Zli constant is the mandated Itanium-ABI observable, not a leaked edit site.\n\nNo gold-edit fingerprints present beyond problem_statement: no patch/diff tokens, no file names (cpp.py/c.py/cfamily.py/sphinx), no repo symbols (_parse_literal, ASTUserDefinedLiteral, ASTNumberLiteral, ASTIdentifier, get_id), no udl_identifier_re/self.match/regex, no base_commit, and no reproduction of the pre-patch `while self.current_char in 'uUlLfF'` loop. All edit-locating detail is confined to mapping.md/refinement.md (audit docs, not the consumer view).\n\nThe public problem_statement already frames the whole task ('C++ User Defined Literals not supported... add those', example token 6.62607015e-34q_J, link to sphinx/domains/cpp.py). The only datum beyond it -- the second (C-domain) dialect's suffix handling -- is stated as desired behaviour, naming no repo location, so it does not reconstruct the gold edit. A solver must still discover which files/classes/parser branch to change and how (regexes, new AST class, parse rewrite). Legitimate spec content, not gold reconstruction.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_swapguard.py`, `atk_c_nofold.py`, `atk_c_swap.py`, `atk_partial.py`, `atk_boundary.py`, `atk_oracle.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Independent faithfulness audit of the modeled functions number_literal_id (cpp) and c_number_literal_id (C-domain) against the real patched repo at base_commit 2e506c5ab457 (worktree $SCRATCH, git status confirms gold mods on cpp.py/c.py/cfamily.py). No diverging input found; the spec is not too strong / does not drift.\n\nMethod & evidence:\n1) same-spec / byte-identical spec region: model verifies with the frozen spec; bundle's own G-AX axiom_check.py runs GREEN against the patched worktree (exit 0): ident_mangle sound on contracted domain (boundary + 5000 fuzz), exclusions proven load-bearing, number_id_seq/udl_id_seq deep models == real ASTNumberLiteral.get_id/ASTUserDefinedLiteral.get_id, 60 F2P UDL tokens, 888+2000 C-domain cases.\n2) cpp differential fuzz: 20,000 numeric-led tokens (int/float/hex/oct/bin x trailing UDL identifiers/suffixes), model-predicted get_id(3) vs real _parse_literal().get_id(3) reconstructed via the real match pipeline -> 0 mismatches.\n3) C-domain differential fuzz: 30,000 tokens (literal x trailing uUlLfF run), model fold decision (valid=>L+lit+trail+E, not valid=>L+lit+E) vs real ASTNumberLiteral.data id -> 0 mismatches.\n4) Key suspicion REFUTED: the suffixed/valid branches return number_id_seq(lit)=L+lit+E and appear to drop the suffix, but lit maps to definition[pos:self.pos] which the real parser builds AFTER consuming the suffix, so data already includes it (5u->L5uE, 5.0f->L5.0fE, 0xFul->L0xFulE). Confirmed on hand tokens and in both fuzzes.\n5) Load-bearing abstraction claim (whole-maximal-run-or-nothing for the \\b-terminated suffix regex, on which the C-domain trail/valid carrier depends): exhaustively tested all uUlLfF runs up to length 5 x boundary tails -> 0 proper-prefix violations, so consumed suffix is exactly trail (valid) or empty (not valid).\n6) std-UDL edge: precondition ident != PSeq(115,116,100) restricts the domain; on the contracted domain the length-prefixed identifier mangling is exact (real get_id maps std->St), G-AX proves the exclusion load-bearing. This is a (justified) domain restriction, not a spec-too-strong divergence. ~/@ cannot begin a udl_identifier_re identifier.\n\nConclusion: on every constructible in-domain input the modeled functions agree with the real callees. Spec is FAITHFUL (not too strong).\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view regenerated via swebench_unified.markers.spec_view (nagini LanguageTables); sha256 dae0697383b3b1b7afec3c1131025ceff7a6fb32cc27e3d7c4577407cda3f300, byte-identical to meta.region_hashes.spec_view. Both impl regions correctly elided.\n\nThe view is a pure behavioural specification: it states required input->output relations (UDL mangled id = clL_Zli<ident-id>E<num-id>E; ordinary numeric-literal id = L+text+E; length-prefixed identifier mangling; the suffix-vs-identifier decision; the simpler dialect's suffix/word-boundary rule). Specifying the exact mangled-id output is what a postcondition MUST do -- it is the correctness contract, and the clL_Zli constant is the mandated Itanium-ABI observable, not a leaked edit site.\n\nNo gold-edit fingerprints present beyond problem_statement: no patch/diff tokens, no file names (cpp.py/c.py/cfamily.py/sphinx), no repo symbols (_parse_literal, ASTUserDefinedLiteral, ASTNumberLiteral, ASTIdentifier, get_id), no udl_identifier_re/self.match/regex, no base_commit, and no reproduction of the pre-patch `while self.current_char in 'uUlLfF'` loop. All edit-locating detail is confined to mapping.md/refinement.md (audit docs, not the consumer view).\n\nThe public problem_statement already frames the whole task ('C++ User Defined Literals not supported... add those', example token 6.62607015e-34q_J, link to sphinx/domains/cpp.py). The only datum beyond it -- the second (C-domain) dialect's suffix handling -- is stated as desired behaviour, naming no repo location, so it does not reconstruct the gold edit. A solver must still discover which files/classes/parser branch to change and how (regexes, new AST class, parse rewrite). Legitimate spec content, not gold reconstruction.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:04:18+00:00",
+      "code_version": "aeff074f4-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-both-branches-reachable",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-ident_id",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-lit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-prepatch-no-udl",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 40.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-raw-ident-no-length-prefix",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 63.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-ignores-suffixed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 63.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-drop-mid-E",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-ordinary-drop-E",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.6
+          },
+          {
+            "expect": "verify",
+            "id": "c-pos-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 21.2
+          },
+          {
+            "expect": "reject",
+            "id": "c-frame-mutate-lit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.4
+          },
+          {
+            "expect": "reject",
+            "id": "c-partial-prepatch-always-fold",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.3
+          },
+          {
+            "expect": "reject",
+            "id": "c-partial-never-fold",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.2
+          },
+          {
+            "expect": "reject",
+            "id": "c-partial-drop-E",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 11
+        },
+        "manifest_sha256": "9b982aa2b1680a4c14381f647524fd3d0ea0e460eae673f315d7eca2ceccda8f",
+        "n_cases": 15,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 15 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba",
+        "properties.py": "9b982aa2b1680a4c14381f647524fd3d0ea0e460eae673f315d7eca2ceccda8f"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T18:11:22+00:00",
+      "code_version": "2e134ea1f-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:03:56+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 17.6
+      },
+      "detail": "verified in 17.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d9ffb1acbc6c1b364b895a045f928bf140b1d46c74a30f6ce16e5839ec6b91ba"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sphinx-doc__sphinx-7590",
+  "modeled_functions": [
+    {
+      "carrier_type": "C++ definition-string fragments (numeric literal text, UDL identifier, mangled id) -> List[int] of code points; specification over PSeq[int]",
+      "model_symbol": "number_literal_id",
+      "repo_location": "sphinx/domains/cpp.py:4640 (_parse_literal) + new ASTUserDefinedLiteral class (post-patch)",
+      "repo_symbol": "sphinx.domains.cpp.DefinitionParser._parse_literal (number-literal branch + _udl helper) and sphinx.domains.cpp.ASTUserDefinedLiteral.get_id",
+      "role": "modeled changed function: the suffix-vs-UDL parse decision and the user-defined-literal id mangling; single contracted+implemented function (per-function markers are module-level singletons)"
+    },
+    {
+      "carrier_type": "C numeric-literal text + trailing suffix-alphabet run -> List[int] of code points; id via the shared number_id_seq deep model; specification over PSeq[int]",
+      "model_symbol": "c_number_literal_id",
+      "repo_location": "sphinx/domains/c.py (_parse_literal number-literal branch; pre-patch maximal-run loop `while self.current_char in 'uUlLfF': self.pos += 1`)",
+      "repo_symbol": "sphinx.domains.c.DefinitionParser._parse_literal (number-literal branch, the parallel simpler-dialect rewrite)",
+      "role": "modeled changed function for the simpler dialect (no user-defined literals): the suffix-vs-not decision -- a recognised suffix run is folded into the numeric-literal text, a non-recognised trailing run is left unconsumed; returns the ordinary numeric-literal id of the resulting text"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "two postconditions: (1) Implies(not suffixed and len(ident) > 0 and ToSeq(ident) != PSeq(115,116,100), ToSeq(Result()) == udl_id_seq(ToSeq(lit), ToSeq(ident))) -- e.g. token 5_udl (ident _udl is in-domain): prepatch returns the ordinary number id, not the UDL mangling; (2) Implies(not valid, ToSeq(Result()) == number_id_seq(ToSeq(lit))) -- e.g. float 5.0 + trail u (not a recognised suffix): prepatch returns number_id_seq(lit+trail)=L5.0uE, not L5.0E",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "cpp _parse_literal: recognise a user-defined literal (numeric literal + trailing non-suffix identifier) and mangle it as clL_Zli<ident-id>E<num-id>E; C-domain _parse_literal: consume a trailing suffix-alphabet run only when it is a recognised numeric suffix (else leave it unconsumed)",
+      "reverted_to": "both functions carry the pre-patch bug. number_literal_id: only consume a fixed uUlLfF alpha-suffix run; never build a UDL, so the result is always the ordinary number id 'L'+lit+'E'. c_number_literal_id: consume the WHOLE maximal uUlLfF run unconditionally (the old `while self.current_char in 'uUlLfF'` loop), so the id is always number_id_seq(lit+trail) even for a non-recognised run"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "fc1bf3a41671fc26c521f137dc70ffd4c86cbf351cf0324c7dfeea8552d6d8e1",
+    "impl": "334a255dfa6fc761636a715c0ec7120b0b7ef74f7e79912dfd0b3282ab71f8a1",
+    "post-conditions": "3376ede84c8cec8dd28f8e31f2c55734d04eb7fcabd6c0200442b2ca811a547e",
+    "pre-conditions": "3aa6c919cd2064b59b9a69af9297a33c6cd5a8d698b61a7e6db272561186e00c",
+    "pure": "aee16885e546cacff1763005364865a5e623bf39e76038e535463377bd57ed0c",
+    "spec_view": "dae0697383b3b1b7afec3c1131025ceff7a6fb32cc27e3d7c4577407cda3f300"
+  },
+  "repo": "sphinx-doc/sphinx",
+  "schema_version": 1,
+  "string_modeling": "C++ definition-string fragments as List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; the UDL mangling proven by list/PSeq concatenation, the unchanged length-prefixed identifier id supplied as a precomputed component list tied to the ident_mangle axiom",
+  "version": "3.1"
+}

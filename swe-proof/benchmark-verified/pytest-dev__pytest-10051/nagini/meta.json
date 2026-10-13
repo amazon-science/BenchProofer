@@ -1,0 +1,408 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the new handler.clear() is the post-patch body of the modeled reset path (reset_captured). Its `self.stream = StringIO()` (captured-text side) is identical to what the pre-patch reset already did and is observationally untouched by the bug->fix delta (refinement.md C); not modeled.",
+      "repo_location": "src/_pytest/logging.py: new method after :345; stream reset inside it",
+      "repo_symbol": "_pytest.logging.LogCaptureHandler.clear (new method) and self.stream = StringIO()"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real list.clear() on 5 boundary + 20000 fuzz inputs; asserts len==0, id(xs) unchanged, alias-taken-before-clear tracks the now-empty live list and a subsequently-appended item; also exhibits the rebind contrast that orphans the alias",
+      "encoded_property": "empties the list (len(xs)==0) IN PLACE, preserving object identity (xs is Old(xs)); weakest contract the reset needs; no claim about element values or other objects",
+      "kind": "A-consumed",
+      "models": "Python builtin list.clear() (equivalently del xs[:])",
+      "name": "empty_in_place",
+      "note": "this is the UNCHANGED builtin the fix calls, not the function under change; the changed property (identity-preserving reset) lives in the spec postconditions buf.items is Old(buf.items) / view is buf.items",
+      "provenance": "CPython list method, all 3.x; docs.python.org/3/tutorial/datastructures.html: 'Remove all items from the list. Equivalent to del a[:].' Called post-patch in the new LogCaptureHandler.clear as self.records.clear().",
+      "purity": "@ContractOnly (not @Pure: used only in the impl, not inside an Ensures)"
+    }
+  ],
+  "base_commit": "aa55975c7d3f6c9f6d7f68accc41bb7cadf0eb9a",
+  "changed_files": [
+    "src/_pytest/logging.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:27:42+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: empty_in_place axiom (== real list.clear()) sound on 5 boundary + 20000 fuzz inputs: in-place emptying preserves object identity and alias tracking; the buggy rebind orphans the alias.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "6c7ca6126b0e3fd8b8f094277f232dbb3c79cceb13a0832821124308e46c7366",
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:27:47+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: shadow == real patched repo path on 7 boundary + 60000 fuzz trials (120014 modeled-function calls, seed 10051): reset empties in place preserving identity, observer view tracks the live list, and a subsequent capture is visible through it.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "614cd4a5a3e7ecaec79bab1b81914064ed3d8f2c6f6332dc8aaee79e0e245657",
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:04:30+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0",
+        "model_prepatch.py": "62db06b766cc1d64bd006a6ef2829ece908f21b3950153bb3e109e31f7825388"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T14:45:47+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 9 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 9 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk_1_rebind_prepatch.py`, `atk_2_noop_discard.py`, `atk_3_clear_then_rebind.py`, `atk_5_double_append.py`, `atk_7_recursion.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_4_guarded_clear.py`, `atk_6_gold_echo.py`, `atk_8_clear_via_view.py`, `atk_9_append_then_clear.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_10_insert_front.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:05:25+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0",
+        "model_prepatch.py": "62db06b766cc1d64bd006a6ef2829ece908f21b3950153bb3e109e31f7825388"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:26:59+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "frame_warnings": [
+          "param 'xs' of empty_in_place() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)"
+        ],
+        "region_hashes": {
+          "axioms": "1e93fc4bceaa28fcd372d678e6f73310c04524d66bdd73087069077fedc8b75a",
+          "impl": "5f98b342a4127a14176d5a3ec67779391859211ab5e7bbd792e31951033575e4",
+          "post-conditions": "657bfb0d944c650a6043ae6a947b88353349f06b549736d55e566334b64f9140",
+          "pre-conditions": "b4110783c35fe630d5ca72902b4257e01c081c870f9f868631b2ec009fc2290b",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "ed2d2adcc1b8dbc8c01c51105378f760e8d9358ad8d8ddb1bd2c8ef844f88c47"
+        }
+      },
+      "detail": "imports/markers/regions clean  [advisory] param 'xs' of empty_in_place() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:27:00+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "34bc8f60055ba70c381a5894b147e4c3864fb6d10aae716b80028925aa9ae4e4",
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:27:00+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:03:33+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {},
+      "detail": "no behavioural impl mutants (impl region carries no mutable computation outside verifier directives)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T14:45:48+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break audit of pytest-dev__pytest-10051 nagini bundle. Verified against the real repo at base_commit aa55975c7d3f (worktree $SCRATCH). model.py verifies (nagini_verify.sh exit 0, 12.1s); axiom_check.py exit 0 (5 boundary + 20000 fuzz on real list.clear()). Spec region (outside impl-start/impl-end) intact.\n\nThe gold fix routes LogCaptureFixture.clear -> new LogCaptureHandler.clear -> self.records.clear() (in-place, identity-preserving) replacing the buggy reset() -> self.records = [] (rebind, orphans the per-phase alias set at logging.py:699). Checked each modeled function against its real callee for a diverging input:\n\n1. discard_captured <-> list.clear(): postconds len==0, buf.items is Old(buf.items), view is buf.items. Real CPython list.clear() empties in place and preserves object identity on EVERY input, so the stash[caplog_records_key][when] reference still names the live list. No diverging input.\n2. empty_in_place axiom <-> list.clear(): the WEAKEST needed contract (len==0, xs is Old(xs), terminates). Universally true across CPython 3.x; axiom_check confirms. Not over-strong. No diverging input.\n3. append_then_visible <-> LogCaptureHandler.emit (self.records.append): under the aliased+empty precondition the real emit appends and the item is visible through the get_records alias. LogRecord<->int abstraction preserves the only observables (len, index, identity). No diverging input.\n4. Precondition view is buf.items faithfully reflects real phase wiring (item.stash[caplog_records_key][when] = caplog_handler.records at :699) \u2014 actual repo state, not an over-strong assumption.\n\nIndependent 100000-input fuzz simulation of the real callee sequence (clear then append with view aliasing) produced 0 divergences from the modeled postconditions. The spec is not stronger than what the gold-patched repo delivers: the gold fix satisfies every postcondition and no input makes the modeled functions disagree with the real callees. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = markers.spec_view(model.py) with impl regions elided (`... supplied by the consumer`), so the gold call site `buf.items.clear()`/`empty_in_place(buf.items)` is NOT exposed. Mechanical G-LEAK screen (leakage.screen) PASSES: no diff markers, no reproduced gold-patch line, no patched file/module path (`src/_pytest/logging.py`), no narration term (NARRATION_RE finds none \u2014 'previously-handed-out' is hyphenated so it does not match), and no patched repo symbol leaked. Changed symbols are {clear, messages, reset}: `clear` appears in the spec docstring ('the real clear/emit always return') but `clear` is ALREADY public via `caplog.clear()` in the problem_statement (screen exempts symbols present in problem_statement); `reset` and `messages` are absent from the spec view; `emit` is unchanged by the patch. Semantically, the discriminating fix content \u2014 empty the list IN PLACE preserving object identity vs. rebind to a fresh empty list, so a previously-handed-out reference stays aliased \u2014 is exactly what the PUBLIC problem_statement already states: 'the latter gets replaced rather than cleared in caplog.clear(), which diverges the two objects.' The spec's identity clauses (2)/(3) and the 'rebind would orphan the observer's reference' prose are a faithful behavioral restatement of that publicly-disclosed bug, not a disclosure of the edit beyond problem_statement. No mention of the mechanism as a code edit, no reference to `records`/`handler`/`StringIO`/`get_records`/`caplog_records_key`, no file paths. Note: refinement.md/mapping.md DO disclose the gold edit verbatim, but those are auditor-facing artifacts, not part of the consumer spec view screened by G-LEAK/G-PANEL-3.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 9 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally); G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break audit of pytest-dev__pytest-10051 nagini bundle. Verified against the real repo at base_commit aa55975c7d3f (worktree $SCRATCH). model.py verifies (nagini_verify.sh exit 0, 12.1s); axiom_check.py exit 0 (5 boundary + 20000 fuzz on real list.clear()). Spec region (outside impl-start/impl-end) intact.\n\nThe gold fix routes LogCaptureFixture.clear -> new LogCaptureHandler.clear -> self.records.clear() (in-place, identity-preserving) replacing the buggy reset() -> self.records = [] (rebind, orphans the per-phase alias set at logging.py:699). Checked each modeled function against its real callee for a diverging input:\n\n1. discard_captured <-> list.clear(): postconds len==0, buf.items is Old(buf.items), view is buf.items. Real CPython list.clear() empties in place and preserves object identity on EVERY input, so the stash[caplog_records_key][when] reference still names the live list. No diverging input.\n2. empty_in_place axiom <-> list.clear(): the WEAKEST needed contract (len==0, xs is Old(xs), terminates). Universally true across CPython 3.x; axiom_check confirms. Not over-strong. No diverging input.\n3. append_then_visible <-> LogCaptureHandler.emit (self.records.append): under the aliased+empty precondition the real emit appends and the item is visible through the get_records alias. LogRecord<->int abstraction preserves the only observables (len, index, identity). No diverging input.\n4. Precondition view is buf.items faithfully reflects real phase wiring (item.stash[caplog_records_key][when] = caplog_handler.records at :699) \u2014 actual repo state, not an over-strong assumption.\n\nIndependent 100000-input fuzz simulation of the real callee sequence (clear then append with view aliasing) produced 0 divergences from the modeled postconditions. The spec is not stronger than what the gold-patched repo delivers: the gold fix satisfies every postcondition and no input makes the modeled functions disagree with the real callees. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view = markers.spec_view(model.py) with impl regions elided (`... supplied by the consumer`), so the gold call site `buf.items.clear()`/`empty_in_place(buf.items)` is NOT exposed. Mechanical G-LEAK screen (leakage.screen) PASSES: no diff markers, no reproduced gold-patch line, no patched file/module path (`src/_pytest/logging.py`), no narration term (NARRATION_RE finds none \u2014 'previously-handed-out' is hyphenated so it does not match), and no patched repo symbol leaked. Changed symbols are {clear, messages, reset}: `clear` appears in the spec docstring ('the real clear/emit always return') but `clear` is ALREADY public via `caplog.clear()` in the problem_statement (screen exempts symbols present in problem_statement); `reset` and `messages` are absent from the spec view; `emit` is unchanged by the patch. Semantically, the discriminating fix content \u2014 empty the list IN PLACE preserving object identity vs. rebind to a fresh empty list, so a previously-handed-out reference stays aliased \u2014 is exactly what the PUBLIC problem_statement already states: 'the latter gets replaced rather than cleared in caplog.clear(), which diverges the two objects.' The spec's identity clauses (2)/(3) and the 'rebind would orphan the observer's reference' prose are a faithful behavioral restatement of that publicly-disclosed bug, not a disclosure of the edit beyond problem_statement. No mention of the mechanism as a code edit, no reference to `records`/`handler`/`StringIO`/`get_records`/`caplog_records_key`, no file paths. Note: refinement.md/mapping.md DO disclose the gold edit verbatim, but those are auditor-facing artifacts, not part of the consumer spec view screened by G-LEAK/G-PANEL-3.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies (1 did not reach the verifier: the checker could not translate it, so it counts in neither tally)\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk_1_rebind_prepatch.py`, `atk_2_noop_discard.py`, `atk_3_clear_then_rebind.py`, `atk_5_double_append.py`, `atk_7_recursion.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 4 | `atk_4_guarded_clear.py`, `atk_6_gold_echo.py`, `atk_8_clear_via_view.py`, `atk_9_append_then_clear.py` |\n| changed the specification rather than only the implementation, so it does not test the specification this bundle ships | 1 | `atk_10_insert_front.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break audit of pytest-dev__pytest-10051 nagini bundle. Verified against the real repo at base_commit aa55975c7d3f (worktree $SCRATCH). model.py verifies (nagini_verify.sh exit 0, 12.1s); axiom_check.py exit 0 (5 boundary + 20000 fuzz on real list.clear()). Spec region (outside impl-start/impl-end) intact.\n\nThe gold fix routes LogCaptureFixture.clear -> new LogCaptureHandler.clear -> self.records.clear() (in-place, identity-preserving) replacing the buggy reset() -> self.records = [] (rebind, orphans the per-phase alias set at logging.py:699). Checked each modeled function against its real callee for a diverging input:\n\n1. discard_captured <-> list.clear(): postconds len==0, buf.items is Old(buf.items), view is buf.items. Real CPython list.clear() empties in place and preserves object identity on EVERY input, so the stash[caplog_records_key][when] reference still names the live list. No diverging input.\n2. empty_in_place axiom <-> list.clear(): the WEAKEST needed contract (len==0, xs is Old(xs), terminates). Universally true across CPython 3.x; axiom_check confirms. Not over-strong. No diverging input.\n3. append_then_visible <-> LogCaptureHandler.emit (self.records.append): under the aliased+empty precondition the real emit appends and the item is visible through the get_records alias. LogRecord<->int abstraction preserves the only observables (len, index, identity). No diverging input.\n4. Precondition view is buf.items faithfully reflects real phase wiring (item.stash[caplog_records_key][when] = caplog_handler.records at :699) \u2014 actual repo state, not an over-strong assumption.\n\nIndependent 100000-input fuzz simulation of the real callee sequence (clear then append with view aliasing) produced 0 divergences from the modeled postconditions. The spec is not stronger than what the gold-patched repo delivers: the gold fix satisfies every postcondition and no input makes the modeled functions disagree with the real callees. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view = markers.spec_view(model.py) with impl regions elided (`... supplied by the consumer`), so the gold call site `buf.items.clear()`/`empty_in_place(buf.items)` is NOT exposed. Mechanical G-LEAK screen (leakage.screen) PASSES: no diff markers, no reproduced gold-patch line, no patched file/module path (`src/_pytest/logging.py`), no narration term (NARRATION_RE finds none \u2014 'previously-handed-out' is hyphenated so it does not match), and no patched repo symbol leaked.\n\nChanged symbols are {clear, messages, reset}: `clear` appears in the spec docstring ('the real clear/emit always return') but `clear` is ALREADY public via `caplog.clear()` in the problem_statement (screen exempts symbols present in problem_statement); `reset` and `messages` are absent from the spec view; `emit` is unchanged by the patch.\n\nSemantically, the discriminating fix content \u2014 empty the list IN PLACE preserving object identity vs. rebind to a fresh empty list, so a previously-handed-out reference stays aliased \u2014 is exactly what the PUBLIC problem_statement already states: 'the latter gets replaced rather than cleared in caplog.clear(), which diverges the two objects.' The spec's identity clauses (2)/(3) and the 'rebind would orphan the observer's reference' prose are a faithful behavioral restatement of that publicly-disclosed bug, not a disclosure of the edit beyond problem_statement. No mention of the mechanism as a code edit, no reference to `records`/`handler`/`StringIO`/`get_records`/`caplog_records_key`, no file paths. Note: refinement.md/mapping.md DO disclose the gold edit verbatim, but those are auditor-facing artifacts, not part of the consumer spec view screened by G-LEAK/G-PANEL-3.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:05:14+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-discard",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 60.4
+          },
+          {
+            "expect": "reject",
+            "id": "rebind-orphans-discard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 62.9
+          },
+          {
+            "expect": "reject",
+            "id": "clear-then-rebind-discard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 59.7
+          },
+          {
+            "expect": "reject",
+            "id": "noop-discard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 57.7
+          },
+          {
+            "expect": "reject",
+            "id": "recursion-discard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 65.0
+          },
+          {
+            "expect": "reject",
+            "id": "empty-then-recurse-discard",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-append",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 59.8
+          },
+          {
+            "expect": "reject",
+            "id": "wrongval-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 58.2
+          },
+          {
+            "expect": "reject",
+            "id": "rebind-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 44.4
+          }
+        ],
+        "lanes": {
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "348519312710e89c52e66aa31e7fbdfa9e78b3c529f698cd70db2f0fd388bf2b",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0",
+        "properties.py": "348519312710e89c52e66aa31e7fbdfa9e78b3c529f698cd70db2f0fd388bf2b"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T16:56:22+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:03:56+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "wall_time_s": 39.6
+      },
+      "detail": "verified in 39.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "15daf77a112ee0960e7ef3b0928d846da1a6b15a9a1264a8297d9233b0d88df0"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pytest-dev__pytest-10051",
+  "modeled_functions": [
+    {
+      "carrier_type": "LogCaptureHandler -> minimal CaptureBuffer; List[logging.LogRecord] -> List[int] (record identity); the per-phase get_records reference -> the `view` alias parameter",
+      "model_symbol": "discard_captured",
+      "repo_location": "src/_pytest/logging.py:441 (LogCaptureFixture.clear); new LogCaptureHandler.clear after :345",
+      "repo_symbol": "_pytest.logging.LogCaptureFixture.clear -> LogCaptureHandler.clear",
+      "role": "modeled changed function: empties the captured-items list while preserving its object identity, so an external reference handed out earlier still tracks the buffer's live list"
+    },
+    {
+      "carrier_type": "List[logging.LogRecord] -> List[int]; .append preserved 1:1",
+      "model_symbol": "append_then_visible",
+      "repo_location": "src/_pytest/logging.py:339 (self.records.append(record))",
+      "repo_symbol": "_pytest.logging.LogCaptureHandler.emit",
+      "role": "the post-reset consequence the F2P test checks: a subsequently captured item is visible through the still-aliased observer reference (because identity was preserved)"
+    }
+  ],
+  "object_identity_modeling": "the tested behaviour is list object-identity preservation across a reset: clear-in-place (fix) keeps the same list object so an earlier-handed-out reference (the per-phase get_records view) stays aliased; rebind (bug) replaces the object and orphans the reference. Carried by Nagini reference equality (`is`) and the `xs is Old(xs)` postcondition.",
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition buf.items is Old(buf.items) of discard_captured (identity preservation), and consequently view is buf.items",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the captured-items reset: in-place emptying (identity-preserving) vs rebind",
+      "reverted_to": "buf.items = [] (rebind to a brand-new empty list, the pre-patch handler.reset() body self.records = [])"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "e7be61d9c489f0d1f08df4a442b4cc0554435644610d528d115849ae2fd41b9d",
+    "impl": "e793eaeed98f163704d0e089be4037c8a157de4876297b8ad2c08bda7f140b6d",
+    "invariants": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "post-conditions": "c4291a9b6666342097c6be0356a29a9de5934d4069aedda5291961796b0a8aad",
+    "pre-conditions": "976b6899174a098bc05b93cb48519ed862cc833bf62893f6989c473e702807cd",
+    "pure": "aa8fce86067349bb8bbd66cea3f4afab4f331518d467677d9175c1dc69a774be",
+    "spec_view": "4da9b5b7f58b251ae2186cd3eabb61ff44dff3073c76c70622488e2243fcdc54"
+  },
+  "repo": "pytest-dev/pytest",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "7.2"
+}

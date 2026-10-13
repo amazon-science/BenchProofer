@@ -1,0 +1,446 @@
+{
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "0c3981eb5094419fe200eb46c71b5376a2266166",
+  "changed_files": [
+    "django/db/models/sql/query.py",
+    "django/db/models/fields/related_lookups.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real Query.set_values over column observations",
+      "encoded_property": "set_values([col]) -> selected output is exactly [col] AND has_select_fields is True AND annotation_select_mask re-derived EMPTY for an ordinary column (aux_expr_materialized cleared to False)",
+      "kind": "A-reference",
+      "models": "django.db.models.sql.query.Query.set_values (post-patch)",
+      "name": "project_columns",
+      "provenance": "query.py:2383 set_values(): clear_select_fields() restricts the SELECT to the supplied fields; the new line self.has_select_fields = True establishes the flag; the field partitioning calls set_annotation_mask(annotation_names) which for ordinary columns is empty \u2014 the mask is cleared (observed {'ann'} -> set() on the gold-patched tree)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real annotate().alias() leaves has_select_fields False; values() afterwards sets it True",
+      "encoded_property": "annotate+alias materialize a non-empty annotation_select_mask, yet has_select_fields stays at its prior value (False on an unprojected query)",
+      "kind": "A-reference",
+      "models": "django QuerySet.annotate then QuerySet.alias (Query.add_annotation select=True then select=False)",
+      "name": "attach_auxiliary_expressions",
+      "provenance": "query.py:1109 add_annotation(): append_annotation_mask([alias]) (select=True) / set_annotation_mask(set(self.annotation_select).difference({alias})) (select=False); both materialize annotation_select_mask. Post-patch has_select_fields is a class attribute (query.py:200) neither path touches."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): builds Child.parent as a forward FK with non-pk to_field=Parent.code, then Child.objects.all().query.build_filter(('parent__in', <unprojected annotate+alias Parent qs>)), walks the WHERE tree to the RelatedIn lookup, and asserts the lookup's mutated rhs has has_select_fields True and values_select == ['code']; also asserts an already-projected rhs and a pk-target reverse-FK (child__in) rhs are left untouched",
+      "encoded_property": "when the rhs query is unprojected (has_select_fields False) and the lhs relation's target field is not a primary key, the lookup's rhs clone is narrowed via set_values to exactly the single target column with has_select_fields True; when the rhs is already projected, or the target field is a primary key, the rhs is left untouched",
+      "kind": "A-reference",
+      "models": "django.db.models.fields.related_lookups.RelatedIn.get_prep_lookup rhs-narrowing (post-patch)",
+      "name": "prepare_in_rhs",
+      "provenance": "related_lookups.py:93-108: guard `not getattr(rhs,'has_select_fields',True) and not target_field.primary_key`; body narrows the lookup's own rhs clone via self.rhs.set_values([target_field]). The branch fires only for a NON-pk target field (a forward FK declared with a non-pk to_field), not for a reverse FK whose target is the pk; and get_prep_lookup mutates the Query object the lookup holds (RelatedIn.rhs, a clone), not the caller's original queryset .query."
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:12:32+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: 11 A-reference observations match the deep model against the real Django Query machinery (set_values sets has_select_fields and narrows to one column; annotate+alias leave has_select_fields False; a related __in with a non-pk-target, unprojected rhs narrows the lookup's rhs clone to the single target column, while an already-projected rhs and a pk-target rhs are left untouched).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ed8c2f347cd39afbe05bf7c290da854e8246e06ffc1c86eee39b69360529a396",
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:12:44+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 113648,
+          "disagreements": 0,
+          "seed": 16032,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 113648, \"disagreements\": 0, \"seed\": 16032, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "8e9449081d2c1571fec4060fe720c1b1785b25759842e52be9deda6072ff467b",
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:23:07+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584",
+        "model_prepatch.py": "6397ed17debc7e345e7bc600ef53a1a6b55eeb0d2fdf5102b07732ec6d4552a7",
+        "model_prepatch_2.py": "4b27a340b0491837fc7c9c2c1fc6f553829586038159d42592dde0b30f11ed2b"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-08T17:44:40+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:24:22+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584",
+        "model_prepatch.py": "6397ed17debc7e345e7bc600ef53a1a6b55eeb0d2fdf5102b07732ec6d4552a7",
+        "model_prepatch_2.py": "4b27a340b0491837fc7c9c2c1fc6f553829586038159d42592dde0b30f11ed2b"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:12:23+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "6d243240732c05a4f3c274141698759d16cbe86a77e23bec403232ed97c245eb",
+          "impl": "6ae2d2348864ef0a2a8ede18dee2ff53fbb40536da0b95cd45d7dee33d74a289",
+          "post-conditions": "565e48d65bf06b375164f822a4815e99775067caa0d3ede43b782583e74a37f9",
+          "pre-conditions": "dc61410a5586808ee15fc612633c5cd7fe47ed6cec25c8b51f0c85038d3fd1d7",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "92c29f0c073e3fe86a9164c9963db1e9b53a3d85b62130f8db7aacbcfd1ca908"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:12:23+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "d2714901064b17f2719654e202292d92622ef1979a550f370197edda42462cf8",
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:12:24+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:30:11+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 4,
+        "killed": 4,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 4,
+        "unjudged": []
+      },
+      "detail": "killed 4/4 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-08T17:44:43+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "This divergence does NOT constitute a faithfulness break. mapping.md \u00a71 binds prepare_in_rhs to the RelatedIn.get_prep_lookup rhs-NARROWING BRANCH, not the full method. Against that bound callee the model agrees on all inputs: branch fires (non-pk, unprojected) -> clear+set_values, matched by project_columns (verified: has_select_fields=True, values_select=['code'], mask=set()); branch skipped (pk-target OR already-projected) -> branch is a no-op, matched by the model's no-op frame. The pk-skip mask clearing is produced entirely by the UNCHANGED downstream In.get_prep_lookup (lookups.py:418, clear_select_clause()+add_fields(['pk'])), explicitly documented as outside the modeled edit in mapping.md \u00a73.3 and axiom_check.py \u00a73c, and G-AX deliberately/transparently does NOT assert the mask there \u2014 it asserts only the attributable observable (has_select_fields staying False), which the model captures correctly. The pk-target case is never the reported-bug scenario (bug fires only for non-pk to_field FKs), so this region is irrelevant to resolution. The frame overclaim is strictly stronger (it constrains more, not less), so it cannot admit any non-resolving implementation. Model verifies (Nagini 17.8s). project_columns/attach_auxiliary_expressions/prepare_in_rhs(non-pk narrow) all confirmed faithful to real Django empirically. Note: refinement.md \u00a7A4 records a prior G-PANEL-2 finding that fixed an analogous clearing-vs-preservation mismodel in project_columns (there the clearing IS attributable to the modeled set_values edit); the prepare_in_rhs pk-skip case is genuinely different because its clearing is unchanged downstream code, so the boundary is sound.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view (swebench_unified.markers.spec_view, backend=nagini) = abstract docstring + Query twin + pre/post contracts; impl regions correctly elided to '...'. Mechanical leakage.screen() passes (0 hard failures); confirmed independently.\n\nGold edit (test.jsonl patch): (a) related_lookups.py RelatedIn.get_prep_lookup: drop clear_select_clause()+add_fields([target_field],True), call set_values([target_field]); (b) query.py: add class attr has_select_fields=False, delete the derived has_select_fields @property, set self.has_select_fields=True in set_values.\n\nLeakage check vs SOLVER-VISIBLE problem_statement ONLY (not hints_text):\n- No gold repo symbol appears in the spec view. All spec identifiers are abstracted twins: restricted_to_explicit_columns (vs has_select_fields), project_columns (vs set_values), attach_auxiliary_expressions (vs add_annotation/annotate/alias), prepare_in_rhs (vs RelatedIn.get_prep_lookup), aux_expr_materialized (vs annotation_select_mask), selected_columns (vs select/values_select). None embed a patched symbol.\n- No patched file path (query.py / related_lookups.py) or dotted module path in the spec view.\n- No diff markers, no bug/fix/regression narration in comments/docstring (verified: narration regex clean).\n- The behavioral content the spec DOES state \u2014 that a query on the RHS of an __in membership filter must be narrowed to one column, and that combining the two annotate/alias-kind auxiliary expressions must NOT by itself mark the query as explicitly column-restricted \u2014 is exactly the symptom already public in problem_statement (annotate()+alias() before __in => 'sub-select returns 10 columns - expected 1'). The spec expresses the DESIRED behavior/correctness condition, not the gold's implementation mechanism.\n- The distinctive gold mechanism (has_select_fields being changed from a derived property to a class attribute; the specific set_values swap) is NOT reconstructible from the spec view. That mechanism appears only in the hints_text and in the auditor docs refinement.md/mapping.md, which are NOT part of the consumer spec view screened here.\n\nspec_view identifiers do not echo any patched symbol; behavior described is at the abstract-property level and traces to the public problem statement. No line reveals the gold edit beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 This divergence does NOT constitute a faithfulness break. mapping.md \u00a71 binds prepare_in_rhs to the RelatedIn.get_prep_lookup rhs-NARROWING BRANCH, not the full method. Against that bound callee the model agrees on all inputs: branch fires (non-pk, unprojected) -> clear+set_values, matched by project_columns (verified: has_select_fields=True, values_select=['code'], mask=set()); branch skipped (pk-target OR already-projected) -> branch is a no-op, matched by the model's no-op frame. The pk-skip mask clearing is produced entirely by the UNCHANGED downstream In.get_prep_lookup (lookups.py:418, clear_select_clause()+add_fields(['pk'])), explicitly documented as outside the modeled edit in mapping.md \u00a73.3 and axiom_check.py \u00a73c, and G-AX deliberately/transparently does NOT assert the mask there \u2014 it asserts only the attributable observable (has_select_fields staying False), which the model captures correctly. The pk-target case is never the reported-bug scenario (bug fires only for non-pk to_field FKs), so this region is irrelevant to resolution. The frame overclaim is strictly stronger (it constrains more, not less), so it cannot admit any non-resolving implementation. Model verifies (Nagini 17.8s). project_columns/attach_auxiliary_expressions/prepare_in_rhs(non-pk narrow) all confirmed faithful to real Django empirically. Note: refinement.md \u00a7A4 records a prior G-PANEL-2 finding that fixed an analogous clearing-vs-preservation mismodel in project_columns (there the clearing IS attributable to the modeled set_values edit); the prepare_in_rhs pk-skip case is genuinely different because its clearing is unchanged downstream code, so the boundary is sound.; G-PANEL-3 (leakage): pass \u2014 Spec view (swebench_unified.markers.spec_view, backend=nagini) = abstract docstring + Query twin + pre/post contracts; impl regions correctly elided to '...'. Mechanical leakage.screen() passes (0 hard failures); confirmed independently.\n\nGold edit (test.jsonl patch): (a) related_lookups.py RelatedIn.get_prep_lookup: drop clear_select_clause()+add_fields([target_field],True), call set_values([target_field]); (b) query.py: add class attr has_select_fields=False, delete the derived has_select_fields @property, set self.has_select_fields=True in set_values.\n\nLeakage check vs SOLVER-VISIBLE problem_statement ONLY (not hints_text):\n- No gold repo symbol appears in the spec view. All spec identifiers are abstracted twins: restricted_to_explicit_columns (vs has_select_fields), project_columns (vs set_values), attach_auxiliary_expressions (vs add_annotation/annotate/alias), prepare_in_rhs (vs RelatedIn.get_prep_lookup), aux_expr_materialized (vs annotation_select_mask), selected_columns (vs select/values_select). None embed a patched symbol.\n- No patched file path (query.py / related_lookups.py) or dotted module path in the spec view.\n- No diff markers, no bug/fix/regression narration in comments/docstring (verified: narration regex clean).\n- The behavioral content the spec DOES state \u2014 that a query on the RHS of an __in membership filter must be narrowed to one column, and that combining the two annotate/alias-kind auxiliary expressions must NOT by itself mark the query as explicitly column-restricted \u2014 is exactly the symptom already public in problem_statement (annotate()+alias() before __in => 'sub-select returns 10 columns - expected 1'). The spec expresses the DESIRED behavior/correctness condition, not the gold's implementation mechanism.\n- The distinctive gold mechanism (has_select_fields being changed from a derived property to a class attribute; the specific set_values swap) is NOT reconstructible from the spec view. That mechanism appears only in the hints_text and in the auditor docs refinement.md/mapping.md, which are NOT part of the consumer spec view screened here.\n\nspec_view identifiers do not echo any patched symbol; behavior described is at the abstract-property level and traces to the public problem statement. No line reveals the gold edit beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "This divergence does NOT constitute a faithfulness break. mapping.md \u00a71 binds prepare_in_rhs to the RelatedIn.get_prep_lookup rhs-NARROWING BRANCH, not the full method. Against that bound callee the model agrees on all inputs: branch fires (non-pk, unprojected) -> clear+set_values, matched by project_columns (verified: has_select_fields=True, values_select=['code'], mask=set()); branch skipped (pk-target OR already-projected) -> branch is a no-op, matched by the model's no-op frame.\n\nThe pk-skip mask clearing is produced entirely by the UNCHANGED downstream In.get_prep_lookup (lookups.py:418, clear_select_clause()+add_fields(['pk'])), explicitly documented as outside the modeled edit in mapping.md \u00a73.3 and axiom_check.py \u00a73c, and G-AX deliberately/transparently does NOT assert the mask there \u2014 it asserts only the attributable observable (has_select_fields staying False), which the model captures correctly. The pk-target case is never the reported-bug scenario (bug fires only for non-pk to_field FKs), so this region is irrelevant to resolution. The frame overclaim is strictly stronger (it constrains more, not less), so it cannot admit any non-resolving implementation.\n\nModel verifies (Nagini 17.8s). project_columns/attach_auxiliary_expressions/prepare_in_rhs(non-pk narrow) all confirmed faithful to real Django empirically. Note: refinement.md \u00a7A4 records a prior G-PANEL-2 finding that fixed an analogous clearing-vs-preservation mismodel in project_columns (there the clearing IS attributable to the modeled set_values edit); the prepare_in_rhs pk-skip case is genuinely different because its clearing is unchanged downstream code, so the boundary is sound.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec view (swebench_unified.markers.spec_view, backend=nagini) = abstract docstring + Query twin + pre/post contracts; impl regions correctly elided to '...'. Mechanical leakage.screen() passes (0 hard failures); confirmed independently.\n\nGold edit (test.jsonl patch): (a) related_lookups.py RelatedIn.get_prep_lookup: drop clear_select_clause()+add_fields([target_field],True), call set_values([target_field]); (b) query.py: add class attr has_select_fields=False, delete the derived has_select_fields @property, set self.has_select_fields=True in set_values.\n\nLeakage check vs SOLVER-VISIBLE problem_statement ONLY (not hints_text):\n- No gold repo symbol appears in the spec view. All spec identifiers are abstracted twins: restricted_to_explicit_columns (vs has_select_fields), project_columns (vs set_values), attach_auxiliary_expressions (vs add_annotation/annotate/alias), prepare_in_rhs (vs RelatedIn.get_prep_lookup), aux_expr_materialized (vs annotation_select_mask), selected_columns (vs select/values_select). None embed a patched symbol.\n- No patched file path (query.py / related_lookups.py) or dotted module path in the spec view.\n- No diff markers, no bug/fix/regression narration in comments/docstring (verified: narration regex clean).\n- The behavioral content the spec DOES state \u2014 that a query on the RHS of an __in membership filter must be narrowed to one column, and that combining the two annotate/alias-kind auxiliary expressions must NOT by itself mark the query as explicitly column-restricted \u2014 is exactly the symptom already public in problem_statement (annotate()+alias() before __in => 'sub-select returns 10 columns - expected 1'). The spec expresses the DESIRED behavior/correctness condition, not the gold's implementation mechanism.\n- The distinctive gold mechanism (has_select_fields being changed from a derived property to a class attribute; the specific set_values swap) is NOT reconstructible from the spec view. That mechanism appears only in the hints_text and in the auditor docs refinement.md/mapping.md, which are NOT part of the consumer spec view screened here.\n\nspec_view identifiers do not echo any patched symbol; behavior described is at the abstract-property level and traces to the public problem statement. No line reveals the gold edit beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:45:46+00:00",
+      "code_version": "7df0fef9f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-project-reorder-no-reset",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-rhs-inline-projection",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-rhs-narrow-reachable",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-aux-recouples-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-rhs-narrow-without-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-rhs-overfires-on-pk-target",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.2
+          },
+          {
+            "expect": "reject",
+            "id": "faith-aux-preserved-in-project",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-cols-in-aux",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-rhs-wrong-column",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "c51385929ad9edec14b2bf9351e99b14526015490cc8129af1041a96674aea3d",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584",
+        "properties.py": "c51385929ad9edec14b2bf9351e99b14526015490cc8129af1041a96674aea3d"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T09:02:12+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:30:23+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 12.4
+      },
+      "detail": "verified in 12.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "871e17249c505977836d373e9f5767e7acd02af8e345684b3bef8555aa518584"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-16032",
+  "modeled_functions": [
+    {
+      "carrier_type": "rich Query object -> minimal twin (restricted_to_explicit_columns: bool, selected_columns: List[int], aux_expr_materialized: bool)",
+      "model_symbol": "project_columns",
+      "repo_location": "django/db/models/sql/query.py:2383",
+      "repo_symbol": "django.db.models.sql.query.Query.set_values",
+      "role": "restrict a query to a chosen column set and mark it explicitly projected (sets has_select_fields True). Contains the query.py fix line self.has_select_fields = True."
+    },
+    {
+      "carrier_type": "annotation_select_mask presence -> aux_expr_materialized: bool",
+      "model_symbol": "attach_auxiliary_expressions",
+      "repo_location": "django/db/models/sql/query.py:1109",
+      "repo_symbol": "django.db.models.sql.query.Query.add_annotation (via QuerySet.annotate then QuerySet.alias)",
+      "role": "attach a returned-column annotation and a non-returned (helper) alias; materializes the annotation mask but, post-patch, leaves has_select_fields unchanged (the behavioural content of removing the derived has_select_fields property)"
+    },
+    {
+      "carrier_type": "RelatedIn.rhs (Query) -> minimal twin; target_field.primary_key -> target_is_unique_key: bool",
+      "model_symbol": "prepare_in_rhs",
+      "repo_location": "django/db/models/fields/related_lookups.py:93-108",
+      "repo_symbol": "django.db.models.fields.related_lookups.RelatedIn.get_prep_lookup (rhs-narrowing branch)",
+      "role": "prepare a query rhs for a related membership (__in) filter; narrows an unprojected, non-pk-target rhs via set_values (the related_lookups.py fix: was clear_select_clause()+add_fields([...],True))"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; two files: query.py + related_lookups.py)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition of attach_auxiliary_expressions: restricted_to_explicit_columns == Old(restricted_to_explicit_columns) (model_prepatch.py:121)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "query.py: has_select_fields decoupled from the annotation mask",
+      "reverted_to": "the dynamic has_select_fields property derived from bool(select or annotation_select_mask or extra_select_mask); modelled as attach_auxiliary_expressions flipping restricted_to_explicit_columns True once the mask materializes"
+    },
+    {
+      "fails_on": "postcondition of prepare_in_rhs: the narrowing implication (len==1 AND [0]==target AND restricted_to_explicit_columns is True AND aux_expr_materialized is False) (model_prepatch_2.py:148)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "related_lookups.py: rhs-narrowing goes through set_values",
+      "reverted_to": "clear_select_clause() + add_fields([target_field], True) \u2014 sets the selected columns but, under the new attribute regime, does NOT set has_select_fields; modelled as narrowing selected_columns without project_columns (so neither the flag is set nor the aux mask re-derived/cleared)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "6d243240732c05a4f3c274141698759d16cbe86a77e23bec403232ed97c245eb",
+    "impl": "6ae2d2348864ef0a2a8ede18dee2ff53fbb40536da0b95cd45d7dee33d74a289",
+    "post-conditions": "565e48d65bf06b375164f822a4815e99775067caa0d3ede43b782583e74a37f9",
+    "pre-conditions": "a8f3acd8aeece5afd930e9356aee568b90e300368a6189b3e9108c75e55c0157",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "0bba5eff57ae4f67c9d2fb3772cdd82c6047c080858f994f9b100d83b0aeeee8"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none; rich Query/RelatedIn objects modelled as a minimal class with the three touched fields (one bool flag, List[int] of selected column ids, one bool for materialized annotation mask). Pure object/state logic, modelled deeply; no consumed axioms.",
+  "version": "4.2"
+}

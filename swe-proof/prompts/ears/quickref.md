@@ -1,0 +1,5 @@
+EARS QUICK-REFERENCE (the specification is a natural-language requirements.md; there is NO formal verifier for this task type):
+- Document shape: an `## Introduction` (problem + goal + the modules/functions involved), then `## Requirement N: <title>` sections, each with a `**User story:**` ("As a ..., I want ..., so that ...") and an `**Acceptance criteria**` numbered list.
+- Every acceptance criterion is an EARS requirement: `WHEN <trigger>, THEN <subject> SHALL <response>`; `WHILE <state>, ... SHALL ...`; `IF <condition>, THEN ... SHALL ...`; or ubiquitous `The system SHALL ...`. Use SHALL (capitalized) for every mandated behavior; include at least one trigger-form (WHEN/WHILE/IF) criterion.
+- Pin observable behavior: exact values/orderings/error conditions, every case the fix distinguishes, and "SHALL keep" criteria for behavior that must not change.
+- The `ears_lint` tool checks STRUCTURE only (sections, user stories, EARS patterns) — a lint-clean document can still be semantically weak; adequacy is judged separately.

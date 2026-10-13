@@ -1,0 +1,441 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "3c88e520da24ae6f736929a750876e7654accc3d",
+  "changed_files": [
+    "requests/sessions.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): drives the REAL merge_setting machinery (real to_key_val_list + OrderedDict.update + gold drop, self-applied) and asserts combined == real per-key result on 7 boundary + 20000 fuzz pairs; plus a BUGGY-state two-state check showing a session-only None survives the base_commit per-request-only drop",
+      "encoded_property": "combined(sv,rv): effective(sv,rv) = rv if rv != absent() else sv (request wins); result holds the effective value except an effective value of none_val() drops the key to absent() -- so no result position holds none_val(); this holds regardless of which side contributed the None",
+      "kind": "A-reference",
+      "models": "requests.sessions.merge_setting dict-merge branch POST-patch (real precedence merge via to_key_val_list + OrderedDict.update, then the gold drop of all None-valued keys)",
+      "name": "combined",
+      "provenance": "requests/sessions.py:54-62 (merge), :62 gold drop; precedence helper to_key_val_list at requests/utils.py:144",
+      "role": "deep model (pure region) of the changed combine-and-drop operation; NOT a consumed axiom -- there is no @ContractOnly axiom the proof depends on"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T17:25:44+00:00",
+      "code_version": "65b93c2ef-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model (A-reference) `combined` == real merge_setting machinery (real to_key_val_list + OrderedDict.update + gold None-drop, self-applied) on 7 boundary + 20000 fuzz session/request pairs (per-key precedence merge with every None-valued key dropped; no None survives); under the base_commit drop (per-request side only) a session-only None SURVIVES holding None (the bug the F2P test pins), so the observable discriminates fixed from buggy.",
+      "gate": "G-AX",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ec308f050f930e17c44560b55bce38f6d9da1800a2ed73352179c902eee2aa6a",
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T17:25:43+00:00",
+      "code_version": "65b93c2ef-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 16,
+          "checked": 109921,
+          "disagreements": 0,
+          "exhaustive": 69905,
+          "fuzz": 40000,
+          "oracle": "called: requests.sessions.merge_setting (patched)",
+          "seed": 1921,
+          "shadow": "direct (contract-stripped impl region of model.py)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 109921, \"disagreements\": 0, \"seed\": 1921, \"boundary\": 16, \"exhaustive\": 69905, \"fuzz\": 40000, \"shadow\": \"direct (contract-stripped impl region of model.py)\", \"oracle\": \"called: requests.sessions.merge_setting (patched)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "650f0e28dbdf0cd468621a39be124ce41e8f36c081c7adb85d8dedc4d0ada2dc",
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:45:11+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91",
+        "model_prepatch.py": "a06d212f08d52853abb34f5af2846e7e066562e73313f7087ec35ae0d90c9f20"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-14T18:20:30+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1_selfcall_plain.py`, `atk_2_selfcall_measure_guarded.py`, `atk_3_spin_targeted.py`, `atk_4_prepatch.py`, `atk_5_partial_domain.py`, `atk_6_boundary_offbyone.py`, `atk_7_reversed_precedence.py`, `atk_8_none_as_absent.py`, `atk_9_overdrop.py`, `atk_10_mutate_session.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_11_echo_oracle.py`, `atk_12_pure_echo.py`, `atk_13_alias_mutate.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91",
+        "properties.py": "01146722dc256bdab5f1729e54b70fa3ebcea31374ff5b85dc01dd7e274d4999"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:46:17+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91",
+        "model_prepatch.py": "a06d212f08d52853abb34f5af2846e7e066562e73313f7087ec35ae0d90c9f20"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T17:30:12+00:00",
+      "code_version": "e5e8f0ed4-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "2eb5802cb94523489b97be57bf353d2981a7a67b6d224f82854851cd30307242",
+          "impl": "bf75dae8232ac124eb3ff89fe7f931eb4fb2f94f3440ab553c8101292872225c",
+          "invariants": "ca4496a54652b1f593495487919639e3b691608d4a146eb396856e4a717d6e7e",
+          "post-conditions": "66ba113824bdc65ece1b50dfb2c4565531df98928e8f44054257a2390d2f85e4",
+          "pre-conditions": "226b453647f4a9e4bdb603b9f2f98ddb0a0fbcc4a074b03182b1c4bd5bf2bd77",
+          "pure": "f9d7ad213fe674a87a329773416d3fd82c420ead55b362b089b3ee24750312a2",
+          "spec_view": "b2159665300437234e8ff9cae6bdfb5f2cd0fa34daca4900a71f80587f30d126"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T17:30:12+00:00",
+      "code_version": "e5e8f0ed4-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "ee9f80d5a32b78bb4bda9a1bd957b9691aa926d7dcb235520ecc5364f727bdbc",
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T17:30:13+00:00",
+      "code_version": "e5e8f0ed4-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T17:29:49+00:00",
+      "code_version": "e5e8f0ed4-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-14T18:20:30+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE DISCIPLINE. Bundle contains no patch.diff; I pulled the gold patch verbatim from data/swe_bench_verified/test.jsonl (one hunk: `merged_setting = dict((k,v) for (k,v) in merged_setting.items() if v is not None)` inserted at requests/sessions.py:62) and built the reference as a fresh worktree of repos/psf_requests.git at base_commit 3c88e520 with that patch APPLIED (). A second unpatched worktree (*) was used ONLY as the falsifiability control, never as the reference. Bundle was not modified; all work in /tmp.\n\nSPEC REGION INTEGRITY. `adversary same-spec nagini psf__requests-1921` on a byte-copy of model.py => exit 0 (\"SAME\"). `bash scripts/nagini_verify.sh model.py` => \"Verification successful\" (22.75s), so the spec I audited is the one that verifies. meta.json region_hashes read; axioms == [] (no consumed @ContractOnly axiom \u2014 the merge-and-drop is modelled deeply, so there is no axiom that could be over-strong in the usual way).\n\nWHAT THE SPEC CLAIMS. Post(1) Result()[k] == combined(session[k], request[k]) for k in 0..n-1, where combined = (request wins where rv != absent(); effective value of none_val() drops to absent()). Post(2) Result()[k] != none_val(). Plus len(Result()) == n, inputs returned at the same 1/2 permission, and MustTerminate(2).\n\nINDEPENDENT PROBE (did NOT reuse the bundle's conformance_check.py bridge). atk1921_indep.py: my own to_repo/from_repo, real string header keys instead of str(0..n-1), **insertion order randomly shuffled per case** (so no accidental reliance on OrderedDict ordering), and it checks the POSTCONDITIONS directly rather than the impl shadow \u2014 the distinction that matters for a too-strong-spec attack. 99,905 inputs (exhaustive class grid length 0..4 over {absent, unset, 1, 7} + 30,000 fuzz with n strictly below both list lengths). Zero divergences. It also asserts no key outside 0..n-1 appears in the real result, and separately that the real merged dict literally holds no None.\n\nREAL-CALL-SITE TYPES. sessions.py:293 calls merge_setting(request.headers, self.headers, dict_class=CaseInsensitiveDict) \u2014 NOT the OrderedDict the bundle's gate uses. I re-ran the grid under all four combinations (plaindict/OrderedDict, CID/CID, plaindict/CID, CID/OrderedDict): 4,369 inputs each, all OK. So the spec is faithful at the shape the F2P test actually exercises, not just at the gate's shape.\n\nNEGATIVE REALS. The precondition admits ANY int as a real value while only -1 is none_val(); a spec keyed on `< 0` rather than `== -1` would be over-strong here. Grid over {0, -1, -2, -7, -100, 1, 7, 3}, 266,305 inputs, length 0..3: OK. `combined` genuinely keys on identity with none_val(), matching `v is not None`.\n\nEDGE / BRANCH PROBES, and why each is out of carrier rather than a divergence:\n  * merge_setting(None, X) and merge_setting(X, None) early-return X unmerged (so a session-side None SURVIVES: merge_setting(None,{'a':None}) -> {'a':None}). NOT reachable from the model: absent() means \"key not in the dict\", and the bridge maps an all-absent list to an EMPTY dict, never to the Python argument None. Confirmed merge_setting({}, {'a':None}) -> {} \u2014 the empty-dict case does drop, and that is the case the carrier produces. mapping.md and conformance_check.py both state this explicitly.\n  * non-Mapping bypass (merge_setting('x','y') -> 'x', merge_setting(None,True) -> True): unreachable, both bridge outputs are always real dicts.\n  * FALSY-but-not-None values (0, False, '', (), 0.0) all SURVIVE the gold drop (`v is not None`, not truthiness). Consistent with the model: absent()==0 is a carrier sentinel for \"key not in the dict\", not a modelled real value, so no admissible List[int] asks the spec about a stored 0.\n  * CID case-collision at the real call site: ses['Accept-Encoding']='gzip' + req['accept-encoding']=None drops under dict_class=CaseInsensitiveDict but survives under OrderedDict; and a PLAIN dict {'a':None,'A':None} into dict_class=CaseInsensitiveDict raises KeyError('a') in the pre-existing del loop. Both are pre-existing case-folding behavior of the untouched del loop, reachable only when two distinct keys collide under .lower(); the model's key universe is distinct positions 0..n-1 (mapping.md \u00a72 bans string keys and states keys are distinct), so this is outside the carrier by construction, not a spec over-claim. I used case-distinct key names (Aa/Bb, not a/A) so this never masked a real divergence.\n  * Input non-mutation and non-aliasing: over the grid under both dict classes, neither argument dict is mutated and the result is never the same object as either argument. This backs the Ensures(Acc(..., 1/2)) read-only claim.\n\nOBSERVATION, NOT A DEFECT. The gold patch replaces `merged_setting` with a plain `dict(...)`, so at the headers call site merge_setting returns a plain dict rather than the CaseInsensitiveDict the dict_class argument requested \u2014 case-insensitive lookup on merge_setting's direct return is lost. I checked whether this is an unmodelled behavior change the spec papers over, and it is not observable downstream: PreparedRequest.prepare_headers re-wraps into CaseInsensitiveDict (models.py:394), prep.headers is CaseInsensitiveDict, and the case-insensitivity P2P test passes on gold (test_header_remove_is_case_insensitive + test_headers_on_session_with_None_are_not_sent: 2 passed). mapping.md \u00a72 declares result ordering/representation unobserved, which covers this. Recording it as a known non-divergence.\n\nFALSIFIABILITY CONTROL (the load-bearing check that my probe is not vacuous). Both my independent probes were re-run unchanged against the UNPATCHED base worktree and FAILED immediately: session=[-1], request=[0], n=1 gives real=[-1] (key 'Accept-Encoding' still mapping to None) vs combined=[0] \u2014 violating BOTH post(1) and post(2). Identical failure under all four dict-class combinations. My harness therefore has the discriminating power to have caught an unfaithful spec, and its green result on the patched reference is evidence.\n\nGATE REPRODUCTION. I re-ran the bundle's own axiom_check.py and conformance_check.py inside MY worktree (only a collections.abc shim prepended for py3.10): G-CONF exit 0 (109,921 inputs, 0 disagreements) and G-AX exit 0. Notably G-AX self-applies the gold drop rather than trusting the ambient tree and runs an explicit BUGGY-state control, so it is not tautological against the base checkout. F2P scenario reproduced end-to-end on the patched worktree: 'Accept-Encoding' not in prep.headers -> True.\n\nEND-TO-END SANITY ON THE ATTACK DIRECTION. A faithfulness break requires the spec to be strictly stronger than the real callee somewhere in the admissible domain. Every candidate I found where the real function does something the spec forbids (None-argument passthrough, non-Mapping bypass, falsy survival, CID case collision) is provably unreachable through the declared bridge, and I verified reachability rather than assuming it. The one operation the patch changed is modelled deeply, not axiomatised, so there is no hidden axiom carrying the fix.\n\nCONCLUSION: FAITHFUL. No diverging input exists in the modeled domain; the spec is neither stronger nor weaker than the real post-patch merge_setting on the inputs the carrier can express.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Gate: leakage / gold-reconstruction on the CONSUMER SPEC VIEW of psf__requests-1921 (nagini). Judged against the solver-visible problem_statement ONLY; hints_text deliberately excluded from the baseline.\n\nSPEC VIEW RECONSTRUCTED INDEPENDENTLY. markers.spec_view(model.py, nagini) rendered directly (impl region collapses to '...  # implementation elided'); sha256 = b2159665300437234e8ff9cae6bdfb5f2cd0fa34daca4900a71f80587f30d126. The whole surface I judged = module docstring + imports + axioms region (a no-axioms note) + pure region (absent/none_val/effective/combined) + pre-conditions + post-conditions. Invariants and impl are NOT in the view (confirmed: the invariants/impl region hashes differ between my render and the file, i.e. they are elided). same-spec on an identical copy returns exit 0, and markers.same_spec(model.py, model_prepatch.py) is True, so the spec view is the same frozen artifact both the solver and the G-DIFF prepatch rival see - no second leak surface.\n\nGOLD EDIT (the thing that must NOT be reconstructible). One added line in requests/sessions.py, inside merge_setting: 'merged_setting = dict((k, v) for (k, v) in merged_setting.items() if v is not None)', placed after the existing per-request del loop. Changed symbol set = {merge_setting}; changed file = requests/sessions.py.\n\nL1 (gold line / diff markers). Normalized gold line 'merged_setting=dict((k,v)for(k,v)inmerged_setting.items()ifvisnotNone)' does not occur in the normalized view. Zero occurrences in the view of: merged, dict, items(), OrderedDict, to_key_val_list, update, del <expr>, filter, comprehension. No diff marker (@@, diff --git, '+++ ', '--- ', index) present.\n\nL2 (localization). No 'requests/sessions.py', no 'requests.sessions', no base_commit hash, no line numbers, no 'merge_setting' (nor any identifier embedding it). Spec-view identifier set is fully abstract: Acc, Ensures, Forall, Implies, List, MustTerminate, Pure, Requires, Result, absent, combined, effective, effective_collection, int, k, len, list_pred, n, none_val, request, rv, session, sv. Note the repo's real parameter names (session_setting / request_setting / merged_setting) are NOT used; the view uses bare 'session'/'request', which are problem-statement vocabulary ('session', \"the method's arguments\"). No F2P test name, no 'httpbin', no 'prepare_request', no 'Accept-Encoding', no 'headers'.\n\nL3 (narration). No banned narration token fires (bug/fix/patch/pre-patch/regression/previously/incorrectly/wrong/broken). Everything is phrased as desired behaviour of a result, not as an edit or a diagnosis. Independent leakage.screen() on the real instance row returns passed=True with zero hard failures and zero warnings - my manual read agrees rather than merely deferring to it.\n\nHINTS-ONLY VOCABULARY (the documented #1 failure mode). Diffed the >=4-char word sets: hints-only words that do appear in the view are ['about','above','actually','before','behaviour','merge','request','unset','with'] - all generic English or PS-derived. 'merge' appears twice ('the precedence merge', 'Faithful precedence-merge-and-drop'); it names the abstract combine operation, not the repo function merge_setting, and merging session defaults with per-call arguments is exactly what the PS's cited docs describe. 'unset' is the model's own abstract term for the distinguished value; the PS itself establishes None-means-do-not-send. No hints-only DIAGNOSIS ('I think this is a bug in how we merge the headers before firing off a request') is echoed in mechanism form.\n\nCLOSEST CALL, EXAMINED AND CLEARED. Two places restate the F2P scenario / rule out a wrong impl:\n(a) docstring: 'a key carried only by the standing per-session collection and given the unset value there (never mentioned by the per-request collection) must be dropped, not carried through still holding the unset value.'\n(b) post-condition (2) comment: 'This is the clause a drop that only inspects the per-request side (leaving a session-side unset value in place) violates.'\nBoth are inside the public PS envelope. The PS states, publicly and in code: session.headers['Accept-Encoding'] = None yields 'Accept-Encoding: None' sent, while the same None in the method's arguments already suppresses the header. So 'per-request None already works / session-only None survives holding None' IS the public content, and (a) is a restatement of the demanded behaviour - required spec content, since dropping it would make the spec too weak. (b) characterizes the REJECTED implementation, which is precisely the behaviour the PS reports as broken; it is a spec-strength justification, and the same 'this is the clause X violates' pattern is a house convention (django-11790:98, django-15569:151, sphinx-8459:124, django-14170:234).\nDecisively, (b) does not determine the edit. The gold fixes this by ADDING a trailing full-dict filter pass while leaving the per-request del loop intact; the spec view never says that, and the model's own elided impl uses a third shape entirely (a per-key inline branch on the effective value inside a forward fold). Nothing in the view distinguishes 'add a final pass' from 'widen the existing loop' from 'decide per key', and nothing points at merge_setting or sessions.py. Gold-reconstruction from the view alone is not possible beyond what the PS already hands over.\n\nINSTANCE ID IN LINE 1. '\\\"\\\"\\\"Twin-artifact model for psf__requests-1921.' names the repo and issue number. This is corpus-wide convention (verified across benchmark-verified/*/nagini/model.py) and is the task's own identity - the consumer is already given the psf/requests worktree at base_commit and the problem statement. It reveals no edit content. Recorded as an observation, not a finding.\n\nOUT-OF-SCOPE OBSERVATION (not this gate, no action taken). meta.json region_hashes for invariants/impl/pre-conditions/spec_view disagree with a fresh markers.region_hashes() render; the same disagreement holds for 36 of the first 40 verified bundles, so it is a corpus-wide hashing-convention artifact rather than drift in this bundle. It does not touch leakage: I judged the freshly rendered view, not a recorded hash. Also noted that meta records G-PANEL-1=fail (spec-strength lane) - orthogonal to leakage and not re-litigated here.\n\nCONCLUSION: the spec view states the abstract desired behaviour (precedence merge; a key whose EFFECTIVE value is the unset value is absent from the result, whichever side supplied it) without quoting the gold line, naming the patched file/module/function, echoing a patched repo symbol in any identifier or comment, or narrating the fix mechanism. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE DISCIPLINE. Bundle contains no patch.diff; I pulled the gold patch verbatim from data/swe_bench_verified/test.jsonl (one hunk: `merged_setting = dict((k,v) for (k,v) in merged_setting.items() if v is not None)` inserted at requests/sessions.py:62) and built the reference as a fresh worktree of repos/psf_requests.git at base_commit 3c88e520 with that patch APPLIED (). A second unpatched worktree (*) was used ONLY as the falsifiability control, never as the reference. Bundle was not modified; all work in /tmp.\n\nSPEC REGION INTEGRITY. `adversary same-spec nagini psf__requests-1921` on a byte-copy of model.py => exit 0 (\"SAME\"). `bash scripts/nagini_verify.sh model.py` => \"Verification successful\" (22.75s), so the spec I audited is the one that verifies. meta.json region_hashes read; axioms == [] (no consumed @ContractOnly axiom \u2014 the merge-and-drop is modelled deeply, so there is no axiom that could be over-strong in the usual way).\n\nWHAT THE SPEC CLAIMS. Post(1) Result()[k] == combined(session[k], request[k]) for k in 0..n-1, where combined = (request wins where rv != absent(); effective value of none_val() drops to absent()). Post(2) Result()[k] != none_val(). Plus len(Result()) == n, inputs returned at the same 1/2 permission, and MustTerminate(2).\n\nINDEPENDENT PROBE (did NOT reuse the bundle's conformance_check.py bridge). atk1921_indep.py: my own to_repo/from_repo, real string header keys instead of str(0..n-1), **insertion order randomly shuffled per case** (so no accidental reliance on OrderedDict ordering), and it checks the POSTCONDITIONS directly rather than the impl shadow \u2014 the distinction that matters for a too-strong-spec attack. 99,905 inputs (exhaustive class grid length 0..4 over {absent, unset, 1, 7} + 30,000 fuzz with n strictly below both list lengths). Zero divergences. It also asserts no key outside 0..n-1 appears in the real result, and separately that the real merged dict literally holds no None.\n\nREAL-CALL-SITE TYPES. sessions.py:293 calls merge_setting(request.headers, self.headers, dict_class=CaseInsensitiveDict) \u2014 NOT the OrderedDict the bundle's gate uses. I re-ran the grid under all four combinations (plaindict/OrderedDict, CID/CID, plaindict/CID, CID/OrderedDict): 4,369 inputs each, all OK. So the spec is faithful at the shape the F2P test actually exercises, not just at the gate's shape.\n\nNEGATIVE REALS. The precondition admits ANY int as a real value while only -1 is none_val(); a spec keyed on `< 0` rather than `== -1` would be over-strong here. Grid over {0, -1, -2, -7, -100, 1, 7, 3}, 266,305 inputs, length 0..3: OK. `combined` genuinely keys on identity with none_val(), matching `v is not None`.\n\nEDGE / BRANCH PROBES, and why each is out of carrier rather than a divergence:\n  * merge_setting(None, X) and merge_setting(X, None) early-return X unmerged (so a session-side None SURVIVES: merge_setting(None,{'a':None}) -> {'a':None}). NOT reachable from the model: absent() means \"key not in the dict\", and the bridge maps an all-absent list to an EMPTY dict, never to the Python argument None. Confirmed merge_setting({}, {'a':None}) -> {} \u2014 the empty-dict case does drop, and that is the case the carrier produces. mapping.md and conformance_check.py both state this explicitly.\n  * non-Mapping bypass (merge_setting('x','y') -> 'x', merge_setting(None,True) -> True): unreachable, both bridge outputs are always real dicts.\n  * FALSY-but-not-None values (0, False, '', (), 0.0) all SURVIVE the gold drop (`v is not None`, not truthiness). Consistent with the model: absent()==0 is a carrier sentinel for \"key not in the dict\", not a modelled real value, so no admissible List[int] asks the spec about a stored 0.\n  * CID case-collision at the real call site: ses['Accept-Encoding']='gzip' + req['accept-encoding']=None drops under dict_class=CaseInsensitiveDict but survives under OrderedDict; and a PLAIN dict {'a':None,'A':None} into dict_class=CaseInsensitiveDict raises KeyError('a') in the pre-existing del loop. Both are pre-existing case-folding behavior of the untouched del loop, reachable only when two distinct keys collide under .lower(); the model's key universe is distinct positions 0..n-1 (mapping.md \u00a72 bans string keys and states keys are distinct), so this is outside the carrier by construction, not a spec over-claim. I used case-distinct key names (Aa/Bb, not a/A) so this never masked a real divergence.\n  * Input non-mutation and non-aliasing: over the grid under both dict classes, neither argument dict is mutated and the result is never the same object as either argument. This backs the Ensures(Acc(..., 1/2)) read-only claim.\n\nOBSERVATION, NOT A DEFECT. The gold patch replaces `merged_setting` with a plain `dict(...)`, so at the headers call site merge_setting returns a plain dict rather than the CaseInsensitiveDict the dict_class argument requested \u2014 case-insensitive lookup on merge_setting's direct return is lost. I checked whether this is an unmodelled behavior change the spec papers over, and it is not observable downstream: PreparedRequest.prepare_headers re-wraps into CaseInsensitiveDict (models.py:394), prep.headers is CaseInsensitiveDict, and the case-insensitivity P2P test passes on gold (test_header_remove_is_case_insensitive + test_headers_on_session_with_None_are_not_sent: 2 passed). mapping.md \u00a72 declares result ordering/representation unobserved, which covers this. Recording it as a known non-divergence.\n\nFALSIFIABILITY CONTROL (the load-bearing check that my probe is not vacuous). Both my independent probes were re-run unchanged against the UNPATCHED base worktree and FAILED immediately: session=[-1], request=[0], n=1 gives real=[-1] (key 'Accept-Encoding' still mapping to None) vs combined=[0] \u2014 violating BOTH post(1) and post(2). Identical failure under all four dict-class combinations. My harness therefore has the discriminating power to have caught an unfaithful spec, and its green result on the patched reference is evidence.\n\nGATE REPRODUCTION. I re-ran the bundle's own axiom_check.py and conformance_check.py inside MY worktree (only a collections.abc shim prepended for py3.10): G-CONF exit 0 (109,921 inputs, 0 disagreements) and G-AX exit 0. Notably G-AX self-applies the gold drop rather than trusting the ambient tree and runs an explicit BUGGY-state control, so it is not tautological against the base checkout. F2P scenario reproduced end-to-end on the patched worktree: 'Accept-Encoding' not in prep.headers -> True.\n\nEND-TO-END SANITY ON THE ATTACK DIRECTION. A faithfulness break requires the spec to be strictly stronger than the real callee somewhere in the admissible domain. Every candidate I found where the real function does something the spec forbids (None-argument passthrough, non-Mapping bypass, falsy survival, CID case collision) is provably unreachable through the declared bridge, and I verified reachability rather than assuming it. The one operation the patch changed is modelled deeply, not axiomatised, so there is no hidden axiom carrying the fix.\n\nCONCLUSION: FAITHFUL. No diverging input exists in the modeled domain; the spec is neither stronger nor weaker than the real post-patch merge_setting on the inputs the carrier can express.; G-PANEL-3 (leakage): pass \u2014 Gate: leakage / gold-reconstruction on the CONSUMER SPEC VIEW of psf__requests-1921 (nagini). Judged against the solver-visible problem_statement ONLY; hints_text deliberately excluded from the baseline.\n\nSPEC VIEW RECONSTRUCTED INDEPENDENTLY. markers.spec_view(model.py, nagini) rendered directly (impl region collapses to '...  # implementation elided'); sha256 = b2159665300437234e8ff9cae6bdfb5f2cd0fa34daca4900a71f80587f30d126. The whole surface I judged = module docstring + imports + axioms region (a no-axioms note) + pure region (absent/none_val/effective/combined) + pre-conditions + post-conditions. Invariants and impl are NOT in the view (confirmed: the invariants/impl region hashes differ between my render and the file, i.e. they are elided). same-spec on an identical copy returns exit 0, and markers.same_spec(model.py, model_prepatch.py) is True, so the spec view is the same frozen artifact both the solver and the G-DIFF prepatch rival see - no second leak surface.\n\nGOLD EDIT (the thing that must NOT be reconstructible). One added line in requests/sessions.py, inside merge_setting: 'merged_setting = dict((k, v) for (k, v) in merged_setting.items() if v is not None)', placed after the existing per-request del loop. Changed symbol set = {merge_setting}; changed file = requests/sessions.py.\n\nL1 (gold line / diff markers). Normalized gold line 'merged_setting=dict((k,v)for(k,v)inmerged_setting.items()ifvisnotNone)' does not occur in the normalized view. Zero occurrences in the view of: merged, dict, items(), OrderedDict, to_key_val_list, update, del <expr>, filter, comprehension. No diff marker (@@, diff --git, '+++ ', '--- ', index) present.\n\nL2 (localization). No 'requests/sessions.py', no 'requests.sessions', no base_commit hash, no line numbers, no 'merge_setting' (nor any identifier embedding it). Spec-view identifier set is fully abstract: Acc, Ensures, Forall, Implies, List, MustTerminate, Pure, Requires, Result, absent, combined, effective, effective_collection, int, k, len, list_pred, n, none_val, request, rv, session, sv. Note the repo's real parameter names (session_setting / request_setting / merged_setting) are NOT used; the view uses bare 'session'/'request', which are problem-statement vocabulary ('session', \"the method's arguments\"). No F2P test name, no 'httpbin', no 'prepare_request', no 'Accept-Encoding', no 'headers'.\n\nL3 (narration). No banned narration token fires (bug/fix/patch/pre-patch/regression/previously/incorrectly/wrong/broken). Everything is phrased as desired behaviour of a result, not as an edit or a diagnosis. Independent leakage.screen() on the real instance row returns passed=True with zero hard failures and zero warnings - my manual read agrees rather than merely deferring to it.\n\nHINTS-ONLY VOCABULARY (the documented #1 failure mode). Diffed the >=4-char word sets: hints-only words that do appear in the view are ['about','above','actually','before','behaviour','merge','request','unset','with'] - all generic English or PS-derived. 'merge' appears twice ('the precedence merge', 'Faithful precedence-merge-and-drop'); it names the abstract combine operation, not the repo function merge_setting, and merging session defaults with per-call arguments is exactly what the PS's cited docs describe. 'unset' is the model's own abstract term for the distinguished value; the PS itself establishes None-means-do-not-send. No hints-only DIAGNOSIS ('I think this is a bug in how we merge the headers before firing off a request') is echoed in mechanism form.\n\nCLOSEST CALL, EXAMINED AND CLEARED. Two places restate the F2P scenario / rule out a wrong impl:\n(a) docstring: 'a key carried only by the standing per-session collection and given the unset value there (never mentioned by the per-request collection) must be dropped, not carried through still holding the unset value.'\n(b) post-condition (2) comment: 'This is the clause a drop that only inspects the per-request side (leaving a session-side unset value in place) violates.'\nBoth are inside the public PS envelope. The PS states, publicly and in code: session.headers['Accept-Encoding'] = None yields 'Accept-Encoding: None' sent, while the same None in the method's arguments already suppresses the header. So 'per-request None already works / session-only None survives holding None' IS the public content, and (a) is a restatement of the demanded behaviour - required spec content, since dropping it would make the spec too weak. (b) characterizes the REJECTED implementation, which is precisely the behaviour the PS reports as broken; it is a spec-strength justification, and the same 'this is the clause X violates' pattern is a house convention (django-11790:98, django-15569:151, sphinx-8459:124, django-14170:234).\nDecisively, (b) does not determine the edit. The gold fixes this by ADDING a trailing full-dict filter pass while leaving the per-request del loop intact; the spec view never says that, and the model's own elided impl uses a third shape entirely (a per-key inline branch on the effective value inside a forward fold). Nothing in the view distinguishes 'add a final pass' from 'widen the existing loop' from 'decide per key', and nothing points at merge_setting or sessions.py. Gold-reconstruction from the view alone is not possible beyond what the PS already hands over.\n\nINSTANCE ID IN LINE 1. '\\\"\\\"\\\"Twin-artifact model for psf__requests-1921.' names the repo and issue number. This is corpus-wide convention (verified across benchmark-verified/*/nagini/model.py) and is the task's own identity - the consumer is already given the psf/requests worktree at base_commit and the problem statement. It reveals no edit content. Recorded as an observation, not a finding.\n\nOUT-OF-SCOPE OBSERVATION (not this gate, no action taken). meta.json region_hashes for invariants/impl/pre-conditions/spec_view disagree with a fresh markers.region_hashes() render; the same disagreement holds for 36 of the first 40 verified bundles, so it is a corpus-wide hashing-convention artifact rather than drift in this bundle. It does not touch leakage: I judged the freshly rendered view, not a recorded hash. Also noted that meta records G-PANEL-1=fail (spec-strength lane) - orthogonal to leakage and not re-litigated here.\n\nCONCLUSION: the spec view states the abstract desired behaviour (precedence merge; a key whose EFFECTIVE value is the unset value is absent from the result, whichever side supplied it) without quoting the gold line, naming the patched file/module/function, echoing a patched repo symbol in any identifier or comment, or narrating the fix mechanism. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91",
+        "properties.py": "01146722dc256bdab5f1729e54b70fa3ebcea31374ff5b85dc01dd7e274d4999"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-14T18:20:29+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1_selfcall_plain.py`, `atk_2_selfcall_measure_guarded.py`, `atk_3_spin_targeted.py`, `atk_4_prepatch.py`, `atk_5_partial_domain.py`, `atk_6_boundary_offbyone.py`, `atk_7_reversed_precedence.py`, `atk_8_none_as_absent.py`, `atk_9_overdrop.py`, `atk_10_mutate_session.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_11_echo_oracle.py`, `atk_12_pure_echo.py`, `atk_13_alias_mutate.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91",
+        "properties.py": "01146722dc256bdab5f1729e54b70fa3ebcea31374ff5b85dc01dd7e274d4999"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-14T17:53:54+00:00",
+      "code_version": "6e4bab65d-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE DISCIPLINE. Bundle contains no patch.diff; I pulled the gold patch verbatim from data/swe_bench_verified/test.jsonl (one hunk: `merged_setting = dict((k,v) for (k,v) in merged_setting.items() if v is not None)` inserted at requests/sessions.py:62) and built the reference as a fresh worktree of repos/psf_requests.git at base_commit 3c88e520 with that patch APPLIED (). A second unpatched worktree (*) was used ONLY as the falsifiability control, never as the reference. Bundle was not modified; all work in /tmp.\n\nSPEC REGION INTEGRITY. `adversary same-spec nagini psf__requests-1921` on a byte-copy of model.py => exit 0 (\"SAME\"). `bash scripts/nagini_verify.sh model.py` => \"Verification successful\" (22.75s), so the spec I audited is the one that verifies. meta.json region_hashes read; axioms == [] (no consumed @ContractOnly axiom \u2014 the merge-and-drop is modelled deeply, so there is no axiom that could be over-strong in the usual way).\n\nWHAT THE SPEC CLAIMS. Post(1) Result()[k] == combined(session[k], request[k]) for k in 0..n-1, where combined = (request wins where rv != absent(); effective value of none_val() drops to absent()). Post(2) Result()[k] != none_val(). Plus len(Result()) == n, inputs returned at the same 1/2 permission, and MustTerminate(2).\n\nINDEPENDENT PROBE (did NOT reuse the bundle's conformance_check.py bridge). atk1921_indep.py: my own to_repo/from_repo, real string header keys instead of str(0..n-1), **insertion order randomly shuffled per case** (so no accidental reliance on OrderedDict ordering), and it checks the POSTCONDITIONS directly rather than the impl shadow \u2014 the distinction that matters for a too-strong-spec attack. 99,905 inputs (exhaustive class grid length 0..4 over {absent, unset, 1, 7} + 30,000 fuzz with n strictly below both list lengths). Zero divergences. It also asserts no key outside 0..n-1 appears in the real result, and separately that the real merged dict literally holds no None.\n\nREAL-CALL-SITE TYPES. sessions.py:293 calls merge_setting(request.headers, self.headers, dict_class=CaseInsensitiveDict) \u2014 NOT the OrderedDict the bundle's gate uses. I re-ran the grid under all four combinations (plaindict/OrderedDict, CID/CID, plaindict/CID, CID/OrderedDict): 4,369 inputs each, all OK. So the spec is faithful at the shape the F2P test actually exercises, not just at the gate's shape.\n\nNEGATIVE REALS. The precondition admits ANY int as a real value while only -1 is none_val(); a spec keyed on `< 0` rather than `== -1` would be over-strong here. Grid over {0, -1, -2, -7, -100, 1, 7, 3}, 266,305 inputs, length 0..3: OK. `combined` genuinely keys on identity with none_val(), matching `v is not None`.\n\nEDGE / BRANCH PROBES, and why each is out of carrier rather than a divergence:\n  * merge_setting(None, X) and merge_setting(X, None) early-return X unmerged (so a session-side None SURVIVES: merge_setting(None,{'a':None}) -> {'a':None}). NOT reachable from the model: absent() means \"key not in the dict\", and the bridge maps an all-absent list to an EMPTY dict, never to the Python argument None. Confirmed merge_setting({}, {'a':None}) -> {} \u2014 the empty-dict case does drop, and that is the case the carrier produces. mapping.md and conformance_check.py both state this explicitly.\n  * non-Mapping bypass (merge_setting('x','y') -> 'x', merge_setting(None,True) -> True): unreachable, both bridge outputs are always real dicts.\n  * FALSY-but-not-None values (0, False, '', (), 0.0) all SURVIVE the gold drop (`v is not None`, not truthiness). Consistent with the model: absent()==0 is a carrier sentinel for \"key not in the dict\", not a modelled real value, so no admissible List[int] asks the spec about a stored 0.\n  * CID case-collision at the real call site: ses['Accept-Encoding']='gzip' + req['accept-encoding']=None drops under dict_class=CaseInsensitiveDict but survives under OrderedDict; and a PLAIN dict {'a':None,'A':None} into dict_class=CaseInsensitiveDict raises KeyError('a') in the pre-existing del loop. Both are pre-existing case-folding behavior of the untouched del loop, reachable only when two distinct keys collide under .lower(); the model's key universe is distinct positions 0..n-1 (mapping.md \u00a72 bans string keys and states keys are distinct), so this is outside the carrier by construction, not a spec over-claim. I used case-distinct key names (Aa/Bb, not a/A) so this never masked a real divergence.\n  * Input non-mutation and non-aliasing: over the grid under both dict classes, neither argument dict is mutated and the result is never the same object as either argument. This backs the Ensures(Acc(..., 1/2)) read-only claim.\n\nOBSERVATION, NOT A DEFECT. The gold patch replaces `merged_setting` with a plain `dict(...)`, so at the headers call site merge_setting returns a plain dict rather than the CaseInsensitiveDict the dict_class argument requested \u2014 case-insensitive lookup on merge_setting's direct return is lost. I checked whether this is an unmodelled behavior change the spec papers over, and it is not observable downstream: PreparedRequest.prepare_headers re-wraps into CaseInsensitiveDict (models.py:394), prep.headers is CaseInsensitiveDict, and the case-insensitivity P2P test passes on gold (test_header_remove_is_case_insensitive + test_headers_on_session_with_None_are_not_sent: 2 passed). mapping.md \u00a72 declares result ordering/representation unobserved, which covers this. Recording it as a known non-divergence.\n\nFALSIFIABILITY CONTROL (the load-bearing check that my probe is not vacuous). Both my independent probes were re-run unchanged against the UNPATCHED base worktree and FAILED immediately: session=[-1], request=[0], n=1 gives real=[-1] (key 'Accept-Encoding' still mapping to None) vs combined=[0] \u2014 violating BOTH post(1) and post(2). Identical failure under all four dict-class combinations. My harness therefore has the discriminating power to have caught an unfaithful spec, and its green result on the patched reference is evidence.\n\nGATE REPRODUCTION. I re-ran the bundle's own axiom_check.py and conformance_check.py inside MY worktree (only a collections.abc shim prepended for py3.10): G-CONF exit 0 (109,921 inputs, 0 disagreements) and G-AX exit 0. Notably G-AX self-applies the gold drop rather than trusting the ambient tree and runs an explicit BUGGY-state control, so it is not tautological against the base checkout. F2P scenario reproduced end-to-end on the patched worktree: 'Accept-Encoding' not in prep.headers -> True.\n\nEND-TO-END SANITY ON THE ATTACK DIRECTION. A faithfulness break requires the spec to be strictly stronger than the real callee somewhere in the admissible domain. Every candidate I found where the real function does something the spec forbids (None-argument passthrough, non-Mapping bypass, falsy survival, CID case collision) is provably unreachable through the declared bridge, and I verified reachability rather than assuming it. The one operation the patch changed is modelled deeply, not axiomatised, so there is no hidden axiom carrying the fix.\n\nCONCLUSION: FAITHFUL. No diverging input exists in the modeled domain; the spec is neither stronger nor weaker than the real post-patch merge_setting on the inputs the carrier can express.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-14T17:51:29+00:00",
+      "code_version": "780af6bee-dirty",
+      "harness_digest": "fb403a771a83",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "Gate: leakage / gold-reconstruction on the CONSUMER SPEC VIEW of psf__requests-1921 (nagini). Judged against the solver-visible problem_statement ONLY; hints_text deliberately excluded from the baseline.\n\nSPEC VIEW RECONSTRUCTED INDEPENDENTLY. markers.spec_view(model.py, nagini) rendered directly (impl region collapses to '...  # implementation elided'); sha256 = b2159665300437234e8ff9cae6bdfb5f2cd0fa34daca4900a71f80587f30d126. The whole surface I judged = module docstring + imports + axioms region (a no-axioms note) + pure region (absent/none_val/effective/combined) + pre-conditions + post-conditions. Invariants and impl are NOT in the view (confirmed: the invariants/impl region hashes differ between my render and the file, i.e. they are elided). same-spec on an identical copy returns exit 0, and markers.same_spec(model.py, model_prepatch.py) is True, so the spec view is the same frozen artifact both the solver and the G-DIFF prepatch rival see - no second leak surface.\n\nGOLD EDIT (the thing that must NOT be reconstructible). One added line in requests/sessions.py, inside merge_setting: 'merged_setting = dict((k, v) for (k, v) in merged_setting.items() if v is not None)', placed after the existing per-request del loop. Changed symbol set = {merge_setting}; changed file = requests/sessions.py.\n\nL1 (gold line / diff markers). Normalized gold line 'merged_setting=dict((k,v)for(k,v)inmerged_setting.items()ifvisnotNone)' does not occur in the normalized view. Zero occurrences in the view of: merged, dict, items(), OrderedDict, to_key_val_list, update, del <expr>, filter, comprehension. No diff marker (@@, diff --git, '+++ ', '--- ', index) present.\n\nL2 (localization). No 'requests/sessions.py', no 'requests.sessions', no base_commit hash, no line numbers, no 'merge_setting' (nor any identifier embedding it). Spec-view identifier set is fully abstract: Acc, Ensures, Forall, Implies, List, MustTerminate, Pure, Requires, Result, absent, combined, effective, effective_collection, int, k, len, list_pred, n, none_val, request, rv, session, sv. Note the repo's real parameter names (session_setting / request_setting / merged_setting) are NOT used; the view uses bare 'session'/'request', which are problem-statement vocabulary ('session', \"the method's arguments\"). No F2P test name, no 'httpbin', no 'prepare_request', no 'Accept-Encoding', no 'headers'.\n\nL3 (narration). No banned narration token fires (bug/fix/patch/pre-patch/regression/previously/incorrectly/wrong/broken). Everything is phrased as desired behaviour of a result, not as an edit or a diagnosis. Independent leakage.screen() on the real instance row returns passed=True with zero hard failures and zero warnings - my manual read agrees rather than merely deferring to it.\n\nHINTS-ONLY VOCABULARY (the documented #1 failure mode). Diffed the >=4-char word sets: hints-only words that do appear in the view are ['about','above','actually','before','behaviour','merge','request','unset','with'] - all generic English or PS-derived. 'merge' appears twice ('the precedence merge', 'Faithful precedence-merge-and-drop'); it names the abstract combine operation, not the repo function merge_setting, and merging session defaults with per-call arguments is exactly what the PS's cited docs describe. 'unset' is the model's own abstract term for the distinguished value; the PS itself establishes None-means-do-not-send. No hints-only DIAGNOSIS ('I think this is a bug in how we merge the headers before firing off a request') is echoed in mechanism form.\n\nCLOSEST CALL, EXAMINED AND CLEARED. Two places restate the F2P scenario / rule out a wrong impl:\n\n(a) docstring: 'a key carried only by the standing per-session collection and given the unset value there (never mentioned by the per-request collection) must be dropped, not carried through still holding the unset value.'\n\n(b) post-condition (2) comment: 'This is the clause a drop that only inspects the per-request side (leaving a session-side unset value in place) violates.' Both are inside the public PS envelope. The PS states, publicly and in code: session.headers['Accept-Encoding'] = None yields 'Accept-Encoding: None' sent, while the same None in the method's arguments already suppresses the header. So 'per-request None already works / session-only None survives holding None' IS the public content, and (a) is a restatement of the demanded behaviour - required spec content, since dropping it would make the spec too weak.\n\n(b) characterizes the REJECTED implementation, which is precisely the behaviour the PS reports as broken; it is a spec-strength justification, and the same 'this is the clause X violates' pattern is a house convention (django-11790:98, django-15569:151, sphinx-8459:124, django-14170:234). Decisively, (b) does not determine the edit. The gold fixes this by ADDING a trailing full-dict filter pass while leaving the per-request del loop intact; the spec view never says that, and the model's own elided impl uses a third shape entirely (a per-key inline branch on the effective value inside a forward fold). Nothing in the view distinguishes 'add a final pass' from 'widen the existing loop' from 'decide per key', and nothing points at merge_setting or sessions.py. Gold-reconstruction from the view alone is not possible beyond what the PS already hands over.\n\nINSTANCE ID IN LINE 1. '\\\"\\\"\\\"Twin-artifact model for psf__requests-1921.' names the repo and issue number. This is corpus-wide convention (verified across benchmark-verified/*/nagini/model.py) and is the task's own identity - the consumer is already given the psf/requests worktree at base_commit and the problem statement. It reveals no edit content. Recorded as an observation, not a finding.\n\nOUT-OF-SCOPE OBSERVATION (not this gate, no action taken). meta.json region_hashes for invariants/impl/pre-conditions/spec_view disagree with a fresh markers.region_hashes() render; the same disagreement holds for 36 of the first 40 verified bundles, so it is a corpus-wide hashing-convention artifact rather than drift in this bundle. It does not touch leakage: I judged the freshly rendered view, not a recorded hash. Also noted that meta records G-PANEL-1=fail (spec-strength lane) - orthogonal to leakage and not re-litigated here.\n\nCONCLUSION: the spec view states the abstract desired behaviour (precedence merge; a key whose EFFECTIVE value is the unset value is absent from the result, whichever side supplied it) without quoting the gold line, naming the patched file/module/function, echoing a patched repo symbol in any identifier or comment, or narrating the fix mechanism. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:56:41+00:00",
+      "code_version": "1471e0937-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-session",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.9
+          },
+          {
+            "expect": "verify",
+            "id": "oracle-direct-positive",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-prepatch-rv-keyed-drop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-first-element-no-drop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.6
+          },
+          {
+            "expect": "reject",
+            "id": "over-drop-real-request-override",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-branch-reorder-fused",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 22.7
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-f2p-shaped-witness",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 24.3
+          },
+          {
+            "expect": "reject",
+            "id": "diverge-restart-on-f2p-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "01146722dc256bdab5f1729e54b70fa3ebcea31374ff5b85dc01dd7e274d4999",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91",
+        "properties.py": "01146722dc256bdab5f1729e54b70fa3ebcea31374ff5b85dc01dd7e274d4999"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T17:25:38+00:00",
+      "code_version": "65b93c2ef-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "ee9f80d5a32b78bb4bda9a1bd957b9691aa926d7dcb235520ecc5364f727bdbc",
+        "patch.diff": "33fc461de67706a7d3c91008799489d6d1e6b521bfc0131dd22c4959d00b9f08"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T17:27:54+00:00",
+      "code_version": "65b93c2ef-dirty",
+      "data": {
+        "wall_time_s": 17.4
+      },
+      "detail": "verified in 17.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d0703d725aff448d229bd01156d96f1a7cfd5e74aa36b4790674ffec5116bd91"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "psf__requests-1921",
+  "modeled_functions": [
+    {
+      "carrier_type": "dict -> List[int] indexed by key position over universe 0..n-1; 'key absent' modeled by the sentinel absent()==0, explicit None by none_val()==-1, real values by ints >= 1",
+      "model_symbol": "effective_collection",
+      "repo_location": "requests/sessions.py:34 (dict-merge branch, body lines 54-62; patched drop added after line 60)",
+      "repo_symbol": "requests.sessions.merge_setting",
+      "role": "modeled changed function: combine two key/value collections with per-request precedence, then drop every key whose effective value is None (regardless of which side contributed it); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "loop invariant result[k] == combined(session[k], request[k]) -- which propagates to postcondition (1) (faithful per-key value) and postcondition (2) (Result()[k] != none_val())",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "drop of None-valued keys regardless of which side contributed the None",
+      "reverted_to": "the base_commit per-request-only drop: the loop branch keys off rv == none_val() instead of the effective value ev == none_val(), so a session-only None (rv == absent(), sv == none_val()) survives holding none_val()"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "2eb5802cb94523489b97be57bf353d2981a7a67b6d224f82854851cd30307242",
+    "impl": "0b2fb207ad98b6888e3bf0335ea9bc616964d1b3714c90798763b2df53699c97",
+    "invariants": "4151a6671836734802f16beddd3732043dcd04c7971a488efdddada44115b75d",
+    "post-conditions": "66ba113824bdc65ece1b50dfb2c4565531df98928e8f44054257a2390d2f85e4",
+    "pre-conditions": "20f3267595df5f5b925f3934fcc48cb322ce74fc8780c35b8ea456ad57388ec5",
+    "pure": "f9d7ad213fe674a87a329773416d3fd82c420ead55b362b089b3ee24750312a2",
+    "spec_view": "9c2a3baf7a12ad304324be89ee8ff6832d1e4d0686ffb18fe273a8f2dd500dfd"
+  },
+  "repo": "psf/requests",
+  "schema_version": 1,
+  "string_modeling": "no strings: dict keys are modeled as integer index positions (key universe 0..n-1); per-key values are integers with two distinguished sentinels (absent()==0 for 'key not carried / dropped', none_val()==-1 for the explicit None); the merge+drop is proven by a forward per-key fold building the result list",
+  "version": "2.3"
+}

@@ -1,0 +1,457 @@
+{
+  "additional_change_sites": [],
+  "adversary_matrix": {
+    "note": "G-EQ counterexample-now-rejected evidence (each shares spec via same-spec SAME; NONE verifies -- official adversary `weakness` returns NOT-A-COUNTEREXAMPLE). Positive control (structurally-different correct impl) VERIFIES, proving non-vacuity. The 2nd-pass fix specifically closes the re-audit's atk_9 (`return materialize(factor_ids(poly))`): factor_ids is deleted, and its analog (reading any directly-callable answer-shaped spec function) now FAILS.",
+    "positive_control": "structurally-different correct impl (branch on len>=2 first, distinct accumulator, no shared structure with model.py): VERIFIES in ~30s",
+    "rejected_attacks": [
+      "atk_1: return [poly] -- the original batch02 verdict's echo counterexample; NOT-A-COUNTEREXAMPLE",
+      "atk_2: materialize lone(poly) unconditionally -- the single un-split element; NOT-A-COUNTEREXAMPLE",
+      "atk_3: return [] -- empty factorisation; NOT-A-COUNTEREXAMPLE",
+      "atk_4: factor_list(other_poly(poly)) -- the actual prepatch bug (apply the factoring to the related polynomial); NOT-A-COUNTEREXAMPLE (fails on the >=2 clause)",
+      "atk_5: factor_list(poly) but drop the last factor (off-by-one truncation); NOT-A-COUNTEREXAMPLE",
+      "atk_6: return a constant [141]; NOT-A-COUNTEREXAMPLE",
+      "atk_7: return [other_poly(poly)] (the related polynomial as a single element); NOT-A-COUNTEREXAMPLE",
+      "atk_8: materialize factor_list(poly) UNCONDITIONALLY (no selection branch); NOT-A-COUNTEREXAMPLE (fails on the <=1 / lone clause -- confirms neither branch is vacuous)",
+      "atk_oracle: the re-audit's atk_9 analog -- read the directly-callable answer-shaped spec function and materialize it (`return materialize(lone(poly))`); NOT-A-COUNTEREXAMPLE (factor_ids is gone; no opaque oracle to echo)"
+    ]
+  },
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real dmp_sqf_part on (x-1)(y-1) over QQ<I> is genuinely factor-losing (degrees (1,0) vs input (1,1)); confirms no axiom stronger than Ensures(True) is admissible (sound)",
+      "encoded_property": "Ensures(True) -- the WEAKEST possible contract: nothing is promised about the returned polynomial, in particular it is NOT assumed to denote the same polynomial (same factor content) as its argument. This is exactly why the prepatch's factor_list(other_poly(poly)) cannot discharge the completeness postcondition.",
+      "kind": "A-consumed",
+      "models": "sympy.polys.sqfreetools.dmp_sqf_part (the related, simpler/square-free polynomial the pre-patch erroneously feeds to the recovery)",
+      "name": "other_poly",
+      "provenance": "dmp_sqf_part returns f / gcd(f, df) (monic); in the multivariate algebraic-field setting it can DROP factor content -- measured: dmp_sqf_part((x-1)(y-1)) has degree list (1,0), losing the y dependence even though (x-1)(y-1) is itself square-free.",
+      "purity": "@Pure @ContractOnly",
+      "repo_location": "sympy/polys/sqfreetools.py:229 (called at factortools.py:1149)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX, apply_gold=True): FAITHFULNESS -- factor(., extension=[I]) (post-patch applies the recovery to the FULL polynomial) reconstructs the original on re-expansion on 8 distinct-factor products incl. the issue witness (x-1)(y-1) and the F2P (x-Iy)(z-It) (8/8), so `return factor_list(poly)` is a genuinely RESOLVING refinement (A-reference exemplar pattern); ARGUMENT-load-bearing -- dmp_sqf_norm(sqf_part) collapses a resultant variable (degrees (2,0) vs (2,2)), so the factoring tracks its ARGUMENT and applying it to other_poly(poly) drops a factor",
+      "encoded_property": "abstract @Pure @ContractOnly: returns SOME determinate PSeq[int] as a function of its argument (NOTHING relating different arguments). It is NOT a hardcoded answer-key lookup -- there is no opaque oracle in the spec signature for an impl to echo. The postcondition pins Result() STRUCTURALLY to factor_list(poly) (the factoring of the INPUT). The differential lives entirely in the impl's choice of argument: factor_list(poly) (post-patch) vs factor_list(other_poly(poly)) (pre-patch). Because it is uninterpreted, the proof reasons over an arbitrary factor_list(poly), pinning both branches.",
+      "kind": "A-consumed",
+      "models": "the unchanged factor-recovery pipeline dmp_sqf_norm -> dmp_factor_list_include -> recovery loop -> dmp_trial_division",
+      "name": "factor_list",
+      "provenance": "applied to a polynomial, the pipeline reads back that polynomial's complete factor list; only factors PRESENT in the argument can be recovered. The PATCH changes only WHICH polynomial is passed (line 1150).",
+      "purity": "@Pure @ContractOnly",
+      "repo_location": "sympy/polys/sqfreetools.py:122 (dmp_sqf_norm); sympy/polys/factortools.py:1331 (dmp_factor_list_include), :103 (dmp_trial_division); invoked at factortools.py:1150-1165"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the real fallback factors=[f] is length 1, so Ensures(len(Result())==1) is sound and nothing stronger is assumed",
+      "encoded_property": "Ensures(len(Result()) == 1) -- the WEAKEST contract: only that the fallback is a one-element list; its CONTENTS are NOT pinned to any value, so `return [poly]` / `return [other_poly(poly)]` / a constant do NOT satisfy the contract. The length fact lets the single-element branch discharge the len(factor_list(poly))<=1 clause.",
+      "kind": "A-consumed",
+      "models": "the `factors = [f]` single-element fallback (factortools.py:1155, the len(factors)==1 branch): the recovered representative returned as ONE element",
+      "name": "lone",
+      "provenance": "the if len(factors)==1: factors=[f] fallback returns a one-element list (the representative f as a single factor); correct exactly when the input genuinely does not split into more than one factor.",
+      "purity": "@Pure @ContractOnly",
+      "repo_location": "sympy/polys/factortools.py:1155"
+    }
+  ],
+  "base_commit": "b9179e80d2daa1bb6cba1ffe35ca9e6612e115c9",
+  "changed_files": [
+    "sympy/polys/factortools.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:23:11+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "SOUND: all axiom observations are consistent with model.py's contracts.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "e1ae302a74faaaa98517f74c4a921c61b9c7674a3cdc241a4943650f06e54a39",
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:25:02+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 101505,
+          "disagreements": 0,
+          "seed": 19040,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101505, \"disagreements\": 0, \"seed\": 19040, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e80b8ef2e4c75111155e865f3887805cd2cdab9871126c2c698979dfd01b1541",
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:22:11+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f",
+        "model_prepatch.py": "22ce73f9cd747f3a3f4af45ad8b65c83fb24a774b346a076ff1fe09f1759669c"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T19:46:13+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:22:50+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f",
+        "model_prepatch.py": "22ce73f9cd747f3a3f4af45ad8b65c83fb24a774b346a076ff1fe09f1759669c"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:23:05+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "47238156f10a83340ef536b7c28dd42789542ae2341ed24fa51d4b0fb30f851e",
+          "impl": "b8f8d17db7de55351b8197a14329296e635fa949b95cac3e5f62eafebd942931",
+          "invariants": "e543e68d0d71c917499f7c48609d842769abfbe6db8de2b127ad60d1fe4e4f20",
+          "post-conditions": "4c79a115e7917ebf0a8f4980e05959bbbcbdb47bed3b59cda31289c96c98df4e",
+          "pre-conditions": "fce900f3ea4e4b6975fc5b83d6d929b4116967c4b6b8d03b2acfde4e3df15713",
+          "spec_view": "18ac9fa0e49d49fb567ec6f0e5836d56ed994c7a39fd659aab6c6120df5dd47a"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:23:05+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "a562b1ee35bd26497ce8a83fe6b1e077b290507764424b73aa8923cd911733e0",
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:23:06+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:48:50+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "judged": 18,
+        "killed": 18,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": [
+          "line 117: '+' -> '-'",
+          "line 129: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 18/18 (100%); no verdict on 2: [\"line 117: '+' -> '-'\", \"line 129: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T19:46:16+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) verdict: FAITHFUL. No input in the modeled domain (0<=poly<=4) makes the modeled function disagree with the real callee.\n\nIndependently reproduced machine-checked facts (worktree at base_commit b9179e80... + real gold patch, sympy 1.6.dev):\n- same-spec: model.py shares the bundle's exact spec (adversary same-spec exit 0). Prepatch also same-spec by construction.\n- Model verifies: Nagini 'Verification successful' (10.99s).\n- axiom_check.py under gold worktree: SOUND. 8/8 complete factorisations; dmp_sqf_part factor-losing degrees (1,0)!=(1,1) justifying other_poly's Ensures(True); factor_list argument load-bearing (2,2) vs (2,0); lone fallback length-1.\n- Real gold dmp_ext_factor / factor(.,extension=[...]) on all 5 modeled inputs returns the COMPLETE factorization: poly0 (x-1)(y-1) ext[I] -> 2 factors (reconstructs); poly1 (x-Iy)(z-It) ext[I] -> 2 (reconstructs); poly2 x^2-2y^2 ext[sqrt2] -> 2 (reconstructs); poly3 (x-1)(y-1)(z-1) ext[I] -> 3 (reconstructs); poly4 x^2+1 ext[I] -> 2 (reconstructs).\n- Under base (unpatched, buggy) the same calls drop factors on poly0/1/3 (reconstructs=False), confirming the bug/fix framing and that the spec correctly REJECTS the buggy behavior (prepatch fails on model_prepatch.py:93 completeness clause).\n\nThe postcondition pins Result to factor_list(poly) (>=2) or lone(poly) (<=1). factor_list is an uninterpreted @Pure @ContractOnly axiom validated by G-AX to denote the real complete factoring the gold dmp_ext_factor computes; on every modeled input the real gold function returns exactly that complete factorization. The spec is an exact abstraction of the real gold behavior, not too strong and does not drift -- no diverging input exists.\n\nMinor documentation note (NOT a faithfulness break): mapping.md \u00a73 claims poly=4 (x^2+1, ext=[I]) exercises the len==1/lone branch, but empirically factor(x^2+1, extension=[I]) = (x-I)(x+I) = 2 factors, so no modeled input actually triggers the len<=1 branch at runtime. This is a spec-coverage/doc inaccuracy only: because Nagini reasons over an arbitrary uninterpreted factor_list(poly), the lone clause remains sound and the postcondition holds for all inputs. It does not cause the modeled function to disagree with the real callee on any input, so it does not weaken or falsify the faithfulness verdict.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec-view verified: same_spec(model, prepatch)==True; spec region well-formed, impl elided ('...'). Mechanical G-LEAK screen (swebench_unified.leakage.screen over the nagini spec_view) passes with zero hard_failures.\n\nPublic baseline (problem_statement, NOT hints): the StackOverflow/issue report already states factor(expand((x-1)*(y-1)), extension=[I]) returns 'x - 1' -- a factor (y-1) is DROPPED and a multi-factor input collapses to a single element. The 'dropped factor / collapse to one element' symptom is therefore fully public.\n\nGold edit: single one-line hunk at sympy/polys/factortools.py:1150, dmp_sqf_norm(f, u, K) -> dmp_sqf_norm(F, u, K) (apply recovery to the original polynomial F, not its square-free part f).\n\nReconstruction test -- no leakage beyond the public symptom:\n- Postconditions pin Result() to factor_list(poly)/lone(poly), functions of the INPUT. Legitimate A-reference exemplar pattern (pinning correct output), not leakage; factor_list/lone/other_poly are uninterpreted @Pure @ContractOnly axioms, no answer-key oracle in the signature.\n- No repo mechanism vocabulary survives: 'square-free', 'norm', 'resultant', 'recovery', 'sqf', dmp_* identifiers, factortools, and the file/line are all ABSENT from the spec view. No f->F transformation exposed.\n- Strongest candidate lines (docstring 'applying the factoring to any polynomial OTHER than the input itself does NOT satisfy the contract', plus the other_poly axiom) describe the bug's ABSTRACT nature (a related polynomial was factored) in fully opaque model terms. They do NOT disclose that the 'other polynomial' is the square-free part, nor the concrete edit or its location -- they restate, at abstract altitude, the already-public 'wrong result / dropped factor' symptom.\n\nConclusion: the spec view stays at abstract-behavioural altitude; the gold repo edit is not recoverable from it beyond the already-public problem_statement symptom. Not a relaxed bundle (relaxed_leakage: None; no RELAXED_LEAKAGE.md). NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) verdict: FAITHFUL. No input in the modeled domain (0<=poly<=4) makes the modeled function disagree with the real callee.\n\nIndependently reproduced machine-checked facts (worktree at base_commit b9179e80... + real gold patch, sympy 1.6.dev):\n- same-spec: model.py shares the bundle's exact spec (adversary same-spec exit 0). Prepatch also same-spec by construction.\n- Model verifies: Nagini 'Verification successful' (10.99s).\n- axiom_check.py under gold worktree: SOUND. 8/8 complete factorisations; dmp_sqf_part factor-losing degrees (1,0)!=(1,1) justifying other_poly's Ensures(True); factor_list argument load-bearing (2,2) vs (2,0); lone fallback length-1.\n- Real gold dmp_ext_factor / factor(.,extension=[...]) on all 5 modeled inputs returns the COMPLETE factorization: poly0 (x-1)(y-1) ext[I] -> 2 factors (reconstructs); poly1 (x-Iy)(z-It) ext[I] -> 2 (reconstructs); poly2 x^2-2y^2 ext[sqrt2] -> 2 (reconstructs); poly3 (x-1)(y-1)(z-1) ext[I] -> 3 (reconstructs); poly4 x^2+1 ext[I] -> 2 (reconstructs).\n- Under base (unpatched, buggy) the same calls drop factors on poly0/1/3 (reconstructs=False), confirming the bug/fix framing and that the spec correctly REJECTS the buggy behavior (prepatch fails on model_prepatch.py:93 completeness clause).\n\nThe postcondition pins Result to factor_list(poly) (>=2) or lone(poly) (<=1). factor_list is an uninterpreted @Pure @ContractOnly axiom validated by G-AX to denote the real complete factoring the gold dmp_ext_factor computes; on every modeled input the real gold function returns exactly that complete factorization. The spec is an exact abstraction of the real gold behavior, not too strong and does not drift -- no diverging input exists.\n\nMinor documentation note (NOT a faithfulness break): mapping.md \u00a73 claims poly=4 (x^2+1, ext=[I]) exercises the len==1/lone branch, but empirically factor(x^2+1, extension=[I]) = (x-I)(x+I) = 2 factors, so no modeled input actually triggers the len<=1 branch at runtime. This is a spec-coverage/doc inaccuracy only: because Nagini reasons over an arbitrary uninterpreted factor_list(poly), the lone clause remains sound and the postcondition holds for all inputs. It does not cause the modeled function to disagree with the real callee on any input, so it does not weaken or falsify the faithfulness verdict.; G-PANEL-3 (leakage): pass \u2014 Spec-view verified: same_spec(model, prepatch)==True; spec region well-formed, impl elided ('...'). Mechanical G-LEAK screen (swebench_unified.leakage.screen over the nagini spec_view) passes with zero hard_failures.\n\nPublic baseline (problem_statement, NOT hints): the StackOverflow/issue report already states factor(expand((x-1)*(y-1)), extension=[I]) returns 'x - 1' -- a factor (y-1) is DROPPED and a multi-factor input collapses to a single element. The 'dropped factor / collapse to one element' symptom is therefore fully public.\n\nGold edit: single one-line hunk at sympy/polys/factortools.py:1150, dmp_sqf_norm(f, u, K) -> dmp_sqf_norm(F, u, K) (apply recovery to the original polynomial F, not its square-free part f).\n\nReconstruction test -- no leakage beyond the public symptom:\n- Postconditions pin Result() to factor_list(poly)/lone(poly), functions of the INPUT. Legitimate A-reference exemplar pattern (pinning correct output), not leakage; factor_list/lone/other_poly are uninterpreted @Pure @ContractOnly axioms, no answer-key oracle in the signature.\n- No repo mechanism vocabulary survives: 'square-free', 'norm', 'resultant', 'recovery', 'sqf', dmp_* identifiers, factortools, and the file/line are all ABSENT from the spec view. No f->F transformation exposed.\n- Strongest candidate lines (docstring 'applying the factoring to any polynomial OTHER than the input itself does NOT satisfy the contract', plus the other_poly axiom) describe the bug's ABSTRACT nature (a related polynomial was factored) in fully opaque model terms. They do NOT disclose that the 'other polynomial' is the square-free part, nor the concrete edit or its location -- they restate, at abstract altitude, the already-public 'wrong result / dropped factor' symptom.\n\nConclusion: the spec view stays at abstract-behavioural altitude; the gold repo edit is not recoverable from it beyond the already-public problem_statement symptom. Not a relaxed bundle (relaxed_leakage: None; no RELAXED_LEAKAGE.md). NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) verdict: FAITHFUL. No input in the modeled domain (0<=poly<=4) makes the modeled function disagree with the real callee.\n\nIndependently reproduced machine-checked facts (worktree at base_commit b9179e80... + real gold patch, sympy 1.6.dev):\n- same-spec: model.py shares the bundle's exact spec (adversary same-spec exit 0). Prepatch also same-spec by construction.\n- Model verifies: Nagini 'Verification successful' (10.99s).\n- axiom_check.py under gold worktree: SOUND. 8/8 complete factorisations; dmp_sqf_part factor-losing degrees (1,0)!=(1,1) justifying other_poly's Ensures(True); factor_list argument load-bearing (2,2) vs (2,0); lone fallback length-1.\n- Real gold dmp_ext_factor / factor(.,extension=[...]) on all 5 modeled inputs returns the COMPLETE factorization: poly0 (x-1)(y-1) ext[I] -> 2 factors (reconstructs); poly1 (x-Iy)(z-It) ext[I] -> 2 (reconstructs); poly2 x^2-2y^2 ext[sqrt2] -> 2 (reconstructs); poly3 (x-1)(y-1)(z-1) ext[I] -> 3 (reconstructs); poly4 x^2+1 ext[I] -> 2 (reconstructs).\n- Under base (unpatched, buggy) the same calls drop factors on poly0/1/3 (reconstructs=False), confirming the bug/fix framing and that the spec correctly REJECTS the buggy behavior (prepatch fails on model_prepatch.py:93 completeness clause).\n\nThe postcondition pins Result to factor_list(poly) (>=2) or lone(poly) (<=1). factor_list is an uninterpreted @Pure @ContractOnly axiom validated by G-AX to denote the real complete factoring the gold dmp_ext_factor computes; on every modeled input the real gold function returns exactly that complete factorization. The spec is an exact abstraction of the real gold behavior, not too strong and does not drift -- no diverging input exists.\n\nMinor documentation note (NOT a faithfulness break): mapping.md \u00a73 claims poly=4 (x^2+1, ext=[I]) exercises the len==1/lone branch, but empirically factor(x^2+1, extension=[I]) = (x-I)(x+I) = 2 factors, so no modeled input actually triggers the len<=1 branch at runtime. This is a spec-coverage/doc inaccuracy only: because Nagini reasons over an arbitrary uninterpreted factor_list(poly), the lone clause remains sound and the postcondition holds for all inputs. It does not cause the modeled function to disagree with the real callee on any input, so it does not weaken or falsify the faithfulness verdict.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec-view verified: same_spec(model, prepatch)==True; spec region well-formed, impl elided ('...'). Mechanical G-LEAK screen (swebench_unified.leakage.screen over the nagini spec_view) passes with zero hard_failures.\n\nPublic baseline (problem_statement, NOT hints): the StackOverflow/issue report already states factor(expand((x-1)*(y-1)), extension=[I]) returns 'x - 1' -- a factor (y-1) is DROPPED and a multi-factor input collapses to a single element. The 'dropped factor / collapse to one element' symptom is therefore fully public.\n\nGold edit: single one-line hunk at sympy/polys/factortools.py:1150, dmp_sqf_norm(f, u, K) -> dmp_sqf_norm(F, u, K) (apply recovery to the original polynomial F, not its square-free part f).\n\nReconstruction test -- no leakage beyond the public symptom:\n- Postconditions pin Result() to factor_list(poly)/lone(poly), functions of the INPUT. Legitimate A-reference exemplar pattern (pinning correct output), not leakage; factor_list/lone/other_poly are uninterpreted @Pure @ContractOnly axioms, no answer-key oracle in the signature.\n- No repo mechanism vocabulary survives: 'square-free', 'norm', 'resultant', 'recovery', 'sqf', dmp_* identifiers, factortools, and the file/line are all ABSENT from the spec view. No f->F transformation exposed.\n- Strongest candidate lines (docstring 'applying the factoring to any polynomial OTHER than the input itself does NOT satisfy the contract', plus the other_poly axiom) describe the bug's ABSTRACT nature (a related polynomial was factored) in fully opaque model terms. They do NOT disclose that the 'other polynomial' is the square-free part, nor the concrete edit or its location -- they restate, at abstract altitude, the already-public 'wrong result / dropped factor' symptom.\n\nConclusion: the spec view stays at abstract-behavioural altitude; the gold repo edit is not recoverable from it beyond the already-public problem_statement symptom. Not a relaxed bundle (relaxed_leakage: None; no RELAXED_LEAKAGE.md). NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:51:22+00:00",
+      "code_version": "70785cfb4-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-shared-loop",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 15.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch-apply-to-other",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-lone-unconditional",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-factorlist-unconditional",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-truncate-last-factor",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-lone-branch-returns-factorlist",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-input-as-singleton",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 14.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-empty-factorisation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 13.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "303dd29977becf63043fec30d3f7b9ad130114cecf178ebb7d14232e629483d4",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f",
+        "properties.py": "303dd29977becf63043fec30d3f7b9ad130114cecf178ebb7d14232e629483d4"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:35:56+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T14:44:50+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "wall_time_s": 32.4
+      },
+      "detail": "verified in 32.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "5bc978ae685621dfd7dcddbf79b188b87802b09d9820a20f5c28d04ffe9e954f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-19040",
+  "modeled_functions": [
+    {
+      "carrier_type": "input: opaque polynomial identity (int, expanded coefficient form, NOT a factor list); output: List[int] of factor identities; specification over PSeq[int]; correctness = complete factorisation pinned STRUCTURALLY over the input-driven factoring factor_list(poly): Implies(len(factor_list(poly))>=2, ToSeq(Result())==factor_list(poly)) and Implies(len(factor_list(poly))<=1, ToSeq(Result())==lone(poly))",
+      "model_symbol": "ext_factor",
+      "repo_location": "sympy/polys/factortools.py:1138 (changed body line 1150; selection branch 1154-1163)",
+      "repo_symbol": "sympy.polys.factortools.dmp_ext_factor",
+      "role": "modeled changed function (multivariate factorisation over an algebraic number field); single contracted+implemented function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim, byte-identical to instance.json patch (applies cleanly at base_commit; single one-line hunk f -> F at factortools.py:1150)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(len(factor_list(poly)) >= 2, ToSeq(Result()) == factor_list(poly)) at model_prepatch.py:93 -- factor_list(other_poly(poly)) need not equal the input's own factor list, and the selection branch can return a single un-split element",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the polynomial the factoring is applied to",
+      "reverted_to": "factor_list(other_poly(poly)) -- the factoring is applied to the related (square-free part) polynomial, the refinement image of the pre-patch dmp_sqf_norm(f, u, K) with f the square-free part"
+    }
+  ],
+  "pure_helpers": [],
+  "region_hashes": {
+    "axioms": "47238156f10a83340ef536b7c28dd42789542ae2341ed24fa51d4b0fb30f851e",
+    "impl": "b8f8d17db7de55351b8197a14329296e635fa949b95cac3e5f62eafebd942931",
+    "invariants": "e543e68d0d71c917499f7c48609d842769abfbe6db8de2b127ad60d1fe4e4f20",
+    "post-conditions": "4c79a115e7917ebf0a8f4980e05959bbbcbdb47bed3b59cda31289c96c98df4e",
+    "pre-conditions": "fce900f3ea4e4b6975fc5b83d6d929b4116967c4b6b8d03b2acfde4e3df15713",
+    "spec_view": "18ac9fa0e49d49fb567ec6f0e5836d56ed994c7a39fd659aab6c6120df5dd47a"
+  },
+  "repo": "sympy/sympy",
+  "respec_note": "2nd-pass fix after the batch02_recover re-audit machine-confirmed a RESIDUAL G-EQ hole introduced by the first refinement. HISTORY: batch02 BLOCKED the original completeness-only spec (ToSeq(Result())==ToSeq(p), satisfied by the echo `return p`). The 1st refinement OVER-CORRECTED by pinning ToSeq(Result())==factor_ids(poly) where factor_ids was an UNGROUNDED hardcoded answer-key oracle (0->[101,102]...) exposed in the spec signature (the `pure` region) -- so the attack `return materialize(factor_ids(poly))` (atk_9 in the re-audit) read the answer directly and VERIFIED (CANDIDATE-COUNTEREXAMPLE). 2ND-PASS FIX (option (b) of the re-audit -- restructure off the lookup table): factor_ids and single_blob are DELETED; the `pure` region is now empty. The postcondition is expressed PURELY STRUCTURALLY over the input-driven factoring factor_list(poly), an A-consumed axiom of the REAL unchanged recovery pipeline (NOT a lookup): Implies(len(factor_list(poly))>=2, ToSeq(Result())==factor_list(poly)) and Implies(len(factor_list(poly))<=1, ToSeq(Result())==lone(poly)). Because factor_list/lone are uninterpreted, the proof reasons over an ARBITRARY factor_list(poly), pinning BOTH branches -- so an impl cannot satisfy the spec by reading a directly-callable answer (the re-audit's atk_9 analog `return materialize(lone(poly))`/`return materialize(factor_list(poly))` unconditionally now FAILS). `return factor_list(poly)` IS the genuine RESOLVING gold computation (the A-reference exemplar pattern), validated complete by G-AX. ALSO fixed the residual DEFECT-2 leakage the re-audit flagged: removed all mechanism-narration vocabulary (square-free/norm/resultant/recovery/representative/reduced/irreducible/content) from the spec-view docstrings; renamed reduce_factors->other_poly, norm_factors->factor_list to abstract behavioural names. The differential (which polynomial the factoring is applied to) lives entirely in the impl: factor_list(poly) (post-patch) vs factor_list(other_poly(poly)) (pre-patch).",
+  "schema_version": 1,
+  "type_modeling": "polynomial input <-> opaque identity (int, distinct from the factor list output); factorisation output <-> List[int] of distinct factor identities; dmp_ground_monic and the returned lc are unit/scalar pass-throughs; correctness pinned STRUCTURALLY over the input-driven factoring factor_list(poly) (PSeq[int] sequence equality + length only; no answer-key oracle in the spec signature; no unbounded value quantifiers; proof stays in Nagini's decidable fragment)",
+  "version": "1.6"
+}

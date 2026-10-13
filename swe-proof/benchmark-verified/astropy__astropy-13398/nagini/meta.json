@@ -1,0 +1,709 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "enabling change so an ITRS frame can carry a topocentric location; the geometric content (honour the location offset / the EARTH_CENTER default == (0,0,0)) is modeled in the transforms above (itrs_to_observed/observed_to_itrs and cirs_to_itrs/itrs_to_cirs), where the site is the discriminator exercised by model_prepatch.py. No separate verification-failing skeleton needed.",
+      "repo_location": "astropy/coordinates/builtin_frames/itrs.py (ITRS gains location attribute, default EARTH_CENTER)",
+      "repo_symbol": "ITRS.location EarthLocationAttribute"
+    },
+    {
+      "handling": "registration only; no behaviour to model.",
+      "repo_location": "astropy/coordinates/builtin_frames/__init__.py:51",
+      "repo_symbol": "builtin_frames.__init__ import of itrs_observed_transforms"
+    },
+    {
+      "handling": "non-behavioural comment fix; nothing to model.",
+      "repo_location": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:74",
+      "repo_symbol": "comment-only edit siderial->sidereal in tete_to_itrs_mat"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): builds the REAL ITRS->AltAz / ITRS->HADec / AltAz->HADec matrices from the real rotation_matrix/matrix_transpose over 7056 (lon,lat) configs x 68 vectors and asserts M^T(M v) == v (and M^T M == I) to scaled FP tolerance.",
+      "encoded_property": "bwd_*(fwd_*(v)) == v componentwise (the transpose-action inverts the forward-action). Weakest fact sufficient for the round-trip proof; fwd_*/bwd_* otherwise uninterpreted (no matrix entry, sign, or angle over-claimed).",
+      "kind": "A-consumed",
+      "models": "the orthogonal orientation matrix M applied via CartesianRepresentation.transform(M) (fwd_*) and its transpose via matrix_transpose(M) (bwd_*); M built from rotation_matrix + sign-flip diagonals (itrs_to_altaz_mat / itrs_to_hadec_mat)",
+      "name": "orthogonality (with fwd_x/fwd_y/fwd_z, bwd_x/bwd_y/bwd_z)",
+      "provenance": "astropy/coordinates/matrix_utilities.py:40 (rotation_matrix, 'a unitary rotation matrix'), :29 (matrix_transpose); the new itrs_observed_transforms.py:18,29 matrix builders. Product of orthogonal matrices is orthogonal => M^T M = I.",
+      "purity": "fwd_*/bwd_* are @Pure @ContractOnly (used inside Ensures); orthogonality is @ContractOnly (a proof lemma called in the impl to inject the fact)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): builds the REAL cirs_to_itrs_mat / tete_to_itrs_mat over several obstimes and asserts P^T P == I and P^T(P v) == v to scaled FP tolerance.",
+      "encoded_property": "prot_inv_*(prot_*(v)) == v componentwise (the transpose-action inverts the forward-action). Weakest fact sufficient for the topocentric round-trip proof; prot_*/prot_inv_* otherwise uninterpreted.",
+      "kind": "A-consumed",
+      "models": "the precession-nutation orientation matrix P applied via CartesianRepresentation.transform(pmat) (prot_*) and its transpose via matrix_transpose(pmat) (prot_inv_*); pmat = cirs_to_itrs_mat(time) / tete_to_itrs_mat(time)",
+      "name": "prot_orthogonality (with prot_x/prot_y/prot_z, prot_inv_x/prot_inv_y/prot_inv_z)",
+      "provenance": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:148-217 (the UNCHANGED matrix builders; the gold patch changes only the surrounding site argument). pmat is a product of ERFA polar-motion / Earth-rotation / precession rotations, all orthogonal, so P^T P = I.",
+      "purity": "prot_*/prot_inv_* are @Pure @ContractOnly; prot_orthogonality is @ContractOnly (a proof lemma)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): drives the REAL gold-patched CIRS<->ITRS transforms over the F2P topocentric sites; asserts same-site re-reference residual == 0 m, topocentric round-trip is the identity, and forcing the centre of the Earth (the pre-patch target) yields a detectably nonzero offset (~4e7 m), so the pre-patch behaviour is demonstrably wrong.",
+      "encoded_property": "offset_x(L,L)==0, offset_y(L,L)==0, offset_z(L,L)==0. The offset is otherwise uninterpreted (no specific value over-claimed); the model carries it additively after the rotation (P linear).",
+      "kind": "A-consumed",
+      "models": "the viewpoint offset the re-referencing transform coo.transform_to(<same-kind>(location=T)) carries when the source frame is anchored at site L and the target at site T; the only fact consumed is that re-referring to the SAME site is a no-op (offset_*(L,L)==0)",
+      "name": "same_site_noop (with offset_x/offset_y/offset_z)",
+      "provenance": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py (the transform_to between two same-kind frames; gold comments 'no-op if same obstime and location'). EARTH_CENTER is exactly (0,0,0) km (utils.EARTH_CENTER).",
+      "purity": "offset_* are @Pure @ContractOnly; same_site_noop is @ContractOnly (a proof lemma)"
+    }
+  ],
+  "base_commit": "6500928dc0e57be8f06d1162eacc3ba5e2eff692",
+  "changed_files": [
+    "astropy/coordinates/builtin_frames/__init__.py",
+    "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py",
+    "astropy/coordinates/builtin_frames/itrs.py",
+    "astropy/coordinates/builtin_frames/itrs_observed_transforms.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T05:55:04+00:00",
+      "code_version": "4692317fc-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: orthogonality axiom (M(S)^T(M(S) v) == v at ONE site) sound for the real ITRS->AltAz / ITRS->HADec / AltAz->HADec orientation matrices over 7056 (lon,lat) configurations x 68 vectors, with 8 CROSS-SITE controls (worst >= 3.41e+06 m of residual) showing the site carrier is observable so a site-free axiom would be unsound; prot_orthogonality (P(e)^T(P(e) v) == v at one epoch) sound for the real CIRS<->ITRS / TETE<->ITRS matrices over 10 configs, with 8 cross-epoch controls showing the epoch carrier is observable; same_frame_noop (offset(v,L,e,L,e) == 0) validated against the real same-kind re-referencing transform over 5 topocentric sites for BOTH instances the model uses it at (CIRS<->CIRS and ITRS<->ITRS; worst residual 0 m), with the target-site control >= 1.37e+08 m and the target-epoch control >= 8.67e+10 m of offset on each, so no carrier is decorative and each axiom holds only where the model claims it",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "b04d75c63e307b73c88c0bf48db0028a7972299a7b5c50d856cae2be8931f1c2",
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T05:54:43+00:00",
+      "code_version": "4692317fc-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: model.py impl shadow (real-callee bindings per mapping.md, including the SITE-indexed orientation matrix, the epoch-indexed Earth-orientation rotation and the position- and anchoring-dependent re-referencing offset) agrees with the real patched frame transforms on 364500 component inputs across 15 configurations, with BOTH conversion pairs driven over 4 source/target anchoring pairs (identical, site-differs, epoch-differs, both-differ) (seed=13398), 0 disagreements.",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "fd6528cba5a3731a7d55d3c195f64c744d26c52d4cbadf1c8f8daa42e2aca62b",
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:40:43+00:00",
+      "code_version": "1d3cac452-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633",
+        "model_prepatch.py": "8360393359a665254190e007b28598c90f63ecb77ee88c3c1b73f307adf60e31"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T12:03:42+00:00",
+      "code_version": "ef4a18600-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633",
+        "properties.py": "ae53e1597336ed358f628412e44939813e0affb6ed2df5e51404786189e4c436"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:41:52+00:00",
+      "code_version": "1d3cac452-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633",
+        "model_prepatch.py": "8360393359a665254190e007b28598c90f63ecb77ee88c3c1b73f307adf60e31"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T05:47:45+00:00",
+      "code_version": "07386a593-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "af4f27dc4c4f60d8fa639776a4f27cd2a3ef527797caa42742d31bcf4fdc48cc",
+          "impl": "3bd9d3b0a9421c2f89ae057efa27d4f46758c3bcd9fd6f42e0bc9b3bcb02d282",
+          "post-conditions": "6ad111e4f9507fe447e6b7ee50827196829e56a4ad1381068bffc5a2eb500185",
+          "pre-conditions": "468b55dfb30268b1ec42e7b4627f9ed4c97ef24595d73a48e039562486984fac",
+          "pure": "ba4d4d8a0b3dfa22cd0343c328140685b7a3c86a3b1ea7f105eedc5186e9db71",
+          "spec_view": "64fbb77c443162d125e749329495c3d978fe383151cef2acf44ba240824abe24"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T05:47:45+00:00",
+      "code_version": "07386a593-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "359b6d37bb00ae58a5c8d0675647715717e58f0512cda150e33ee3bdbbaa2b39",
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T05:47:45+00:00",
+      "code_version": "07386a593-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T05:46:40+00:00",
+      "code_version": "07386a593-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T12:03:42+00:00",
+      "code_version": "ef4a18600-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SPEC REGION INTEGRITY: `python3 -m swebench_unified.adversary same-spec nagini astropy__astropy-13398 atk_fbk13398.py` -> \"SAME \u2014 attack shares the bundle's exact specification\". `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (12.22s). So the spec I audited is the frozen one and it does verify.\n\nREFERENCE USED:  (base_commit 6500928dc0 + patch.diff APPLIED; `git diff --stat` shows exactly the patch's 3 modified files + untracked itrs_observed_transforms.py). Executed via  (astropy 5.1, numpy 1.22.4), whose builtin_frames files are byte-identical to the gold worktree modulo a leading `# -*- coding: utf-8 -*-` line. Base commit used only for the untouched callees (matrix builders, matrix_transpose, self-transform machinery), per the brief.\n\nWHAT I TRIED TO BREAK. The spec is unusually strong: it does NOT model either transform as a bare rotation. It pins, for each of the four conversion directions, (a) that the anchoring re-reference happens, (b) BOTH of its endpoints, (c) the site/epoch the rotation matrix is built from, and (d) the ORDER of the two steps (nested `rebased_*` of `bwd_*`/`prot_inv_*` vs `fwd_*`/`prot_*` of `rebased_*`). A too-strong spec is the live risk, so I hunted for any input where a pinned clause is false of the real gold callee.\n\nMEASUREMENT 1 \u2014 all six postconditions vs the real gold transforms. I re-derived each Ensures independently (real matrices from itrs_to_altaz_mat/itrs_to_hadec_mat/cirs_to_itrs_mat/tete_to_itrs_mat; real offset from the same-kind self-transform) and compared to the real registered transform driven through the public frame API, over the full cross product of 3-6 sites x 2-4 obstimes x all four anchoring combinations (identical / site-differs / epoch-differs / both-differ) x AltAz and HADec:\n  itrs_to_observed  worst rel discrepancy 3.54e-16\n  observed_to_itrs  worst rel discrepancy 1.87e-16\n  equ_to_rot (cirs_to_itrs) 1.86e-16\n  rot_to_equ (itrs_to_cirs) 1.70e-16\n  equ_to_rot/rot_to_equ at the TETE instance (tete_to_itrs / itrs_to_tete, offset bound TETE->TETE): 1.97e-16 / 6.85e-17\n  observed_roundtrip and equ_rot_roundtrip at shared anchoring: 1.99e-16\nAll at machine epsilon. A 500-iteration randomized fuzz (magnitudes 1e-1..1e12, 6 sites incl. geocentre/N pole/S pole/antimeridian/deep/1e9 m altitude, 4 obstimes, both observed kinds) gave worst rel 4.14e-16 across all six. No divergence.\n\nMEASUREMENT 2 \u2014 is the offset axiom's scope over-claimed? `same_frame_noop` claims offset==0 ONLY at identical anchoring. I measured the real self-transform residual at identical anchoring for ITRS, CIRS and TETE over 5 sites x 4 obstimes x fuzzed vectors: max residual EXACTLY 0.0 with zero nonzero cases, and bitwise identity over 200 random vectors for both ITRS and CIRS. So the axiom is not merely within-tolerance true, it is exactly true \u2014 the spec does not over-claim it. The gold guard at itrs_observed_transforms.py:106 is what makes this exact, and I confirmed `np.any(L != L')` is False for equal-but-distinct EarthLocation objects (offset [0,0,0]), so the guard's notion of \"same anchoring\" matches the model's tag equality rather than object identity. This matters because it is the only axiom the round-trip proof consumes, and an inexact version would make the exact-integer round-trip postcondition too strong.\n\nMEASUREMENT 3 \u2014 is the orthogonality axiom over-claimed at pathological sites? |M^T M - I| over geocentre, both poles, equator, antimeridian, height -6.3e6 m, height +1e9 m, 1e-9 m offset, negative-z: max 4.44e-16, no NaN, no failure. Notably the geocentre (which the model maps to (0,0,0) and which is ITRS's new default `location`) resolves to lat=90 deg and yields exactly diag(-1,1,1) / diag(1,-1,1) \u2014 orthogonal, so the (0,0,0) refinement is sound rather than a degenerate hole.\n\nMEASUREMENT 4 \u2014 are the shared model symbols actually shared behaviour? I checked that the model's reuse of ONE symbol family across two repo instances is not a hidden over-claim. It is not, because each instance is bound separately by the harness, and I confirmed the instances genuinely differ (ITRS-offset vs CIRS-offset differ by up to 5.2e11 m; cirs_to_itrs_mat vs tete_to_itrs_mat entries differ by up to 5.7e-3; altaz vs hadec matrices by 1.90) \u2014 so the model is not silently assuming they coincide.\n\nMEASUREMENT 5 \u2014 scoping honesty. Refraction (pressure>0) is explicitly scoped out in refinement.md \u00a7D, and I confirmed why that scoping is legitimate rather than convenient: at pressure=0 the real forward transform equals the bare rotation to 0.000e+00, at pressure=1000 hPa it deviates by 4.37e-4 relative \u2014 a genuinely non-orthogonal perturbation the F2P tests only check loosely (atol=0.1 mas / 10 cm), never as an identity. Default AltAz/HADec pressure is 0.0 hPa, so the default-attribute path \u2014 the one the pinned postconditions govern \u2014 is the no-refraction branch. The spec claims exact identity only there. Not an over-claim.\n\nMEASUREMENT 6 \u2014 bundle's own gates re-run by me against the real repo, not trusted from the artifact: axiom_check.py exits OK (orthogonality over 7056 (lon,lat) configs x 68 vectors, 8 cross-site controls >= 3.41e6 m; prot_orthogonality over 10 configs with cross-epoch controls; same_frame_noop at BOTH bound instances with worst residual 0 m and site/epoch controls >= 1.37e8 / 8.67e10 m). conformance_check.py exits OK: 364500 component inputs, 15 configurations, both pairs over all 4 anchoring combinations, 0 disagreements.\n\nONLY NON-MATCHES FOUND, and why neither is a faithfulness defect: (i) v = [1e300,0,0] overflows to NaN inside erfa's p2s during the differing-anchoring re-reference \u2014 a float-domain overflow in an untouched callee, outside the exact-integer refinement (mapping.md \u00a72) and outside any tested behaviour; the model's integers have no overflow. (ii) The shared-anchoring round trip is only float-exact, not bitwise, on some tiny/mixed vectors (e.g. [1e-30,0,0] -> y = -4.4e-47, [0,0,-1e8] -> x = -7.5e-9): residuals at 1e-17 relative, precisely the floating-point error the documented int refinement and the F2P `assert_allclose` tolerances absorb. Neither is an input where the modeled function disagrees with the real callee under the stated refinement.\n\nCONCLUSION: no diverging input found. Every pinned clause \u2014 the re-reference, both its endpoints, the matrix's site, the rotation's epoch, and the order of the two steps in each of the four directions \u2014 is an equality the real gold code makes true at the cited line, verified to machine precision across the whole free anchoring domain including the case where the anchorings differ. The two consumed axioms hold exactly (offset) or to 4e-16 (orthogonality) on the real untouched callees, and their controls show neither carrier is decorative, so the axioms are the weakest sufficient contracts rather than convenient over-claims. The spec is not stronger than the patched repo behavior. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE: NO relaxation applies to this bundle, so I judged it as an ordinary STRICT leakage review with no inherited disposition. There is no RELAXED_LEAKAGE.md anywhere under benchmark-verified/astropy__astropy-13398/ (find -iname '*RELAX*' -> empty), meta.json has NO top-level `relaxed_leakage` key (json keys are: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, type_modeling, version), and meta.json gates['G-LEAK'].status == 'pass' (NOT 'relaxed'), which is the flag spec_guide.md 0.6 requires for the relaxed lane. The string 'relaxed_leakage' occurs in meta.json ONLY inside prior-panel prose stored in the gates blob, never as a flag. So the relaxation clause in my instructions is inapplicable and I applied the full no-leakage bar.\n\nWHAT I MEASURED (all my own runs, from source, at the project root):\n\n1. SPEC VIEW EXTRACTED MYSELF, not read off a stored copy: markers.spec_view(model.py, get_backend('nagini').language) -> 525 lines, dumped to spec_view.txt and read in full. This is the exact consumer-visible artifact (module docstring + axioms + pure + pre/post-conditions + region markers; impl elided).\n\n2. MECHANICAL SCREEN, run by me: leakage.screen(model.py, nagini tables, instance.patch, instance.problem_statement, instance.test_patch) -> passed=True, hard_failures=[], warnings=[]. So: no diff markers, no gold-patch line reproduced (>=8 normalized chars), no patched file path, no patched module dotted path, no narration vocabulary (bug/fix/patch/wrong/broken/...), no identifier or comment naming a patched repo symbol that is not already public.\n\n3. GOLD SYMBOL SWEEP, done independently of the screen. leakage._patch_changed_symbols(gold) = [add_refraction, altaz_to_hadec_mat, cirs_to_gcrs, itrs_to_altaz_mat, itrs_to_cirs, itrs_to_hadec_mat, itrs_to_observed, itrs_to_tete, observed_to_itrs, remove_refraction, tete_to_gcrs, tete_to_itrs_mat]. I tested each for presence in the spec view (substring, case-insensitive, so embedding counts) AND for presence in the problem_statement. Result: 10 of 12 are ABSENT from the spec view entirely. The only two present -- itrs_to_observed, observed_to_itrs -- are quoted VERBATIM in the public problem_statement, which contains the issue author's own draft code including the lines 'def itrs_to_observed(itrs_coo, observed_frame):' and 'def observed_to_itrs(observed_coo, itrs_frame):'. Naming them therefore reveals nothing the solver cannot already read in the task. Notably the gold's genuinely private new helpers (itrs_to_altaz_mat, itrs_to_hadec_mat, altaz_to_hadec_mat, add_refraction, remove_refraction -- the refraction machinery the issue explicitly says it has NOT written) are all absent.\n\n4. REPO-VOCABULARY SWEEP beyond the symbol list: I grepped the spec view for 40 gold-specific tokens (EARTH_CENTER, location=, EarthLocationAttribute, TimeAttribute, obstime, CIRS, TETE, AltAz, HADec, ITRS, pressure, refraction, refco, erfa, WGS84, get_itrs, realize_frame, matrix_transpose, rotation_matrix, frame_transform_graph, transform_to, itrs_observed_transforms, intermediate_rotation_transforms, builtin_frames, NORTH_POLE, minus_x, minus_y, ...). Only TWO hit: 'geodetic' and 'topocentric'. Both are public -- 'to_geodetic' and 'topocentric' both appear in the problem_statement (the issue's draft calls observed_frame.location.to_geodetic('WGS84') and its prose says 'geocentric versus topocentric aberration'). Every frame class name, the EARTH_CENTER constant (the actual discriminator of the second gold hunk), the location= keyword, and both patched module paths are ABSENT. The spec view speaks only in de-identified abstractions: 'site', 'epoch', 'anchoring', 'Earth-fixed', 'observer-centred', 'Earth-equatorial', 'Earth-rotating'.\n\n5. HINTS-ONLY CHECK (the rule that matters most here, since leakage is judged vs problem_statement ONLY, never hints_text). hints_text is 14211 chars. I computed the set of >=5-char words appearing in the spec view AND in hints_text but NOT in the problem_statement: ['actually','along','behaviour','built','cancellation','change','choice','constant','desired','difference','different','either','every','exactly','fixed','further','given','intermediate','moves','needs','nothing','observer','observing','precisely','result','route','second','solar','stated','sufficient','system','target']. Every one is generic English; not one is a repo symbol, a diagnosis, or a discriminator. So no hints-only vocabulary is echoed -- the classic relaxed-leakage tell is absent, which is itself consistent with no relaxation being needed.\n\n6. LOAD-BEARING TEST (the decisive one, and the reason I am confident the prose is descriptive rather than prescriptive). The worry with a spec view this discursive is that the narration, not the formal contract, is what tells the solver what to write. I tested that directly: I AST-stripped every docstring (module + all 20 functions, replaced with \"d.\") and deleted every non-marker comment line from BOTH model.py and model_prepatch.py, leaving only formal Requires/Ensures/returns plus region markers, and confirmed the stripped text contains none of geocentric/aberration/barycentre/indirect/'constant site'/observer/anchor. Then ran the pinned verifier:\n   - scripts/nagini_verify.sh gold_nonarr.py -> 'Verification successful' (exit 0, 9.05s)\n   - scripts/nagini_verify.sh pre_nonarr.py  -> 'Verification failed' (exit 1, 10.75s), failing the postconditions of itrs_to_observed, observed_to_itrs, equ_to_rot and rot_to_equ\n   The discrimination survives total de-narration, so the prose is NOT load-bearing: the Ensures clauses alone (Result() == fwd_x(rebased_x(...), ..., tx,ty,tz) etc.) separate gold from pre-patch. Nothing needed to be said in English to make this spec faithful, which is exactly why no relaxation is warranted and why the prose that IS there cannot be the mechanism of a leak.\n\n7. BASELINE / CORE GATES re-run rather than assumed: unstripped scripts/nagini_verify.sh model.py -> 'Verification successful' exit 0 (8.8s, matching stored G-VERIFY); model_prepatch.py -> 'Verification failed' exit 1 on the same four postconditions (matching stored G-DIFF). same_spec(model.py, model_prepatch.py) -> True, and `adversary same-spec nagini astropy__astropy-13398` on the prepatch model -> 'SAME -- attack shares the bundle's exact specification' exit 0, so the two differ ONLY in the impl region and the spec region is byte-identical. Stored gates re-read: G-AX/G-CONF/G-DIFF/G-EQ/G-GOLD/G-HYGIENE/G-INTEGRITY/G-LEAK/G-MUT (20/20 killed, 0 survivors)/G-PBT/G-RESOLVE (resolved, not flaky)/G-VERIFY all 'pass'.\n\n8. The offset_* axiom docstring is the one place with real astronomy prose ('The route taken ties the position to the Solar-System barycentre, so the offset is the geocentric-versus-topocentric aberration difference together with the change of epoch'). I looked at this hardest, since it is the closest thing to a mechanism narration. It is not a leak: it describes the semantics of an UNCHANGED callee (the re-referencing transform) so the reader can tell what the uninterpreted offset_* functions mean, and every concept in it -- SSB, geocentric vs topocentric aberration, the ITRS position being 'lost in the wake of the Earth's orbit around the SSB' -- is stated at length in the public problem_statement's own third paragraph. It names no symbol, no file, and no edit, and per the test in (6) it is not what makes the spec discriminate.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as a finding in its own right, per my instructions): meta.json's gates blob stores prior G-PANEL-3 records with agent_verdict='NO-LEAKAGE' plus long first-person narration, and verdict.md line 1464 carries 'Role 4 -- G-PANEL-3 (leakage): pass (agent: NO-LEAKAGE)'. That is a stored disposition for MY OWN gate, present in the bundle and visible before I judged -- the shape that can bias a later panel run, so I flag it. It does not instruct me: leakage.reviewer_directed() -> [] on model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py, meta.json AND verdict.md (no addresses-the-reviewer, prescribes-the-verdict, or recording-convention hit), and the only imperative-shaped hits are prior panels describing their own reasoning. I used none of its conclusions as evidence; every fact above is my own re-measurement.\n\nONE DEFECT FOUND, disclosed but NOT leakage-relevant: meta.json's TOP-LEVEL region_hashes block is stale and matches nothing in the bundle -- top-level says spec_view=5cac9d00..., impl=8efb7855..., axioms=a2223b2c..., while markers.region_hashes(model.py) computes spec_view=64fbb77c..., impl=3bd9d3b0..., axioms=af4f27dc... (all six regions differ). The hashes stored inside gates['G-HYGIENE'].data.region_hashes DO match my computed values for all six regions exactly, so the artifact the gates actually attest is the shipped model.py; the top-level block is a stale leftover. I confirmed this is systemic, not this-cell tampering: I recomputed across all 500 nagini bundles carrying region_hashes and 499 of 500 disagree at top level (only astropy-13453 agrees), so it is a repo-wide staleness bug in whatever writes that key, not evidence the spec view was swapped. It does not affect my verdict -- I extracted the spec view from model.py myself rather than trusting any stored hash -- but it is worth a fix, since a stale top-level integrity record is exactly the sort of thing a future audit could either trust wrongly or read as tampering.\n\nCONCLUSION: the spec view reveals nothing about the gold edit beyond the public problem_statement. The only two gold symbols it names are quoted verbatim in that public statement; the gold's private helpers, the EARTH_CENTER discriminator, the frame class names and both patched module paths are all absent; no hints_text-only vocabulary is echoed; and de-narration testing proves the formal contract, not the prose, is what discriminates gold from pre-patch. Verdict NO-LEAKAGE, on my own measurements.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SPEC REGION INTEGRITY: `python3 -m swebench_unified.adversary same-spec nagini astropy__astropy-13398 atk_fbk13398.py` -> \"SAME \u2014 attack shares the bundle's exact specification\". `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (12.22s). So the spec I audited is the frozen one and it does verify.\n\nREFERENCE USED:  (base_commit 6500928dc0 + patch.diff APPLIED; `git diff --stat` shows exactly the patch's 3 modified files + untracked itrs_observed_transforms.py). Executed via  (astropy 5.1, numpy 1.22.4), whose builtin_frames files are byte-identical to the gold worktree modulo a leading `# -*- coding: utf-8 -*-` line. Base commit used only for the untouched callees (matrix builders, matrix_transpose, self-transform machinery), per the brief.\n\nWHAT I TRIED TO BREAK. The spec is unusually strong: it does NOT model either transform as a bare rotation. It pins, for each of the four conversion directions, (a) that the anchoring re-reference happens, (b) BOTH of its endpoints, (c) the site/epoch the rotation matrix is built from, and (d) the ORDER of the two steps (nested `rebased_*` of `bwd_*`/`prot_inv_*` vs `fwd_*`/`prot_*` of `rebased_*`). A too-strong spec is the live risk, so I hunted for any input where a pinned clause is false of the real gold callee.\n\nMEASUREMENT 1 \u2014 all six postconditions vs the real gold transforms. I re-derived each Ensures independently (real matrices from itrs_to_altaz_mat/itrs_to_hadec_mat/cirs_to_itrs_mat/tete_to_itrs_mat; real offset from the same-kind self-transform) and compared to the real registered transform driven through the public frame API, over the full cross product of 3-6 sites x 2-4 obstimes x all four anchoring combinations (identical / site-differs / epoch-differs / both-differ) x AltAz and HADec:\n  itrs_to_observed  worst rel discrepancy 3.54e-16\n  observed_to_itrs  worst rel discrepancy 1.87e-16\n  equ_to_rot (cirs_to_itrs) 1.86e-16\n  rot_to_equ (itrs_to_cirs) 1.70e-16\n  equ_to_rot/rot_to_equ at the TETE instance (tete_to_itrs / itrs_to_tete, offset bound TETE->TETE): 1.97e-16 / 6.85e-17\n  observed_roundtrip and equ_rot_roundtrip at shared anchoring: 1.99e-16\nAll at machine epsilon. A 500-iteration randomized fuzz (magnitudes 1e-1..1e12, 6 sites incl. geocentre/N pole/S pole/antimeridian/deep/1e9 m altitude, 4 obstimes, both observed kinds) gave worst rel 4.14e-16 across all six. No divergence.\n\nMEASUREMENT 2 \u2014 is the offset axiom's scope over-claimed? `same_frame_noop` claims offset==0 ONLY at identical anchoring. I measured the real self-transform residual at identical anchoring for ITRS, CIRS and TETE over 5 sites x 4 obstimes x fuzzed vectors: max residual EXACTLY 0.0 with zero nonzero cases, and bitwise identity over 200 random vectors for both ITRS and CIRS. So the axiom is not merely within-tolerance true, it is exactly true \u2014 the spec does not over-claim it. The gold guard at itrs_observed_transforms.py:106 is what makes this exact, and I confirmed `np.any(L != L')` is False for equal-but-distinct EarthLocation objects (offset [0,0,0]), so the guard's notion of \"same anchoring\" matches the model's tag equality rather than object identity. This matters because it is the only axiom the round-trip proof consumes, and an inexact version would make the exact-integer round-trip postcondition too strong.\n\nMEASUREMENT 3 \u2014 is the orthogonality axiom over-claimed at pathological sites? |M^T M - I| over geocentre, both poles, equator, antimeridian, height -6.3e6 m, height +1e9 m, 1e-9 m offset, negative-z: max 4.44e-16, no NaN, no failure. Notably the geocentre (which the model maps to (0,0,0) and which is ITRS's new default `location`) resolves to lat=90 deg and yields exactly diag(-1,1,1) / diag(1,-1,1) \u2014 orthogonal, so the (0,0,0) refinement is sound rather than a degenerate hole.\n\nMEASUREMENT 4 \u2014 are the shared model symbols actually shared behaviour? I checked that the model's reuse of ONE symbol family across two repo instances is not a hidden over-claim. It is not, because each instance is bound separately by the harness, and I confirmed the instances genuinely differ (ITRS-offset vs CIRS-offset differ by up to 5.2e11 m; cirs_to_itrs_mat vs tete_to_itrs_mat entries differ by up to 5.7e-3; altaz vs hadec matrices by 1.90) \u2014 so the model is not silently assuming they coincide.\n\nMEASUREMENT 5 \u2014 scoping honesty. Refraction (pressure>0) is explicitly scoped out in refinement.md \u00a7D, and I confirmed why that scoping is legitimate rather than convenient: at pressure=0 the real forward transform equals the bare rotation to 0.000e+00, at pressure=1000 hPa it deviates by 4.37e-4 relative \u2014 a genuinely non-orthogonal perturbation the F2P tests only check loosely (atol=0.1 mas / 10 cm), never as an identity. Default AltAz/HADec pressure is 0.0 hPa, so the default-attribute path \u2014 the one the pinned postconditions govern \u2014 is the no-refraction branch. The spec claims exact identity only there. Not an over-claim.\n\nMEASUREMENT 6 \u2014 bundle's own gates re-run by me against the real repo, not trusted from the artifact: axiom_check.py exits OK (orthogonality over 7056 (lon,lat) configs x 68 vectors, 8 cross-site controls >= 3.41e6 m; prot_orthogonality over 10 configs with cross-epoch controls; same_frame_noop at BOTH bound instances with worst residual 0 m and site/epoch controls >= 1.37e8 / 8.67e10 m). conformance_check.py exits OK: 364500 component inputs, 15 configurations, both pairs over all 4 anchoring combinations, 0 disagreements.\n\nONLY NON-MATCHES FOUND, and why neither is a faithfulness defect: (i) v = [1e300,0,0] overflows to NaN inside erfa's p2s during the differing-anchoring re-reference \u2014 a float-domain overflow in an untouched callee, outside the exact-integer refinement (mapping.md \u00a72) and outside any tested behaviour; the model's integers have no overflow. (ii) The shared-anchoring round trip is only float-exact, not bitwise, on some tiny/mixed vectors (e.g. [1e-30,0,0] -> y = -4.4e-47, [0,0,-1e8] -> x = -7.5e-9): residuals at 1e-17 relative, precisely the floating-point error the documented int refinement and the F2P `assert_allclose` tolerances absorb. Neither is an input where the modeled function disagrees with the real callee under the stated refinement.\n\nCONCLUSION: no diverging input found. Every pinned clause \u2014 the re-reference, both its endpoints, the matrix's site, the rotation's epoch, and the order of the two steps in each of the four directions \u2014 is an equality the real gold code makes true at the cited line, verified to machine precision across the whole free anchoring domain including the case where the anchorings differ. The two consumed axioms hold exactly (offset) or to 4e-16 (orthogonality) on the real untouched callees, and their controls show neither carrier is decorative, so the axioms are the weakest sufficient contracts rather than convenient over-claims. The spec is not stronger than the patched repo behavior. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 SCOPE: NO relaxation applies to this bundle, so I judged it as an ordinary STRICT leakage review with no inherited disposition. There is no RELAXED_LEAKAGE.md anywhere under benchmark-verified/astropy__astropy-13398/ (find -iname '*RELAX*' -> empty), meta.json has NO top-level `relaxed_leakage` key (json keys are: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, type_modeling, version), and meta.json gates['G-LEAK'].status == 'pass' (NOT 'relaxed'), which is the flag spec_guide.md 0.6 requires for the relaxed lane. The string 'relaxed_leakage' occurs in meta.json ONLY inside prior-panel prose stored in the gates blob, never as a flag. So the relaxation clause in my instructions is inapplicable and I applied the full no-leakage bar.\n\nWHAT I MEASURED (all my own runs, from source, at the project root):\n\n1. SPEC VIEW EXTRACTED MYSELF, not read off a stored copy: markers.spec_view(model.py, get_backend('nagini').language) -> 525 lines, dumped to spec_view.txt and read in full. This is the exact consumer-visible artifact (module docstring + axioms + pure + pre/post-conditions + region markers; impl elided).\n\n2. MECHANICAL SCREEN, run by me: leakage.screen(model.py, nagini tables, instance.patch, instance.problem_statement, instance.test_patch) -> passed=True, hard_failures=[], warnings=[]. So: no diff markers, no gold-patch line reproduced (>=8 normalized chars), no patched file path, no patched module dotted path, no narration vocabulary (bug/fix/patch/wrong/broken/...), no identifier or comment naming a patched repo symbol that is not already public.\n\n3. GOLD SYMBOL SWEEP, done independently of the screen. leakage._patch_changed_symbols(gold) = [add_refraction, altaz_to_hadec_mat, cirs_to_gcrs, itrs_to_altaz_mat, itrs_to_cirs, itrs_to_hadec_mat, itrs_to_observed, itrs_to_tete, observed_to_itrs, remove_refraction, tete_to_gcrs, tete_to_itrs_mat]. I tested each for presence in the spec view (substring, case-insensitive, so embedding counts) AND for presence in the problem_statement. Result: 10 of 12 are ABSENT from the spec view entirely. The only two present -- itrs_to_observed, observed_to_itrs -- are quoted VERBATIM in the public problem_statement, which contains the issue author's own draft code including the lines 'def itrs_to_observed(itrs_coo, observed_frame):' and 'def observed_to_itrs(observed_coo, itrs_frame):'. Naming them therefore reveals nothing the solver cannot already read in the task. Notably the gold's genuinely private new helpers (itrs_to_altaz_mat, itrs_to_hadec_mat, altaz_to_hadec_mat, add_refraction, remove_refraction -- the refraction machinery the issue explicitly says it has NOT written) are all absent.\n\n4. REPO-VOCABULARY SWEEP beyond the symbol list: I grepped the spec view for 40 gold-specific tokens (EARTH_CENTER, location=, EarthLocationAttribute, TimeAttribute, obstime, CIRS, TETE, AltAz, HADec, ITRS, pressure, refraction, refco, erfa, WGS84, get_itrs, realize_frame, matrix_transpose, rotation_matrix, frame_transform_graph, transform_to, itrs_observed_transforms, intermediate_rotation_transforms, builtin_frames, NORTH_POLE, minus_x, minus_y, ...). Only TWO hit: 'geodetic' and 'topocentric'. Both are public -- 'to_geodetic' and 'topocentric' both appear in the problem_statement (the issue's draft calls observed_frame.location.to_geodetic('WGS84') and its prose says 'geocentric versus topocentric aberration'). Every frame class name, the EARTH_CENTER constant (the actual discriminator of the second gold hunk), the location= keyword, and both patched module paths are ABSENT. The spec view speaks only in de-identified abstractions: 'site', 'epoch', 'anchoring', 'Earth-fixed', 'observer-centred', 'Earth-equatorial', 'Earth-rotating'.\n\n5. HINTS-ONLY CHECK (the rule that matters most here, since leakage is judged vs problem_statement ONLY, never hints_text). hints_text is 14211 chars. I computed the set of >=5-char words appearing in the spec view AND in hints_text but NOT in the problem_statement: ['actually','along','behaviour','built','cancellation','change','choice','constant','desired','difference','different','either','every','exactly','fixed','further','given','intermediate','moves','needs','nothing','observer','observing','precisely','result','route','second','solar','stated','sufficient','system','target']. Every one is generic English; not one is a repo symbol, a diagnosis, or a discriminator. So no hints-only vocabulary is echoed -- the classic relaxed-leakage tell is absent, which is itself consistent with no relaxation being needed.\n\n6. LOAD-BEARING TEST (the decisive one, and the reason I am confident the prose is descriptive rather than prescriptive). The worry with a spec view this discursive is that the narration, not the formal contract, is what tells the solver what to write. I tested that directly: I AST-stripped every docstring (module + all 20 functions, replaced with \"d.\") and deleted every non-marker comment line from BOTH model.py and model_prepatch.py, leaving only formal Requires/Ensures/returns plus region markers, and confirmed the stripped text contains none of geocentric/aberration/barycentre/indirect/'constant site'/observer/anchor. Then ran the pinned verifier:\n   - scripts/nagini_verify.sh gold_nonarr.py -> 'Verification successful' (exit 0, 9.05s)\n   - scripts/nagini_verify.sh pre_nonarr.py  -> 'Verification failed' (exit 1, 10.75s), failing the postconditions of itrs_to_observed, observed_to_itrs, equ_to_rot and rot_to_equ\n   The discrimination survives total de-narration, so the prose is NOT load-bearing: the Ensures clauses alone (Result() == fwd_x(rebased_x(...), ..., tx,ty,tz) etc.) separate gold from pre-patch. Nothing needed to be said in English to make this spec faithful, which is exactly why no relaxation is warranted and why the prose that IS there cannot be the mechanism of a leak.\n\n7. BASELINE / CORE GATES re-run rather than assumed: unstripped scripts/nagini_verify.sh model.py -> 'Verification successful' exit 0 (8.8s, matching stored G-VERIFY); model_prepatch.py -> 'Verification failed' exit 1 on the same four postconditions (matching stored G-DIFF). same_spec(model.py, model_prepatch.py) -> True, and `adversary same-spec nagini astropy__astropy-13398` on the prepatch model -> 'SAME -- attack shares the bundle's exact specification' exit 0, so the two differ ONLY in the impl region and the spec region is byte-identical. Stored gates re-read: G-AX/G-CONF/G-DIFF/G-EQ/G-GOLD/G-HYGIENE/G-INTEGRITY/G-LEAK/G-MUT (20/20 killed, 0 survivors)/G-PBT/G-RESOLVE (resolved, not flaky)/G-VERIFY all 'pass'.\n\n8. The offset_* axiom docstring is the one place with real astronomy prose ('The route taken ties the position to the Solar-System barycentre, so the offset is the geocentric-versus-topocentric aberration difference together with the change of epoch'). I looked at this hardest, since it is the closest thing to a mechanism narration. It is not a leak: it describes the semantics of an UNCHANGED callee (the re-referencing transform) so the reader can tell what the uninterpreted offset_* functions mean, and every concept in it -- SSB, geocentric vs topocentric aberration, the ITRS position being 'lost in the wake of the Earth's orbit around the SSB' -- is stated at length in the public problem_statement's own third paragraph. It names no symbol, no file, and no edit, and per the test in (6) it is not what makes the spec discriminate.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as a finding in its own right, per my instructions): meta.json's gates blob stores prior G-PANEL-3 records with agent_verdict='NO-LEAKAGE' plus long first-person narration, and verdict.md line 1464 carries 'Role 4 -- G-PANEL-3 (leakage): pass (agent: NO-LEAKAGE)'. That is a stored disposition for MY OWN gate, present in the bundle and visible before I judged -- the shape that can bias a later panel run, so I flag it. It does not instruct me: leakage.reviewer_directed() -> [] on model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py, meta.json AND verdict.md (no addresses-the-reviewer, prescribes-the-verdict, or recording-convention hit), and the only imperative-shaped hits are prior panels describing their own reasoning. I used none of its conclusions as evidence; every fact above is my own re-measurement.\n\nONE DEFECT FOUND, disclosed but NOT leakage-relevant: meta.json's TOP-LEVEL region_hashes block is stale and matches nothing in the bundle -- top-level says spec_view=5cac9d00..., impl=8efb7855..., axioms=a2223b2c..., while markers.region_hashes(model.py) computes spec_view=64fbb77c..., impl=3bd9d3b0..., axioms=af4f27dc... (all six regions differ). The hashes stored inside gates['G-HYGIENE'].data.region_hashes DO match my computed values for all six regions exactly, so the artifact the gates actually attest is the shipped model.py; the top-level block is a stale leftover. I confirmed this is systemic, not this-cell tampering: I recomputed across all 500 nagini bundles carrying region_hashes and 499 of 500 disagree at top level (only astropy-13453 agrees), so it is a repo-wide staleness bug in whatever writes that key, not evidence the spec view was swapped. It does not affect my verdict -- I extracted the spec view from model.py myself rather than trusting any stored hash -- but it is worth a fix, since a stale top-level integrity record is exactly the sort of thing a future audit could either trust wrongly or read as tampering.\n\nCONCLUSION: the spec view reveals nothing about the gold edit beyond the public problem_statement. The only two gold symbols it names are quoted verbatim in that public statement; the gold's private helpers, the EARTH_CENTER discriminator, the frame class names and both patched module paths are all absent; no hints_text-only vocabulary is echoed; and de-narration testing proves the formal contract, not the prose, is what discriminates gold from pre-patch. Verdict NO-LEAKAGE, on my own measurements.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633",
+        "properties.py": "ae53e1597336ed358f628412e44939813e0affb6ed2df5e51404786189e4c436"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T12:00:44+00:00",
+      "code_version": "776e4c465-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633",
+        "properties.py": "ae53e1597336ed358f628412e44939813e0affb6ed2df5e51404786189e4c436"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T12:03:40+00:00",
+      "code_version": "ef4a18600-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SPEC REGION INTEGRITY: `python3 -m swebench_unified.adversary same-spec nagini astropy__astropy-13398 atk_fbk13398.py` -> \"SAME \u2014 attack shares the bundle's exact specification\". `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (12.22s). So the spec I audited is the frozen one and it does verify.\n\nREFERENCE USED:  (base_commit 6500928dc0 + patch.diff APPLIED; `git diff --stat` shows exactly the patch's 3 modified files + untracked itrs_observed_transforms.py). Executed via  (astropy 5.1, numpy 1.22.4), whose builtin_frames files are byte-identical to the gold worktree modulo a leading `# -*- coding: utf-8 -*-` line. Base commit used only for the untouched callees (matrix builders, matrix_transpose, self-transform machinery), per the brief.\n\nWHAT I TRIED TO BREAK. The spec is unusually strong: it does NOT model either transform as a bare rotation. It pins, for each of the four conversion directions, (a) that the anchoring re-reference happens, (b) BOTH of its endpoints, (c) the site/epoch the rotation matrix is built from, and (d) the ORDER of the two steps (nested `rebased_*` of `bwd_*`/`prot_inv_*` vs `fwd_*`/`prot_*` of `rebased_*`). A too-strong spec is the live risk, so I hunted for any input where a pinned clause is false of the real gold callee.\n\nMEASUREMENT 1 \u2014 all six postconditions vs the real gold transforms. I re-derived each Ensures independently (real matrices from itrs_to_altaz_mat/itrs_to_hadec_mat/cirs_to_itrs_mat/tete_to_itrs_mat; real offset from the same-kind self-transform) and compared to the real registered transform driven through the public frame API, over the full cross product of 3-6 sites x 2-4 obstimes x all four anchoring combinations (identical / site-differs / epoch-differs / both-differ) x AltAz and HADec:\n  itrs_to_observed  worst rel discrepancy 3.54e-16\n  observed_to_itrs  worst rel discrepancy 1.87e-16\n  equ_to_rot (cirs_to_itrs) 1.86e-16\n  rot_to_equ (itrs_to_cirs) 1.70e-16\n  equ_to_rot/rot_to_equ at the TETE instance (tete_to_itrs / itrs_to_tete, offset bound TETE->TETE): 1.97e-16 / 6.85e-17\n  observed_roundtrip and equ_rot_roundtrip at shared anchoring: 1.99e-16\nAll at machine epsilon. A 500-iteration randomized fuzz (magnitudes 1e-1..1e12, 6 sites incl. geocentre/N pole/S pole/antimeridian/deep/1e9 m altitude, 4 obstimes, both observed kinds) gave worst rel 4.14e-16 across all six. No divergence.\n\nMEASUREMENT 2 \u2014 is the offset axiom's scope over-claimed? `same_frame_noop` claims offset==0 ONLY at identical anchoring. I measured the real self-transform residual at identical anchoring for ITRS, CIRS and TETE over 5 sites x 4 obstimes x fuzzed vectors: max residual EXACTLY 0.0 with zero nonzero cases, and bitwise identity over 200 random vectors for both ITRS and CIRS. So the axiom is not merely within-tolerance true, it is exactly true \u2014 the spec does not over-claim it. The gold guard at itrs_observed_transforms.py:106 is what makes this exact, and I confirmed `np.any(L != L')` is False for equal-but-distinct EarthLocation objects (offset [0,0,0]), so the guard's notion of \"same anchoring\" matches the model's tag equality rather than object identity. This matters because it is the only axiom the round-trip proof consumes, and an inexact version would make the exact-integer round-trip postcondition too strong.\n\nMEASUREMENT 3 \u2014 is the orthogonality axiom over-claimed at pathological sites? |M^T M - I| over geocentre, both poles, equator, antimeridian, height -6.3e6 m, height +1e9 m, 1e-9 m offset, negative-z: max 4.44e-16, no NaN, no failure. Notably the geocentre (which the model maps to (0,0,0) and which is ITRS's new default `location`) resolves to lat=90 deg and yields exactly diag(-1,1,1) / diag(1,-1,1) \u2014 orthogonal, so the (0,0,0) refinement is sound rather than a degenerate hole.\n\nMEASUREMENT 4 \u2014 are the shared model symbols actually shared behaviour? I checked that the model's reuse of ONE symbol family across two repo instances is not a hidden over-claim. It is not, because each instance is bound separately by the harness, and I confirmed the instances genuinely differ (ITRS-offset vs CIRS-offset differ by up to 5.2e11 m; cirs_to_itrs_mat vs tete_to_itrs_mat entries differ by up to 5.7e-3; altaz vs hadec matrices by 1.90) \u2014 so the model is not silently assuming they coincide.\n\nMEASUREMENT 5 \u2014 scoping honesty. Refraction (pressure>0) is explicitly scoped out in refinement.md \u00a7D, and I confirmed why that scoping is legitimate rather than convenient: at pressure=0 the real forward transform equals the bare rotation to 0.000e+00, at pressure=1000 hPa it deviates by 4.37e-4 relative \u2014 a genuinely non-orthogonal perturbation the F2P tests only check loosely (atol=0.1 mas / 10 cm), never as an identity. Default AltAz/HADec pressure is 0.0 hPa, so the default-attribute path \u2014 the one the pinned postconditions govern \u2014 is the no-refraction branch. The spec claims exact identity only there. Not an over-claim.\n\nMEASUREMENT 6 \u2014 bundle's own gates re-run by me against the real repo, not trusted from the artifact: axiom_check.py exits OK (orthogonality over 7056 (lon,lat) configs x 68 vectors, 8 cross-site controls >= 3.41e6 m; prot_orthogonality over 10 configs with cross-epoch controls; same_frame_noop at BOTH bound instances with worst residual 0 m and site/epoch controls >= 1.37e8 / 8.67e10 m). conformance_check.py exits OK: 364500 component inputs, 15 configurations, both pairs over all 4 anchoring combinations, 0 disagreements.\n\nONLY NON-MATCHES FOUND, and why neither is a faithfulness defect: (i) v = [1e300,0,0] overflows to NaN inside erfa's p2s during the differing-anchoring re-reference \u2014 a float-domain overflow in an untouched callee, outside the exact-integer refinement (mapping.md \u00a72) and outside any tested behaviour; the model's integers have no overflow. (ii) The shared-anchoring round trip is only float-exact, not bitwise, on some tiny/mixed vectors (e.g. [1e-30,0,0] -> y = -4.4e-47, [0,0,-1e8] -> x = -7.5e-9): residuals at 1e-17 relative, precisely the floating-point error the documented int refinement and the F2P `assert_allclose` tolerances absorb. Neither is an input where the modeled function disagrees with the real callee under the stated refinement.\n\nCONCLUSION: no diverging input found. Every pinned clause \u2014 the re-reference, both its endpoints, the matrix's site, the rotation's epoch, and the order of the two steps in each of the four directions \u2014 is an equality the real gold code makes true at the cited line, verified to machine precision across the whole free anchoring domain including the case where the anchorings differ. The two consumed axioms hold exactly (offset) or to 4e-16 (orthogonality) on the real untouched callees, and their controls show neither carrier is decorative, so the axioms are the weakest sufficient contracts rather than convenient over-claims. The spec is not stronger than the patched repo behavior. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T11:47:15+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE: NO relaxation applies to this bundle, so I judged it as an ordinary STRICT leakage review with no inherited disposition. There is no RELAXED_LEAKAGE.md anywhere under benchmark-verified/astropy__astropy-13398/ (find -iname '*RELAX*' -> empty), meta.json has NO top-level `relaxed_leakage` key (json keys are: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, type_modeling, version), and meta.json gates['G-LEAK'].status == 'pass' (NOT 'relaxed'), which is the flag spec_guide.md 0.6 requires for the relaxed lane. The string 'relaxed_leakage' occurs in meta.json ONLY inside prior-panel prose stored in the gates blob, never as a flag. So the relaxation clause in my instructions is inapplicable and I applied the full no-leakage bar.\n\nWHAT I MEASURED (all my own runs, from source, at the project root):\n\n1. SPEC VIEW EXTRACTED MYSELF, not read off a stored copy: markers.spec_view(model.py, get_backend('nagini').language) -> 525 lines, dumped to spec_view.txt and read in full. This is the exact consumer-visible artifact (module docstring + axioms + pure + pre/post-conditions + region markers; impl elided).\n\n2. MECHANICAL SCREEN, run by me: leakage.screen(model.py, nagini tables, instance.patch, instance.problem_statement, instance.test_patch) -> passed=True, hard_failures=[], warnings=[]. So: no diff markers, no gold-patch line reproduced (>=8 normalized chars), no patched file path, no patched module dotted path, no narration vocabulary (bug/fix/patch/wrong/broken/...), no identifier or comment naming a patched repo symbol that is not already public.\n\n3. GOLD SYMBOL SWEEP, done independently of the screen. leakage._patch_changed_symbols(gold) = [add_refraction, altaz_to_hadec_mat, cirs_to_gcrs, itrs_to_altaz_mat, itrs_to_cirs, itrs_to_hadec_mat, itrs_to_observed, itrs_to_tete, observed_to_itrs, remove_refraction, tete_to_gcrs, tete_to_itrs_mat]. I tested each for presence in the spec view (substring, case-insensitive, so embedding counts) AND for presence in the problem_statement. Result: 10 of 12 are ABSENT from the spec view entirely. The only two present -- itrs_to_observed, observed_to_itrs -- are quoted VERBATIM in the public problem_statement, which contains the issue author's own draft code including the lines 'def itrs_to_observed(itrs_coo, observed_frame):' and 'def observed_to_itrs(observed_coo, itrs_frame):'. Naming them therefore reveals nothing the solver cannot already read in the task. Notably the gold's genuinely private new helpers (itrs_to_altaz_mat, itrs_to_hadec_mat, altaz_to_hadec_mat, add_refraction, remove_refraction -- the refraction machinery the issue explicitly says it has NOT written) are all absent.\n\n4. REPO-VOCABULARY SWEEP beyond the symbol list: I grepped the spec view for 40 gold-specific tokens (EARTH_CENTER, location=, EarthLocationAttribute, TimeAttribute, obstime, CIRS, TETE, AltAz, HADec, ITRS, pressure, refraction, refco, erfa, WGS84, get_itrs, realize_frame, matrix_transpose, rotation_matrix, frame_transform_graph, transform_to, itrs_observed_transforms, intermediate_rotation_transforms, builtin_frames, NORTH_POLE, minus_x, minus_y, ...). Only TWO hit: 'geodetic' and 'topocentric'. Both are public -- 'to_geodetic' and 'topocentric' both appear in the problem_statement (the issue's draft calls observed_frame.location.to_geodetic('WGS84') and its prose says 'geocentric versus topocentric aberration'). Every frame class name, the EARTH_CENTER constant (the actual discriminator of the second gold hunk), the location= keyword, and both patched module paths are ABSENT. The spec view speaks only in de-identified abstractions: 'site', 'epoch', 'anchoring', 'Earth-fixed', 'observer-centred', 'Earth-equatorial', 'Earth-rotating'.\n\n5. HINTS-ONLY CHECK (the rule that matters most here, since leakage is judged vs problem_statement ONLY, never hints_text). hints_text is 14211 chars. I computed the set of >=5-char words appearing in the spec view AND in hints_text but NOT in the problem_statement: ['actually','along','behaviour','built','cancellation','change','choice','constant','desired','difference','different','either','every','exactly','fixed','further','given','intermediate','moves','needs','nothing','observer','observing','precisely','result','route','second','solar','stated','sufficient','system','target']. Every one is generic English; not one is a repo symbol, a diagnosis, or a discriminator. So no hints-only vocabulary is echoed -- the classic relaxed-leakage tell is absent, which is itself consistent with no relaxation being needed.\n\n6. LOAD-BEARING TEST (the decisive one, and the reason I am confident the prose is descriptive rather than prescriptive). The worry with a spec view this discursive is that the narration, not the formal contract, is what tells the solver what to write. I tested that directly: I AST-stripped every docstring (module + all 20 functions, replaced with \"d.\") and deleted every non-marker comment line from BOTH model.py and model_prepatch.py, leaving only formal Requires/Ensures/returns plus region markers, and confirmed the stripped text contains none of geocentric/aberration/barycentre/indirect/'constant site'/observer/anchor. Then ran the pinned verifier:\n   - scripts/nagini_verify.sh gold_nonarr.py -> 'Verification successful' (exit 0, 9.05s)\n   - scripts/nagini_verify.sh pre_nonarr.py  -> 'Verification failed' (exit 1, 10.75s), failing the postconditions of itrs_to_observed, observed_to_itrs, equ_to_rot and rot_to_equ\n   The discrimination survives total de-narration, so the prose is NOT load-bearing: the Ensures clauses alone (Result() == fwd_x(rebased_x(...), ..., tx,ty,tz) etc.) separate gold from pre-patch. Nothing needed to be said in English to make this spec faithful, which is exactly why no relaxation is warranted and why the prose that IS there cannot be the mechanism of a leak.\n\n7. BASELINE / CORE GATES re-run rather than assumed: unstripped scripts/nagini_verify.sh model.py -> 'Verification successful' exit 0 (8.8s, matching stored G-VERIFY); model_prepatch.py -> 'Verification failed' exit 1 on the same four postconditions (matching stored G-DIFF). same_spec(model.py, model_prepatch.py) -> True, and `adversary same-spec nagini astropy__astropy-13398` on the prepatch model -> 'SAME -- attack shares the bundle's exact specification' exit 0, so the two differ ONLY in the impl region and the spec region is byte-identical. Stored gates re-read: G-AX/G-CONF/G-DIFF/G-EQ/G-GOLD/G-HYGIENE/G-INTEGRITY/G-LEAK/G-MUT (20/20 killed, 0 survivors)/G-PBT/G-RESOLVE (resolved, not flaky)/G-VERIFY all 'pass'.\n\n8. The offset_* axiom docstring is the one place with real astronomy prose ('The route taken ties the position to the Solar-System barycentre, so the offset is the geocentric-versus-topocentric aberration difference together with the change of epoch'). I looked at this hardest, since it is the closest thing to a mechanism narration. It is not a leak: it describes the semantics of an UNCHANGED callee (the re-referencing transform) so the reader can tell what the uninterpreted offset_* functions mean, and every concept in it -- SSB, geocentric vs topocentric aberration, the ITRS position being 'lost in the wake of the Earth's orbit around the SSB' -- is stated at length in the public problem_statement's own third paragraph. It names no symbol, no file, and no edit, and per the test in (6) it is not what makes the spec discriminate.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as a finding in its own right, per my instructions): meta.json's gates blob stores prior G-PANEL-3 records with agent_verdict='NO-LEAKAGE' plus long first-person narration, and verdict.md line 1464 carries 'Role 4 -- G-PANEL-3 (leakage): pass (agent: NO-LEAKAGE)'. That is a stored disposition for MY OWN gate, present in the bundle and visible before I judged -- the shape that can bias a later panel run, so I flag it. It does not instruct me: leakage.reviewer_directed() -> [] on model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py, meta.json AND verdict.md (no addresses-the-reviewer, prescribes-the-verdict, or recording-convention hit), and the only imperative-shaped hits are prior panels describing their own reasoning. I used none of its conclusions as evidence; every fact above is my own re-measurement.\n\nONE DEFECT FOUND, disclosed but NOT leakage-relevant: meta.json's TOP-LEVEL region_hashes block is stale and matches nothing in the bundle -- top-level says spec_view=5cac9d00..., impl=8efb7855..., axioms=a2223b2c..., while markers.region_hashes(model.py) computes spec_view=64fbb77c..., impl=3bd9d3b0..., axioms=af4f27dc... (all six regions differ). The hashes stored inside gates['G-HYGIENE'].data.region_hashes DO match my computed values for all six regions exactly, so the artifact the gates actually attest is the shipped model.py; the top-level block is a stale leftover. I confirmed this is systemic, not this-cell tampering: I recomputed across all 500 nagini bundles carrying region_hashes and 499 of 500 disagree at top level (only astropy-13453 agrees), so it is a repo-wide staleness bug in whatever writes that key, not evidence the spec view was swapped. It does not affect my verdict -- I extracted the spec view from model.py myself rather than trusting any stored hash -- but it is worth a fix, since a stale top-level integrity record is exactly the sort of thing a future audit could either trust wrongly or read as tampering.\n\nCONCLUSION: the spec view reveals nothing about the gold edit beyond the public problem_statement. The only two gold symbols it names are quoted verbatim in that public statement; the gold's private helpers, the EARTH_CENTER discriminator, the frame class names and both patched module paths are all absent; no hints_text-only vocabulary is echoed; and de-narration testing proves the formal contract, not the prose, is what discriminates gold from pre-patch. Verdict NO-LEAKAGE, on my own measurements.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:24:40+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-roundtrip-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-forward-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 30.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-backward-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.3
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-forward-indomain",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 38.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-equ-to-rot-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.1
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-rot-to-equ-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 32.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-equ-rot-roundtrip-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 30.1
+          },
+          {
+            "expect": "reject",
+            "id": "dropped-rereference-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.9
+          },
+          {
+            "expect": "reject",
+            "id": "dropped-rereference-backward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.7
+          },
+          {
+            "expect": "reject",
+            "id": "indirect-route-prepatch-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-forward-comp2",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-direction-backward-uses-M",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.3
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-matrix-site-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.3
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-matrix-site-backward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.3
+          },
+          {
+            "expect": "reject",
+            "id": "order-swap-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-guard-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.9
+          },
+          {
+            "expect": "reject",
+            "id": "endpoint-swap-backward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.8
+          },
+          {
+            "expect": "reject",
+            "id": "offset-sampled-at-rotated-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.8
+          },
+          {
+            "expect": "reject",
+            "id": "axiom-echo-out-of-scope-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.6
+          },
+          {
+            "expect": "reject",
+            "id": "cross-pair-rotation-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.3
+          },
+          {
+            "expect": "reject",
+            "id": "site-only-guard-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.3
+          },
+          {
+            "expect": "reject",
+            "id": "site-endpoint-swap-backward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.6
+          },
+          {
+            "expect": "reject",
+            "id": "permuted-offset-argument-backward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-roundtrip-ignore-comp",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.9
+          },
+          {
+            "expect": "reject",
+            "id": "dropped-rereference-equ-to-rot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.5
+          },
+          {
+            "expect": "reject",
+            "id": "constant-site-prepatch-equ-to-rot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.0
+          },
+          {
+            "expect": "reject",
+            "id": "constant-site-forward",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.9
+          },
+          {
+            "expect": "reject",
+            "id": "input-epoch-rotation-equ-to-rot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.5
+          },
+          {
+            "expect": "reject",
+            "id": "input-epoch-rereference-equ-to-rot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-guard-equ-to-rot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.9
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-direction-rot-to-equ-uses-P",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.6
+          },
+          {
+            "expect": "reject",
+            "id": "dropped-rereference-rot-to-equ",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.4
+          },
+          {
+            "expect": "reject",
+            "id": "order-swap-rot-to-equ",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          },
+          {
+            "expect": "reject",
+            "id": "constant-source-site-prepatch-rot-to-equ",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 6,
+          "uniqueness": 27
+        },
+        "manifest_sha256": "ae53e1597336ed358f628412e44939813e0affb6ed2df5e51404786189e4c436",
+        "n_cases": 34,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 34 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633",
+        "properties.py": "ae53e1597336ed358f628412e44939813e0affb6ed2df5e51404786189e4c436"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T05:54:37+00:00",
+      "code_version": "4692317fc-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "359b6d37bb00ae58a5c8d0675647715717e58f0512cda150e33ee3bdbbaa2b39",
+        "patch.diff": "5124ad079250b10166141d9deeb28d2cdf58ca42e50fb898b0ec8819bacc06e1"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T05:45:41+00:00",
+      "code_version": "07386a593-dirty",
+      "data": {
+        "wall_time_s": 8.8
+      },
+      "detail": "verified in 8.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0909cc14e7e0e16ee8475a566f6822e80ebbd32c991dfcdd8793dc9470f7f633"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "astropy__astropy-13398",
+  "modeled_functions": [
+    {
+      "carrier_type": "3-D Cartesian position -> exact int components, one selected by comp in {0,1,2}",
+      "model_symbol": "itrs_to_observed",
+      "repo_location": "astropy/coordinates/builtin_frames/itrs_observed_transforms.py:258 (new file)",
+      "repo_symbol": "astropy.coordinates.builtin_frames.itrs_observed_transforms.itrs_to_observed",
+      "role": "modeled changed function (forward Earth-rotating -> observer-centred conversion): apply the orthogonal orientation matrix DIRECTLY to the given position (no internal offset; the observer-offset arithmetic is a caller-layer operation in gold)"
+    },
+    {
+      "carrier_type": "exact int components, comp selector",
+      "model_symbol": "observed_to_itrs",
+      "repo_location": "astropy/coordinates/builtin_frames/itrs_observed_transforms.py:280 (new file)",
+      "repo_symbol": "astropy.coordinates.builtin_frames.itrs_observed_transforms.observed_to_itrs",
+      "role": "modeled changed function (backward observer-centred -> Earth-rotating conversion): apply the matrix transpose DIRECTLY to the given position (no internal offset)"
+    },
+    {
+      "model_symbol": "observed_roundtrip",
+      "repo_location": "astropy/coordinates/tests/test_intermediate_transformations.py (test_itrs_straight_overhead, test_cirs_itrs_topo, no-pressure round-trip blocks of the two refraction tests)",
+      "repo_symbol": "composition observed_to_itrs(itrs_to_observed(...)) exercised by the F2P round-trip tests",
+      "role": "modeled composite: the exact round-trip identity (direct forward then direct backward = identity) the issue + F2P tests demand"
+    },
+    {
+      "carrier_type": "3-D Cartesian position -> exact int components (comp selector) + observing site as exact int triple (lx,ly,lz); EARTH_CENTER == (0,0,0)",
+      "model_symbol": "equ_to_rot",
+      "repo_location": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:197,148",
+      "repo_symbol": "astropy.coordinates.builtin_frames.intermediate_rotation_transforms.cirs_to_itrs (and tete_to_itrs)",
+      "role": "modeled changed function (forward Earth-equatorial -> Earth-rotating conversion): refer the position to the OUTPUT frame's own site (location=itrs_frame.location) instead of forcing the centre of the Earth (EARTH_CENTER); at the same site the re-reference is a no-op, so the result is the bare precession rotation P @ v"
+    },
+    {
+      "carrier_type": "exact int components, comp selector + site triple",
+      "model_symbol": "rot_to_equ",
+      "repo_location": "astropy/coordinates/builtin_frames/intermediate_rotation_transforms.py:212,161",
+      "repo_symbol": "astropy.coordinates.builtin_frames.intermediate_rotation_transforms.itrs_to_cirs (and itrs_to_tete)",
+      "role": "modeled changed function (backward Earth-rotating -> Earth-equatorial conversion): apply P^T and carry the input frame's site (location=itrs_coo.location) so the final re-reference to the output frame's own site is a no-op; result is the bare inverse precession rotation P^T @ v"
+    },
+    {
+      "model_symbol": "equ_rot_roundtrip",
+      "repo_location": "astropy/coordinates/tests/test_intermediate_transformations.py (test_cirs_itrs_topo, test_itrs_topo_to_{altaz,hadec}_with_refraction no-pressure blocks)",
+      "repo_symbol": "composition itrs_to_cirs(cirs_to_itrs(...)) exercised by test_cirs_itrs_topo and the through-ITRS no-refraction blocks",
+      "role": "modeled composite: the exact topocentric round-trip identity (CIRS@L -> ITRS@L -> CIRS@L = identity) the F2P tests demand, holding only because both legs honour the site L"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition of itrs_to_observed (Result() == fwd_x(vx,vy,vz)) AND postcondition of equ_to_rot (Result() == prot_x(vx,vy,vz)): both spec the OFFSET-FREE bare rotation, which neither the indirect route nor the centre-forcing reproduces; same_site_noop gives only offset_*(L,L)==0, not offset_*(L,0)==0",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "(1) the DIRECT ITRS<->Observed orthogonal-rotation transform (vs the pre-patch indirect, aberration-altering route); (2) the site-honouring CIRS/TETE<->ITRS transform (refer to the frame's own site, vs the pre-patch forcing the centre of the Earth)",
+      "reverted_to": "(1) pre-patch indirect skeleton for itrs_to_observed: the observer-centred orientation is reached by routing through an intermediate (geocentric) frame, inserting an extra frame rotation (modeled fwd_*(bwd_*(v)) instead of the direct fwd_*(v)). (2) pre-patch site-forcing for equ_to_rot (the site-honouring forward): refer the position to the centre of the Earth (offset_*(L, 0)) regardless of the frame's site, instead of the frame's own site (offset_*(L, L)) -- so a spurious geocentric-vs-topocentric viewpoint offset is carried whenever the site is off-centre."
+    }
+  ],
+  "region_hashes": {
+    "axioms": "a2223b2cc41708b8910804dd7153ca97d5571c9cb115148b5d72cc61c44247e0",
+    "impl": "8efb7855cca71fd9a2d578b1a1694513e42d859b100ff619b0e17bff265fe608",
+    "post-conditions": "daf38d53764757aa5d3a5521e2796571f2fb2aade98fd62be75a7877d8a1af39",
+    "pre-conditions": "29dd0b387ff8e3206e28f4d0aebda9ef178dfda7af4fa22f111dd27c00f6adf2",
+    "pure": "3df5aa78cfc3e1f05bb8e5f2a94275e6d025be4071bccf8d348f626a045bfb8a",
+    "spec_view": "5cac9d00b4956de249f9ffa7d7aa537674a5fc631130e14056d829f3650a22ec"
+  },
+  "repo": "astropy/astropy",
+  "schema_version": 1,
+  "type_modeling": "real Cartesian components modeled as exact int: the tested behaviour is the EXACT algebraic round-trip identity (orthogonal inverse M^T(M v) == v), which the F2P comparison tolerances (default assert_allclose on itrs.{x,y,z}; Alt=90 to 1*u.uas) absorb. Interpreted floats are unusable here: IEEE == is non-reflexive on NaN, so the identity is unstatable. The behaviour is precision-INDEPENDENT, so int is the faithful carrier (SPEC_GUIDE 2). The transforms are offset-free pure rotations (gold), matching the merged patch, NOT the issue's draft which subtracted the offset inside the transform. The observing SITE is modeled as an exact int triple (lx,ly,lz); the centre of the Earth (EARTH_CENTER) is exactly (0,0,0) km in the repo, so it maps to (0,0,0). The re-referencing offset is carried additively after the precession rotation (equivalent since P is linear); the discriminating fact is that re-referring to the same site is a no-op (offset_*(L,L)==0).",
+  "version": "5.0"
+}

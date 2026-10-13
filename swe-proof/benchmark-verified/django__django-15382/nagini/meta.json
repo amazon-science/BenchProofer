@@ -1,0 +1,459 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real Subquery.as_sql on a satisfiable (User.objects.all) and unsatisfiable (User.objects.none) inner selection, plus the post-patch Exists.as_sql case table over all four (satisfiable, negated) combos",
+      "encoded_property": "satisfiable==1 -> returns (full ownership) the fragment whose content is inner_fragment(satisfiable); satisfiable==0 -> raises EmptyResultSet. Weakest contract sufficient for the case analysis; not the function under change.",
+      "kind": "A-consumed",
+      "models": "django.db.models.expressions.Subquery.as_sql (the UNCHANGED super-class sub-selection renderer invoked via super().as_sql in Exists.as_sql)",
+      "name": "render_inner",
+      "provenance": "django/db/models/expressions.py:1178 (Subquery.as_sql) -> query.as_sql (line 1182); an unsatisfiable inner query (.none() -> NothingNode, django/db/models/sql/where.py:228-233) raises EmptyResultSet",
+      "purity": "@ContractOnly (non-pure: may raise; called in the impl, NOT inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the same real Subquery.as_sql satisfiable check asserts non-empty SQL not beginning with 'NOT ' (the inner_fragment properties)",
+      "encoded_property": "satisfiable==1 -> len(Result())>0 and Result() does not begin with the negation marker. Weakest properties needed to ground the satisfiable postcondition (directive 8); value is opaque (no hardcoded table), so it is not an echoable oracle.",
+      "kind": "A-consumed",
+      "models": "the CONTENT (str value) of the SQL fragment returned by the same UNCHANGED Subquery.as_sql super-call on a satisfiable inner selection",
+      "name": "inner_fragment",
+      "provenance": "django/db/models/expressions.py:1178 (Subquery.as_sql) return value on a satisfiable inner query; same callee as render_inner, viewed as a pure value",
+      "purity": "@Pure @ContractOnly (used inside Ensures to pin Result() content; never raises)"
+    }
+  ],
+  "base_commit": "770d3e6a4ce8e0a91a9e27156036c1985e74d4a3",
+  "changed_files": [
+    "django/db/models/expressions.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:08:18+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: render_inner axiom sound on real Subquery.as_sql (satisfiable -> non-empty, unsatisfiable -> EmptyResultSet); post-patch Exists.as_sql matches the model case table over all four (satisfiable, negated) combinations incl. the sat=0,neg=1 fix (returns normally with the EMPTY fragment, not propagating the signal).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "626a2d8a956374c43d4fb76df6e6e2ff394b90332842d59057c1dc8eda39771c",
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:09:01+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100128,
+          "disagreements": 0,
+          "seed": 15382,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callee -> real Subquery.as_sql)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100128, \"disagreements\": 0, \"seed\": 15382, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callee -> real Subquery.as_sql)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "765353f46df992872c5eb262b1e60567d670f787f77c44370b96902786a0e48c",
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:17:06+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd",
+        "model_prepatch.py": "c4eee524c9df293cd28489f2ca1de2f86cf714ee30b255bf056c2a972cc1a91c"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T20:11:14+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:17:54+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd",
+        "model_prepatch.py": "c4eee524c9df293cd28489f2ca1de2f86cf714ee30b255bf056c2a972cc1a91c"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:08:12+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "c6808d4a08706d3fbe47c2a27b437382fe36a7284002bd09e74ea29f1f494de9",
+          "impl": "3bae843bd3e2c8a669bcddda11483def2abbbccf5f1da16f615d5593e0fdccd7",
+          "post-conditions": "ef0c795aa1471a28f875b8714d68c420da276ad9fc4fa4fa171833d9145cac67",
+          "pre-conditions": "7a4396c6d7f89753d453e44cbaf79fb4dba20f6980fdfbfd3ea23d36f64e6ee7",
+          "pure": "68346dab3856b6bdfc14dc07becd7230eb673324f60436440d7caca7faa9b141",
+          "spec_view": "a64952c69ecd095340a3a0bff98e2db9c65f313922845b76f0618c4a0cc6496b"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:08:13+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "0273a3e0056188e580502d98b660031245ecd6c5c0ce9de33e0fded59e28b242",
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:08:14+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T06:52:25+00:00",
+      "code_version": "ecf9acf75-dirty",
+      "data": {
+        "judged": 17,
+        "killed": 17,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 17,
+        "unjudged": []
+      },
+      "detail": "killed 17/17 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ca075d093bcf",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T20:11:15+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) audit of django__django-15382 nagini bundle. Modeled function render_exists(satisfiable, negated), domain satisfiable,negated in {0,1} \u2014 a finite 4-point domain. Real callee = gold-patched Exists.as_sql (django/db/models/expressions.py:1212).\n\nGround-truth verification (all in /tmp, bundle untouched):\n1. Built worktree $SCRATCH at base_commit 770d3e6a4ce8... and applied the exact gold patch (try/except EmptyResultSet + `if self.negated: return '', ()` + `NOT {}`.format). git apply clean; hunk matches patch.diff/refinement.md verbatim.\n2. Directly probed the REAL gold-patched Exists.as_sql on all 4 (satisfiable,negated) points via a fresh in-memory Django (sqlite, auth.User):\n   - sat=1,neg=0 -> returns 'EXISTS(SELECT (1) AS \"a\" FROM \"auth_user\" LIMIT 1)' (non-empty, no NOT prefix)\n   - sat=1,neg=1 -> returns 'NOT EXISTS(...)' (NOT prefixed)\n   - sat=0,neg=0 -> RAISES EmptyResultSet\n   - sat=0,neg=1 -> returns '' (empty fragment, len 0)\n3. These match the spec postconditions exactly: Exsures(EmptyResultSet) only on sat0neg0; not(sat0&neg0) reachability; len(Result())==0 on sat0neg1; ToSeq(Result())==inner_fragment(satisfiable) on sat1neg0; ==not_prefix()+inner_fragment(satisfiable) on sat1neg1. Inner fragment content is genuinely independent of the negation flag (both satisfiable cases render identical EXISTS(...) content), so pinning both to inner_fragment(satisfiable) is faithful, not spec-too-strong.\n4. Ran the bundle's own conformance_check.py with PYTHONPATH=$SCRATCH: G-CONF OK, 100128 differential checks (boundary pool cross-product + 25000 fuzz trials x 4 combos, seed 15382), ZERO disagreements between the contract-stripped shadow impl and the real patched Exists.as_sql.\n\nThe input domain is finite and fully enumerated; the modeled function agrees with the real callee at every one of the 4 abstract points (and across 100k concrete queryset instantiations). No input exists where the spec disagrees with real repo behavior. The spec is neither too strong nor drifted. VERDICT: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view (model.py projected, impl elided to '...') screened for gold-edit leakage against the PUBLIC problem_statement only (not hints_text). Findings:\n\n1) Mechanical G-LEAK screen passes (0 hard failures); recorded meta status = pass, not relaxed. Confirmed independently via leakage.screen().\n\n2) No gold-diff line reproduced, no diff markers, no patched file path/module. The gold hunk (try: super().as_sql(...) except EmptyResultSet: if self.negated: return '', ()) is nowhere present in the spec view.\n\n3) Distinctive changed repo symbols = {'invert'} (from the def __invert__ hunk header). 'invert' does not appear anywhere in the spec view. Repo bindings (Exists, Subquery.as_sql, self.negated, expressions.py, NothingNode) live ONLY in the audit-only mapping.md / refinement.md, which are NOT part of the consumer spec view.\n\n4) 'EmptyResultSet' is named in the spec view but appears VERBATIM in the public problem_statement (>>> print(qs.query) -> EmptyResultSet), so it is already public and not a leak.\n\n5) No bug/fix/patch/pre-patch narration in spec-view comments; comments describe target behavior by case, not the edit or the pre-patch defect.\n\n6) Gold-reconstruction test: the spec states the correct four-case behavior in fully abstracted terms (negatable existence predicate, shared sub-selection renderer, inner fragment, List[int]/PSeq[int] code-point carrier). Describing target behavior is precisely what a spec is; it supplies none of the concrete repo bindings (file/function/try-except/return '', ()) required to reconstruct the gold patch. The negated-unsatisfiable -> empty always-true clause is exactly the behavior entailed by the PUBLIC symptom ('filter on ~Exists(empty queryset) removes whole WHERE block'), not information beyond the problem_statement.\n\nConclusion: the spec view does not leak the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) audit of django__django-15382 nagini bundle. Modeled function render_exists(satisfiable, negated), domain satisfiable,negated in {0,1} \u2014 a finite 4-point domain. Real callee = gold-patched Exists.as_sql (django/db/models/expressions.py:1212).\n\nGround-truth verification (all in /tmp, bundle untouched):\n1. Built worktree $SCRATCH at base_commit 770d3e6a4ce8... and applied the exact gold patch (try/except EmptyResultSet + `if self.negated: return '', ()` + `NOT {}`.format). git apply clean; hunk matches patch.diff/refinement.md verbatim.\n2. Directly probed the REAL gold-patched Exists.as_sql on all 4 (satisfiable,negated) points via a fresh in-memory Django (sqlite, auth.User):\n   - sat=1,neg=0 -> returns 'EXISTS(SELECT (1) AS \"a\" FROM \"auth_user\" LIMIT 1)' (non-empty, no NOT prefix)\n   - sat=1,neg=1 -> returns 'NOT EXISTS(...)' (NOT prefixed)\n   - sat=0,neg=0 -> RAISES EmptyResultSet\n   - sat=0,neg=1 -> returns '' (empty fragment, len 0)\n3. These match the spec postconditions exactly: Exsures(EmptyResultSet) only on sat0neg0; not(sat0&neg0) reachability; len(Result())==0 on sat0neg1; ToSeq(Result())==inner_fragment(satisfiable) on sat1neg0; ==not_prefix()+inner_fragment(satisfiable) on sat1neg1. Inner fragment content is genuinely independent of the negation flag (both satisfiable cases render identical EXISTS(...) content), so pinning both to inner_fragment(satisfiable) is faithful, not spec-too-strong.\n4. Ran the bundle's own conformance_check.py with PYTHONPATH=$SCRATCH: G-CONF OK, 100128 differential checks (boundary pool cross-product + 25000 fuzz trials x 4 combos, seed 15382), ZERO disagreements between the contract-stripped shadow impl and the real patched Exists.as_sql.\n\nThe input domain is finite and fully enumerated; the modeled function agrees with the real callee at every one of the 4 abstract points (and across 100k concrete queryset instantiations). No input exists where the spec disagrees with real repo behavior. The spec is neither too strong nor drifted. VERDICT: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view (model.py projected, impl elided to '...') screened for gold-edit leakage against the PUBLIC problem_statement only (not hints_text). Findings:\n\n1) Mechanical G-LEAK screen passes (0 hard failures); recorded meta status = pass, not relaxed. Confirmed independently via leakage.screen().\n\n2) No gold-diff line reproduced, no diff markers, no patched file path/module. The gold hunk (try: super().as_sql(...) except EmptyResultSet: if self.negated: return '', ()) is nowhere present in the spec view.\n\n3) Distinctive changed repo symbols = {'invert'} (from the def __invert__ hunk header). 'invert' does not appear anywhere in the spec view. Repo bindings (Exists, Subquery.as_sql, self.negated, expressions.py, NothingNode) live ONLY in the audit-only mapping.md / refinement.md, which are NOT part of the consumer spec view.\n\n4) 'EmptyResultSet' is named in the spec view but appears VERBATIM in the public problem_statement (>>> print(qs.query) -> EmptyResultSet), so it is already public and not a leak.\n\n5) No bug/fix/patch/pre-patch narration in spec-view comments; comments describe target behavior by case, not the edit or the pre-patch defect.\n\n6) Gold-reconstruction test: the spec states the correct four-case behavior in fully abstracted terms (negatable existence predicate, shared sub-selection renderer, inner fragment, List[int]/PSeq[int] code-point carrier). Describing target behavior is precisely what a spec is; it supplies none of the concrete repo bindings (file/function/try-except/return '', ()) required to reconstruct the gold patch. The negated-unsatisfiable -> empty always-true clause is exactly the behavior entailed by the PUBLIC symptom ('filter on ~Exists(empty queryset) removes whole WHERE block'), not information beyond the problem_statement.\n\nConclusion: the spec view does not leak the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) audit of django__django-15382 nagini bundle. Modeled function render_exists(satisfiable, negated), domain satisfiable,negated in {0,1} \u2014 a finite 4-point domain. Real callee = gold-patched Exists.as_sql (django/db/models/expressions.py:1212).\n\nGround-truth verification (all in /tmp, bundle untouched):\n1. Built worktree $SCRATCH at base_commit 770d3e6a4ce8... and applied the exact gold patch (try/except EmptyResultSet + `if self.negated: return '', ()` + `NOT {}`.format). git apply clean; hunk matches patch.diff/refinement.md verbatim.\n2. Directly probed the REAL gold-patched Exists.as_sql on all 4 (satisfiable,negated) points via a fresh in-memory Django (sqlite, auth.User):\n   - sat=1,neg=0 -> returns 'EXISTS(SELECT (1) AS \"a\" FROM \"auth_user\" LIMIT 1)' (non-empty, no NOT prefix)\n   - sat=1,neg=1 -> returns 'NOT EXISTS(...)' (NOT prefixed)\n   - sat=0,neg=0 -> RAISES EmptyResultSet\n   - sat=0,neg=1 -> returns '' (empty fragment, len 0)\n3. These match the spec postconditions exactly: Exsures(EmptyResultSet) only on sat0neg0; not(sat0&neg0) reachability; len(Result())==0 on sat0neg1; ToSeq(Result())==inner_fragment(satisfiable) on sat1neg0; ==not_prefix()+inner_fragment(satisfiable) on sat1neg1. Inner fragment content is genuinely independent of the negation flag (both satisfiable cases render identical EXISTS(...) content), so pinning both to inner_fragment(satisfiable) is faithful, not spec-too-strong.\n4. Ran the bundle's own conformance_check.py with PYTHONPATH=$SCRATCH: G-CONF OK, 100128 differential checks (boundary pool cross-product + 25000 fuzz trials x 4 combos, seed 15382), ZERO disagreements between the contract-stripped shadow impl and the real patched Exists.as_sql.\n\nThe input domain is finite and fully enumerated; the modeled function agrees with the real callee at every one of the 4 abstract points (and across 100k concrete queryset instantiations). No input exists where the spec disagrees with real repo behavior. The spec is neither too strong nor drifted. VERDICT: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view (model.py projected, impl elided to '...') screened for gold-edit leakage against the PUBLIC problem_statement only (not hints_text). Findings:\n\n1) Mechanical G-LEAK screen passes (0 hard failures); recorded meta status = pass, not relaxed. Confirmed independently via leakage.screen().\n\n2) No gold-diff line reproduced, no diff markers, no patched file path/module. The gold hunk (try: super().as_sql(...) except EmptyResultSet: if self.negated: return '', ()) is nowhere present in the spec view.\n\n3) Distinctive changed repo symbols = {'invert'} (from the def __invert__ hunk header). 'invert' does not appear anywhere in the spec view. Repo bindings (Exists, Subquery.as_sql, self.negated, expressions.py, NothingNode) live ONLY in the audit-only mapping.md / refinement.md, which are NOT part of the consumer spec view.\n\n4) 'EmptyResultSet' is named in the spec view but appears VERBATIM in the public problem_statement (>>> print(qs.query) -> EmptyResultSet), so it is already public and not a leak.\n\n5) No bug/fix/patch/pre-patch narration in spec-view comments; comments describe target behavior by case, not the edit or the pre-patch defect.\n\n6) Gold-reconstruction test: the spec states the correct four-case behavior in fully abstracted terms (negatable existence predicate, shared sub-selection renderer, inner fragment, List[int]/PSeq[int] code-point carrier). Describing target behavior is precisely what a spec is; it supplies none of the concrete repo bindings (file/function/try-except/return '', ()) required to reconstruct the gold patch. The negated-unsatisfiable -> empty always-true clause is exactly the behavior entailed by the PUBLIC symptom ('filter on ~Exists(empty queryset) removes whole WHERE block'), not information beyond the problem_statement.\n\nConclusion: the spec view does not leak the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:24:06+00:00",
+      "code_version": "8ee30848f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-structdiff",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 19.0
+          },
+          {
+            "expect": "reject",
+            "id": "atk-raise-unsatneg",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 18.3
+          },
+          {
+            "expect": "reject",
+            "id": "atk-neverraise",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.2
+          },
+          {
+            "expect": "reject",
+            "id": "atk-junk-unsatneg",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.2
+          },
+          {
+            "expect": "reject",
+            "id": "atk-false-pred",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.8
+          },
+          {
+            "expect": "reject",
+            "id": "atk-fabricate-echo",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "atk-noprefix",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.1
+          },
+          {
+            "expect": "reject",
+            "id": "atk-prefix-always",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.8
+          },
+          {
+            "expect": "reject",
+            "id": "atk-space-unsatneg",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "f545dca683637a8dbac4b90db85667099e79b81a182c216eb26c99ebd201872d",
+        "n_cases": 11,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 11 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd",
+        "properties.py": "f545dca683637a8dbac4b90db85667099e79b81a182c216eb26c99ebd201872d"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:25:02+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:01:57+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 13.8
+      },
+      "detail": "verified in 13.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2be86be1c15af45a6b71d9c8fc687bd5ac7951f6eecac091e11441f85b069bcd"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15382",
+  "modeled_functions": [
+    {
+      "carrier_type": "SQL str -> List[int] of code points (spec over PSeq[int]); self.negated and inner-query satisfiability abstracted to int {0,1}",
+      "model_symbol": "render_exists",
+      "repo_location": "django/db/models/expressions.py:1212",
+      "repo_symbol": "django.db.models.expressions.Exists.as_sql",
+      "role": "modeled changed function (renders a negatable EXISTS predicate over an inner sub-selection to SQL); single contracted+implemented function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "exceptional postcondition Exsures(EmptyResultSet, satisfiable == 0 and negated == 0) \u2014 on satisfiable==0, negated==1 the prepatch lets EmptyResultSet escape, but the spec permits the signal only when negated==0 (model_prepatch.py:126)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "Exists.as_sql catching EmptyResultSet on the negated empty-subquery path",
+      "reverted_to": "the unguarded super().as_sql call (no try/except), so EmptyResultSet propagates unconditionally on an unsatisfiable inner selection"
+    }
+  ],
+  "refinement_history": [
+    {
+      "date": "2026-06-14",
+      "defects_fixed": [
+        "DEFECT 1 (G-EQ, spec TOO-WEAK): satisfiable path pinned only shape (len>0 + NOT-prefix relation); the atk_3_echo cheat returned fabricated 'X'/'NOT X' and verified. Fix: added @Pure @ContractOnly companion inner_fragment(satisfiable) and pinned ToSeq(Result())==inner_fragment(satisfiable) [neg=0] and ==not_prefix()+inner_fragment(satisfiable) [neg=1]. atk_3_echo now FAILS verification on the satisfiable content clause.",
+        "DEFECT 2 (G-PANEL faithfulness, spec TOO-STRONG): Ensures(Implies(sat==0 and neg==1, len(Result())==0)) over-pinned the empty fragment, rejecting the maintainer's equally-correct '1 = 1' fix (F2P observes result-set equality, not fragment shape). Fix: deleted that clause; the negated-unsatisfiable case is now pinned only to a normal return via the existing Exsures discriminator. The '1 = 1' variant now verifies.",
+        "DEFECT 3 (G-PANEL leakage): module docstring narrated the bug->fix mechanism. Fix: rewrote the docstring as a pure by-case behavioural contract."
+      ],
+      "reverify": "G-VERIFY pass (24.2s); G-DIFF fail (same_spec True); static gates 6/6; G-AX RC=0 in-container (gold-patched) and RC=1 un-patched; atk_3_echo fails; the '1 = 1' refinement verifies; swap-negation and never-raise attacks still fail.",
+      "source": "adversarial-panel verdict (experiments/generation/batch04_verdicts/django__django-15382.md)"
+    },
+    {
+      "date": "2026-06-14",
+      "defects_fixed": [
+        "DEFECT (G-LEAK, directive-6 leakage residue): the post-conditions comment (consumer-visible spec view) surfaced the maintainer's hints_text-only proposed solution by name -- '(an empty fragment and an always-true fragment such as 1 = 1 are both admissible and equivalent for the observed rows)'. The strings '1 = 1' / '1=1' and 'always true' appear ONLY in hints_text and NOT in the solver-visible problem_statement, so naming them leaks the fix approach. Fix: single comment edit (no contract change), replacing the parenthetical with a public/abstract justification -- 'the surrounding condition observes only the resulting rows, not the fragment's exact shape, so the shape on this case is intentionally unpinned'. Applied identically to model.py and model_prepatch.py (post-conditions region stays byte-identical -> same_spec True)."
+      ],
+      "reverify": "G-VERIFY pass (23.84s, exit 0, no flags); G-DIFF fail (model_prepatch.py fails on Exsures(EmptyResultSet, satisfiable==0 and negated==0) at line 124, the discriminating reason; same_spec True); static gates 6/6 incl. G-LEAK; region hashes refreshed (only post-conditions + spec_view changed). No contract change, so G-EQ/G-AX/G-MUT unaffected (impl + all Ensures/Requires/Exsures byte-identical to the accepted-pending bundle); the named G-EQ counterexample atk_3_echo and all 7 wrong-impl attacks still fail, the '1 = 1' and structurally-different positive controls still verify.",
+      "source": "adversarial-panel recover-verdict (experiments/generation/batch04_recover_verdicts/django__django-15382.md)"
+    },
+    {
+      "date": "2026-06-14",
+      "defects_fixed": [
+        "PRIMARY (G-EQ, spec TOO-WEAK; verify=>resolved violation): the prior 'Defect 2' relaxation over-corrected -- it pinned the negated-unsatisfiable (satisfiable==0, negated==1) case ONLY to a normal return (not(sat0,neg0) + Acc), with NO fragment-shape clause, in order to also admit the maintainer's hints_text '1 = 1' variant. That admits same-spec WRONG impls that VERIFY but do NOT resolve: atk_i_junk_unsatneg returns 'XYZ' (-> WHERE XYZ AND pk=... invalid SQL) and atk_j_false_pred returns '0 = 1' (-> WHERE (0=1) AND pk=... always-false -> [] ), both of which fail the F2P assertSequenceEqual(qs,[manager]). Confirmed: atk_j_false_pred VERIFIED (RC=0) against the pre-fix spec. FIX (verdict's prescribed minimal sound clause): restored Ensures(Implies(satisfiable == 0 and negated == 1, len(Result()) == 0)) -- a grounded structural predicate on the actual result carrier (directive 8: NOT an oracle), pinning gold's empty fragment ''. This intentionally REVERTS the prior '1 = 1' admission: that was a completeness nicety never required by verify=>resolved, and patch.diff==gold returns '' there, so len==0 is exactly faithful. Applied IDENTICALLY to model.py + model_prepatch.py (post-conditions region byte-identical -> same_spec True). After the fix atk_i_junk_unsatneg and atk_j_false_pred both FAIL on the len==0 clause (line 117); the gold-faithful model.py still verifies (returns []).",
+        "SECONDARY (refinement-audit false claim): refinement.md SS-B and mapping.md SS-3.1 asserted 'the only way to materialize a List[int] whose ToSeq equals inner_fragment(...) is to call render_inner' -- disproven by an echo-reconstruct (read the @Pure sequence element-wise into a fresh List). This was NOT a soundness hole (the content-pin still forces equality with inner_fragment's unique real witness = Subquery.as_sql's output, so an echo-reconstruct refines to the same real SQL), but the prose was false. FIX: rewrote the echo-resistance argument in refinement.md SS-B to attribute it to inner_fragment's WITNESS-UNIQUENESS (exactly one real-world value: the unchanged renderer's output) rather than 'render_inner is the only materializer'."
+      ],
+      "reverify": "G-VERIFY pass (23.6s standalone / 29.1s under gate harness, exit 0, no flags); G-DIFF fail (model_prepatch.py fails on Exsures(EmptyResultSet, satisfiable==0 and negated==0) at line 126; same_spec True); static gates 6/6 incl. G-LEAK and G-MUT 17/17; region hashes refreshed (only post-conditions + spec_view changed). G-EQ re-confirmed: the two named soundness counterexamples atk_i_junk_unsatneg ('XYZ') and atk_j_false_pred ('0 = 1') NOW FAIL on len(Result())==0; the prior CE atk_a_echo ('X'/'NOT X') still FAILS on the satisfiable content pin; atk_c2_neverraise still FAILS on not(sat0,neg0); the gold-faithful model.py and a structurally-different correct positive control (pos_d_structdiff, returns [] on unsat+neg) both VERIFY. G-AX deferred to orchestrator's in-container 4.1+gold run (Docker unavailable here): axiom contract unchanged; axiom_check.py strengthened to assert sql=='' on sat=0,neg=1 (matching gold and the restored spec clause).",
+      "source": "adversarial-panel verdict 2nd-pass re-audit (experiments/generation/batch04_recover_verdicts/django__django-15382.md, '2ND-PASS RE-AUDIT')"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "33f931c85747560b3f33696cda4c5261632788f5eddbcbc0fd91c7db6d2f6870",
+    "impl": "3bae843bd3e2c8a669bcddda11483def2abbbccf5f1da16f615d5593e0fdccd7",
+    "post-conditions": "ef0c795aa1471a28f875b8714d68c420da276ad9fc4fa4fa171833d9145cac67",
+    "pre-conditions": "e3627a5db90487e5922b04da5992a9f0d613c56b467fb37fb44d351bdc6c4205",
+    "pure": "68346dab3856b6bdfc14dc07becd7230eb673324f60436440d7caca7faa9b141",
+    "spec_view": "ed31445e1f9831353cb1b70eaefea49893bdaed6f121188c01bedb89e19dc0c6"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "SQL fragment as List[int] of code points; spec carried by PSeq[int] via ToSeq; the 'NOT ' negation marker is PSeq(78,79,84,32); satisfiable content pinned to the @Pure inner_fragment(satisfiable). The negated-unsatisfiable case is pinned to a NORMAL RETURN of the EMPTY fragment (Ensures(Implies(satisfiable==0 and negated==1, len(Result())==0))): an empty fragment contributes no restriction so the surrounding WHERE matches every row; a non-empty fragment there (always-false '0 = 1' or junk 'XYZ') changes the observed rows and does NOT resolve. patch.diff==gold returns '' there, so len==0 is faithful and grounded (a structural predicate on the result carrier, not an oracle). Exception path modeled with a user-defined EmptyResultSet + Exsures (builtin exception in Exsures crashes the translator).",
+  "version": "4.1"
+}

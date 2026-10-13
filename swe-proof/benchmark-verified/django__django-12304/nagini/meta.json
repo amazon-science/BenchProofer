@@ -1,0 +1,657 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "NO G-AX surface by construction: body-less and Ensures-free, so there is no observable it could disagree with the real callee about. Its executable reading is checked by G-CONF instead, as a consumption counter that asserts the base construction step is entered at most once per declaration.",
+      "encoded_property": "MULTIPLICITY ONLY: one pending declaration. Consumed (not returned) by base_class_creation, so the base construction step runs at most once per declaration. No Ensures at all, so it asserts nothing about any callee result.",
+      "kind": "A-opaque-resource",
+      "models": "the classdict (enum._EnumDict) ChoicesMeta.__new__ is called with -- the declared-members record it reads classdict._member_names off and hands to super().__new__ (django/db/models/enums.py:11,28)",
+      "name": "declaration_available",
+      "provenance": "enum's classdict is single-use: super().__new__ consumes _member_names, and a second super().__new__ on the same classdict raises KeyError on the first member name (reproduced: KeyError 'DIAMOND'). Under the identity<->id(cls) bijection two distinct class objects also cannot share an id(). mapping.md sections 1, 2b.",
+      "purity": "@ContractOnly @Predicate (body-less; no Ensures)"
+    },
+    {
+      "checked_by": "NO G-AX surface by construction (body-less, Ensures-free). Its executable reading is checked by G-CONF: identity_preserved compares the delivered object against the one the real base construction step produced, spied off the real enum.EnumMeta.__new__ call on the oracle leg. G-PBT rejects weak-wrong-identity-obj and weak-echo-fabricate on it.",
+      "encoded_property": "PROVENANCE ONLY: this grouping is the object the base construction step built for this declaration. ISSUED by base_class_creation for what it produced, required-and-re-issued by finalize_grouping, required of Result() by the modeled function. Body-less, so it cannot be Folded into existence.",
+      "kind": "A-opaque-resource",
+      "models": "the object identity of the class super().__new__ returned at django/db/models/enums.py:28 and that enum.unique(cls) hands back unchanged at line 35 (enum.unique(cls) is cls)",
+      "name": "built_from_declaration",
+      "provenance": "enum.unique ends 'return enumeration', so the object the declaring class statement receives IS the object line 28 produced. Nothing in the real construction substitutes a different object. mapping.md sections 1, 2b.",
+      "purity": "@ContractOnly @Predicate (body-less; no Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_base_construction drives the REAL enum.EnumMeta.__new__ and demonstrates BOTH realizable initial flag states (absent/falsy with no flagged ancestor; inherited-truthy under an already-flagged base), so no Ensures may pin the initial flag. check_base_step_refusal grounds the Exsures leg on the real step over a shape table: 272 accepted / 328 refused, including that a repeated choice value is NOT refused here. rc=0 in-container on BOTH the base_commit and the patched tree (every callee it grounds is unchanged by the patch). Also bridged in G-CONF to the REAL base_commit ChoicesMeta.__new__ (git show HEAD:django/db/models/enums.py, exec'd as module enums_base_commit) with only the value-distinctness step neutralised, asserted to differ from the patched file by exactly the one added line.",
+      "encoded_property": "TOTAL over declarations: either it delivers a callable class object with the requested identity (issuing the provenance token built_from_declaration) and Ensures(not base_step_refuses(identity)), or it REFUSES and reports BaseStepRefused for exactly the declarations base_step_refuses holds of. The initial preserve_when_callable value is HAVOCED -- deliberately unconstrained, since a grouping built under an already-flagged base inherits the flag (truthy) while one with no flagged ancestor carries none (falsy) -- so a verifying impl must establish the flag unconditionally rather than rely on or invert it. Does not model the CONTENT of member maps/labels, nor value-distinctness.",
+      "kind": "A-consumed",
+      "models": "the base construction step: super().__new__(...) i.e. enum.EnumMeta.__new__ (CPython stdlib), invoked at django/db/models/enums.py:28, TOGETHER WITH the derived per-choice tables the same step records -- cls._value2label_map_ (line 29) and the label property (line 33). I.e. enums.py:28-33, everything the modeled function does BEFORE recording the flag. Deliberately EXCLUDES the value-distinctness step at line 35 (a separate axiom, finalize_grouping), because that step runs AFTER the flag is recorded and the difference is observable.",
+      "name": "base_class_creation",
+      "provenance": "Lib/enum.py EnumMeta.__new__; docs.python.org/3/library/enum.html. Refusals measured against the patched worktree: a declared kind that cannot carry the declared choice values (class Suit(bool, enum.Enum) -> TypeError \"type 'bool' is not an acceptable base type\", raised inside super().__new__ at line 28) and a choice declared under the name of a table this step must itself bind (label / _value2label_map_ -> AttributeError('Cannot reassign members.') at line 29/33). It ACCEPTS a declaration that repeats a choice value -- that is refused only later, by finalize_grouping. mapping.md section 3.1.",
+      "purity": "@ContractOnly (returns an EnumGrouping; not used inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_finalize_grouping asserts every clause against the REAL enum.unique -- (i) same object back on a distinct-value declaration; (ii) the do_not_call_in_templates attribute exactly as found, checked with the flag ABSENT, False and True; (iii) a 600-iteration seeded fuzz over value multisets in which it refuses with ValueError('duplicate values found in ...') iff the multiset has a duplicate. rc=0 in-container on both trees. Also bridged in G-CONF to the real enum.unique, with Result() is grouping, identity and flag-preservation re-asserted against the real callee on every one of 100000 inputs.",
+      "encoded_property": "TOTAL over declarations: either it hands back THE SAME object (Ensures(Result() is grouping)) with both modelled facts untouched -- identity, and the flag exactly as recorded (Ensures(Result().preserve_when_callable == Old(grouping.preserve_when_callable))), so it cannot launder a flag that was never recorded -- passing the provenance token along and Ensures(not repeats_choice_value(identity)); or it REFUSES with RepeatedChoiceValue for exactly the declarations repeats_choice_value holds of. A SEPARATE axiom from base_class_creation precisely because it runs AFTER the flag is recorded.",
+      "kind": "A-consumed",
+      "models": "the value-distinctness step enum.unique(cls) (CPython stdlib), invoked as the modeled function's 'return enum.unique(cls)' at django/db/models/enums.py:35 (line 34 @ base_commit). UNCHANGED by the patch.",
+      "name": "finalize_grouping",
+      "provenance": "Lib/enum.py 'def unique(enumeration)': it collects aliases from enumeration.__members__, raises ValueError('duplicate values found in %r: %s') if any, and otherwise ends 'return enumeration'. mapping.md section 3.4.",
+      "purity": "@ContractOnly (returns an EnumGrouping; not used inside an Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_base_step_refusal (272 accepted / 328 refused over the shape table, including that a repeated choice value is accepted here) and check_refusal_independence. rc=0 on both trees. G-CONF classifies every ORACLE refusal by the enums.py line the real exception escaped from -- any line of the function earlier than the flag-recording line is this predicate -- and compares the exception type and message across the two legs.",
+      "encoded_property": "a decidable property of the DECLARATION alone (its declared kind and its choice names), settled before the construction starts. OPAQUE: both outcomes are realizable and neither is assumed, so the only way a body can establish 'this step did not refuse' is to have RUN it. Explicitly does NOT cover a repeated choice value -- that is repeats_choice_value.",
+      "kind": "A-consumed",
+      "models": "the refusals django/db/models/enums.py:28-33 itself makes: enum.EnumMeta.__new__ refusing a declared kind that cannot carry the declared choice values (TypeError, line 28), and the assignments at lines 29/33 refusing a choice declared under the name of a table this step must itself bind (AttributeError('Cannot reassign members.') from enum.EnumMeta.__setattr__)",
+      "name": "base_step_refuses",
+      "provenance": "measured against the patched worktree; see base_class_creation. mapping.md sections 3.1, 3.3.",
+      "purity": "@Pure @ContractOnly (opaque; used inside Ensures/Exsures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_flag_name_guard drives the REAL enum.EnumMeta.__setattr__ over a 400-iteration fuzz of member names, non-member names and the flag's own name, asserting refusal iff the name is one of the class's own declared members -- measured 133 guard refusals / 267 free bindings -- plus the flag's own name declared as a choice. check_refusal_order composes the real callees in both orders and shows the observable difference the ordering conjunct pins (flag-recording first -> AttributeError; distinctness first -> ValueError; the two types differ). rc=0 on both trees. G-CONF bridges the predicate to the real guard's own table and, whenever it reports True, attempts the real binding and asserts it is refused with AttributeError.",
+      "encoded_property": "a decidable property of the DECLARATION alone (its choice names), settled before the construction starts. OPAQUE: both outcomes realizable, neither assumed. Records the fact that recording the flag is a GUARDED binding rather than a bare field write, which is what makes the second leg of the case split real.",
+      "kind": "A-consumed",
+      "models": "the table the guard on the flag-recording line consults. cls.do_not_call_in_templates = True at django/db/models/enums.py:34 is an attribute binding on an enum.EnumMeta instance, so it passes through CPython's EnumMeta.__setattr__, which raises AttributeError('Cannot reassign members.') iff name in cls.__dict__.get('_member_map_', {}) -- i.e. iff one of the grouping's own declared choices occupies that name. UNCHANGED by the patch.",
+      "name": "flag_name_taken_by_choice",
+      "provenance": "Lib/enum.py EnumMeta.__setattr__ ('Block attempts to reassign Enum members'). mapping.md section 3.3.",
+      "purity": "@Pure @ContractOnly (opaque; used inside Ensures/Exsures and in the impl guard)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_finalize_grouping's 600-iteration value-multiset fuzz (ValueError iff duplicates), check_refusal_independence (6 declaration shapes realizing all four combinations of the two later predicates plus base refusal: [(False,False,False),(False,False,True),(False,True,False),(False,True,True),(True,None,None)]) and check_refusal_order. rc=0 on both trees. G-CONF classifies an ORACLE refusal as this predicate iff the real exception escaped from the 'return enum.unique(cls)' line, located in the patched source at run time, and compares the ValueError message across both legs; the boundary domain realizes it 18 times and the fuzz draws repeated values with p~0.25.",
+      "encoded_property": "a decidable property of the DECLARATION alone (its choice values), settled before the construction starts. OPAQUE: both outcomes realizable, neither assumed. INDEPENDENT of base_step_refuses and flag_name_taken_by_choice -- every combination is realizable -- so no clause may be discharged by assuming one settles another. Crucially the declarations it holds of are INSIDE the specified domain: they are refused only at the very end, after the flag has been recorded, by a step the construction reaches normally.",
+      "kind": "A-consumed",
+      "models": "the table enum.unique(cls) consults at django/db/models/enums.py:35: it raises ValueError('duplicate values found in <enum X>: B -> A') iff two declared choices share a value. UNCHANGED by the patch.",
+      "name": "repeats_choice_value",
+      "provenance": "Lib/enum.py 'def unique'. mapping.md sections 3.3, 3.4.",
+      "purity": "@Pure @ContractOnly (opaque; used inside Ensures/Exsures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): REAL Variable.resolve over a require-arg callable across flag True/False/absent (2000 iters) plus a truthiness/unrelated-attribute fuzz (2000 iters), driven through a TEMPLATE-BOUND context (ctx.bind_template) so the failed-invoke branch reaches context.template.engine.string_if_invalid; a non-empty string_if_invalid is configured to verify the invalid result equals string_if_invalid (not just '') and is never the object; the no-arg-construction premise is asserted to raise a required-argument TypeError; plus the REAL Django IntegerChoices in the ambient tree rendering the F2P template, reporting the flag it actually measured (G-AX runs at base_commit for this bundle, so the check is written tree-independently). rc=0 in-container on both trees. Also bridged in G-CONF to the real Variable('x').resolve(ctx) on all 100000 inputs.",
+      "encoded_property": "for such a callable: preserve_when_callable -> resolution yields the object itself (Result()==identity); otherwise -> string_if_invalid (Result()==INVALID_VALUE==0). Weakest sufficient contract; does not model non-callable / alters_data / callable-with-no-required-args cases.",
+      "flag_dependency": "sound for a callable whose no-arg invocation fails with a required-argument TypeError; G-AX must exercise that scenario with do_not_call_in_templates set and unset/absent",
+      "kind": "A-consumed",
+      "models": "django.template.base.Variable._resolve_lookup callable-handling step (django/template/base.py:851-866), UNCHANGED by the patch",
+      "name": "resolved_in_template",
+      "provenance": "django/template/base.py:851-866 at base_commit; specialised to a callable whose no-argument invocation raises a required-argument TypeError (a class object representing the grouping); docs.djangoproject.com/en/stable/ref/templates/api/#variables-and-lookups",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "4c1b401e8250f9f520b3c7dc369554477ce8b15a",
+  "changed_files": [
+    "django/db/models/enums.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T09:08:12+00:00",
+      "code_version": "a2341f12a-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: base_class_creation (initial flag UNCONSTRAINED: absent/falsy with no flagged ancestor, inherited-truthy under a flagged base, both realized through the real enum.EnumMeta.__new__; TOTAL \u2014 refuses an unusable declared kind and a choice named after a table it binds, ACCEPTS a repeated choice value); finalize_grouping (real enum.unique: same object back, modelled flag untouched across absent/False/True, refuses exactly the repeated-value declarations \u2014 272 accepted / 328 refused over a seeded fuzz); the declaration predicates (real enum.EnumMeta.__setattr__ guard: 133 refusals on declared-choice names, 267 bindings on free names; independence combos [(False, False, False), (False, False, True), (False, True, False), (False, True, True), (True, None, None)]; refusal ORDER observable \u2014 flag-first yields AttributeError, distinctness-first yields ValueError); and resolved_in_template (preserve -> object itself; otherwise -> string_if_invalid) sound against the REAL Variable._resolve_lookup over 6000+ template-bound resolutions (base trio + truthiness/attribute fuzz); the REAL Django IntegerChoices in this tree carries the flag=False and the F2P template '{{ Suit.DIAMOND.label }}|{{ Suit.DIAMOND.value }}' renders accordingly (flagged -> 'Diamond|1'; unflagged -> the members do not resolve, which is the end-to-end reading of the postcondition this spec demands).",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "c592b9098ced1234a11cdb891b3057843b1e7a33b59fe198f2778a7cea2d3a72",
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T09:07:36+00:00",
+      "code_version": "a2341f12a-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "boundary": 210,
+          "checked": 100000,
+          "disagreements": 0,
+          "distinctness_lineno": 35,
+          "flag_lineno": 34,
+          "fuzz": 99790,
+          "initial_flag_absent": 64662,
+          "initial_flag_inherited_truthy": 35338,
+          "mutants_caught": {
+            "distinctness-before-flag": 18,
+            "omit-assignment": 144,
+            "refuse-everywhere": 126,
+            "skip-distinctness": 18,
+            "swap-refusal-reports": 36,
+            "toggle-assignment": 36
+          },
+          "oracle": "django.db.models.enums.ChoicesMeta.__new__ (called, patched)",
+          "outcome_tags": {
+            "base-refused": 48,
+            "delivered": 108,
+            "flag-name-taken": 36,
+            "repeats-value": 18
+          },
+          "seed": 12304,
+          "shadow": "direct (verbatim impl region of model.py)",
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"disagreements\": 0, \"seed\": 12304, \"boundary\": 210, \"fuzz\": 99790, \"oracle\": \"django.db.models.enums.ChoicesMeta.__new__ (called, patched)\", \"shadow\": \"direct (verbatim impl region of model.py)\", \"outcome_tags\": {\"delivered\": 108, \"flag-name-taken\": 36, \"repeats-value\": 18, \"base-refused\": 48}, \"flag_lineno\": 34, \"distinctness_lineno\": 35, \"initial_flag_absent\": 64662, \"initial_flag_inherited_truthy\": 35338, \"mutants_caught\": {\"omit-assignment\": 144, \"toggle-assignment\": 36, \"skip-distinctness\": 18, \"swap-refusal-reports\": 36, \"distinctness-before-flag\": 18, \"refuse-everywhere\": 126}, \"status\": \"pass\"}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "0ed9e34160175b54e8fcebd78f859b77571bcecb6dd7eee1fd3f8753da66de55",
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:45:15+00:00",
+      "code_version": "258f57238-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19",
+        "model_prepatch.py": "0498e181ea8b1de3c63aade79014bcb269e8433bf62d03e848222ff8efb3f299"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T10:49:03+00:00",
+      "code_version": "417db24ee-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 16 admissible attacks re-run of 16 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 16 admissible attacks re-run of 16 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 16 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 13 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_8.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `pos_gold.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19",
+        "properties.py": "ed78eb15512f5e274f832d93d92c59fddbf1f3f4a6989bee541b6dd397c4a009"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:46:02+00:00",
+      "code_version": "258f57238-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19",
+        "model_prepatch.py": "0498e181ea8b1de3c63aade79014bcb269e8433bf62d03e848222ff8efb3f299"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T09:04:29+00:00",
+      "code_version": "642674ea9-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "ecd875f228b0f1db88a7ee9ab0a0f2770c7a513f34a87edb658117031a25a9aa",
+          "impl": "7f801db3c2eb7ae37758a8f5570843c33e37d0842471ee6fcf1ef6c41a707fb9",
+          "post-conditions": "8cddb3761a94ddaebe280cadf8e4f1eaf976ed0582567b18064a3a97d0ec0a2d",
+          "pre-conditions": "49bbf020cb994330ffdefebf8e57e8a791b0d34c0c2953a077745a5362870b8e",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "c6261537091017d17ce7733265a4dd10bbd5cb520ed2864713e6ee35732865b3"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T09:04:29+00:00",
+      "code_version": "642674ea9-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4cefd6928c67f23dbf9805be037921fa1af27e5c1aa6b24be47f60600d43481c",
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T09:04:30+00:00",
+      "code_version": "642674ea9-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T09:02:38+00:00",
+      "code_version": "642674ea9-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T10:49:03+00:00",
+      "code_version": "417db24ee-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 16 admissible attacks re-run of 16 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK GOAL: find an input where the modeled function build_template_usable_grouping disagrees with the REAL patched ChoicesMeta.__new__ (spec too strong / drifted). I could NOT produce one. Reference discipline: oracle = patched worktree (base_commit 4c1b401e82 + patch.diff, gold patch is the single added line 'cls.do_not_call_in_templates = True' at enums.py:34); base worktree used ONLY for the unchanged callees the axioms model. Bundle not modified; all work in /tmp.\n\nMEASUREMENTS (real repo, py3.10.20):\n\n1. ORDERED FOUR-WAY CASE SPLIT - exhaustive. All 2^3 combinations of {declared kind unusable, a choice named do_not_call_in_templates, two choices sharing a value}, each real outcome classified by the enums.py line the exception escaped from (located at runtime). All 8 AGREE: badkind -> line 28 BaseStepRefused (wins over both later legs); flagname -> line 34 PreserveFlagNameTaken (wins over dup); dup -> line 35 RepeatedChoiceValue; else DELIVER with flag True. The contested ORDER conjunct is REAL: flagname+dup raises AttributeError('Cannot reassign members.') at line 34, NOT ValueError at 35. Instrumented enum.unique and observed the flag is ALREADY True when unique() is reached on a dup-value declaration, so the flag is recorded strictly before the distinctness step. Hence 'not flag_name_taken_by_choice' inside Exsures(RepeatedChoiceValue,...) is faithful, not over-strong.\n\n2. 4000-declaration seeded fuzz (seed 20260815) over 6 ancestries x random member names (including the flag's own name and 'label') x 14 value shapes. Refusal-line histogram {28:1737, 33:314, 34:289, 35:144}. ZERO delivered groupings with flag != True, ZERO delivered groupings not template-usable, ZERO order mismatches (no line-35 refusal ever occurred on a declaration that declared the flag name as a member). No fifth outcome appeared.\n\n3. resolved_in_template axiom vs the REAL engine. Confirmed the specialisation premises hold for a grouping: callable(Suit) True, alters_data absent, Suit() raises TypeError('missing 1 required positional argument: value') AND signature.bind() also raises TypeError, so the real rule drives to string_if_invalid rather than re-raising. Real render flagged: '{{ Suit.DIAMOND.label }}|{{ Suit.DIAMOND.value }}|{{ Suit }}' -> 'Diamond|1|<enum Suit>'; with the flag forced False -> '|'. Matches Ensures(Implies(flag, Result()==identity)) / Ensures(Implies(not flag, Result()==INVALID_VALUE)) exactly.\n\n4. The havoced initial flag is the ONLY sound contract (so A1 is not too weak in a way that would make the spec too strong elsewhere). Shimmed enum.EnumMeta.__new__ and observed the flag right after the base step: ABSENT for a class with no flagged ancestor, True (inherited) for a class built under an already-flagged base. Both states realized, so pinning it would be unsound; the unconditional assignment in the impl is what the real patch does.\n\n5. Multiplicity/provenance obligations are real repo facts, not invented strength. Second ChoicesMeta call on the same already-consumed classdict raises KeyError 'DIAMOND' (single-use declaration => declaration_available). enum.unique(cls) is cls confirmed by shim (delivered object IS the object the base step produced => built_from_declaration, Ensures(Result() is grouping)).\n\n6. RELAY clauses (base_step_report / distinctness_step_report) verified: shimmed both callees and confirmed the exception object escaping ChoicesMeta.__new__ is the SAME OBJECT the callee raised (identity check True for both the base-step TypeError and the enum.unique ValueError). So demanding the report token is faithful to the real pass-through.\n\n7. Pre-line-28 refusals (the label loop, lines 13-27) are correctly folded into base_step_refuses: forced RuntimeError from a tuple subclass at lines 17/18, and they still WIN over both flagname and dup (checked 5 combinations). No leg is mislabeled.\n\n8. Value-equality edge cases follow the real callee, not a model idealisation: 1 vs True, 1 vs 1.0, and equal tuples all refuse at line 35 as duplicates; NaN values and unhashable-containing values DELIVER. All consistent with repeats_choice_value being an opaque property of the declaration.\n\n9. ONE near-miss investigated and dismissed. A metaclass-level read-only data descriptor named do_not_call_in_templates makes line 34 raise AttributeError(\"can't set attribute\") WITHOUT the name being a declared member - i.e. a line-34 refusal not caused by flag_name_taken_by_choice. This is NOT a divergence for two reasons: (a) it requires a user-defined metaclass subclassing ChoicesMeta with that exact read-only property; grep shows ChoicesMeta has exactly one subclass-free use in the whole repo (enums.py:62) and the flag name never appears as a property anywhere, so the declaration is unreachable through models.Choices/IntegerChoices/TextChoices, the documented API the spec's domain covers; (b) flag_name_taken_by_choice is an OPAQUE @Pure @ContractOnly predicate over the declaration, so this shape is simply a declaration the predicate holds of - the spec reports PreserveFlagNameTaken and the repo refuses at the same line 34 with the same AttributeError type, so the observable outcome tag still agrees. A base-CLASS (non-metaclass) property of the same name does NOT refuse (DELIVER, flag True), also consistent.\n\nTOOLKIT / BUNDLE ORACLES: nagini_verify.sh model.py -> 'Verification successful' (exit 0). nagini_verify.sh model_prepatch.py -> FAILS on 'Postcondition ... Assertion (not flag_name_taken_by_choice(identity)) might not hold', so the spec genuinely senses the patch (G-DIFF non-vacuous). axiom_check.py run at base_commit -> exit 0, grounding all four axioms on the real callees (272/328 base-step accept/refuse, 600-iteration unique fuzz, 400-iteration setattr-guard fuzz 133/267, 6000+ real _resolve_lookup resolutions). same-spec self-check on an identity copy -> exit 0, confirming the marker tooling works. Patched tree: full model_enums suite 17/17 OK (F2P test_templates plus all 17 P2P including test_invalid_definition, which is exactly the duplicate-value case the spec's D4 repair brought back inside the domain); base tree has no test_templates attribute, as expected.\n\nNOT REPORTED AS A DEFECT: the spec is stated over an abstracted declaration (identity int + three opaque declaration predicates) rather than over the concrete classdict. That is a declared R-refinement in mapping.md section 2, and every predicate I could realize in the real repo landed on the leg the spec demands. I found no input on which the modeled function's outcome (delivery with flag True and template-resolution to itself, or one of the three ordered refusals) differs from the real patched metaclass. Conclusion: FAITHFUL - no divergence found; the spec is not too strong and does not drift from real repo behavior.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LEAKAGE / GOLD-RECONSTRUCTION review of django__django-12304 (nagini). Verdict NO-LEAKAGE. Every claim below is my own measurement in a private /tmp scratch (); the bundle was not modified.\n\n(0) NO RELAXATION CLAIMED \u2014 checked first rather than assumed. `meta.json` has NO key matching /relax/i (keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); `meta['gates']['G-LEAK']['status'] == 'pass'` (not 'relaxed'); `RELAXED_LEAKAGE.md` does not exist anywhere under the instance dir (`find -iname '*RELAX*'` \u2192 0 hits). Per gates/leak.py the `relaxed` branch is therefore not taken and this is an ordinary strict-mode leakage review with no disposition to inherit.\n\n(1) NO FILE ADDRESSES THE REVIEWER. I ran the harness's own detector, `leakage.reviewer_directed()`, over every non-directory file in the bundle (model.py, model_prepatch.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py, meta.json, verdict.md, pbt_result.json) \u2014 ZERO hits on any file. Independent grep of model.py/refinement.md/mapping.md for /attacker|panel|reviewer|auditor|you should submit|NO-LEAKAGE|honest verdict|do not flag|please record/ \u2192 zero hits. meta.json and verdict.md DO carry prior G-PANEL-3 role records (meta.json:311/355/360, verdict.md:8412, a previous NO-LEAKAGE); I read those as record, not instruction, and deliberately re-derived every measurement below before looking at their content. Nothing to report on the steering axis.\n\n(2) GROUND TRUTH. Gold patch (instance-level patch.diff, one hunk, one added line) inserts `cls.do_not_call_in_templates = True` into django/db/models/enums.py between `cls.label = property(...)` and `return enum.unique(cls)`. The SOLVER-VISIBLE problem_statement already discloses both the diagnosis and the literal fix: \"This is because YearInSchool, being a class, is callable, and Django Templates always call callables with no arguments\" and \"The easy solution would be to declare do_not_call_in_templates = True on the various Choices classes.\" I confirmed mechanically that `'do_not_call_in_templates' in problem_statement` is True. hints_text is EMPTY (''), so there is no hints-only vocabulary the spec view could be echoing \u2014 the standard failure mode for this gate is structurally unavailable here. The public disclosure is strictly STRONGER than anything in the spec view: the PS names the literal attribute and literal value; the spec view names neither.\n\n(3) MECHANICAL SCREEN (my run, not the stamp). `leakage.screen(model.py src, NaginiBackend().language, row['patch'], row['problem_statement'], test_patch=row['test_patch'])` \u2192 passed=True, hard_failures=[], warnings=[]. I also recomputed the screen's own inputs: `_patch_changed_files` = ['django/db/models/enums.py'], `_patch_changed_lines` = ['cls.do_not_call_in_templates = True'], `_patch_changed_symbols` = set() (empty \u2014 so the symbol-collision check is trivially clean and I did NOT rely on it; the manual scan in (4) is what carries that axis).\n\n(4) MANUAL SCAN of the reconstructed spec view (`spec_view(model.py, nagini)` \u2192 518 lines, sha256 c6261537091017d1; impl region confirmed elided to `...  # implementation elided \u2014 supplied by the consumer`, no `preserve_when_callable = True` write and no `base_class_creation(identity)` call present).\n- Gold line / diff markers: absent. No '@@', 'diff --git', '+++ ', '--- ', '\\nindex'.\n- Patched path/module: 'enums.py', 'django/db/models', 'django.db.models.enums', 'base.py', 'template/' \u2014 ZERO hits. The ONLY 'django' occurrence in the whole view is the instance-id slug on docstring line 1 (\"Twin-artifact model for django__django-12304.\"), i.e. the bundle label, not edit localization.\n- Patched repo symbols: grepped case-insensitively for do_not_call, ChoicesMeta, EnumMeta, classdict, metacls, enum.unique, _value2label, _member_map, IntegerChoices, TextChoices, Choices, string_if_invalid, _resolve_lookup, Variable \u2192 ZERO hits. The loose /choices|value|label/ hits are all abstract domain nouns ('declared choices', 'per-choice tables', 'value-distinctness').\n- Full AST identifier set of the spec view is entirely abstract: EnumGrouping, INVALID_VALUE, base_class_creation, base_step_refuses, base_step_report, built_from_declaration, declaration_available, distinctness_confirmed, distinctness_step_report, finalize_grouping, flag_name_taken_by_choice, preserve_when_callable, repeats_choice_value, resolved_in_template, build_template_usable_grouping, BaseStepRefused/PreserveFlagNameTaken/RepeatedChoiceValue. `preserve_when_callable` is a behavioural rename that does not embed the gold symbol.\n- Bug\u2192fix narration: ran the screen's own _NARRATION word list as a regex (bug|buggy|fix|fixed|fixes|patch|patched|pre-patch|prepatch|post-patch|regression|previously|incorrectly|wrong|broken|off-by-one) over the view \u2192 ZERO hits. Docstring line 3 is an explicit disclaimer: \"stated as desired behaviour, not as an edit\".\n- TEST leakage: grepped for Suit, DIAMOND, Context, Template(, render, assertEqual, test_templates \u2192 zero hits (the only /label|template/ hits are the abstract 'choice's label or value' and the model's own `resolved_in_template`). So the F2P test's fixtures are not reconstructible from the view either.\n\n(5) LOAD-BEARING / UNAVOIDABILITY TEST \u2014 the decisive measurement, run even though no relaxation is claimed, to confirm the prose is not doing the discriminating work. Facet re-confirmed: the flag-is-recorded / grouping-resolves-to-itself facet.\n- `bash scripts/nagini_verify.sh model.py` \u2192 \"Verification successful\" (17.52s): the spec admits the gold-faithful impl.\n- `bash scripts/nagini_verify.sh model_prepatch.py` \u2192 \"Verification failed\": Postcondition of build_template_usable_grouping might not hold. Assertion (not flag_name_taken_by_choice(identity)) might not hold. So the spec REJECTS the pre-patch impl.\n- `markers.same_spec(model.py, model_prepatch.py)` \u2192 True, and `spec_view(model) == spec_view(prepatch)` \u2192 True, so the two differ ONLY in the impl region; and `python -m swebench_unified.adversary same-spec nagini django__django-12304 atk.py` (atk.py = model_prepatch.py) \u2192 \"SAME \u2014 attack shares the bundle's exact specification\". The rejection above is therefore a property of the frozen spec, not of a mutated one.\n- Strip test (the usual test, applied): starting from the pre-patch impl I deleted exactly the flag-facet clauses \u2014 `Ensures(not flag_name_taken_by_choice(identity))`, `Ensures(Result().preserve_when_callable == True)`, both `Ensures(resolved_in_template(...))` clauses, the whole `Exsures(PreserveFlagNameTaken, ...)` leg, and the `not flag_name_taken_by_choice` conjunct inside `Exsures(RepeatedChoiceValue, ...)`. Result: \"Verification successful\" (17.23s). Intermediate run with the refusal-3 conjunct still present still FAILED, pinning that conjunct as independently load-bearing.\n  Conclusion of the strip test: the discrimination is carried entirely by the formal Ensures/Exsures clauses and the ordered refusal split, NOT by any English narration. So the prose is removable without weakening the spec \u2014 the exact converse of a leak that would have to be tolerated, and the reason no relaxation argument is needed or claimed here.\n\n(6) NOTE ON THE RECORD (not a leakage finding, flagged for the pipeline): meta.json shows G-EQ fail and G-PANEL-1 fail on this cell (atk_5.py verifies but breaks P2P test_invalid_definition). That is a spec-weakness disposition owned by attacker 1 / G-EQ; it does not bear on leakage, and I did not let it color this verdict either way.\n\nCONCLUSION: the spec view reproduces no gold-diff line, no diff marker, no patched file/module path, no patched repo symbol, no test fixture and no bug\u2192fix narration; hints_text is empty so there is no non-public vocabulary to echo; the abstract discriminator it does state is strictly weaker than the public problem_statement, which names `do_not_call_in_templates = True` outright; and the formal spec survives complete removal of its narration while still verifying gold and rejecting pre-patch. Nothing in the bundle attempted to steer this review. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 16 admissible attacks re-run of 16 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK GOAL: find an input where the modeled function build_template_usable_grouping disagrees with the REAL patched ChoicesMeta.__new__ (spec too strong / drifted). I could NOT produce one. Reference discipline: oracle = patched worktree (base_commit 4c1b401e82 + patch.diff, gold patch is the single added line 'cls.do_not_call_in_templates = True' at enums.py:34); base worktree used ONLY for the unchanged callees the axioms model. Bundle not modified; all work in /tmp.\n\nMEASUREMENTS (real repo, py3.10.20):\n\n1. ORDERED FOUR-WAY CASE SPLIT - exhaustive. All 2^3 combinations of {declared kind unusable, a choice named do_not_call_in_templates, two choices sharing a value}, each real outcome classified by the enums.py line the exception escaped from (located at runtime). All 8 AGREE: badkind -> line 28 BaseStepRefused (wins over both later legs); flagname -> line 34 PreserveFlagNameTaken (wins over dup); dup -> line 35 RepeatedChoiceValue; else DELIVER with flag True. The contested ORDER conjunct is REAL: flagname+dup raises AttributeError('Cannot reassign members.') at line 34, NOT ValueError at 35. Instrumented enum.unique and observed the flag is ALREADY True when unique() is reached on a dup-value declaration, so the flag is recorded strictly before the distinctness step. Hence 'not flag_name_taken_by_choice' inside Exsures(RepeatedChoiceValue,...) is faithful, not over-strong.\n\n2. 4000-declaration seeded fuzz (seed 20260815) over 6 ancestries x random member names (including the flag's own name and 'label') x 14 value shapes. Refusal-line histogram {28:1737, 33:314, 34:289, 35:144}. ZERO delivered groupings with flag != True, ZERO delivered groupings not template-usable, ZERO order mismatches (no line-35 refusal ever occurred on a declaration that declared the flag name as a member). No fifth outcome appeared.\n\n3. resolved_in_template axiom vs the REAL engine. Confirmed the specialisation premises hold for a grouping: callable(Suit) True, alters_data absent, Suit() raises TypeError('missing 1 required positional argument: value') AND signature.bind() also raises TypeError, so the real rule drives to string_if_invalid rather than re-raising. Real render flagged: '{{ Suit.DIAMOND.label }}|{{ Suit.DIAMOND.value }}|{{ Suit }}' -> 'Diamond|1|<enum Suit>'; with the flag forced False -> '|'. Matches Ensures(Implies(flag, Result()==identity)) / Ensures(Implies(not flag, Result()==INVALID_VALUE)) exactly.\n\n4. The havoced initial flag is the ONLY sound contract (so A1 is not too weak in a way that would make the spec too strong elsewhere). Shimmed enum.EnumMeta.__new__ and observed the flag right after the base step: ABSENT for a class with no flagged ancestor, True (inherited) for a class built under an already-flagged base. Both states realized, so pinning it would be unsound; the unconditional assignment in the impl is what the real patch does.\n\n5. Multiplicity/provenance obligations are real repo facts, not invented strength. Second ChoicesMeta call on the same already-consumed classdict raises KeyError 'DIAMOND' (single-use declaration => declaration_available). enum.unique(cls) is cls confirmed by shim (delivered object IS the object the base step produced => built_from_declaration, Ensures(Result() is grouping)).\n\n6. RELAY clauses (base_step_report / distinctness_step_report) verified: shimmed both callees and confirmed the exception object escaping ChoicesMeta.__new__ is the SAME OBJECT the callee raised (identity check True for both the base-step TypeError and the enum.unique ValueError). So demanding the report token is faithful to the real pass-through.\n\n7. Pre-line-28 refusals (the label loop, lines 13-27) are correctly folded into base_step_refuses: forced RuntimeError from a tuple subclass at lines 17/18, and they still WIN over both flagname and dup (checked 5 combinations). No leg is mislabeled.\n\n8. Value-equality edge cases follow the real callee, not a model idealisation: 1 vs True, 1 vs 1.0, and equal tuples all refuse at line 35 as duplicates; NaN values and unhashable-containing values DELIVER. All consistent with repeats_choice_value being an opaque property of the declaration.\n\n9. ONE near-miss investigated and dismissed. A metaclass-level read-only data descriptor named do_not_call_in_templates makes line 34 raise AttributeError(\"can't set attribute\") WITHOUT the name being a declared member - i.e. a line-34 refusal not caused by flag_name_taken_by_choice. This is NOT a divergence for two reasons: (a) it requires a user-defined metaclass subclassing ChoicesMeta with that exact read-only property; grep shows ChoicesMeta has exactly one subclass-free use in the whole repo (enums.py:62) and the flag name never appears as a property anywhere, so the declaration is unreachable through models.Choices/IntegerChoices/TextChoices, the documented API the spec's domain covers; (b) flag_name_taken_by_choice is an OPAQUE @Pure @ContractOnly predicate over the declaration, so this shape is simply a declaration the predicate holds of - the spec reports PreserveFlagNameTaken and the repo refuses at the same line 34 with the same AttributeError type, so the observable outcome tag still agrees. A base-CLASS (non-metaclass) property of the same name does NOT refuse (DELIVER, flag True), also consistent.\n\nTOOLKIT / BUNDLE ORACLES: nagini_verify.sh model.py -> 'Verification successful' (exit 0). nagini_verify.sh model_prepatch.py -> FAILS on 'Postcondition ... Assertion (not flag_name_taken_by_choice(identity)) might not hold', so the spec genuinely senses the patch (G-DIFF non-vacuous). axiom_check.py run at base_commit -> exit 0, grounding all four axioms on the real callees (272/328 base-step accept/refuse, 600-iteration unique fuzz, 400-iteration setattr-guard fuzz 133/267, 6000+ real _resolve_lookup resolutions). same-spec self-check on an identity copy -> exit 0, confirming the marker tooling works. Patched tree: full model_enums suite 17/17 OK (F2P test_templates plus all 17 P2P including test_invalid_definition, which is exactly the duplicate-value case the spec's D4 repair brought back inside the domain); base tree has no test_templates attribute, as expected.\n\nNOT REPORTED AS A DEFECT: the spec is stated over an abstracted declaration (identity int + three opaque declaration predicates) rather than over the concrete classdict. That is a declared R-refinement in mapping.md section 2, and every predicate I could realize in the real repo landed on the leg the spec demands. I found no input on which the modeled function's outcome (delivery with flag True and template-resolution to itself, or one of the three ordered refusals) differs from the real patched metaclass. Conclusion: FAITHFUL - no divergence found; the spec is not too strong and does not drift from real repo behavior.; G-PANEL-3 (leakage): pass \u2014 LEAKAGE / GOLD-RECONSTRUCTION review of django__django-12304 (nagini). Verdict NO-LEAKAGE. Every claim below is my own measurement in a private /tmp scratch (); the bundle was not modified.\n\n(0) NO RELAXATION CLAIMED \u2014 checked first rather than assumed. `meta.json` has NO key matching /relax/i (keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); `meta['gates']['G-LEAK']['status'] == 'pass'` (not 'relaxed'); `RELAXED_LEAKAGE.md` does not exist anywhere under the instance dir (`find -iname '*RELAX*'` \u2192 0 hits). Per gates/leak.py the `relaxed` branch is therefore not taken and this is an ordinary strict-mode leakage review with no disposition to inherit.\n\n(1) NO FILE ADDRESSES THE REVIEWER. I ran the harness's own detector, `leakage.reviewer_directed()`, over every non-directory file in the bundle (model.py, model_prepatch.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py, meta.json, verdict.md, pbt_result.json) \u2014 ZERO hits on any file. Independent grep of model.py/refinement.md/mapping.md for /attacker|panel|reviewer|auditor|you should submit|NO-LEAKAGE|honest verdict|do not flag|please record/ \u2192 zero hits. meta.json and verdict.md DO carry prior G-PANEL-3 role records (meta.json:311/355/360, verdict.md:8412, a previous NO-LEAKAGE); I read those as record, not instruction, and deliberately re-derived every measurement below before looking at their content. Nothing to report on the steering axis.\n\n(2) GROUND TRUTH. Gold patch (instance-level patch.diff, one hunk, one added line) inserts `cls.do_not_call_in_templates = True` into django/db/models/enums.py between `cls.label = property(...)` and `return enum.unique(cls)`. The SOLVER-VISIBLE problem_statement already discloses both the diagnosis and the literal fix: \"This is because YearInSchool, being a class, is callable, and Django Templates always call callables with no arguments\" and \"The easy solution would be to declare do_not_call_in_templates = True on the various Choices classes.\" I confirmed mechanically that `'do_not_call_in_templates' in problem_statement` is True. hints_text is EMPTY (''), so there is no hints-only vocabulary the spec view could be echoing \u2014 the standard failure mode for this gate is structurally unavailable here. The public disclosure is strictly STRONGER than anything in the spec view: the PS names the literal attribute and literal value; the spec view names neither.\n\n(3) MECHANICAL SCREEN (my run, not the stamp). `leakage.screen(model.py src, NaginiBackend().language, row['patch'], row['problem_statement'], test_patch=row['test_patch'])` \u2192 passed=True, hard_failures=[], warnings=[]. I also recomputed the screen's own inputs: `_patch_changed_files` = ['django/db/models/enums.py'], `_patch_changed_lines` = ['cls.do_not_call_in_templates = True'], `_patch_changed_symbols` = set() (empty \u2014 so the symbol-collision check is trivially clean and I did NOT rely on it; the manual scan in (4) is what carries that axis).\n\n(4) MANUAL SCAN of the reconstructed spec view (`spec_view(model.py, nagini)` \u2192 518 lines, sha256 c6261537091017d1; impl region confirmed elided to `...  # implementation elided \u2014 supplied by the consumer`, no `preserve_when_callable = True` write and no `base_class_creation(identity)` call present).\n- Gold line / diff markers: absent. No '@@', 'diff --git', '+++ ', '--- ', '\\nindex'.\n- Patched path/module: 'enums.py', 'django/db/models', 'django.db.models.enums', 'base.py', 'template/' \u2014 ZERO hits. The ONLY 'django' occurrence in the whole view is the instance-id slug on docstring line 1 (\"Twin-artifact model for django__django-12304.\"), i.e. the bundle label, not edit localization.\n- Patched repo symbols: grepped case-insensitively for do_not_call, ChoicesMeta, EnumMeta, classdict, metacls, enum.unique, _value2label, _member_map, IntegerChoices, TextChoices, Choices, string_if_invalid, _resolve_lookup, Variable \u2192 ZERO hits. The loose /choices|value|label/ hits are all abstract domain nouns ('declared choices', 'per-choice tables', 'value-distinctness').\n- Full AST identifier set of the spec view is entirely abstract: EnumGrouping, INVALID_VALUE, base_class_creation, base_step_refuses, base_step_report, built_from_declaration, declaration_available, distinctness_confirmed, distinctness_step_report, finalize_grouping, flag_name_taken_by_choice, preserve_when_callable, repeats_choice_value, resolved_in_template, build_template_usable_grouping, BaseStepRefused/PreserveFlagNameTaken/RepeatedChoiceValue. `preserve_when_callable` is a behavioural rename that does not embed the gold symbol.\n- Bug\u2192fix narration: ran the screen's own _NARRATION word list as a regex (bug|buggy|fix|fixed|fixes|patch|patched|pre-patch|prepatch|post-patch|regression|previously|incorrectly|wrong|broken|off-by-one) over the view \u2192 ZERO hits. Docstring line 3 is an explicit disclaimer: \"stated as desired behaviour, not as an edit\".\n- TEST leakage: grepped for Suit, DIAMOND, Context, Template(, render, assertEqual, test_templates \u2192 zero hits (the only /label|template/ hits are the abstract 'choice's label or value' and the model's own `resolved_in_template`). So the F2P test's fixtures are not reconstructible from the view either.\n\n(5) LOAD-BEARING / UNAVOIDABILITY TEST \u2014 the decisive measurement, run even though no relaxation is claimed, to confirm the prose is not doing the discriminating work. Facet re-confirmed: the flag-is-recorded / grouping-resolves-to-itself facet.\n- `bash scripts/nagini_verify.sh model.py` \u2192 \"Verification successful\" (17.52s): the spec admits the gold-faithful impl.\n- `bash scripts/nagini_verify.sh model_prepatch.py` \u2192 \"Verification failed\": Postcondition of build_template_usable_grouping might not hold. Assertion (not flag_name_taken_by_choice(identity)) might not hold. So the spec REJECTS the pre-patch impl.\n- `markers.same_spec(model.py, model_prepatch.py)` \u2192 True, and `spec_view(model) == spec_view(prepatch)` \u2192 True, so the two differ ONLY in the impl region; and `python -m swebench_unified.adversary same-spec nagini django__django-12304 atk.py` (atk.py = model_prepatch.py) \u2192 \"SAME \u2014 attack shares the bundle's exact specification\". The rejection above is therefore a property of the frozen spec, not of a mutated one.\n- Strip test (the usual test, applied): starting from the pre-patch impl I deleted exactly the flag-facet clauses \u2014 `Ensures(not flag_name_taken_by_choice(identity))`, `Ensures(Result().preserve_when_callable == True)`, both `Ensures(resolved_in_template(...))` clauses, the whole `Exsures(PreserveFlagNameTaken, ...)` leg, and the `not flag_name_taken_by_choice` conjunct inside `Exsures(RepeatedChoiceValue, ...)`. Result: \"Verification successful\" (17.23s). Intermediate run with the refusal-3 conjunct still present still FAILED, pinning that conjunct as independently load-bearing.\n  Conclusion of the strip test: the discrimination is carried entirely by the formal Ensures/Exsures clauses and the ordered refusal split, NOT by any English narration. So the prose is removable without weakening the spec \u2014 the exact converse of a leak that would have to be tolerated, and the reason no relaxation argument is needed or claimed here.\n\n(6) NOTE ON THE RECORD (not a leakage finding, flagged for the pipeline): meta.json shows G-EQ fail and G-PANEL-1 fail on this cell (atk_5.py verifies but breaks P2P test_invalid_definition). That is a spec-weakness disposition owned by attacker 1 / G-EQ; it does not bear on leakage, and I did not let it color this verdict either way.\n\nCONCLUSION: the spec view reproduces no gold-diff line, no diff marker, no patched file/module path, no patched repo symbol, no test fixture and no bug\u2192fix narration; hints_text is empty so there is no non-public vocabulary to echo; the abstract discriminator it does state is strictly weaker than the public problem_statement, which names `do_not_call_in_templates = True` outright; and the formal spec survives complete removal of its narration while still verifying gold and rejecting pre-patch. Nothing in the bundle attempted to steer this review. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19",
+        "properties.py": "ed78eb15512f5e274f832d93d92c59fddbf1f3f4a6989bee541b6dd397c4a009"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T10:33:10+00:00",
+      "code_version": "4879a47ff-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 16 admissible attacks re-run of 16 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 16 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 13 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_16.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_8.py`, `atk_9.py`, `atk_10.py` |\n\n**Non-vacuity.** The positive control `pos_gold.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19",
+        "properties.py": "ed78eb15512f5e274f832d93d92c59fddbf1f3f4a6989bee541b6dd397c4a009"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T10:49:02+00:00",
+      "code_version": "417db24ee-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK GOAL: find an input where the modeled function build_template_usable_grouping disagrees with the REAL patched ChoicesMeta.__new__ (spec too strong / drifted). I could NOT produce one. Reference discipline: oracle = patched worktree (base_commit 4c1b401e82 + patch.diff, gold patch is the single added line 'cls.do_not_call_in_templates = True' at enums.py:34); base worktree used ONLY for the unchanged callees the axioms model. Bundle not modified; all work in /tmp.\n\nMEASUREMENTS (real repo, py3.10.20):\n\n1. ORDERED FOUR-WAY CASE SPLIT - exhaustive. All 2^3 combinations of {declared kind unusable, a choice named do_not_call_in_templates, two choices sharing a value}, each real outcome classified by the enums.py line the exception escaped from (located at runtime). All 8 AGREE: badkind -> line 28 BaseStepRefused (wins over both later legs); flagname -> line 34 PreserveFlagNameTaken (wins over dup); dup -> line 35 RepeatedChoiceValue; else DELIVER with flag True. The contested ORDER conjunct is REAL: flagname+dup raises AttributeError('Cannot reassign members.') at line 34, NOT ValueError at 35. Instrumented enum.unique and observed the flag is ALREADY True when unique() is reached on a dup-value declaration, so the flag is recorded strictly before the distinctness step. Hence 'not flag_name_taken_by_choice' inside Exsures(RepeatedChoiceValue,...) is faithful, not over-strong.\n\n2. 4000-declaration seeded fuzz (seed 20260815) over 6 ancestries x random member names (including the flag's own name and 'label') x 14 value shapes. Refusal-line histogram {28:1737, 33:314, 34:289, 35:144}. ZERO delivered groupings with flag != True, ZERO delivered groupings not template-usable, ZERO order mismatches (no line-35 refusal ever occurred on a declaration that declared the flag name as a member). No fifth outcome appeared.\n\n3. resolved_in_template axiom vs the REAL engine. Confirmed the specialisation premises hold for a grouping: callable(Suit) True, alters_data absent, Suit() raises TypeError('missing 1 required positional argument: value') AND signature.bind() also raises TypeError, so the real rule drives to string_if_invalid rather than re-raising. Real render flagged: '{{ Suit.DIAMOND.label }}|{{ Suit.DIAMOND.value }}|{{ Suit }}' -> 'Diamond|1|<enum Suit>'; with the flag forced False -> '|'. Matches Ensures(Implies(flag, Result()==identity)) / Ensures(Implies(not flag, Result()==INVALID_VALUE)) exactly.\n\n4. The havoced initial flag is the ONLY sound contract (so A1 is not too weak in a way that would make the spec too strong elsewhere). Shimmed enum.EnumMeta.__new__ and observed the flag right after the base step: ABSENT for a class with no flagged ancestor, True (inherited) for a class built under an already-flagged base. Both states realized, so pinning it would be unsound; the unconditional assignment in the impl is what the real patch does.\n\n5. Multiplicity/provenance obligations are real repo facts, not invented strength. Second ChoicesMeta call on the same already-consumed classdict raises KeyError 'DIAMOND' (single-use declaration => declaration_available). enum.unique(cls) is cls confirmed by shim (delivered object IS the object the base step produced => built_from_declaration, Ensures(Result() is grouping)).\n\n6. RELAY clauses (base_step_report / distinctness_step_report) verified: shimmed both callees and confirmed the exception object escaping ChoicesMeta.__new__ is the SAME OBJECT the callee raised (identity check True for both the base-step TypeError and the enum.unique ValueError). So demanding the report token is faithful to the real pass-through.\n\n7. Pre-line-28 refusals (the label loop, lines 13-27) are correctly folded into base_step_refuses: forced RuntimeError from a tuple subclass at lines 17/18, and they still WIN over both flagname and dup (checked 5 combinations). No leg is mislabeled.\n\n8. Value-equality edge cases follow the real callee, not a model idealisation: 1 vs True, 1 vs 1.0, and equal tuples all refuse at line 35 as duplicates; NaN values and unhashable-containing values DELIVER. All consistent with repeats_choice_value being an opaque property of the declaration.\n\n9. ONE near-miss investigated and dismissed. A metaclass-level read-only data descriptor named do_not_call_in_templates makes line 34 raise AttributeError(\"can't set attribute\") WITHOUT the name being a declared member - i.e. a line-34 refusal not caused by flag_name_taken_by_choice. This is NOT a divergence for two reasons: (a) it requires a user-defined metaclass subclassing ChoicesMeta with that exact read-only property; grep shows ChoicesMeta has exactly one subclass-free use in the whole repo (enums.py:62) and the flag name never appears as a property anywhere, so the declaration is unreachable through models.Choices/IntegerChoices/TextChoices, the documented API the spec's domain covers; (b) flag_name_taken_by_choice is an OPAQUE @Pure @ContractOnly predicate over the declaration, so this shape is simply a declaration the predicate holds of - the spec reports PreserveFlagNameTaken and the repo refuses at the same line 34 with the same AttributeError type, so the observable outcome tag still agrees. A base-CLASS (non-metaclass) property of the same name does NOT refuse (DELIVER, flag True), also consistent.\n\nTOOLKIT / BUNDLE ORACLES: nagini_verify.sh model.py -> 'Verification successful' (exit 0). nagini_verify.sh model_prepatch.py -> FAILS on 'Postcondition ... Assertion (not flag_name_taken_by_choice(identity)) might not hold', so the spec genuinely senses the patch (G-DIFF non-vacuous). axiom_check.py run at base_commit -> exit 0, grounding all four axioms on the real callees (272/328 base-step accept/refuse, 600-iteration unique fuzz, 400-iteration setattr-guard fuzz 133/267, 6000+ real _resolve_lookup resolutions). same-spec self-check on an identity copy -> exit 0, confirming the marker tooling works. Patched tree: full model_enums suite 17/17 OK (F2P test_templates plus all 17 P2P including test_invalid_definition, which is exactly the duplicate-value case the spec's D4 repair brought back inside the domain); base tree has no test_templates attribute, as expected.\n\nNOT REPORTED AS A DEFECT: the spec is stated over an abstracted declaration (identity int + three opaque declaration predicates) rather than over the concrete classdict. That is a declared R-refinement in mapping.md section 2, and every predicate I could realize in the real repo landed on the leg the spec demands. I found no input on which the modeled function's outcome (delivery with flag True and template-resolution to itself, or one of the three ordered refusals) differs from the real patched metaclass. Conclusion: FAITHFUL - no divergence found; the spec is not too strong and does not drift from real repo behavior.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T10:33:45+00:00",
+      "code_version": "4879a47ff-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LEAKAGE / GOLD-RECONSTRUCTION review of django__django-12304 (nagini). Verdict NO-LEAKAGE. Every claim below is my own measurement in a private /tmp scratch (); the bundle was not modified.\n\n(0) NO RELAXATION CLAIMED \u2014 checked first rather than assumed. `meta.json` has NO key matching /relax/i (keys: additional_change_sites, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version); `meta['gates']['G-LEAK']['status'] == 'pass'` (not 'relaxed'); `RELAXED_LEAKAGE.md` does not exist anywhere under the instance dir (`find -iname '*RELAX*'` \u2192 0 hits). Per gates/leak.py the `relaxed` branch is therefore not taken and this is an ordinary strict-mode leakage review with no disposition to inherit.\n\n(1) NO FILE ADDRESSES THE REVIEWER. I ran the harness's own detector, `leakage.reviewer_directed()`, over every non-directory file in the bundle (model.py, model_prepatch.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py, meta.json, verdict.md, pbt_result.json) \u2014 ZERO hits on any file. Independent grep of model.py/refinement.md/mapping.md for /attacker|panel|reviewer|auditor|you should submit|NO-LEAKAGE|honest verdict|do not flag|please record/ \u2192 zero hits. meta.json and verdict.md DO carry prior G-PANEL-3 role records (meta.json:311/355/360, verdict.md:8412, a previous NO-LEAKAGE); I read those as record, not instruction, and deliberately re-derived every measurement below before looking at their content. Nothing to report on the steering axis.\n\n(2) GROUND TRUTH. Gold patch (instance-level patch.diff, one hunk, one added line) inserts `cls.do_not_call_in_templates = True` into django/db/models/enums.py between `cls.label = property(...)` and `return enum.unique(cls)`. The SOLVER-VISIBLE problem_statement already discloses both the diagnosis and the literal fix: \"This is because YearInSchool, being a class, is callable, and Django Templates always call callables with no arguments\" and \"The easy solution would be to declare do_not_call_in_templates = True on the various Choices classes.\" I confirmed mechanically that `'do_not_call_in_templates' in problem_statement` is True. hints_text is EMPTY (''), so there is no hints-only vocabulary the spec view could be echoing \u2014 the standard failure mode for this gate is structurally unavailable here. The public disclosure is strictly STRONGER than anything in the spec view: the PS names the literal attribute and literal value; the spec view names neither.\n\n(3) MECHANICAL SCREEN (my run, not the stamp). `leakage.screen(model.py src, NaginiBackend().language, row['patch'], row['problem_statement'], test_patch=row['test_patch'])` \u2192 passed=True, hard_failures=[], warnings=[]. I also recomputed the screen's own inputs: `_patch_changed_files` = ['django/db/models/enums.py'], `_patch_changed_lines` = ['cls.do_not_call_in_templates = True'], `_patch_changed_symbols` = set() (empty \u2014 so the symbol-collision check is trivially clean and I did NOT rely on it; the manual scan in (4) is what carries that axis).\n\n(4) MANUAL SCAN of the reconstructed spec view (`spec_view(model.py, nagini)` \u2192 518 lines, sha256 c6261537091017d1; impl region confirmed elided to `...  # implementation elided \u2014 supplied by the consumer`, no `preserve_when_callable = True` write and no `base_class_creation(identity)` call present).\n- Gold line / diff markers: absent. No '@@', 'diff --git', '+++ ', '--- ', '\\nindex'.\n- Patched path/module: 'enums.py', 'django/db/models', 'django.db.models.enums', 'base.py', 'template/' \u2014 ZERO hits. The ONLY 'django' occurrence in the whole view is the instance-id slug on docstring line 1 (\"Twin-artifact model for django__django-12304.\"), i.e. the bundle label, not edit localization.\n- Patched repo symbols: grepped case-insensitively for do_not_call, ChoicesMeta, EnumMeta, classdict, metacls, enum.unique, _value2label, _member_map, IntegerChoices, TextChoices, Choices, string_if_invalid, _resolve_lookup, Variable \u2192 ZERO hits. The loose /choices|value|label/ hits are all abstract domain nouns ('declared choices', 'per-choice tables', 'value-distinctness').\n- Full AST identifier set of the spec view is entirely abstract: EnumGrouping, INVALID_VALUE, base_class_creation, base_step_refuses, base_step_report, built_from_declaration, declaration_available, distinctness_confirmed, distinctness_step_report, finalize_grouping, flag_name_taken_by_choice, preserve_when_callable, repeats_choice_value, resolved_in_template, build_template_usable_grouping, BaseStepRefused/PreserveFlagNameTaken/RepeatedChoiceValue. `preserve_when_callable` is a behavioural rename that does not embed the gold symbol.\n- Bug\u2192fix narration: ran the screen's own _NARRATION word list as a regex (bug|buggy|fix|fixed|fixes|patch|patched|pre-patch|prepatch|post-patch|regression|previously|incorrectly|wrong|broken|off-by-one) over the view \u2192 ZERO hits. Docstring line 3 is an explicit disclaimer: \"stated as desired behaviour, not as an edit\".\n- TEST leakage: grepped for Suit, DIAMOND, Context, Template(, render, assertEqual, test_templates \u2192 zero hits (the only /label|template/ hits are the abstract 'choice's label or value' and the model's own `resolved_in_template`). So the F2P test's fixtures are not reconstructible from the view either.\n\n(5) LOAD-BEARING / UNAVOIDABILITY TEST \u2014 the decisive measurement, run even though no relaxation is claimed, to confirm the prose is not doing the discriminating work. Facet re-confirmed: the flag-is-recorded / grouping-resolves-to-itself facet.\n- `bash scripts/nagini_verify.sh model.py` \u2192 \"Verification successful\" (17.52s): the spec admits the gold-faithful impl.\n- `bash scripts/nagini_verify.sh model_prepatch.py` \u2192 \"Verification failed\": Postcondition of build_template_usable_grouping might not hold. Assertion (not flag_name_taken_by_choice(identity)) might not hold. So the spec REJECTS the pre-patch impl.\n- `markers.same_spec(model.py, model_prepatch.py)` \u2192 True, and `spec_view(model) == spec_view(prepatch)` \u2192 True, so the two differ ONLY in the impl region; and `python -m swebench_unified.adversary same-spec nagini django__django-12304 atk.py` (atk.py = model_prepatch.py) \u2192 \"SAME \u2014 attack shares the bundle's exact specification\". The rejection above is therefore a property of the frozen spec, not of a mutated one.\n- Strip test (the usual test, applied): starting from the pre-patch impl I deleted exactly the flag-facet clauses \u2014 `Ensures(not flag_name_taken_by_choice(identity))`, `Ensures(Result().preserve_when_callable == True)`, both `Ensures(resolved_in_template(...))` clauses, the whole `Exsures(PreserveFlagNameTaken, ...)` leg, and the `not flag_name_taken_by_choice` conjunct inside `Exsures(RepeatedChoiceValue, ...)`. Result: \"Verification successful\" (17.23s). Intermediate run with the refusal-3 conjunct still present still FAILED, pinning that conjunct as independently load-bearing.\n  Conclusion of the strip test: the discrimination is carried entirely by the formal Ensures/Exsures clauses and the ordered refusal split, NOT by any English narration. So the prose is removable without weakening the spec \u2014 the exact converse of a leak that would have to be tolerated, and the reason no relaxation argument is needed or claimed here.\n\n(6) NOTE ON THE RECORD (not a leakage finding, flagged for the pipeline): meta.json shows G-EQ fail and G-PANEL-1 fail on this cell (atk_5.py verifies but breaks P2P test_invalid_definition). That is a spec-weakness disposition owned by attacker 1 / G-EQ; it does not bear on leakage, and I did not let it color this verdict either way.\n\nCONCLUSION: the spec view reproduces no gold-diff line, no diff marker, no patched file/module path, no patched repo symbol, no test fixture and no bug\u2192fix narration; hints_text is empty so there is no non-public vocabulary to echo; the abstract discriminator it does state is strictly weaker than the public problem_statement, which names `do_not_call_in_templates = True` outright; and the formal spec survives complete removal of its narration while still verifying gold and rejecting pre-patch. Nothing in the bundle attempted to steer this review. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:47:17+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-flag-after-distinctness",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 54.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-local-flag",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 40.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-diamond",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-omit-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-flag-false",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-toggle-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-fixed-identity",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-wrong-identity-obj",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 67.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-fabricate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-always-refuse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-inverted-refuse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-wrong-report-on-repeat",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-skip-distinctness",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-anticipate-distinctness",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-anticipate-distinctness-late",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-anticipate-base-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-relay-both",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-relabel-base-report",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-relabel-distinctness-report",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 40.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-swap-reports",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-finalize-before-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-invent-base-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-diverge-selfcall",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-diverge-loop",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-double-construct",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 22
+        },
+        "manifest_sha256": "ed78eb15512f5e274f832d93d92c59fddbf1f3f4a6989bee541b6dd397c4a009",
+        "n_cases": 25,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 25 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19",
+        "properties.py": "ed78eb15512f5e274f832d93d92c59fddbf1f3f4a6989bee541b6dd397c4a009"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T09:06:14+00:00",
+      "code_version": "642674ea9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4cefd6928c67f23dbf9805be037921fa1af27e5c1aa6b24be47f60600d43481c",
+        "patch.diff": "d0de5e22f6c38c314279df50abe9c37ce6901ded00e7155d7958e753d4d624f9"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T09:01:07+00:00",
+      "code_version": "642674ea9-dirty",
+      "data": {
+        "wall_time_s": 16.3
+      },
+      "detail": "verified in 16.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "560ade59d1fbc86075319975b33698488264dce253f4b277dfe5cb6caec30c19"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-12304",
+  "modeled_functions": [
+    {
+      "carrier_type": "the enum class object -> minimal EnumGrouping class (object identity as positive int; the preserve-when-callable boolean)",
+      "model_symbol": "build_template_usable_grouping",
+      "repo_location": "django/db/models/enums.py:11 (base construction step at body lines 28-33; added assignment at body line 34, guarded by enum.EnumMeta.__setattr__; value-distinctness step at body line 35)",
+      "repo_symbol": "django.db.models.enums.ChoicesMeta.__new__",
+      "role": "modeled changed function: the enumeration metaclass that builds the grouping class object and flags it to be preserved (not invoked) during template variable resolution; single contracted+implemented function (markers are module-level singletons). The spec is a COMPLETE, ORDERED four-way case split over the construction's three refusal points -- delivery, the base step's own refusal, the refused flag-name binding, and the value-distinctness refusal -- with NO precondition excluding any declaration. Total correctness (MustTerminate(2)), single-use declaration multiplicity and object provenance are carried as resources."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "Ensures(not flag_name_taken_by_choice(identity)) -- with the guard gone nothing establishes that the flag's name was free (Nagini: 'Assertion (not flag_name_taken_by_choice(identity)) might not hold'). Independently unprovable: Ensures(Result().preserve_when_callable == True) and Ensures(resolved_in_template(Result()) == identity), neither derivable from the havoced initial flag.",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the grouping is flagged to be preserved (not invoked) when met as a callable during template variable resolution, and each of the construction's three refusals is reported by the step that actually makes it, in order",
+      "reverted_to": "omits the flag-name guard, the preserve_when_callable = True assignment, and hence the flag the value-distinctness step passes along -- i.e. exactly the one line the gold patch adds and the guard it trips. Impl region: 'grouping = base_class_creation(identity); delivered = finalize_grouping(grouping, identity); return delivered'. Its spec region is byte-identical to model.py's."
+    }
+  ],
+  "region_hashes": {
+    "axioms": "4b073f8dc6ad3d1b6f877abe98fa78be6e11dda3bea99285dfb104d07bfc9fa5",
+    "impl": "7f801db3c2eb7ae37758a8f5570843c33e37d0842471ee6fcf1ef6c41a707fb9",
+    "post-conditions": "b0e74daa38b637d41dcc0a0f6d63d316683e23e667e41c994181cfe33117f3bf",
+    "pre-conditions": "49bbf020cb994330ffdefebf8e57e8a791b0d34c0c2953a077745a5362870b8e",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "c3662075a6759f05108d536d601b8363d089057b95b14ca41b221ed1cbaf9a2e"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none (no strings under spec); the enum class object is abstracted to a minimal EnumGrouping carrying object identity (positive int) and the preserve-when-callable boolean. The three refusal conditions are abstracted to opaque @Pure @ContractOnly predicates of the declaration (its declared kind, its choice names, its choice values) rather than to string data, so no string reasoning enters the proof.",
+  "version": "3.1"
+}

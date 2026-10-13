@@ -1,0 +1,613 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "part of the same single behavioral change (which deferred wrapper to use); covered by the A-consumed wrapping axioms (wrap_resolvable vs wrap_opaque) and their A-reference validation; no separate prepatch needed (one independently-observable fixed behavior).",
+      "repo_location": "django/views/generic/base.py:14",
+      "repo_symbol": "import swap: from django.utils.functional import SimpleLazyObject -> lazy"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real lazy(...)() IS a Promise that Field.get_prep_value resolves to the value with type(resolved) is type(value), across CharField/IntegerField/FloatField incl. F2P str; and CONSTRUCTING it raises 0 advisory notices (the ledger is untouched by construction); and the PARTIALITY BOUNDARY lane measures own_type_unpreparable over BOTH preparation routes -- ancestor enumeration (functional.py:111) and the delegate overlay (functional.py:120-123) -- over type-valued members, five NON-type ABORTING members (own class shadows mro with a data attribute / a one-argument method / a property; a metaclass __eq__ that raises; one that reports both delegate arms), and the non-aborting members on which the build SUCCEEDS and the entry IS a Promise the binder recognises: one whose resolution then RAISES, and one whose resolution SUCCEEDS with exactly one advisory notice and returns an object that is neither equal to the value nor of the value's type (the binder itself hands that object on). On that silent member the lane also measures PROVENANCE, which is what licenses keeping deferral_of unconditional there: the entry built for a value reporting width n resolves to n bytes, and a same-shape value reporting n + 2 resolves to n + 2 bytes, so what comes back is determined by the value the entry was built around. So the family is neither isinstance(value, type) nor a synonym for 'the build aborts', and the lane also asserts that OFF the family resolution really returns the value, which is what licenses the guards being no wider than reality. conformance_check.py diffs the same boundary against the real patched callee on both the aborting shape (partiality lane) and the non-aborting one (check_silent_divergence lane).",
+      "ensures": "deferral_of(Result(), value) AND binder_accepts(Result()) UNCONDITIONALLY, AND both resolves_to(Result(), value) and binder_castable(Result(), value, type_of(value)) only where NOT own_type_unpreparable(value) -- the constructed entry carries THIS value's deferred computation and is RECOGNISED by a type-directed binder at EVERY value, and off the unpreparable family it also resolves BACK to the original value (recorded as an INERT abstract capability: no readable field and no evaluable projection) and is binder-RESOLVABLE to that value at its real runtime type. SOLE producer of the binder_accepts and binder_castable capabilities. It neither consumes nor produces deferrals_run: CONSTRUCTING an entry runs no deferred computation, so it raises no advisory notice and leaves the effect ledger untouched. It is PARTIAL in TWO ways on that family, not total: Exsures(Exception, own_type_unpreparable(value)) PERMITS (never requires) an abort on the family whose own real runtime type cannot be consulted into a resolution arm for that value, and the ledger is preserved on that exit too; and where it does return an entry for such a value, the entry is binder-RECOGNISED and still carries that value's computation, but its resolution need not reproduce the value -- measured, it may raise, and it may also SUCCEED and hand back a well-formed object of a different type with no exception and no extra advisory notice. That silent sub-shape is why the ROUND-TRIP half of facet (1) is guarded here, while the PROVENANCE half stays unconditional.",
+      "kind": "A-consumed",
+      "models": "django.utils.functional.lazy(access_value, type(value))() (post-patch wrapping)",
+      "name": "wrap_resolvable",
+      "provenance": "django/utils/functional.py:76 (lazy builds a __proxy__(Promise), functional.py:85; __prepare_class__ at :109-127 is what makes it partial); applied at django/views/generic/base.py:180",
+      "weakest_sufficient": "claims only carries-this-value's-computation and binder-recognised (whole domain) + resolves-to-value and binder-resolvable off the unpreparable family + touches-no-ledger; no no-raise/exact-surface-type over-claim (the real proxy's surface type() is __proxy__, never claimed); the exceptional exit is guarded and permitted rather than required, so a construction that returned an entry for the unpreparable family as well still refines it. TWO halves are deliberately UNGUARDED, and they are what stop the guards from becoming a licence: RECOGNITION (binder_accepts), because the real __proxy__ subclasses Promise at every value, so guarding it would be an under-claim -- and it is the whole-domain discriminator, which is why guarding the resolution halves opens no hole (measured: the prepatch twin is refuted at binder_accepts at every value, and an implementation returning the binder-refused stand-in exactly on the unpreparable family is still rejected); and PROVENANCE (deferral_of), because the real construction always closes over THIS value's access closure, so an implementation may not substitute an entry built around another value on the guarded family either."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real SimpleLazyObject(...) is NOT a Promise; Field.get_prep_value leaves it an unresolved deferred stand-in the DB binder rejects (unsupported type); constructing it also raises 0 advisory notices",
+      "ensures": "deferral_of(Result(), value) AND resolves_to(Result(), value), both UNCONDITIONALLY -- the constructed entry carries THIS value's deferred computation and resolves back to the original value, but grants NEITHER binder_accepts NOR binder_castable: a type-directed binder does not even RECOGNISE it (SimpleLazyObject is not a Promise, so Field.get_prep_value passes it through as an unsupported type at EVERY value), let alone resolve it. It likewise touches no deferrals_run ledger: constructing it runs no deferred computation either. It is TOTAL: it makes no per-value consultation, so it returns an entry for every value, including one whose own runtime type cannot be consulted -- and its resolves_to clause is therefore UNCONDITIONAL where wrap_resolvable's is guarded. That asymmetry is load-bearing for the battery: it is what lets the ledger rivals in properties.py obtain a resolution capability on the WHOLE value domain, so the deferral-preservation clause is still refuted without a guard.",
+      "kind": "A-consumed",
+      "models": "django.utils.functional.SimpleLazyObject(access_value) (pre-patch wrapping)",
+      "name": "wrap_opaque",
+      "provenance": "django/utils/functional.py:356 (SimpleLazyObject is a LazyObject, NOT a Promise); applied at django/views/generic/base.py:172 (pre-patch @SimpleLazyObject; the pre-patch assignment is base.py:181)",
+      "weakest_sufficient": "claims only carries-this-value's-computation + resolves-to-value; correctly grants neither binder capability (the shortfall the behavioural change removes)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): on the real callees each RUN of the deferred computation raises EXACTLY ONE advisory notice; the three repeated resolutions of the binder-resolvable entry each perform a fresh run and so raise one EACH (that construction re-runs its closure per access, functional.py:76-82 'Results are not memoized'); resolution through the type-directed binder is itself a run, so there is no side channel around the ledger; and under a filter that escalates the notice to an error, CONSTRUCTION still succeeds while RESOLUTION raises",
+      "ensures": "deferrals_run(n) in -> deferrals_run(n + 1) out AND Result() == value AND resolves_to(w, value) handed back unchanged -- running the deferred computation yields the value the entry resolves to and charges exactly one unit to the effect ledger. It is the ONLY route from an entry to its value (resolves_to is an inert predicate the implementation cannot evaluate), which is what makes 'the build step ran no deferred computation' (model.py obligation (3)) a checkable claim.",
+      "kind": "A-consumed",
+      "models": "running an entry's deferred computation -- the per-entry access closure actually executing, which raises exactly one advisory notice about that entry (django.utils.functional.__proxy__.__cast on EVERY access of the binder-resolvable entry; LazyObject._setup on the FIRST access of the opaque stand-in, which keeps what it produced in _wrapped)",
+      "name": "run_deferral",
+      "provenance": "django/views/generic/base.py:173-180 (the per-entry access closure: warnings.warn at 174-179, return value at 180 -- the notice is raised every time the closure RUNS); django/utils/functional.py:148 (__cast runs it on access)",
+      "weakest_sufficient": "claims only one ledger unit per RUN plus the resolution value; it does NOT claim that every access to an entry performs a run (the opaque stand-in caches what it produced and re-runs nothing after its first access, so the ledger counts runs and not accesses), does not claim which access path performs the run, and never requires a run to happen"
+    }
+  ],
+  "base_commit": "8954f255bbf5f4ee997fd6de62cb50fc9b5dd697",
+  "changed_files": [
+    "django/views/generic/base.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): the real Field.get_prep_value resolves the post-patch Promise wrapper to the value at its real type, rejects the pre-patch non-Promise wrapper",
+      "encoded_property": "holding binder_castable(w, cast_to, cast_t) means a type-directed binder resolves w to value cast_to whose real runtime type is cast_t. Unforgeable: abstract (no body, cannot be Folded into existence), tied to the specific wrapper/value/type (cannot be laundered). SOLE producer: wrap_resolvable's Ensures, and only off the own_type_unpreparable family.",
+      "kind": "A-reference (abstract @ContractOnly @Predicate, directive-8 capability)",
+      "models": "the type-directed parameter binder Field.get_prep_value casting a Promise (isinstance(value, Promise) -> value._proxy____cast()) to a concrete value at its real type",
+      "name": "binder_castable",
+      "provenance": "django/db/models/fields/__init__.py:825-828",
+      "role": "facet (2b), the PER-VALUE half of downstream usability; grounds the control-flow effect (binder-resolvable vs not) per directive 8; NOT an answer-key oracle on a result value. Guarded by own_type_unpreparable, because that is exactly the family on which the real __cast does not hand the value back unchanged"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts type(resolved) is type(value) for the value the binder casts to, across CharField/IntegerField/FloatField incl. F2P str 'Rene Magritte'",
+      "encoded_property": "the value's real runtime type is value-dependent; the binder binds the resolved wrapper at this type",
+      "kind": "A-reference",
+      "models": "the value's OWN real runtime type -- the type the binder's cast resolves to, type(value._proxy____cast())",
+      "name": "type_of",
+      "provenance": "the cast result of Field.get_prep_value on the post-patch proxy (django/db/models/fields/__init__.py:825-828) is the original value, whose type() is the value's own real type; NOT the wrapper's surface type (__proxy__) and NOT the declared result class",
+      "role": "deep model (axioms region) of the value's real runtime type; an A-reference component of binder_castable's third argument"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): BOTH real constructions resolve to the original value over the ordinary values, so the resolution value is a shared facet and not the discriminator; and the silent-shape lane measures a member of the unpreparable family where the post-change construction's resolution succeeds with one advisory notice and returns an object that is neither equal to the value nor of its type, while the pre-change construction stays faithful there -- which is what makes the guard necessary and no wider than reality. conformance_check.py's check_silent_divergence lane diffs the same shape shadow-vs-real.",
+      "encoded_property": "holding resolves_to(w, value) means that RUNNING w's deferred computation yields exactly value. It is INERT: an abstract predicate with no body, so it can be held, required and handed on but never evaluated, unfolded or taken apart -- it is neither a readable field nor a @Pure projection, both of which an implementation can read for free and silently. The only runtime route from an entry to its value is therefore run_deferral, which charges the effect ledger. That asymmetry is what makes obligation (3) expressible -- with a free read, resolving the entry early and leaving it deferred would be indistinguishable. Since the ROUND-TRIP is guarded, the fact that an entry belongs to THIS value is carried separately and unconditionally by deferral_of, so the guard relaxes what running the entry yields and not which value it was built for.",
+      "kind": "A-reference (abstract @ContractOnly @Predicate, INERT capability)",
+      "models": "the value a deferred entry resolves to when its deferred computation is run -- the value the per-entry access closure returns (django/views/generic/base.py:180)",
+      "name": "resolves_to",
+      "provenance": "django/views/generic/base.py:173-180 (the access closure's return value is the original URL-kwarg value)",
+      "role": "facet (1b): the resolution ROUND-TRIP, granted by BOTH constructions and therefore never a discriminator; deliberately not obtainable without an effect. On the contracted operation and on wrap_resolvable it is GUARDED by NOT own_type_unpreparable(value), because on that family the real resolution may post-process the value instead of returning it -- and in one measured sub-shape that post-processing SUCCEEDS, so the divergence is silent. wrap_opaque, which makes no per-value consultation, grants it unconditionally. The WHOLE-DOMAIN half of facet (1) is deferral_of, which stays unconditional on both constructions."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): construction raises 0 notices, each resolution raises exactly 1 (no memoisation), binder resolution raises 1, and escalation turns a resolution -- but not a construction -- into an error",
+      "encoded_property": "deferrals_run(n) means exactly n deferred computations have been run so far. Unforgeable and monotone: no body (cannot be Folded into existence, so a spent count cannot be re-minted), a predicate rather than a field (cannot be assigned back down), and NOT indexed by an entry (running ANY entry's deferral, including a throwaway one, is charged to the same ledger). No producer anywhere in the specification; the window is lent by the caller at 0.",
+      "kind": "A-reference (abstract @ContractOnly @Predicate, effect ledger)",
+      "models": "the count of advisory notices raised by running deferred computations in the observation window -- i.e. how many per-entry access closures have RUN while the mapping is being assembled",
+      "name": "deferrals_run",
+      "provenance": "django/views/generic/base.py:174-179 (each RUN of a per-entry access closure raises one advisory notice); tests/runtests.py escalates that notice class to an error, which is why a run during assembly is process-observable",
+      "role": "the effect carrier for obligation (3) DEFERRAL PRESERVED; it is what makes eager resolution at build time rejectable rather than merely inexpressible"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the real lazy(...)() entry is a Promise at every probed value INCLUDING both bytes-arm members of the unpreparable family (where recognition succeeds and the subsequent resolution respectively raises and silently returns another object), while the real SimpleLazyObject entry is a Promise at none of them",
+      "encoded_property": "holding binder_accepts(w) means a type-directed binder RECOGNISES w as an entry to resolve rather than passing it through as an unsupported type. Unforgeable: abstract (no body to Fold) and tied to the specific entry, so a capability for another entry does not discharge it. SOLE producer: wrap_resolvable's Ensures, unconditionally; wrap_opaque never grants it.",
+      "kind": "A-reference (abstract @ContractOnly @Predicate, directive-8 capability)",
+      "models": "the type-directed binder's RECOGNITION test -- Field.get_prep_value dispatching on isinstance(value, Promise) before it resolves anything",
+      "name": "binder_accepts",
+      "provenance": "django/db/models/fields/__init__.py:825-828; django/utils/functional.py:84 (__proxy__ subclasses Promise, so the test succeeds at EVERY value the construction returns an entry for), vs functional.py:356 (SimpleLazyObject is a LazyObject and not a Promise, so it never succeeds)",
+      "role": "facet (2a), the WHOLE-DOMAIN half of downstream usability and the discriminator the prepatch twin fails on -- measured on model_prepatch.py through the verifier as 'Postcondition of wrap_kwarg_value might not hold. There might be insufficient permission to access binder_accepts(Result())'. Unguarded on purpose: there is no value family on which handing back a stand-in the binder refuses is acceptable, which is what keeps the guard on binder_castable from going silent on that family"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): measured where it matters, on the silent member of the unpreparable family where the round-trip is gone -- the entry built for a value reporting width n resolves to n bytes and a same-shape value reporting n + 2 resolves to n + 2 bytes, so the entry demonstrably carries THIS value's computation. properties.py's weak-family-substituted-entry is the rival this reference alone rejects",
+      "encoded_property": "holding deferral_of(w, value) means w defers the computation captured for value. INERT on the same terms as resolves_to: an abstract predicate with no body, so it can be held, threaded through and handed back but never EVALUATED -- it is not a second, free, silent route from an entry to its value, and it cannot be Folded into existence. It names the specific entry AND the specific value, so a capability obtained for a different value does not discharge it. Granted UNCONDITIONALLY by BOTH constructions.",
+      "kind": "A-reference (abstract @ContractOnly @Predicate, INERT capability)",
+      "models": "WHICH value's deferred computation an entry carries -- the per-entry access closure the wrapper was built around, so whatever running the entry hands back is determined by that value and by nothing else",
+      "name": "deferral_of",
+      "provenance": "django/views/generic/base.py:169-178 (the access_value closure is created per loop iteration and closes over THAT iteration's value); both images wrap that same closure, pre-patch at base.py:172/181 and post-patch at base.py:180",
+      "role": "facet (1a): resolution PROVENANCE, the WHOLE-DOMAIN half of facet (1) and, like resolves_to, a shared fact that is never a discriminator. Its job is to keep the guard on the ROUND-TRIP half (resolves_to) from becoming a licence to substitute: on the own_type_unpreparable family an implementation still may not hand back an entry built around some other value, even though no round-trip is promised there"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T07:52:32+00:00",
+      "code_version": "e270ccb33-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: type_of + wrap_resolvable/wrap_opaque + binder_accepts + binder_castable + run_deferral/deferrals_run/resolves_to/deferral_of/own_type_unpreparable deep models sound against real django.utils.functional.lazy / SimpleLazyObject, Field.get_prep_value and the real advisory-notice effect on 8 values across CharField/IntegerField/FloatField (incl. F2P str 'Rene Magritte'): the type-directed binder resolves the post-change Promise entry to the value at its OWN real type (grants binder_castable) and rejects the pre-change non-Promise entry (no capability); CONSTRUCTING either entry runs no deferred computation (raises 0 notices, survives an escalating configuration) while EACH resolution that runs it costs exactly 1 notice (repeats of the binder-resolvable entry re-run per access; binder resolution is itself a run), so the ledger faithfully models the effect and deferral-preservation is a property both images share; alternative result classes (object/int/str) are admitted on both discriminators; and the PARTIALITY boundary is exercised on BOTH preparation routes -- the hook-exposing construction raises for all 13 type-valued inputs and for 5 NON-TYPE unpreparable inputs (mro-shadowing and metaclass-__eq__ ones), always raising 0 notices on the way out so the ledger is preserved on the aborting exit; it returns an entry that resolves BACK to the original value for all 17 ordinary inputs (licensing the unguarded binder_castable clause there); and on the bytes-arm member the build SUCCEEDS, the entry is Promise-recognised, and resolution does NOT yield the value -- which is exactly why binder_accepts is unconditional while binder_castable and the resolution-value clause are guarded; on the 1 SILENT member(s) of that family every step succeeds (build, recognition, resolution, and the binder's own resolution) with exactly one notice and no exception, and the value still does not come back, which is what an unconditional resolution-value clause would have wrongly predicted -- while what does come back is DERIVED from that same value and a member of the same shape built around a different value resolves differently, which is what licenses keeping the PROVENANCE half (deferral_of) unconditional there. The hookless construction is total on all of them (so the abort is PERMITTED, never REQUIRED).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "36b0bc52e7ad9143a3ca98fba31af9a4652296a5c2bf6b207e4584b0c0d3304a",
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T07:53:10+00:00",
+      "code_version": "e270ccb33-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "build_time_deferral_runs_oracle": 0,
+          "build_time_deferral_runs_shadow": 0,
+          "checked": 100051,
+          "disagreements": 0,
+          "non_aborting_unpreparable_inputs_checked": 2,
+          "partiality_inputs_checked": 18,
+          "seed": 132970,
+          "shadow": "direct (impl region verbatim; @ContractOnly callee bridged to the real deferred-wrapping repo callee)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100051, \"disagreements\": 0, \"seed\": 132970, \"partiality_inputs_checked\": 18, \"non_aborting_unpreparable_inputs_checked\": 2, \"build_time_deferral_runs_shadow\": 0, \"build_time_deferral_runs_oracle\": 0, \"shadow\": \"direct (impl region verbatim; @ContractOnly callee bridged to the real deferred-wrapping repo callee)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "f0c7af8ce351823298e9c18076691032081f786ef1a90a811a3cf23050c29d03",
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:53:00+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919",
+        "model_prepatch.py": "bf56da4bbd63a1b2ffe358c968f9b3c6248ccadd2b15b5f97220346a76b6f0b3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T09:07:26+00:00",
+      "code_version": "eaead7384-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 12 | `atk_1.py`, `atk_2.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_3.py` |\n\n**Non-vacuity.** The positive control `atk_pos.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919",
+        "properties.py": "bd5580653275ec0988cb91432e504df988235926ec140cabb63899fe3d1ada12"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:53:34+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919",
+        "model_prepatch.py": "bf56da4bbd63a1b2ffe358c968f9b3c6248ccadd2b15b5f97220346a76b6f0b3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T05:58:10+00:00",
+      "code_version": "5f6d65769-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "5b47dcde72f1be0baf3429f0acc774dfbeaaa6d835ed760cdc25cb5a8392c32c",
+          "impl": "ea9014f36baae1037e9b084ddb85cfe01912bed66a56053d6496d063412fb27e",
+          "post-conditions": "8260e8fbaee3a78dfe6e20f63ac11bc0afdd1edce5cc09e7e023ef7155778079",
+          "pre-conditions": "fedf73b671ccaeaf89de0e436bce0334f160661c3adc8788c94b5316d09bac47",
+          "pure": "061b5cbb145d1acfc2dd60824dce52bc2665931fd72d026e67499f84e7bed69c",
+          "spec_view": "bc35c08472765abc63bcc71bec7aaab50ca89ae08483a7d4c200cb6616c1dfe8"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T05:58:09+00:00",
+      "code_version": "5f6d65769-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7b76542f8640a143a45b27d9af536fa5ac92442250c5204f77aa8262946a7be3",
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T05:58:10+00:00",
+      "code_version": "5f6d65769-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T05:56:55+00:00",
+      "code_version": "5f6d65769-dirty",
+      "data": {},
+      "detail": "no behavioural impl mutants (impl region carries no mutable computation outside verifier directives)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T09:07:27+00:00",
+      "code_version": "eaead7384-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE SETUP. Fresh worktree at base_commit 8954f255bbf5f4ee997fd6de62cb50fc9b5dd697 from repos/django_django.git, then `git apply` of the gold patch (byte-identical to meta.json patch_diff / g2f_13297_gold.diff). Per instructions the PATCHED tree is the reference for the modelled function (wrap_kwarg_value <-> the per-entry wrapping `context_kwargs[key] = lazy(access_value, type(value))()` in django/views/generic/base.py:180); base_commit is the reference only for untouched callees. Bundle never modified; all work in /tmp.\n\nCONTROLS. Unmodified model.py verifies (`Verification successful`, 12.16s, pinned nagini_verify.sh) and `adversary same-spec` reports SAME, so the spec region I audited is byte-identical to the bundle's. Bundle's own batteries re-run against MY worktree, not the cell's cached artifacts: axiom_check.py exit 0 (G-AX OK; 8 values across CharField/IntegerField/FloatField incl. F2P str 'Rene Magritte'; partiality boundary on both preparation routes); conformance_check.py exit 0 (100051 inputs = 51 boundary + 100000 fuzz seed 132970, 0 disagreements, 0 build-time deferral runs on both sides, 18 partiality inputs agreeing on the abort).\n\nWHAT A TOO-STRONG SPEC WOULD LOOK LIKE HERE. `own_type_unpreparable` is an abstract uninterpreted @ContractOnly @Pure marker, so every clause guarded by it (1b resolves_to, 2b binder_castable) and the Exsures can only ever be too WEAK, never too strong -- an over-large family loses guarantees, it never predicts an outcome the repo does not produce. The spec can therefore only over-claim through its FOUR UNGUARDED obligations, which is where I concentrated: (i) Ensures(deferrals_run(0)) on the normal exit, (ii) Ensures(deferral_of(Result(), value)) [provenance, whole domain], (iii) Ensures(binder_accepts(Result())) [Promise-recognition, whole domain], (iv) Exsures(Exception, deferrals_run(0)) [ledger preserved on the aborting exit].\n\nSWEEP (atk2fa_sweep.py). Oracle = the REAL patched _wrap_url_kwargs_with_deprecation_warning called one value per invocation so an abort cannot mask siblings. 66-case hand-built corpus + 30000 fuzz values: str (empty/space/latin-1/astral/NUL/5000-char), int (0, +-1, +-2**63, 2**200), float (+-0.0, +-inf, 1e308, 5e-324), bool, None, bytes/bytearray, tuple/list/dict/set/frozenset, complex, Decimal, date, datetime, uuid, Fraction, str/bytes/int subclasses, __slots__ and no-__dict__ instances, object(), lambda, range, iterator, Ellipsis, NotImplemented; type-valued (int, str, type, Field, abc.ABCMeta); and the hostile non-type members of both preparation routes -- mro shadowed as a data attribute / one-arg method / property, custom-mro metaclass, __dict__-raising metaclass, __setattr__-raising metaclass, and metaclass __eq__ variants returning bytes-only / True-for-all / raising / str-only. Result: 0 violations of any unguarded clause.\n\nCLAUSE-BY-CLAUSE CONFIRMATION.\n(iii) binder_accepts unconditional is the spec's boldest unguarded claim and it holds structurally: django.utils.functional.lazy's __proxy__ subclasses Promise (functional.py:85), so whenever the build RETURNS it returns a Promise -- there is no value at which it returns a non-Promise stand-in. I attacked this directly (atk2fa_probe4.py) with 20 result classes whose __dict__ shadows proxy internals (__class__, __cast, _delegate_bytes, _delegate_text, __prepared, __promise__, __prepare_class__, __args, __kw, __reduce__, __text_cast, __bytes_cast, __str__, __eq__, __lt__, __hash__, __mod__, ...): every surviving build was still isinstance(w, Promise). 0 subversions. Critically the guarded/unguarded split is exactly right on the awkward bytes-arm member: EqBytesOnly builds OK, IS Promise-recognised, and then _proxy____cast() raises TypeError -- so binder_accepts unconditional is satisfied there while binder_castable must be (and is) guarded. A spec that had guarded 2a instead would be too weak, not too strong.\n(ii) deferral_of unconditional: wrapped 4 keys in ONE real call and resolved each entry -- each closed over its own key's value with exactly 1 notice. The post-patch closure still binds `value=value` from the loop, so provenance holds on the whole domain including inside the unpreparable family; nothing was substituted.\n(i)/(iv) deferrals_run(0) on BOTH exits: instrumented warnings.warn with a traceback spy that counts only frames actually inside `access_value` -- i.e. real deferral RUNS, not merely RemovedInDjango40Warning-category emissions. Across the whole corpus + fuzz the delta at build time is 0 on the returning exit AND 0 on every aborting exit. This also killed my only apparent hit: a value whose metaclass __eq__ itself emits RemovedInDjango40Warning showed 2 category-matching warnings at build, but the spy proved access_value ran 0 times -- the notices came from the value's own metaclass during `bytes in resultclasses`, not from a deferral. Probe artifact, not a divergence.\nAbort provenance: every real abort I could produce (int, type, abc.ABCMeta, Field, EqBoom->RuntimeError, EqAll->AssertionError, MroData->TypeError, DictBoom->ValueError) originates inside __proxy__.__prepare_class__ (functional.py:109-127), which is precisely the family mapping.md defines, so the guarded Exsures never licenses an abort the repo does not take -- and Exsures is permitted-not-required, so the total pre-patch construction remains admissible.\nOff-family resolution / type_of: for every ordinary value the binder returned the IDENTICAL object (`is`, stronger than ==) with type(resolved) is type(value), and each cast performed exactly 1 run (non-memoised, matching run_deferral counting runs not accesses). So binder_castable(Result(), value, type_of(value)) with type_of = the value's OWN runtime type is exactly what the repo delivers -- not the proxy's surface type (__proxy__) and not the declared result class.\n\nONE NIT EXAMINED AND DISMISSED. type_of is the concrete `value < 0 -> 0 else value + 1`, hence injective on non-negatives, which literally contradicts its own docstring's 'distinct values may share a type-tag'. It is NOT a faithfulness break: the contract only ever instantiates type_of at the single value under construction and never relates the tags of two different values, so injectivity is unobservable to any proof and shifts the obligation on no input. Separately, MustTerminate(6) on wrap_resolvable would not model a value whose metaclass __eq__ diverges, but that is the Nagini termination-measure convention rather than a value-level behavioural divergence, and it is not an input on which the modelled function disagrees with the real callee.\n\nCONCLUSION. I found no input on which the modelled wrap_kwarg_value disagrees with the real patched per-entry wrapping. The unguarded clauses are each independently justified by the repo (Promise-by-construction, closure provenance, no access_value call during build on either exit); the guarded clauses are guarded exactly where the repo withdraws its guarantee, including the subtle silent bytes-arm case. The spec is not too strong and does not drift from repo behaviour. FAITHFUL. (No diverging input is cited because none exists; per the gate's rule a diverging input is required only to claim a defect.)",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE. Leakage judged against the solver-visible problem_statement ONLY (hints_text excluded, 452 chars, never consulted for screening). No relaxation is in play and none is needed: `ls` of the bundle shows NO RELAXED_LEAKAGE.md, and a recursive key scan of meta.json for /relax/i returns nothing; meta.json gates.G-LEAK is {status: pass, mode: strict}. So this is judged at the STRICT bar, which is the bar the bundle asserts.\n\nWHICH BYTES I JUDGED (this matters -- the spec was revised since the last panel run). Current model.py sha256 = b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919. I regenerated the consumer view myself with markers.spec_view(model.py, nagini_backend) -> 512 lines, sha256 bc35c08472765abc63bcc71bec7aaab50ca89ae08483a7d4c200cb6616c1dfe8, which matches meta gates.G-HYGIENE.data.region_hashes.spec_view exactly. The PRIOR G-PANEL-3 LEAKAGE finding recorded in meta/verdict.md was against model.py 3794e31d22bc..., a DIFFERENT and now-superseded artifact, so I did not inherit its disposition; I re-derived everything on the current bytes.\n\nTHE PRIOR FINDING'S CITED LEAK IS GONE -- measured, not assumed. That note's whole reconstruction rested on the spec view paraphrasing the unique internals of django.utils.functional.lazy.__proxy__.__prepare_class__ (mro ancestor-chain enumeration, bytes/str delegate arms, advertised result types). I grepped the current spec view for every one of those tokens, case-insensitive: mro 0, ancestor 0, advertis 0, 'result type' 0, resultclass 0, metaclass 0, overlay 0, 'zero-argument' 0, delegat 0, enumerat 0, 'type-of-types' 0, contradictory 0, 'post-process' 0, __proxy__ 0, prepare_class 0. Also: lazy 0, SimpleLazyObject 0, Promise 0 (capital-P), functional 0. The mechanism narration the earlier reviewer measured has been de-narrated out. The only residual 'prepar' hits (23) are all the identifier own_type_unpreparable itself, and the 2 'member' hits are the English word 'membership'.\n\nREPO-SYMBOL / PATH / QUOTED-LINE SCREEN (all re-run by me, not read off the gate). Zero occurrences in the spec view of: access_value, _wrap_url_kwargs_with_deprecation_warning, context_kwargs, url_kwargs, TemplateView, get_context_data, RemovedInDjango40Warning, views/generic, base.py, django/utils, and every gold file:line coordinate (168/172/181/109/127 all 0). I ran leakage._patch_changed_lines over the real gold patch and whitespace-normalized both sides: NO changed gold line of length >=8 appears in the spec view. Diff markers: none of _PY_DIFF_MARKERS present. Patched path django/views/generic/base.py: not present. leakage._NARRATION_RE over the spec view returns [] -- no bug/fix/patch/regression vocabulary. Full leakage.screen(...) -> passed=True, hard_failures=[], warnings=[]. I treated that pass as necessary-not-sufficient and did the L3 mechanism judgement by hand above, since G-LEAK's _patch_changed_symbols only harvests def|class names ({access_value, wrap_url_kwargs_with_deprecation_warning}) and structurally cannot see `lazy`, which enters the gold diff as an import and a call.\n\nWHAT THE SPEC VIEW *DOES* NAME, AND WHY IT IS PS-COVERED. It says an entry must be RECOGNISED by a type-directed parameter binder rather than refused as an \"unsupported type\" (2a), and off an abstract family must resolve to the value at its own real runtime type (2b). Both are readable straight off the public problem_statement: the PS supplies the crash 'Error binding parameter 0 - probably unsupported type' (the literal phrase 'unsupported type' is IN the PS), names SimpleLazyObject as the object that fails to resolve, and shows the user-side workaround str(offer_slug) -- i.e. the PS itself states that the object must resolve to a value of the right type at the DB-binding boundary. 'Resolve to the value at its own real type' is the abstract restatement of exactly that symptom, not a disclosure of the repair.\n\nUNAVOIDABILITY / LOAD-BEARING TEST (the usual strip-and-reverify, run against the PRE-patch impl). I measured which clause is the actual discriminator rather than guessing. Baseline: gold model verifies (`nagini_verify.sh gold.py` -> Verification successful, 11.78s); prepatch fails at pre.py:483 'Postcondition of wrap_kwarg_value might not hold. There might be insufficient permission to access binder_accepts(Result())' (22.10s). I then deleted the guarded binder_castable/type_of clause (2b) from the prepatch model and re-ran: STILL fails, and still on binder_accepts (pre_no2b.py:481, 12.19s). So the load-bearing discriminator is binder_accepts (2a) -- 'the binder recognises the entry instead of refusing it as an unsupported type' -- which is the PS's own crash text. The type-flavoured clause is NOT what senses the change, so it is not carrying gold internals as its justification.\n\nIDENTIFIER-AVOIDABILITY CHECK. Someone could argue own_type_unpreparable hints at type(value). I tested it: renamed it to the neutral domain_marker_p throughout, confirmed logic identity by ast.parse + docstring-strip + ast.unparse (LOGIC IDENTICAL, all Requires/Ensures/Exsures clause sets byte-equal modulo the rename), and the renamed spec still verifies (16.79s). So the name is cosmetic, and in the spec view the family is explicitly declared abstract and UNINTERPRETED -- the view states outright that it asserts nothing about which values are in it, that no arithmetic on the value-tag can decide it, that a proof can only use it as an opaque case split, and that membership is settled out of band. It also explicitly says membership does NOT coincide with 'the build aborts'. A solver reading only the spec view learns that some unspecified value family is exempt; it cannot recover mro-unavailability or bytes/str delegation, which is where the real partition lives (mapping.md line 17 -- a file the consumer never receives; only spec_view + problem_statement + modeled_functions reach the consumer per eval/prompts.py).\n\nRESIDUAL SOLUTION SPACE (the real test of whether the gold edit is pinned). The view demands: recognised by the binder, resolves to the value at its real type, provenance-faithful, and ledger-preserving (no deferred computation run at build time). Multiple non-gold repairs satisfy that reading -- make the existing lazy stand-in expose the binder's resolution hook, register it with the binder, hand back a differently-constructed deferred proxy, or supply any other recognised deferred wrapper. Nothing in the view says WHICH callee to swap in or that the repair is an import change plus a two-argument call, and 'lazy' appears zero times. The view constrains the observable contract; it does not select the edit.\n\nCORE GATES THE DISPOSITION LEANS ON: G-VERIFY pass, G-GOLD pass (gold verifies, prepatch fails), G-DIFF pass (prepatch 'verification failed'), G-LEAK pass/strict, G-RESOLVE pass/resolved, G-AX pass, G-CONF pass (100051 checked, 0 disagreements). I independently reproduced the two that carry this verdict -- gold verifies, prepatch fails on binder_accepts.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as a finding in its own right, per instructions): CLEAN in the spec-bearing artifacts. I grepped model.py, mapping.md and refinement.md for attacker/panel/reviewer/'honest verdict'/'should record'/'do not flag'/NO-LEAKAGE/submit_result/leaking_line: only ordinary self-description ('lets the contract stay honest' at model.py:295, describing the contract's treatment of the partial family). Nothing instructs me how to record or which verdict to reach. Noting for the record, without treating it as steering of me: verdict.md contains the superseded prior G-PANEL-3 LEAKAGE write-up (line 961 onward, incl. its own bundle-addresses-reviewer paragraph at 1011). That is an audit ledger of a past run against older bytes, not an instruction to this run; I judged the current spec view independently and my conclusion differs from it because the narration it cited has since been removed.\n\nCONCLUSION: NO-LEAKAGE. On the current bytes the spec view quotes no gold line, names no patched file/function/symbol, echoes no gold-only vocabulary, and narrates no bug->fix mechanism. The one discriminator it does state (binder recognition / 'unsupported type') is verbatim public in the problem_statement, and I measured it to be the load-bearing clause, so removing it would break G-DIFF rather than merely de-narrate.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE SETUP. Fresh worktree at base_commit 8954f255bbf5f4ee997fd6de62cb50fc9b5dd697 from repos/django_django.git, then `git apply` of the gold patch (byte-identical to meta.json patch_diff / g2f_13297_gold.diff). Per instructions the PATCHED tree is the reference for the modelled function (wrap_kwarg_value <-> the per-entry wrapping `context_kwargs[key] = lazy(access_value, type(value))()` in django/views/generic/base.py:180); base_commit is the reference only for untouched callees. Bundle never modified; all work in /tmp.\n\nCONTROLS. Unmodified model.py verifies (`Verification successful`, 12.16s, pinned nagini_verify.sh) and `adversary same-spec` reports SAME, so the spec region I audited is byte-identical to the bundle's. Bundle's own batteries re-run against MY worktree, not the cell's cached artifacts: axiom_check.py exit 0 (G-AX OK; 8 values across CharField/IntegerField/FloatField incl. F2P str 'Rene Magritte'; partiality boundary on both preparation routes); conformance_check.py exit 0 (100051 inputs = 51 boundary + 100000 fuzz seed 132970, 0 disagreements, 0 build-time deferral runs on both sides, 18 partiality inputs agreeing on the abort).\n\nWHAT A TOO-STRONG SPEC WOULD LOOK LIKE HERE. `own_type_unpreparable` is an abstract uninterpreted @ContractOnly @Pure marker, so every clause guarded by it (1b resolves_to, 2b binder_castable) and the Exsures can only ever be too WEAK, never too strong -- an over-large family loses guarantees, it never predicts an outcome the repo does not produce. The spec can therefore only over-claim through its FOUR UNGUARDED obligations, which is where I concentrated: (i) Ensures(deferrals_run(0)) on the normal exit, (ii) Ensures(deferral_of(Result(), value)) [provenance, whole domain], (iii) Ensures(binder_accepts(Result())) [Promise-recognition, whole domain], (iv) Exsures(Exception, deferrals_run(0)) [ledger preserved on the aborting exit].\n\nSWEEP (atk2fa_sweep.py). Oracle = the REAL patched _wrap_url_kwargs_with_deprecation_warning called one value per invocation so an abort cannot mask siblings. 66-case hand-built corpus + 30000 fuzz values: str (empty/space/latin-1/astral/NUL/5000-char), int (0, +-1, +-2**63, 2**200), float (+-0.0, +-inf, 1e308, 5e-324), bool, None, bytes/bytearray, tuple/list/dict/set/frozenset, complex, Decimal, date, datetime, uuid, Fraction, str/bytes/int subclasses, __slots__ and no-__dict__ instances, object(), lambda, range, iterator, Ellipsis, NotImplemented; type-valued (int, str, type, Field, abc.ABCMeta); and the hostile non-type members of both preparation routes -- mro shadowed as a data attribute / one-arg method / property, custom-mro metaclass, __dict__-raising metaclass, __setattr__-raising metaclass, and metaclass __eq__ variants returning bytes-only / True-for-all / raising / str-only. Result: 0 violations of any unguarded clause.\n\nCLAUSE-BY-CLAUSE CONFIRMATION.\n(iii) binder_accepts unconditional is the spec's boldest unguarded claim and it holds structurally: django.utils.functional.lazy's __proxy__ subclasses Promise (functional.py:85), so whenever the build RETURNS it returns a Promise -- there is no value at which it returns a non-Promise stand-in. I attacked this directly (atk2fa_probe4.py) with 20 result classes whose __dict__ shadows proxy internals (__class__, __cast, _delegate_bytes, _delegate_text, __prepared, __promise__, __prepare_class__, __args, __kw, __reduce__, __text_cast, __bytes_cast, __str__, __eq__, __lt__, __hash__, __mod__, ...): every surviving build was still isinstance(w, Promise). 0 subversions. Critically the guarded/unguarded split is exactly right on the awkward bytes-arm member: EqBytesOnly builds OK, IS Promise-recognised, and then _proxy____cast() raises TypeError -- so binder_accepts unconditional is satisfied there while binder_castable must be (and is) guarded. A spec that had guarded 2a instead would be too weak, not too strong.\n(ii) deferral_of unconditional: wrapped 4 keys in ONE real call and resolved each entry -- each closed over its own key's value with exactly 1 notice. The post-patch closure still binds `value=value` from the loop, so provenance holds on the whole domain including inside the unpreparable family; nothing was substituted.\n(i)/(iv) deferrals_run(0) on BOTH exits: instrumented warnings.warn with a traceback spy that counts only frames actually inside `access_value` -- i.e. real deferral RUNS, not merely RemovedInDjango40Warning-category emissions. Across the whole corpus + fuzz the delta at build time is 0 on the returning exit AND 0 on every aborting exit. This also killed my only apparent hit: a value whose metaclass __eq__ itself emits RemovedInDjango40Warning showed 2 category-matching warnings at build, but the spy proved access_value ran 0 times -- the notices came from the value's own metaclass during `bytes in resultclasses`, not from a deferral. Probe artifact, not a divergence.\nAbort provenance: every real abort I could produce (int, type, abc.ABCMeta, Field, EqBoom->RuntimeError, EqAll->AssertionError, MroData->TypeError, DictBoom->ValueError) originates inside __proxy__.__prepare_class__ (functional.py:109-127), which is precisely the family mapping.md defines, so the guarded Exsures never licenses an abort the repo does not take -- and Exsures is permitted-not-required, so the total pre-patch construction remains admissible.\nOff-family resolution / type_of: for every ordinary value the binder returned the IDENTICAL object (`is`, stronger than ==) with type(resolved) is type(value), and each cast performed exactly 1 run (non-memoised, matching run_deferral counting runs not accesses). So binder_castable(Result(), value, type_of(value)) with type_of = the value's OWN runtime type is exactly what the repo delivers -- not the proxy's surface type (__proxy__) and not the declared result class.\n\nONE NIT EXAMINED AND DISMISSED. type_of is the concrete `value < 0 -> 0 else value + 1`, hence injective on non-negatives, which literally contradicts its own docstring's 'distinct values may share a type-tag'. It is NOT a faithfulness break: the contract only ever instantiates type_of at the single value under construction and never relates the tags of two different values, so injectivity is unobservable to any proof and shifts the obligation on no input. Separately, MustTerminate(6) on wrap_resolvable would not model a value whose metaclass __eq__ diverges, but that is the Nagini termination-measure convention rather than a value-level behavioural divergence, and it is not an input on which the modelled function disagrees with the real callee.\n\nCONCLUSION. I found no input on which the modelled wrap_kwarg_value disagrees with the real patched per-entry wrapping. The unguarded clauses are each independently justified by the repo (Promise-by-construction, closure provenance, no access_value call during build on either exit); the guarded clauses are guarded exactly where the repo withdraws its guarantee, including the subtle silent bytes-arm case. The spec is not too strong and does not drift from repo behaviour. FAITHFUL. (No diverging input is cited because none exists; per the gate's rule a diverging input is required only to claim a defect.); G-PANEL-3 (leakage): pass \u2014 SCOPE. Leakage judged against the solver-visible problem_statement ONLY (hints_text excluded, 452 chars, never consulted for screening). No relaxation is in play and none is needed: `ls` of the bundle shows NO RELAXED_LEAKAGE.md, and a recursive key scan of meta.json for /relax/i returns nothing; meta.json gates.G-LEAK is {status: pass, mode: strict}. So this is judged at the STRICT bar, which is the bar the bundle asserts.\n\nWHICH BYTES I JUDGED (this matters -- the spec was revised since the last panel run). Current model.py sha256 = b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919. I regenerated the consumer view myself with markers.spec_view(model.py, nagini_backend) -> 512 lines, sha256 bc35c08472765abc63bcc71bec7aaab50ca89ae08483a7d4c200cb6616c1dfe8, which matches meta gates.G-HYGIENE.data.region_hashes.spec_view exactly. The PRIOR G-PANEL-3 LEAKAGE finding recorded in meta/verdict.md was against model.py 3794e31d22bc..., a DIFFERENT and now-superseded artifact, so I did not inherit its disposition; I re-derived everything on the current bytes.\n\nTHE PRIOR FINDING'S CITED LEAK IS GONE -- measured, not assumed. That note's whole reconstruction rested on the spec view paraphrasing the unique internals of django.utils.functional.lazy.__proxy__.__prepare_class__ (mro ancestor-chain enumeration, bytes/str delegate arms, advertised result types). I grepped the current spec view for every one of those tokens, case-insensitive: mro 0, ancestor 0, advertis 0, 'result type' 0, resultclass 0, metaclass 0, overlay 0, 'zero-argument' 0, delegat 0, enumerat 0, 'type-of-types' 0, contradictory 0, 'post-process' 0, __proxy__ 0, prepare_class 0. Also: lazy 0, SimpleLazyObject 0, Promise 0 (capital-P), functional 0. The mechanism narration the earlier reviewer measured has been de-narrated out. The only residual 'prepar' hits (23) are all the identifier own_type_unpreparable itself, and the 2 'member' hits are the English word 'membership'.\n\nREPO-SYMBOL / PATH / QUOTED-LINE SCREEN (all re-run by me, not read off the gate). Zero occurrences in the spec view of: access_value, _wrap_url_kwargs_with_deprecation_warning, context_kwargs, url_kwargs, TemplateView, get_context_data, RemovedInDjango40Warning, views/generic, base.py, django/utils, and every gold file:line coordinate (168/172/181/109/127 all 0). I ran leakage._patch_changed_lines over the real gold patch and whitespace-normalized both sides: NO changed gold line of length >=8 appears in the spec view. Diff markers: none of _PY_DIFF_MARKERS present. Patched path django/views/generic/base.py: not present. leakage._NARRATION_RE over the spec view returns [] -- no bug/fix/patch/regression vocabulary. Full leakage.screen(...) -> passed=True, hard_failures=[], warnings=[]. I treated that pass as necessary-not-sufficient and did the L3 mechanism judgement by hand above, since G-LEAK's _patch_changed_symbols only harvests def|class names ({access_value, wrap_url_kwargs_with_deprecation_warning}) and structurally cannot see `lazy`, which enters the gold diff as an import and a call.\n\nWHAT THE SPEC VIEW *DOES* NAME, AND WHY IT IS PS-COVERED. It says an entry must be RECOGNISED by a type-directed parameter binder rather than refused as an \"unsupported type\" (2a), and off an abstract family must resolve to the value at its own real runtime type (2b). Both are readable straight off the public problem_statement: the PS supplies the crash 'Error binding parameter 0 - probably unsupported type' (the literal phrase 'unsupported type' is IN the PS), names SimpleLazyObject as the object that fails to resolve, and shows the user-side workaround str(offer_slug) -- i.e. the PS itself states that the object must resolve to a value of the right type at the DB-binding boundary. 'Resolve to the value at its own real type' is the abstract restatement of exactly that symptom, not a disclosure of the repair.\n\nUNAVOIDABILITY / LOAD-BEARING TEST (the usual strip-and-reverify, run against the PRE-patch impl). I measured which clause is the actual discriminator rather than guessing. Baseline: gold model verifies (`nagini_verify.sh gold.py` -> Verification successful, 11.78s); prepatch fails at pre.py:483 'Postcondition of wrap_kwarg_value might not hold. There might be insufficient permission to access binder_accepts(Result())' (22.10s). I then deleted the guarded binder_castable/type_of clause (2b) from the prepatch model and re-ran: STILL fails, and still on binder_accepts (pre_no2b.py:481, 12.19s). So the load-bearing discriminator is binder_accepts (2a) -- 'the binder recognises the entry instead of refusing it as an unsupported type' -- which is the PS's own crash text. The type-flavoured clause is NOT what senses the change, so it is not carrying gold internals as its justification.\n\nIDENTIFIER-AVOIDABILITY CHECK. Someone could argue own_type_unpreparable hints at type(value). I tested it: renamed it to the neutral domain_marker_p throughout, confirmed logic identity by ast.parse + docstring-strip + ast.unparse (LOGIC IDENTICAL, all Requires/Ensures/Exsures clause sets byte-equal modulo the rename), and the renamed spec still verifies (16.79s). So the name is cosmetic, and in the spec view the family is explicitly declared abstract and UNINTERPRETED -- the view states outright that it asserts nothing about which values are in it, that no arithmetic on the value-tag can decide it, that a proof can only use it as an opaque case split, and that membership is settled out of band. It also explicitly says membership does NOT coincide with 'the build aborts'. A solver reading only the spec view learns that some unspecified value family is exempt; it cannot recover mro-unavailability or bytes/str delegation, which is where the real partition lives (mapping.md line 17 -- a file the consumer never receives; only spec_view + problem_statement + modeled_functions reach the consumer per eval/prompts.py).\n\nRESIDUAL SOLUTION SPACE (the real test of whether the gold edit is pinned). The view demands: recognised by the binder, resolves to the value at its real type, provenance-faithful, and ledger-preserving (no deferred computation run at build time). Multiple non-gold repairs satisfy that reading -- make the existing lazy stand-in expose the binder's resolution hook, register it with the binder, hand back a differently-constructed deferred proxy, or supply any other recognised deferred wrapper. Nothing in the view says WHICH callee to swap in or that the repair is an import change plus a two-argument call, and 'lazy' appears zero times. The view constrains the observable contract; it does not select the edit.\n\nCORE GATES THE DISPOSITION LEANS ON: G-VERIFY pass, G-GOLD pass (gold verifies, prepatch fails), G-DIFF pass (prepatch 'verification failed'), G-LEAK pass/strict, G-RESOLVE pass/resolved, G-AX pass, G-CONF pass (100051 checked, 0 disagreements). I independently reproduced the two that carry this verdict -- gold verifies, prepatch fails on binder_accepts.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as a finding in its own right, per instructions): CLEAN in the spec-bearing artifacts. I grepped model.py, mapping.md and refinement.md for attacker/panel/reviewer/'honest verdict'/'should record'/'do not flag'/NO-LEAKAGE/submit_result/leaking_line: only ordinary self-description ('lets the contract stay honest' at model.py:295, describing the contract's treatment of the partial family). Nothing instructs me how to record or which verdict to reach. Noting for the record, without treating it as steering of me: verdict.md contains the superseded prior G-PANEL-3 LEAKAGE write-up (line 961 onward, incl. its own bundle-addresses-reviewer paragraph at 1011). That is an audit ledger of a past run against older bytes, not an instruction to this run; I judged the current spec view independently and my conclusion differs from it because the narration it cited has since been removed.\n\nCONCLUSION: NO-LEAKAGE. On the current bytes the spec view quotes no gold line, names no patched file/function/symbol, echoes no gold-only vocabulary, and narrates no bug->fix mechanism. The one discriminator it does state (binder recognition / 'unsupported type') is verbatim public in the problem_statement, and I measured it to be the load-bearing clause, so removing it would break G-DIFF rather than merely de-narrate.",
+      "gate": "G-PANEL",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919",
+        "properties.py": "bd5580653275ec0988cb91432e504df988235926ec140cabb63899fe3d1ada12"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T09:07:25+00:00",
+      "code_version": "eaead7384-dirty",
+      "harness_digest": "40c8d81fff13",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 13 admissible attacks re-run of 13 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 13 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 12 | `atk_1.py`, `atk_2.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_3.py` |\n\n**Non-vacuity.** The positive control `atk_pos.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919",
+        "properties.py": "bd5580653275ec0988cb91432e504df988235926ec140cabb63899fe3d1ada12"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T06:27:34+00:00",
+      "code_version": "ee00acecd-dirty",
+      "harness_digest": "cc9658273d25",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE SETUP. Fresh worktree at base_commit 8954f255bbf5f4ee997fd6de62cb50fc9b5dd697 from repos/django_django.git, then `git apply` of the gold patch (byte-identical to meta.json patch_diff / g2f_13297_gold.diff). Per instructions the PATCHED tree is the reference for the modelled function (wrap_kwarg_value <-> the per-entry wrapping `context_kwargs[key] = lazy(access_value, type(value))()` in django/views/generic/base.py:180); base_commit is the reference only for untouched callees. Bundle never modified; all work in /tmp.\n\nCONTROLS. Unmodified model.py verifies (`Verification successful`, 12.16s, pinned nagini_verify.sh) and `adversary same-spec` reports SAME, so the spec region I audited is byte-identical to the bundle's. Bundle's own batteries re-run against MY worktree, not the cell's cached artifacts: axiom_check.py exit 0 (G-AX OK; 8 values across CharField/IntegerField/FloatField incl. F2P str 'Rene Magritte'; partiality boundary on both preparation routes); conformance_check.py exit 0 (100051 inputs = 51 boundary + 100000 fuzz seed 132970, 0 disagreements, 0 build-time deferral runs on both sides, 18 partiality inputs agreeing on the abort).\n\nWHAT A TOO-STRONG SPEC WOULD LOOK LIKE HERE. `own_type_unpreparable` is an abstract uninterpreted @ContractOnly @Pure marker, so every clause guarded by it (1b resolves_to, 2b binder_castable) and the Exsures can only ever be too WEAK, never too strong -- an over-large family loses guarantees, it never predicts an outcome the repo does not produce. The spec can therefore only over-claim through its FOUR UNGUARDED obligations, which is where I concentrated: (i) Ensures(deferrals_run(0)) on the normal exit, (ii) Ensures(deferral_of(Result(), value)) [provenance, whole domain], (iii) Ensures(binder_accepts(Result())) [Promise-recognition, whole domain], (iv) Exsures(Exception, deferrals_run(0)) [ledger preserved on the aborting exit].\n\nSWEEP (atk2fa_sweep.py). Oracle = the REAL patched _wrap_url_kwargs_with_deprecation_warning called one value per invocation so an abort cannot mask siblings. 66-case hand-built corpus + 30000 fuzz values: str (empty/space/latin-1/astral/NUL/5000-char), int (0, +-1, +-2**63, 2**200), float (+-0.0, +-inf, 1e308, 5e-324), bool, None, bytes/bytearray, tuple/list/dict/set/frozenset, complex, Decimal, date, datetime, uuid, Fraction, str/bytes/int subclasses, __slots__ and no-__dict__ instances, object(), lambda, range, iterator, Ellipsis, NotImplemented; type-valued (int, str, type, Field, abc.ABCMeta); and the hostile non-type members of both preparation routes -- mro shadowed as a data attribute / one-arg method / property, custom-mro metaclass, __dict__-raising metaclass, __setattr__-raising metaclass, and metaclass __eq__ variants returning bytes-only / True-for-all / raising / str-only. Result: 0 violations of any unguarded clause.\n\nCLAUSE-BY-CLAUSE CONFIRMATION.\n\n(iii) binder_accepts unconditional is the spec's boldest unguarded claim and it holds structurally: django.utils.functional.lazy's __proxy__ subclasses Promise (functional.py:85), so whenever the build RETURNS it returns a Promise -- there is no value at which it returns a non-Promise stand-in. I attacked this directly (atk2fa_probe4.py) with 20 result classes whose __dict__ shadows proxy internals (__class__, __cast, _delegate_bytes, _delegate_text, __prepared, __promise__, __prepare_class__, __args, __kw, __reduce__, __text_cast, __bytes_cast, __str__, __eq__, __lt__, __hash__, __mod__, ...): every surviving build was still isinstance(w, Promise). 0 subversions. Critically the guarded/unguarded split is exactly right on the awkward bytes-arm member: EqBytesOnly builds OK, IS Promise-recognised, and then _proxy____cast() raises TypeError -- so binder_accepts unconditional is satisfied there while binder_castable must be (and is) guarded. A spec that had guarded 2a instead would be too weak, not too strong.\n\n(ii) deferral_of unconditional: wrapped 4 keys in ONE real call and resolved each entry -- each closed over its own key's value with exactly 1 notice. The post-patch closure still binds `value=value` from the loop, so provenance holds on the whole domain including inside the unpreparable family; nothing was substituted. (i)/(iv) deferrals_run(0) on BOTH exits: instrumented warnings.warn with a traceback spy that counts only frames actually inside `access_value` -- i.e. real deferral RUNS, not merely RemovedInDjango40Warning-category emissions. Across the whole corpus + fuzz the delta at build time is 0 on the returning exit AND 0 on every aborting exit.\n\nThis also killed my only apparent hit: a value whose metaclass __eq__ itself emits RemovedInDjango40Warning showed 2 category-matching warnings at build, but the spy proved access_value ran 0 times -- the notices came from the value's own metaclass during `bytes in resultclasses`, not from a deferral. Probe artifact, not a divergence. Abort provenance: every real abort I could produce (int, type, abc.ABCMeta, Field, EqBoom->RuntimeError, EqAll->AssertionError, MroData->TypeError, DictBoom->ValueError) originates inside __proxy__.__prepare_class__ (functional.py:109-127), which is precisely the family mapping.md defines, so the guarded Exsures never licenses an abort the repo does not take -- and Exsures is permitted-not-required, so the total pre-patch construction remains admissible.\n\nOff-family resolution / type_of: for every ordinary value the binder returned the IDENTICAL object (`is`, stronger than ==) with type(resolved) is type(value), and each cast performed exactly 1 run (non-memoised, matching run_deferral counting runs not accesses). So binder_castable(Result(), value, type_of(value)) with type_of = the value's OWN runtime type is exactly what the repo delivers -- not the proxy's surface type (__proxy__) and not the declared result class.\n\nONE NIT EXAMINED AND DISMISSED. type_of is the concrete `value < 0 -> 0 else value + 1`, hence injective on non-negatives, which literally contradicts its own docstring's 'distinct values may share a type-tag'. It is NOT a faithfulness break: the contract only ever instantiates type_of at the single value under construction and never relates the tags of two different values, so injectivity is unobservable to any proof and shifts the obligation on no input. Separately, MustTerminate(6) on wrap_resolvable would not model a value whose metaclass __eq__ diverges, but that is the Nagini termination-measure convention rather than a value-level behavioural divergence, and it is not an input on which the modelled function disagrees with the real callee.\n\nCONCLUSION. I found no input on which the modelled wrap_kwarg_value disagrees with the real patched per-entry wrapping. The unguarded clauses are each independently justified by the repo (Promise-by-construction, closure provenance, no access_value call during build on either exit); the guarded clauses are guarded exactly where the repo withdraws its guarantee, including the subtle silent bytes-arm case. The spec is not too strong and does not drift from repo behaviour. FAITHFUL. (No diverging input is cited because none exists; per the gate's rule a diverging input is required only to claim a defect.)\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T06:19:22+00:00",
+      "code_version": "e791a1707-dirty",
+      "harness_digest": "cc9658273d25",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE. Leakage judged against the solver-visible problem_statement ONLY (hints_text excluded, 452 chars, never consulted for screening). No relaxation is in play and none is needed: `ls` of the bundle shows NO RELAXED_LEAKAGE.md, and a recursive key scan of meta.json for /relax/i returns nothing; meta.json gates.G-LEAK is {status: pass, mode: strict}. So this is judged at the STRICT bar, which is the bar the bundle asserts.\n\nWHICH BYTES I JUDGED (this matters -- the spec was revised since the last panel run). Current model.py sha256 = b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919. I regenerated the consumer view myself with markers.spec_view(model.py, nagini_backend) -> 512 lines, sha256 bc35c08472765abc63bcc71bec7aaab50ca89ae08483a7d4c200cb6616c1dfe8, which matches meta gates.G-HYGIENE.data.region_hashes.spec_view exactly. The PRIOR G-PANEL-3 LEAKAGE finding recorded in meta/verdict.md was against model.py 3794e31d22bc..., a DIFFERENT and now-superseded artifact, so I did not inherit its disposition; I re-derived everything on the current bytes.\n\nTHE PRIOR FINDING'S CITED LEAK IS GONE -- measured, not assumed. That note's whole reconstruction rested on the spec view paraphrasing the unique internals of django.utils.functional.lazy.__proxy__.__prepare_class__ (mro ancestor-chain enumeration, bytes/str delegate arms, advertised result types). I grepped the current spec view for every one of those tokens, case-insensitive: mro 0, ancestor 0, advertis 0, 'result type' 0, resultclass 0, metaclass 0, overlay 0, 'zero-argument' 0, delegat 0, enumerat 0, 'type-of-types' 0, contradictory 0, 'post-process' 0, __proxy__ 0, prepare_class 0. Also: lazy 0, SimpleLazyObject 0, Promise 0 (capital-P), functional 0. The mechanism narration the earlier reviewer measured has been de-narrated out. The only residual 'prepar' hits (23) are all the identifier own_type_unpreparable itself, and the 2 'member' hits are the English word 'membership'.\n\nREPO-SYMBOL / PATH / QUOTED-LINE SCREEN (all re-run by me, not read off the gate). Zero occurrences in the spec view of: access_value, _wrap_url_kwargs_with_deprecation_warning, context_kwargs, url_kwargs, TemplateView, get_context_data, RemovedInDjango40Warning, views/generic, base.py, django/utils, and every gold file:line coordinate (168/172/181/109/127 all 0). I ran leakage._patch_changed_lines over the real gold patch and whitespace-normalized both sides: NO changed gold line of length >=8 appears in the spec view. Diff markers: none of _PY_DIFF_MARKERS present. Patched path django/views/generic/base.py: not present. leakage._NARRATION_RE over the spec view returns [] -- no bug/fix/patch/regression vocabulary. Full leakage.screen(...) -> passed=True, hard_failures=[], warnings=[]. I treated that pass as necessary-not-sufficient and did the L3 mechanism judgement by hand above, since G-LEAK's _patch_changed_symbols only harvests def|class names ({access_value, wrap_url_kwargs_with_deprecation_warning}) and structurally cannot see `lazy`, which enters the gold diff as an import and a call.\n\nWHAT THE SPEC VIEW *DOES* NAME, AND WHY IT IS PS-COVERED. It says an entry must be RECOGNISED by a type-directed parameter binder rather than refused as an \"unsupported type\" (2a), and off an abstract family must resolve to the value at its own real runtime type (2b). Both are readable straight off the public problem_statement: the PS supplies the crash 'Error binding parameter 0 - probably unsupported type' (the literal phrase 'unsupported type' is IN the PS), names SimpleLazyObject as the object that fails to resolve, and shows the user-side workaround str(offer_slug) -- i.e. the PS itself states that the object must resolve to a value of the right type at the DB-binding boundary. 'Resolve to the value at its own real type' is the abstract restatement of exactly that symptom, not a disclosure of the repair.\n\nUNAVOIDABILITY / LOAD-BEARING TEST (the usual strip-and-reverify, run against the PRE-patch impl). I measured which clause is the actual discriminator rather than guessing. Baseline: gold model verifies (`nagini_verify.sh gold.py` -> Verification successful, 11.78s); prepatch fails at pre.py:483 'Postcondition of wrap_kwarg_value might not hold. There might be insufficient permission to access binder_accepts(Result())' (22.10s). I then deleted the guarded binder_castable/type_of clause (2b) from the prepatch model and re-ran: STILL fails, and still on binder_accepts (pre_no2b.py:481, 12.19s). So the load-bearing discriminator is binder_accepts (2a) -- 'the binder recognises the entry instead of refusing it as an unsupported type' -- which is the PS's own crash text. The type-flavoured clause is NOT what senses the change, so it is not carrying gold internals as its justification.\n\nIDENTIFIER-AVOIDABILITY CHECK. Someone could argue own_type_unpreparable hints at type(value). I tested it: renamed it to the neutral domain_marker_p throughout, confirmed logic identity by ast.parse + docstring-strip + ast.unparse (LOGIC IDENTICAL, all Requires/Ensures/Exsures clause sets byte-equal modulo the rename), and the renamed spec still verifies (16.79s). So the name is cosmetic, and in the spec view the family is explicitly declared abstract and UNINTERPRETED -- the view states outright that it asserts nothing about which values are in it, that no arithmetic on the value-tag can decide it, that a proof can only use it as an opaque case split, and that membership is settled out of band. It also explicitly says membership does NOT coincide with 'the build aborts'. A solver reading only the spec view learns that some unspecified value family is exempt; it cannot recover mro-unavailability or bytes/str delegation, which is where the real partition lives (mapping.md line 17 -- a file the consumer never receives; only spec_view + problem_statement + modeled_functions reach the consumer per eval/prompts.py).\n\nRESIDUAL SOLUTION SPACE (the real test of whether the gold edit is pinned). The view demands: recognised by the binder, resolves to the value at its real type, provenance-faithful, and ledger-preserving (no deferred computation run at build time). Multiple non-gold repairs satisfy that reading -- make the existing lazy stand-in expose the binder's resolution hook, register it with the binder, hand back a differently-constructed deferred proxy, or supply any other recognised deferred wrapper. Nothing in the view says WHICH callee to swap in or that the repair is an import change plus a two-argument call, and 'lazy' appears zero times. The view constrains the observable contract; it does not select the edit.\n\nCORE GATES THE DISPOSITION LEANS ON: G-VERIFY pass, G-GOLD pass (gold verifies, prepatch fails), G-DIFF pass (prepatch 'verification failed'), G-LEAK pass/strict, G-RESOLVE pass/resolved, G-AX pass, G-CONF pass (100051 checked, 0 disagreements). I independently reproduced the two that carry this verdict -- gold verifies, prepatch fails on binder_accepts.\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as a finding in its own right, per instructions): CLEAN in the spec-bearing artifacts. I grepped model.py, mapping.md and refinement.md for attacker/panel/reviewer/'honest verdict'/'should record'/'do not flag'/NO-LEAKAGE/submit_result/leaking_line: only ordinary self-description ('lets the contract stay honest' at model.py:295, describing the contract's treatment of the partial family). Nothing instructs me how to record or which verdict to reach. Noting for the record, without treating it as steering of me: verdict.md contains the superseded prior G-PANEL-3 LEAKAGE write-up (line 961 onward, incl. its own bundle-addresses-reviewer paragraph at 1011). That is an audit ledger of a past run against older bytes, not an instruction to this run; I judged the current spec view independently and my conclusion differs from it because the narration it cited has since been removed.\n\nCONCLUSION: NO-LEAKAGE. On the current bytes the spec view quotes no gold line, names no patched file/function/symbol, echoes no gold-only vocabulary, and narrates no bug->fix mechanism. The one discriminator it does state (binder recognition / 'unsupported type') is verbatim public in the problem_statement, and I measured it to be the load-bearing clause, so removing it would break G-DIFF rather than merely de-narrate.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:35:07+00:00",
+      "code_version": "898696377-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-direct-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 43.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-branch-both-resolvable",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 32.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-extra-entry-unrun",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-concrete-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 32.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-bare-wrapped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-opaque-wrapping",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-launder-capability",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 19.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-partial-domain",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-wrong-resolution",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-eager-deferral-run",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-partial-eager-deferral-run",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-other-entry-deferral-run",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-run-then-rewrap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-never-aborts",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 20.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-peek-then-hand-on",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-peek-drives-control-flow",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.0
+          },
+          {
+            "expect": "reject",
+            "id": "weak-abort-hides-deferral-run",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-abort-unjustified",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-family-substituted-entry",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-family-binder-refused",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-family-deferral-run",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 4,
+          "uniqueness": 16
+        },
+        "manifest_sha256": "bd5580653275ec0988cb91432e504df988235926ec140cabb63899fe3d1ada12",
+        "n_cases": 21,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 21 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919",
+        "properties.py": "bd5580653275ec0988cb91432e504df988235926ec140cabb63899fe3d1ada12"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T05:59:54+00:00",
+      "code_version": "5f6d65769-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7b76542f8640a143a45b27d9af536fa5ac92442250c5204f77aa8262946a7be3",
+        "patch.diff": "3f22504c0339aed615bca366ebb07b5f2a0cf7534f29393b7068875d1d3ef09e"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T05:56:00+00:00",
+      "code_version": "55990d09e-dirty",
+      "data": {
+        "wall_time_s": 17.8
+      },
+      "detail": "verified in 17.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b32f7e1cb4830991920e9f76c6faa38ffee309b8e9f4c0610be8257c2acec919"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13297",
+  "modeled_functions": [
+    {
+      "carrier_type": "value: any object -> int value-tag; real runtime type: type object -> int type-tag (type_of); deferred entry -> Wrapped with NO readable field, the value whose deferred computation it carries exposed only as the inert abstract capability deferral_of(w, value), what running that computation yields only as the inert abstract capability resolves_to(w, value), its binder RECOGNITION as the abstract capability binder_accepts(w) and its binder RESOLUTION as the abstract capability binder_castable(w, cast_to, cast_t); the advisory-notice effect of running a deferred computation -> the abstract monotone ledger deferrals_run(n)",
+      "model_symbol": "wrap_kwarg_value",
+      "repo_location": "django/views/generic/base.py:168 (changed body lines: 172 and 181 pre-patch, 180 post-patch)",
+      "repo_symbol": "django.views.generic.base._wrap_url_kwargs_with_deprecation_warning (per-entry value wrapping)",
+      "role": "modeled changed operation: build the deferred wrapper for one URL kwarg value; single contracted+implemented function (markers are module-level singletons). The surrounding dict rebuild (loop, key passthrough, access_value closure, deprecation warning) is unchanged control flow and is not modeled (refinement.md tag I)."
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition binder_accepts(Result()) -- the binder-RECOGNITION capability wrap_opaque does not grant at any value. Measured on model_prepatch.py through the verifier: 'Postcondition of wrap_kwarg_value might not hold. There might be insufficient permission to access binder_accepts(Result())'. This is a whole-domain obligation, so the twin cannot discharge it anywhere; the per-value binder_castable clause is guarded by own_type_unpreparable and is therefore no longer what refutes the twin.",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the deferred wrapper is one a type-directed parameter binder recognises and resolves -- to the value at its real type wherever the real construction resolves at all -- rather than an opaque stand-in the binder refuses as an unsupported type",
+      "reverted_to": "SimpleLazyObject wrapping -> wrap_opaque(value) (forces to the value but grants no binder_castable capability)"
+    }
+  ],
+  "refinement_note": "REFINED per batch08 adversarial-panel verdict (NEEDS-REFINEMENT). The prior discriminator Result().vtype == type_of(value) (the wrapper's surface type == type(value)) was TOO-STRONG + DRIFT: in-container the real lazy(...)() proxy's surface type is __proxy__ (NOT type(value)), and the F2P test passes for ANY result class (object/int/str). Re-pinned the discriminator on the actual F2P observable -- binder-resolvability: the post-patch wrapper is a Promise the type-directed binder (Field.get_prep_value) casts to the value at its real type; the pre-patch SimpleLazyObject is not a Promise and is rejected. Modeled as the unforgeable capability binder_castable (directive 8). Narration rewritten to the true mechanism (D1/D2). axiom_check.py hardened to CharField/IntegerField/FloatField via the real get_prep_value binder, plus the verdict's alternative-fix admission probe (D3). | REFINED AGAIN after the 2026-08-15 weakness finding (verify-but-not-correct: an implementation that resolved the entry while assembling the mapping satisfied every clause of the previous spec, yet raised the advisory notice at assembly time and broke the two P2P behaviours test_template_params_warning and test_cached_views). The previous spec carried no effect carrier at all, so 'the build step ran no deferred computation' was unstateable: its readable field Wrapped.forced made resolving the entry a free, silent read. Added obligation (3) DEFERRAL PRESERVED, carried by the abstract monotone ledger deferrals_run(n) with run_deferral (n -> n + 1) as its only step and no producer, and replaced Wrapped.forced with the abstract projection resolution_of(w) so an implementation cannot obtain the value without charging the ledger. wrap_opaque now carries Requires(MustTerminate(6)) as well, so model_prepatch.py fails on the binder_castable discriminator (measured) instead of on an obligation leak. properties.py gained the effect-timing uniqueness lane (weak-eager-deferral-run, weak-partial-eager-deferral-run, weak-other-entry-deferral-run, weak-run-then-rewrap) plus the pos-extra-entry-unrun anti-over-fit positive; axiom_check.py gained the ledger claims (0 notices per construction, exactly 1 per resolution incl. repeats and binder resolution, escalation hits resolution not construction). | REFINED AGAIN after the 2026-08-15 findings on THAT revision, both of which are closed here. (a) SPEC-TOO-WEAK (verify-but-not-correct): facet (1) was exposed as a @ContractOnly @Pure projection resolution_of(w), and a @Pure function is CALLABLE from the impl region, so it was a free, silent read straight around the ledger -- an implementation could obtain the value while the mapping was being assembled (delivering the advisory notice at assembly time and breaking test_template_params_warning and test_cached_views) and still verify. resolution_of is DELETED: facet (1) is now the INERT abstract predicate resolves_to(w, value) (no body, holdable but not evaluable), so run_deferral -- which charges the ledger -- is the only route from an entry to its value. properties.py gained the free-read regression lane (weak-peek-then-hand-on, weak-peek-drives-control-flow) and the abort-abuse lane (weak-abort-hides-deferral-run, weak-abort-unjustified). (b) SPEC-TOO-STRONG (faithfulness): wrap_resolvable was contracted TOTAL over an unrestricted value domain, but the real construction raises for a value that is ITSELF a type (its own runtime type is then a metaclass whose hierarchy cannot be enumerated), so the axiom and wrap_kwarg_value now carry the guarded, permitted exit Exsures(Exception, is_type_object(value)) together with Exsures(Exception, deferrals_run(0)) so an abort cannot launder an effect; is_type_object is an abstract uninterpreted domain marker; axiom_check.py gained the bidirectional PARTIALITY BOUNDARY lane and conformance_check.py a partiality lane, and pos-never-aborts guards the exit against being read as required. (c) the run_deferral binding is now stated as one RUN of a deferred computation rather than one access: every run costs exactly one notice on both constructions, while an entry that keeps the object it produced performs no further run -- the earlier blanket 'results are not memoised' over-claimed on the opaque stand-in, which caches in _wrapped. | REFINED AGAIN after the 2026-08-15 faithfulness findings on THAT revision (SPEC-TOO-STRONG, three independent shortfalls, all closed here). The domain marker had been defined as EXACTLY the ancestor-enumeration step of the real preparation (functional.py:111, `for type_ in resultclass.mro()`), but __prepare_class__ (functional.py:109-127) runs a SECOND step on every build: the delegate overlay at :120-123 compares the advertised type against the predetermined result types using that type's OWN comparison behaviour, and that comparison can raise, can report both arms (firing the assert), or can select the bytes arm. (a) The exceptional exit was therefore under-licensed: the real callee aborts inside the modelled construction with a perfectly well-formed mro() -- measured on a value whose metaclass __eq__ raises and on one that reports both arms, 0 advisory notices on each aborting exit. (b) The family is not a synonym for 'the build aborts': on a bytes-arm member the build SUCCEEDS, the entry IS a Promise the binder recognises, and resolution then does not give the value back -- so the single UNCONDITIONAL binder clause was itself an over-claim. is_type_object -> own_type_unenumerable -> own_type_unpreparable, redefined as the union of both preparation routes; and that clause was split into binder_accepts(w), a whole-domain RECOGNITION capability granted unconditionally by wrap_resolvable (faithful: __proxy__ subclasses Promise at every value, functional.py:84), and binder_castable(w, cast_to, cast_t), the per-value RESOLUTION capability guarded by NOT own_type_unpreparable(value). (c) The SAME over-claim survived one clause further in: facet (1) resolves_to(Result(), value) was still stated UNCONDITIONALLY, and the bytes arm has a second, SILENT sub-shape the batteries had not exercised -- when bytes(value) itself succeeds, __cast takes __bytes_cast (functional.py:142-143) and resolution RETURNS NORMALLY with a well-formed object of a different type, with no exception and no extra advisory notice, and Field.get_prep_value hands that object on to the caller. Measured on the patched reference over a value whose metaclass selects the bytes arm and which reports __index__ == 5: build ok with 0 notices, isinstance(entry, Promise) true, _delegate_bytes true and _delegate_text false, resolution ok with exactly 1 notice returning five zero bytes -- neither equal to the value nor of the value's type. Facet (1) is therefore SPLIT rather than merely guarded, so that relaxing the round-trip concedes only what reality concedes: deferral_of(w, value), the PROVENANCE half, is granted UNCONDITIONALLY by both constructions and states that the entry carries THIS value's deferred computation, while resolves_to(w, value), the ROUND-TRIP half, is guarded by the same family on the contracted operation and on wrap_resolvable (wrap_opaque, which makes no per-value consultation and is total, keeps it unconditional). Provenance is measured exactly where the round-trip is gone: on that silent member the entry built for a value reporting width n resolves to n bytes and a same-shape value reporting n + 2 resolves to n + 2 bytes. None of the three relaxations weakens the artifact: the discriminator is the UNGUARDED binder_accepts, so model_prepatch.py is refuted at every value (measured through the verifier: 'There might be insufficient permission to access binder_accepts(Result())'), and the properties.py battery keeps every verdict, its ledger rivals still rejected by deferrals_run(0) itself rather than by an unavailable precondition -- each either runs the deferred computation off the guarded family or runs a total hookless probe, wrap_opaque's unconditional resolution grant being what keeps that whole-domain. The battery also gained a three-case lane that fences the two relaxations from inside the guarded family itself, keyed to the uninterpreted marker rather than to any decidable test on the value: on that family an entry built around a DIFFERENT value is still rejected, at deferral_of(Result(), value) (weak-family-substituted-entry); a binder-REFUSED stand-in is still rejected, at binder_accepts(Result()) (weak-family-binder-refused); and running a deferred computation is still rejected, at deferrals_run(0) (weak-family-deferral-run). So the guard relaxes two clauses rather than the contract. axiom_check.py gained the silent-shape lane with its provenance measurement and conformance_check.py the check_silent_divergence lane, both run against the real patched callee. Separately, the leakage role showed the spec view's prose paraphrased the unique internals of the changed callee (the ancestor enumeration, the delegate comparison against the predetermined result types, the both-arms assert) closely enough to reconstruct which repo helper the patch reaches for, while the problem statement names none of it; those mechanism narrations were replaced by uninterpreted wording naming only the family, its two permitted outcomes and the ledger obligation on both exits. No clause, axiom signature or proof obligation moved for that, the strip control having already shown the prose carried no spec content. Ledger fields describing the superseded contract -- region_hashes, the wrap_resolvable/wrap_opaque axiom surfaces, the modelled carrier list, the prepatch twin's refuting clause, the resolves_to reference and the missing binder_accepts and deferral_of references -- were re-derived from the bytes on disk in the same pass.",
+  "region_hashes": {
+    "axioms": "5b47dcde72f1be0baf3429f0acc774dfbeaaa6d835ed760cdc25cb5a8392c32c",
+    "impl": "ea9014f36baae1037e9b084ddb85cfe01912bed66a56053d6496d063412fb27e",
+    "post-conditions": "8260e8fbaee3a78dfe6e20f63ac11bc0afdd1edce5cc09e7e023ef7155778079",
+    "pre-conditions": "fedf73b671ccaeaf89de0e436bce0334f160661c3adc8788c94b5316d09bac47",
+    "pure": "061b5cbb145d1acfc2dd60824dce52bc2665931fd72d026e67499f84e7bed69c",
+    "spec_view": "bc35c08472765abc63bcc71bec7aaab50ca89ae08483a7d4c200cb6616c1dfe8"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none -- values and runtime types are modeled as integer tags (only resolution-value identity, binder-resolvability, the resolved value's real type, and the count of deferred computations run are observed); no str indexing",
+  "version": "3.2"
+}

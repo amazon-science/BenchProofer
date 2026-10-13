@@ -1,0 +1,1 @@
+First reason briefly, then end your message with ONLY the verdict as a single JSON object on its own line: {"spec_faithful": true|false, "equivalent": true|false, "confidence": 0.0-1.0, "reason": "<=3 sentences citing the spec clause(s) and patch lines"}. The JSON object must be the LAST thing in your response. (Pass requires spec_faithful AND equivalent both true.)

@@ -1,0 +1,446 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "every hunk replaces the open-coded body (which omitted self._async_check()) with super().__init__(get_response); the single independently-fixed behavior (the restored coroutine-marker step) is shared verbatim, modeled by the A5 clause and one prepatch covering both the plain and settings-carrying shapes",
+      "repo_location": "django/middleware/security.py, django/contrib/sessions/middleware.py, django/middleware/cache.py (x3)",
+      "repo_symbol": "the five subclass __init__ hunks all share one fix"
+    },
+    {
+      "handling": "test-infrastructure only (lets the deprecation test app load flatpages/redirects); not a behavioral change under spec; carried by patch.diff==gold (test_patch is applied by the harness, not by patch.diff)",
+      "repo_location": "tests/runtests.py:90,229",
+      "repo_symbol": "tests/runtests.py CONTRIB_TESTS_TO_APPS (test-harness plumbing in test_patch)"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real asyncio.iscoroutinefunction on None + sync/async/non-callable tokens (boundary) + 4000 fuzz; asserts None->False, determinism, exact match",
+      "encoded_property": "producer is None ==> result is False (weakest sufficient contract; the supplied-producer async/sync outcome is left general and uninterpreted-but-deterministic)",
+      "models": "asyncio.iscoroutinefunction (CPython stdlib)",
+      "name": "producer_is_async",
+      "provenance": "Lib/asyncio/coroutines.py; called in MiddlewareMixin._async_check (django/utils/deprecation.py:105); docs.python.org/3/library/asyncio-task.html#asyncio.iscoroutinefunction",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): stdlib dict reproduction of caches[alias]; asserts determinism on all boundary names + fuzz, and the store-selection deep model store == resolve_store(store_name) on the default/explicit-default/custom paths",
+      "encoded_property": "deterministic in the name (same name -> same store); no Ensures clause -- purity gives determinism. Does NOT claim distinct names map to distinct stores nor any particular store value (weakest sufficient contract); the supplied-name->store outcome is left uninterpreted-but-deterministic",
+      "models": "caches[alias] -- the Django cache registry read (django.core.cache.caches, django/core/cache/__init__.py), invoked by the cache-middleware __init__ chain",
+      "name": "resolve_store",
+      "provenance": "django/core/cache/__init__.py (caches connection handler); read in UpdateCacheMiddleware/FetchFromCacheMiddleware __init__ and the explicit-cache_alias branch of CacheMiddleware.__init__ (django/middleware/cache.py); unchanged by the patch (the patch changes the __init__ control flow, not the registry read)",
+      "purity": "@Pure @ContractOnly (used inside Ensures via handler.store == resolve_store(handler.store_name))"
+    }
+  ],
+  "base_commit": "e39e727ded673e74016b5d3658d23cbe20234d11",
+  "changed_files": [
+    "django/contrib/sessions/middleware.py",
+    "django/middleware/cache.py",
+    "django/middleware/security.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): reproduces the stdlib super().__init__ marker mechanism (asyncio + warnings, no django import) and asserts the (stored, signalled, advertised) triple == the model's three facts on 9 boundary + 4000 fuzz producer tokens",
+      "encoded_property": "after configuration: handler.producer is producer; handler.absence_signalled == (producer is None); handler.async_advertised == producer_is_async(producer)",
+      "kind": "A-reference",
+      "models": "MiddlewareMixin.__init__ via super().__init__(get_response) (django/utils/deprecation.py:94-98): _get_response_none_deprecation + attribute store + _async_check",
+      "name": "configure_handler / configure_settings_handler (the three-facts configuration body)",
+      "provenance": "django/utils/deprecation.py:94-108,141-147; _async_check sets self._is_coroutine = asyncio.coroutines._is_coroutine iff asyncio.iscoroutinefunction(self.get_response)",
+      "role": "deep model (impl region) of the restored configuration control flow; NOT a consumed axiom about the function under change"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): reproduces the caches[alias] registry read with a stdlib dict and the CacheMiddleware.__init__ store-selection flow (no django import), asserts store == resolve_store(store_name) and the name-selection rule on all boundary default/override name pairs (known+unknown aliases, None-override default path) + 4000 fuzz",
+      "encoded_property": "after configuration: handler.store_name == (override_name if override_name is not None else default_name); handler.store == resolve_store(handler.store_name) on every construction path",
+      "kind": "A-reference",
+      "models": "the patched CacheMiddleware.__init__ store selection (django/middleware/cache.py:175+): defaults established by super().__init__ (via UpdateCacheMiddleware/FetchFromCacheMiddleware base inits: cache_alias = settings.CACHE_MIDDLEWARE_ALIAS; cache = caches[cache_alias]), then a conditional explicit-cache_alias override that re-selects the alias AND re-derives self.cache = caches[self.cache_alias]",
+      "name": "configure_settings_handler store-selection control flow (B2-B4)",
+      "provenance": "django/middleware/cache.py CacheMiddleware.__init__ hunk; the load-bearing invariant the 3 PASS_TO_PASS constructor tests pin (test_constructor now asserts middleware.cache == self.other_cache / == self.default_cache; test_update_cache_middleware_constructor and test_fetch_cache_middleware_constructor assert cache == caches[cache_alias])",
+      "role": "deep model (impl region) of the restructured cache-settings control flow; replaces the prior mislabeled 'I -- identical/orthogonal' refinement row B2 (the panel G-EQ defect D1)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:23:39+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: producer_is_async axiom (== asyncio.iscoroutinefunction) and the configuration deep model (== super().__init__ marker mechanism) sound on 9 boundary + 4000 fuzz producer tokens; resolve_store axiom (== caches[alias] registry read) deterministic and the store-selection deep model (store == resolve_store(name) on the default/explicit-default/custom paths) sound on all boundary + fuzz name pairs",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "0fb4220fa42a04e559c3069cb9940bbadc960e8a9f3846433ddfe4cf4b38ef48",
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:23:51+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100120,
+          "disagreements": 0,
+          "seed": 133440,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100120, \"disagreements\": 0, \"seed\": 133440, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "5d8d285a464dfc861382130a764cca4985f686e062dcda913644283e4ded9546",
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:53:53+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7",
+        "model_prepatch.py": "b13f7722aaf4ede5f4864750fd510e1992667877c96e16f29c4b58c530669284"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T14:52:48+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:54:36+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7",
+        "model_prepatch.py": "b13f7722aaf4ede5f4864750fd510e1992667877c96e16f29c4b58c530669284"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:23:27+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "8edab8ae25377482256a0492f2618fae39e39d31dc4c3aeb73f33f330c27b43d",
+          "impl": "864806a2bba0065c45f9a5be60e34fdcb9fcad12f2b6bc1c3d2d68c3f682c281",
+          "post-conditions": "e67df673ad3a5c605c8a5234a99b929f7ae17c3b374fed4748a36e774c2f8744",
+          "pre-conditions": "de04d59371364572fdf5c687a207a195f1d55bca5af11d0198db70343f7dbcc4",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "51e23d7888c295b56c0a1fa83bbdf62c7392d8b9d25d806a84d837320dfac991"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:23:28+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "8f3259f8b723c6b1fed2c11fe1c100efc7735510f500572053cea940c0dc6e86",
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:23:28+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T09:01:21+00:00",
+      "code_version": "85bafa9ac-dirty",
+      "data": {
+        "judged": 4,
+        "killed": 4,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 4,
+        "unjudged": []
+      },
+      "detail": "killed 4/4 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "67fb0898c274",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T14:52:50+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) attack on django__django-13344 nagini bundle. Independently rebuilt the real patched repo at base_commit e39e727d in $SCRATCH and applied the gold patch cleanly. Ran the bundle's conformance_check.py (a direct contract-stripped shadow of the model's impl region, with the two @ContractOnly callees bridged into the REAL asyncio.iscoroutinefunction and django.core.cache.caches[...]) against the REAL patched constructors (SecurityMiddleware, SessionMiddleware, UpdateCacheMiddleware, FetchFromCacheMiddleware, CacheMiddleware): 100120 inputs (120 boundary + 100000 fuzz, seed 133440), 0 disagreements. G-AX (axiom_check.py) passes: producer_is_async (None->False, determinism, exact match vs asyncio.iscoroutinefunction), the config deep model (stored/signalled/advertised triple == real super().__init__ marker mechanism), resolve_store determinism, and the store-selection invariant store==resolve_store(store_name) across default/explicit-default/explicit-custom/explicit-None paths on 9 boundary + 4000 fuzz tokens. Nagini verifies model.py (10.5s). Spec postconditions cover only the touched field-coupled facets (producer retention; absence_signalled == (producer is None); async_advertised == producer_is_async(producer); store_name/store selection invariant). Incidental scalar settings (cache_timeout, page_timeout, key_prefix) the gold cache hunk restructures are explicitly OUT of model scope (enforced by G-RESOLVE), so the spec cannot over-claim on them. The one field-coupled invariant a wrong refinement could break (cache == caches[cache_alias]) is modeled deeply and matches the real patched code on every path tested. No input found on which the modeled functions disagree with the real patched callees. Spec is neither too strong nor drifting.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (no hard failures): no diff markers, no patched file paths, no repo-symbol echoes, no bug/fix narration in spec-view comments. Spec region confirmed byte-identical via markers/same-spec projection.\n\nSemantic review: the spec view abstracts every gold-edit specific behind opaque tokens (handler/producer/store/store_name). None of the concrete gold-patch elements \u2014 super().__init__(get_response), _async_check(), MiddlewareMixin, the five subclass __init__ sites, caches[...]/cache_alias, _get_response_none_deprecation \u2014 appear in any form.\n\nThe one discriminating fact (fact 3: 'handler advertises the same asynchronous capability as its supplied producer ... lets a downstream consumer in a chain receive a materialised result rather than an unresolved asynchronous placeholder') is a faithful desired-behaviour restatement of exactly what the PUBLIC problem_statement already discloses (ASGI async: the first middleware in the chain receives a coroutine instead of an HttpResponse). It adds no localization beyond the public statement. The store-consistency invariant (store == resolve_store(store_name)) is a non-discriminating property that held both pre- and post-patch per refinement.md, phrased generically over tokens; it does not point at the edit. A solver could not reconstruct the concrete super().__init__ delegation edit or its sites from the spec view \u2014 only the already-public async behaviour. Leakage judged against problem_statement only (not hints_text).",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) attack on django__django-13344 nagini bundle. Independently rebuilt the real patched repo at base_commit e39e727d in $SCRATCH and applied the gold patch cleanly. Ran the bundle's conformance_check.py (a direct contract-stripped shadow of the model's impl region, with the two @ContractOnly callees bridged into the REAL asyncio.iscoroutinefunction and django.core.cache.caches[...]) against the REAL patched constructors (SecurityMiddleware, SessionMiddleware, UpdateCacheMiddleware, FetchFromCacheMiddleware, CacheMiddleware): 100120 inputs (120 boundary + 100000 fuzz, seed 133440), 0 disagreements. G-AX (axiom_check.py) passes: producer_is_async (None->False, determinism, exact match vs asyncio.iscoroutinefunction), the config deep model (stored/signalled/advertised triple == real super().__init__ marker mechanism), resolve_store determinism, and the store-selection invariant store==resolve_store(store_name) across default/explicit-default/explicit-custom/explicit-None paths on 9 boundary + 4000 fuzz tokens. Nagini verifies model.py (10.5s). Spec postconditions cover only the touched field-coupled facets (producer retention; absence_signalled == (producer is None); async_advertised == producer_is_async(producer); store_name/store selection invariant). Incidental scalar settings (cache_timeout, page_timeout, key_prefix) the gold cache hunk restructures are explicitly OUT of model scope (enforced by G-RESOLVE), so the spec cannot over-claim on them. The one field-coupled invariant a wrong refinement could break (cache == caches[cache_alias]) is modeled deeply and matches the real patched code on every path tested. No input found on which the modeled functions disagree with the real patched callees. Spec is neither too strong nor drifting.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (no hard failures): no diff markers, no patched file paths, no repo-symbol echoes, no bug/fix narration in spec-view comments. Spec region confirmed byte-identical via markers/same-spec projection.\n\nSemantic review: the spec view abstracts every gold-edit specific behind opaque tokens (handler/producer/store/store_name). None of the concrete gold-patch elements \u2014 super().__init__(get_response), _async_check(), MiddlewareMixin, the five subclass __init__ sites, caches[...]/cache_alias, _get_response_none_deprecation \u2014 appear in any form.\n\nThe one discriminating fact (fact 3: 'handler advertises the same asynchronous capability as its supplied producer ... lets a downstream consumer in a chain receive a materialised result rather than an unresolved asynchronous placeholder') is a faithful desired-behaviour restatement of exactly what the PUBLIC problem_statement already discloses (ASGI async: the first middleware in the chain receives a coroutine instead of an HttpResponse). It adds no localization beyond the public statement. The store-consistency invariant (store == resolve_store(store_name)) is a non-discriminating property that held both pre- and post-patch per refinement.md, phrased generically over tokens; it does not point at the edit. A solver could not reconstruct the concrete super().__init__ delegation edit or its sites from the spec view \u2014 only the already-public async behaviour. Leakage judged against problem_statement only (not hints_text).",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) attack on django__django-13344 nagini bundle. Independently rebuilt the real patched repo at base_commit e39e727d in $SCRATCH and applied the gold patch cleanly. Ran the bundle's conformance_check.py (a direct contract-stripped shadow of the model's impl region, with the two @ContractOnly callees bridged into the REAL asyncio.iscoroutinefunction and django.core.cache.caches[...]) against the REAL patched constructors (SecurityMiddleware, SessionMiddleware, UpdateCacheMiddleware, FetchFromCacheMiddleware, CacheMiddleware): 100120 inputs (120 boundary + 100000 fuzz, seed 133440), 0 disagreements.\n\nG-AX (axiom_check.py) passes: producer_is_async (None->False, determinism, exact match vs asyncio.iscoroutinefunction), the config deep model (stored/signalled/advertised triple == real super().__init__ marker mechanism), resolve_store determinism, and the store-selection invariant store==resolve_store(store_name) across default/explicit-default/explicit-custom/explicit-None paths on 9 boundary + 4000 fuzz tokens. Nagini verifies model.py (10.5s). Spec postconditions cover only the touched field-coupled facets (producer retention; absence_signalled == (producer is None); async_advertised == producer_is_async(producer); store_name/store selection invariant).\n\nIncidental scalar settings (cache_timeout, page_timeout, key_prefix) the gold cache hunk restructures are explicitly OUT of model scope (enforced by G-RESOLVE), so the spec cannot over-claim on them. The one field-coupled invariant a wrong refinement could break (cache == caches[cache_alias]) is modeled deeply and matches the real patched code on every path tested. No input found on which the modeled functions disagree with the real patched callees. Spec is neither too strong nor drifting.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (no hard failures): no diff markers, no patched file paths, no repo-symbol echoes, no bug/fix narration in spec-view comments. Spec region confirmed byte-identical via markers/same-spec projection.\n\nSemantic review: the spec view abstracts every gold-edit specific behind opaque tokens (handler/producer/store/store_name). None of the concrete gold-patch elements \u2014 super().__init__(get_response), _async_check(), MiddlewareMixin, the five subclass __init__ sites, caches[...]/cache_alias, _get_response_none_deprecation \u2014 appear in any form.\n\nThe one discriminating fact (fact 3: 'handler advertises the same asynchronous capability as its supplied producer ... lets a downstream consumer in a chain receive a materialised result rather than an unresolved asynchronous placeholder') is a faithful desired-behaviour restatement of exactly what the PUBLIC problem_statement already discloses (ASGI async: the first middleware in the chain receives a coroutine instead of an HttpResponse). It adds no localization beyond the public statement. The store-consistency invariant (store == resolve_store(store_name)) is a non-discriminating property that held both pre- and post-patch per refinement.md, phrased generically over tokens; it does not point at the edit. A solver could not reconstruct the concrete super().__init__ delegation edit or its sites from the spec view \u2014 only the already-public async behaviour. Leakage judged against problem_statement only (not hints_text).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `refinement.md`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:36:00+00:00",
+      "code_version": "898696377-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-cheapest-grounded",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.2
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-call",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-async-dropped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-signal-always",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.8
+          },
+          {
+            "expect": "reject",
+            "id": "weak-producer-not-retained",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.9
+          },
+          {
+            "expect": "reject",
+            "id": "weak-override-ignored",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-store-stale",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-result-stale",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "92231948ee57c177349c9dfe4f92dc5b85ec38b200e5d2bbec5287573e79200f",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "b5f8c7935d89916c7f9fe091e624e2da0a4bc892a78bd4a0ed314604dc30f5f7",
+        "properties.py": "92231948ee57c177349c9dfe4f92dc5b85ec38b200e5d2bbec5287573e79200f"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T11:49:07+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T08:57:01+00:00",
+      "code_version": "85bafa9ac-dirty",
+      "data": {
+        "wall_time_s": 74.1
+      },
+      "detail": "verified in 74.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "67fb0898c274",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13344",
+  "modeled_functions": [
+    {
+      "carrier_type": "get_response (callable|None) -> Optional[int] token; coroutine marker / deprecation signal -> bool fields",
+      "model_symbol": "configure_handler",
+      "repo_location": "django/middleware/security.py:11; django/contrib/sessions/middleware.py:15; django/middleware/cache.py:66; django/middleware/cache.py:130 (base: django/utils/deprecation.py:94)",
+      "repo_symbol": "MiddlewareMixin-subclass __init__ delegating to super().__init__(get_response): SecurityMiddleware.__init__, SessionMiddleware.__init__, UpdateCacheMiddleware.__init__, FetchFromCacheMiddleware.__init__",
+      "role": "modeled changed function (plain-subclass __init__): establish the three base-init facts for the supplied producer"
+    },
+    {
+      "carrier_type": "as configure_handler; cache_alias -> store_name:int token, cache -> store:int (store == resolve_store(store_name)); default_name/override_name params drive the default-vs-override path",
+      "model_symbol": "configure_settings_handler",
+      "repo_location": "django/middleware/cache.py:175 (base: django/utils/deprecation.py:94; registry: django/core/cache/__init__.py caches)",
+      "repo_symbol": "CacheMiddleware.__init__ (calls super().__init__(get_response) then conditionally overrides the cache alias and re-derives the backing store)",
+      "role": "modeled changed function (store-selecting subclass __init__): the three shared facts plus the deeply-modeled store-selection invariant store == resolve_store(store_name) across the default/explicit-default/explicit-custom paths"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check passes)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition handler.async_advertised == producer_is_async(producer) in BOTH configure_handler and configure_settings_handler",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the restored coroutine-marker step (super().__init__ running _async_check)",
+      "reverted_to": "open-coded subclass __init__ that sets producer + absence signal (and still establishes the store-selection facts B2-B4 correctly) but omits the _async_check() step (handler.async_advertised never assigned)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "8edab8ae25377482256a0492f2618fae39e39d31dc4c3aeb73f33f330c27b43d",
+    "impl": "864806a2bba0065c45f9a5be60e34fdcb9fcad12f2b6bc1c3d2d68c3f682c281",
+    "post-conditions": "e67df673ad3a5c605c8a5234a99b929f7ae17c3b374fed4748a36e774c2f8744",
+    "pre-conditions": "1af5d1195dd0b8ed9ac11a41b00e4e605608cdc4bc47181ec8b7130d8fee23ca",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "b02d45446145fae0394f89189e8e44acc803f65e889179dce41c8e983e832f0b"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none (no string content under change); supplied producer modeled as an opaque Optional[int] token, observable facts as bool fields on a minimal class",
+  "version": "3.2"
+}

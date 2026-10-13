@@ -1,0 +1,396 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "type-trivial r[index] projection keyed by ancestor; its only behavioural content is the column index produced by assign_columns (refinement.md site B, tag R/I); no separate prepatch",
+      "repo_location": "django/db/models/sql/compiler.py:1851-1858 (post-patch)",
+      "repo_symbol": "SQLUpdateCompiler.pre_sql_setup projection: related_ids = collections.defaultdict(list); related_ids[parent].extend(r[index] for r in rows); self.query.related_ids = related_ids"
+    },
+    {
+      "handling": "keyed lookup into the per-ancestor column values; behaviour determined by the column assignment (refinement.md site B); related_ids dict[Model,list] carrier abstracted to the per-target column index",
+      "repo_location": "django/db/models/sql/subqueries.py:137",
+      "repo_symbol": "UpdateQuery.get_related_updates: query.add_filter('pk__in', self.related_ids[model]) (was self.related_ids)"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "9ffd4eae2ce7a7100c98f681e2b6ab818df384a4",
+  "changed_files": [
+    "django/db/models/sql/compiler.py",
+    "django/db/models/sql/subqueries.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real get_path_to_parent/join_field.primary_key on both F2P MTI scenarios (Congressman, Senator) reproduces the gold column assignment == assign_columns at the INDEX level (model_index[k]==0 <=> real_is_pk_chain[k], no double mask); 20000 fuzz flag vectors == gold construction; verified end-to-end against real Django 4.x (the title-bearing Politician ancestor is a non-pk-chain -> own positive column)",
+      "encoded_property": "chain[k]==1 (True) -> ancestor identifying value == source row's own pk -> reuse column 0; chain[k]==0 (False) -> some hop is a non-pk parent link -> ancestor needs its own positive column",
+      "kind": "A-reference",
+      "models": "all(path.join_field.primary_key for path in meta.get_path_to_parent(related)) \u2014 the unchanged Django path-primary-key predicate that pre_sql_setup calls per related-update target",
+      "name": "assign_columns (the column-assignment loop) driven by the input flag chain[k]",
+      "provenance": "django/db/models/options.py:722 Options.get_path_to_parent (PathInfo hops); PathInfo.join_field.primary_key is True iff that MTI link is the descendant's primary key; conjunction over the whole path",
+      "role": "the changed which-column logic is modelled DEEPLY (assign_columns); the path predicate is an input flag validated == the real callee, NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T08:59:53+00:00",
+      "code_version": "beaf5f613-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: assign_columns deep model == real-predicate-driven gold column assignment on 2 F2P scenarios (real get_path_to_parent / join_field.primary_key) + 20000 fuzz flag vectors; is_pk_chain biconditional sound at the index level.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "4694096f2435356f2fa05266acb16614b771e6a8237edd7c6fc9979b31bb1306",
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T09:00:04+00:00",
+      "code_version": "beaf5f613-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100040,
+          "disagreements": 0,
+          "seed": 215563,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100040, \"disagreements\": 0, \"seed\": 215563, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "2b573e841daa7f7f401da634597cf0e76aaa122d352fe24e53a48244b9f222fe",
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:05:48+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee",
+        "model_prepatch.py": "bac829b7a7b178995bdc3c0d4ec2ff7fc53b49e6bbb84f71b39b1c6226ca5150"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T00:43:49+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:11:20+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee",
+        "model_prepatch.py": "bac829b7a7b178995bdc3c0d4ec2ff7fc53b49e6bbb84f71b39b1c6226ca5150"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T08:59:42+00:00",
+      "code_version": "beaf5f613-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "8389035f396733a594cc0ca705e6b745e6c196cd3bc6e3faa3d41fbc07f0e2b4",
+          "impl": "4512a4c5f2e2af17739e7980c59a1b60e811e840b841363ef3f72b1aba440361",
+          "invariants": "ed36836e6f9367af7c3250d2d9fcd0d1b5e2cdd95c84bbcf742ce0ca9416c613",
+          "post-conditions": "ae00347259686ba3247cb19b3252238990695ea064ff433692280722aa34f6ba",
+          "pre-conditions": "2b4aa6b57333b38e7ea6e4f378fe3a8e9a3af57203f24d328001733d45f66c11",
+          "pure": "cc58e8b3d813c55434c27060ac792db7403238125ccf7919c07acd74b673b0f2",
+          "spec_view": "9ae908fdcda6814655eb037786d5fbb321607f2be9ae55b69142a46c451a806e"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T08:59:42+00:00",
+      "code_version": "beaf5f613-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "f386949c46258ced7b323844ca2547e6749f55500927f69f549058ed5157ec3c",
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T08:59:43+00:00",
+      "code_version": "beaf5f613-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T11:12:03+00:00",
+      "code_version": "32ee4cb69-dirty",
+      "data": {
+        "judged": 19,
+        "killed": 19,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 19,
+        "unjudged": []
+      },
+      "detail": "killed 19/19 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T00:43:51+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break attack found NO divergence between the modeled assign_columns and the real repo behavior. Evidence: (1) same-spec identity check returns SAME (exit 0) \u2014 spec region byte-identical. (2) Model verifies under pinned Nagini (Verification successful, 111.9s) \u2014 spec is satisfiable, not vacuously/over-strong. (3) Independent 500k random-flag-vector differential: model's assign_columns == the gold related_ids_index construction (fields starts [pk] len 1, non-pk-chain target gets column len(fields) then fields grows by 1 => contiguous block 1..F) with 0 disagreements, while also satisfying both discriminating postconditions: biconditional (Result()[k]==0 iff chain[k]==1) and the dense-index pin Result()[k]==1+(count_fresh(chain)-count_fresh(chain[k:])). (4) Shipped gates corroborate on the REAL callee: G-CONF 100040 inputs / 0 disagreements against the real patched SQLUpdateCompiler.pre_sql_setup; G-AX drives real Django 4.x get_path_to_parent/join_field.primary_key on both F2P MTI scenarios (Congressman, Senator) and reproduces the gold column assignment at the index level with no double mask; G-DIFF confirms model_prepatch (all column 0) verification-fails, so the spec senses the bug rather than over-constraining. The single abstraction (path-primary-key predicate -> 0/1 flag) is an A-reference validated against the real callee, not a strengthening. The dense-index pin matches the real running-width semantics exactly (len(fields)), so it is not a spec-too-strong artifact. Spec is faithful to the real repo behavior.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = model.py with the impl region (lines 106-149) elided; refinement.md/mapping.md are NOT part of the leak screen (leakage.screen consumes only solution_src()). Mechanical screen run directly: PASSED with zero hard_failures; bundle is NOT relaxed (relaxed_leakage=None, no RELAXED_LEAKAGE.md, meta G-LEAK status='pass'). Semantic check beyond the lexical screen: (1) neither patched file (compiler.py, subqueries.py) nor any patched symbol (pre_sql_setup, get_related_updates) appears in the spec view \u2014 the abstracted callee is referred to only as 'the unchanged path-classification callee', never get_path_to_parent/join_field.primary_key; (2) no gold-patch line, diff marker, or bug/fix narration (docstring explicitly frames content as 'desired behaviour, not as an edit'); (3) the behavioral facts stated (per-ancestor column assignment; each ancestor read from its own column, never uniformly column 0) are the corrected behavior of the bug ALREADY disclosed publicly in problem_statement, which shows the wrong single-pk SELECT and states 'query is using primary keys from Base class'. The spec describes required behavior in its own List[int]/PSeq carrier vocabulary, not edit localization. axiom_check.py / G-AX references are internal audit-tooling, not gold-edit reconstruction. No spec-view line reconstructs the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break attack found NO divergence between the modeled assign_columns and the real repo behavior. Evidence: (1) same-spec identity check returns SAME (exit 0) \u2014 spec region byte-identical. (2) Model verifies under pinned Nagini (Verification successful, 111.9s) \u2014 spec is satisfiable, not vacuously/over-strong. (3) Independent 500k random-flag-vector differential: model's assign_columns == the gold related_ids_index construction (fields starts [pk] len 1, non-pk-chain target gets column len(fields) then fields grows by 1 => contiguous block 1..F) with 0 disagreements, while also satisfying both discriminating postconditions: biconditional (Result()[k]==0 iff chain[k]==1) and the dense-index pin Result()[k]==1+(count_fresh(chain)-count_fresh(chain[k:])). (4) Shipped gates corroborate on the REAL callee: G-CONF 100040 inputs / 0 disagreements against the real patched SQLUpdateCompiler.pre_sql_setup; G-AX drives real Django 4.x get_path_to_parent/join_field.primary_key on both F2P MTI scenarios (Congressman, Senator) and reproduces the gold column assignment at the index level with no double mask; G-DIFF confirms model_prepatch (all column 0) verification-fails, so the spec senses the bug rather than over-constraining. The single abstraction (path-primary-key predicate -> 0/1 flag) is an A-reference validated against the real callee, not a strengthening. The dense-index pin matches the real running-width semantics exactly (len(fields)), so it is not a spec-too-strong artifact. Spec is faithful to the real repo behavior.; G-PANEL-3 (leakage): pass \u2014 Spec view = model.py with the impl region (lines 106-149) elided; refinement.md/mapping.md are NOT part of the leak screen (leakage.screen consumes only solution_src()). Mechanical screen run directly: PASSED with zero hard_failures; bundle is NOT relaxed (relaxed_leakage=None, no RELAXED_LEAKAGE.md, meta G-LEAK status='pass'). Semantic check beyond the lexical screen: (1) neither patched file (compiler.py, subqueries.py) nor any patched symbol (pre_sql_setup, get_related_updates) appears in the spec view \u2014 the abstracted callee is referred to only as 'the unchanged path-classification callee', never get_path_to_parent/join_field.primary_key; (2) no gold-patch line, diff marker, or bug/fix narration (docstring explicitly frames content as 'desired behaviour, not as an edit'); (3) the behavioral facts stated (per-ancestor column assignment; each ancestor read from its own column, never uniformly column 0) are the corrected behavior of the bug ALREADY disclosed publicly in problem_statement, which shows the wrong single-pk SELECT and states 'query is using primary keys from Base class'. The spec describes required behavior in its own List[int]/PSeq carrier vocabulary, not edit localization. axiom_check.py / G-AX references are internal audit-tooling, not gold-edit reconstruction. No spec-view line reconstructs the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break attack found NO divergence between the modeled assign_columns and the real repo behavior. Evidence:\n\n(1) same-spec identity check returns SAME (exit 0) \u2014 spec region byte-identical.\n\n(2) Model verifies under pinned Nagini (Verification successful, 111.9s) \u2014 spec is satisfiable, not vacuously/over-strong.\n\n(3) Independent 500k random-flag-vector differential: model's assign_columns == the gold related_ids_index construction (fields starts [pk] len 1, non-pk-chain target gets column len(fields) then fields grows by 1 => contiguous block 1..F) with 0 disagreements, while also satisfying both discriminating postconditions: biconditional (Result()[k]==0 iff chain[k]==1) and the dense-index pin Result()[k]==1+(count_fresh(chain)-count_fresh(chain[k:])).\n\n(4) Shipped gates corroborate on the REAL callee: G-CONF 100040 inputs / 0 disagreements against the real patched SQLUpdateCompiler.pre_sql_setup; G-AX drives real Django 4.x get_path_to_parent/join_field.primary_key on both F2P MTI scenarios (Congressman, Senator) and reproduces the gold column assignment at the index level with no double mask; G-DIFF confirms model_prepatch (all column 0) verification-fails, so the spec senses the bug rather than over-constraining. The single abstraction (path-primary-key predicate -> 0/1 flag) is an A-reference validated against the real callee, not a strengthening. The dense-index pin matches the real running-width semantics exactly (len(fields)), so it is not a spec-too-strong artifact. Spec is faithful to the real repo behavior.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view = model.py with the impl region (lines 106-149) elided; refinement.md/mapping.md are NOT part of the leak screen (leakage.screen consumes only solution_src()). Mechanical screen run directly: PASSED with zero hard_failures; bundle is NOT relaxed (relaxed_leakage=None, no RELAXED_LEAKAGE.md, meta G-LEAK status='pass'). Semantic check beyond the lexical screen:\n\n(1) neither patched file (compiler.py, subqueries.py) nor any patched symbol (pre_sql_setup, get_related_updates) appears in the spec view \u2014 the abstracted callee is referred to only as 'the unchanged path-classification callee', never get_path_to_parent/join_field.primary_key;\n\n(2) no gold-patch line, diff marker, or bug/fix narration (docstring explicitly frames content as 'desired behaviour, not as an edit');\n\n(3) the behavioral facts stated (per-ancestor column assignment; each ancestor read from its own column, never uniformly column 0) are the corrected behavior of the bug ALREADY disclosed publicly in problem_statement, which shows the wrong single-pk SELECT and states 'query is using primary keys from Base class'. The spec describes required behavior in its own List[int]/PSeq carrier vocabulary, not edit localization. axiom_check.py / G-AX references are internal audit-tooling, not gold-edit reconstruction. No spec-view line reconstructs the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:43:18+00:00",
+      "code_version": "7df0fef9f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 127.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-selfcall",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 382.8
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-chain",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-all-column-0",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 69.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-sparse-columns",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 186.1
+          },
+          {
+            "expect": "reject",
+            "id": "weak-const-column-1",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 71.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "353114b205fa5fcad5e14e0c0ec45cc4a2a9dd9240f8cb6007a8fe28f9006aee",
+        "n_cases": 6,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 6 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee",
+        "properties.py": "353114b205fa5fcad5e14e0c0ec45cc4a2a9dd9240f8cb6007a8fe28f9006aee"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:43:51+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T10:06:12+00:00",
+      "code_version": "096c93deb-dirty",
+      "data": {
+        "wall_time_s": 288.6
+      },
+      "detail": "verified in 288.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6ff744287bce76ac68d0b7d2a2bddcd60fa03072424a9cd75e79a60fc4a139ee"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15563",
+  "modeled_functions": [
+    {
+      "carrier_type": "ordered related_updates targets -> index domain 0..n-1; per-target bool predicate -> int flag 0/1; column index -> int; specification over List[int]/PSeq[int]",
+      "model_symbol": "assign_columns",
+      "repo_location": "django/db/models/sql/compiler.py:1819 (body lines 1836-1858 post-patch)",
+      "repo_symbol": "django.db.models.sql.compiler.SQLUpdateCompiler.pre_sql_setup (fields/related_ids_index construction loop)",
+      "role": "modeled changed function: per related-update ancestor, decide the pre-selection column index whose values identify the ancestor rows to update; column 0 (reuse source pk) iff the path up to the ancestor is a full primary-key chain, else a fresh positive column"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; both hunks check-applied)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition (Result()[k] == 0) == (ToSeq(chain)[k] == 1): a non-primary-key-chain ancestor (chain[k]==0) is wrongly assigned column 0 (also violates the strengthened dense-index postcondition, since column 0 != 1 + prefix-fresh-count for a fresh ancestor)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "per-ancestor column assignment for a multi-table-inheritance update",
+      "reverted_to": "pre-selection returns only the source model's own primary key (single column); every related-update ancestor implicitly filtered by column 0 (the flat idents list / self.related_ids)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "8389035f396733a594cc0ca705e6b745e6c196cd3bc6e3faa3d41fbc07f0e2b4",
+    "impl": "4512a4c5f2e2af17739e7980c59a1b60e811e840b841363ef3f72b1aba440361",
+    "invariants": "ed36836e6f9367af7c3250d2d9fcd0d1b5e2cdd95c84bbcf742ce0ca9416c613",
+    "post-conditions": "ae00347259686ba3247cb19b3252238990695ea064ff433692280722aa34f6ba",
+    "pre-conditions": "2b4aa6b57333b38e7ea6e4f378fe3a8e9a3af57203f24d328001733d45f66c11",
+    "pure": "cc58e8b3d813c55434c27060ac792db7403238125ccf7919c07acd74b673b0f2",
+    "spec_view": "9ae908fdcda6814655eb037786d5fbb321607f2be9ae55b69142a46c451a806e"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "no strings; the changed logic is over an ordered list of ancestor targets modelled as List[int] of 0/1 path-primary-key flags, output a List[int] of column indices; specification carried by PSeq[int] via ToSeq. The dense column index is pinned with a single front-recursive @Pure helper count_fresh(s) (total count of fresh==0 entries, peeling the head one auto-unfold per loop step); the fresh column at index k is Result()[k] == 1 + (count_fresh(chain) - count_fresh(chain[k:])).",
+  "version": "4.1"
+}

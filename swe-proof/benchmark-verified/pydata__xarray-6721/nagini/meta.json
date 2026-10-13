@@ -1,0 +1,440 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "NOT runtime-checkable (abstract proof-only construct, no runtime footprint) -- like xarray-4094's combined_collection. Its soundness is structural: Nagini rejects Fold of an abstract predicate, so it cannot be fabricated or regained once consumed (machine-confirmed: atk_H2 and atk_H2b both fail).",
+      "encoded_property": "inspect_underlying requires+returns it (reads in place); inspect_materialised requires but does NOT return it (consumes intactness); block_lengths_by_axis requires it for every entry on entry and re-establishes it for every entry in its postcondition",
+      "kind": "capability-predicate (abstract @ContractOnly @Predicate)",
+      "models": "an entry is 'intact' iff its payload has not been pulled into memory; an UNFORGEABLE, CONSUMABLE token that makes the no-materialisation side effect observable in the spec (no value-level discriminator exists on the F2P regime)",
+      "name": "payload_intact",
+      "provenance": "proof-only construct, no repo symbol; mirrors the regression property of the F2P test test_chunks_does_not_load_data (no data access). Same pattern as pydata__xarray-4094's combined_collection token.",
+      "role": "binding regression sensor: the only way to re-establish payload_intact for every entry is to never call inspect_materialised, forcing the underlying (no-load) view. Closes the directive-8 echoable-marker hole the adversarial panel found (trailing loads==0 slot alone is forgeable)."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real xarray Variable, asserts hasattr(v._data,'chunks') matches and forces no data access on in-memory / lazy-inaccessible / dask regimes (the abstract token has no runtime footprint and is not checked)",
+      "encoded_property": "returns block status from the underlying store (e.block_backed), forces 0 loads (v._data inspected in place, never materialised), and threads the payload_intact token through unchanged (entry stays intact)",
+      "kind": "A-consumed",
+      "models": "hasattr(v._data, \"chunks\") on the variable's UNDERLYING store (the post-change view)",
+      "name": "inspect_underlying",
+      "provenance": "xarray/core/variable.py:285 (_data slot), :307 (set in __init__), :999 (Variable.chunks reads getattr(self._data,'chunks',None)); the change common.py:2026 v.data -> v._data",
+      "role": "A-consumed @ContractOnly callee (unchanged library payload read; SPEC_GUIDE 2/3). The proof uses its Ensures."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real xarray Variable, asserts obtaining v.data forces a load exactly on the lazy-inaccessible store (mirrors the InaccessibleVariableDataStore F2P fixture) and matches the model status (the abstract token has no runtime footprint and is not checked)",
+      "encoded_property": "forces block_load_cost(e) loads (1 iff e.forces_load, i.e. lazily-backed non-duck), reports e.block_backed and not e.forces_load (a materialised lazy store is a plain in-memory array advertising no chunks), and CONSUMES the payload_intact token (required but not returned)",
+      "kind": "A-consumed",
+      "models": "hasattr(v.data, \"chunks\") on the variable's MATERIALISED payload (the pre-change view)",
+      "name": "inspect_materialised",
+      "provenance": "xarray/core/variable.py:337-342 (Variable.data returns self.values for a non-duck store), :513-515 (Variable.values -> _as_array_or_item(self._data) -> np.asarray)",
+      "role": "A-consumed @ContractOnly callee; called only by model_prepatch (present in both files as the shared spec)"
+    }
+  ],
+  "base_commit": "cc183652bf6e1273e985e1c4b3cba79c896c1193",
+  "changed_files": [
+    "xarray/core/common.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:15:22+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: A-consumed payload-view callees (inspect_underlying for v._data, inspect_materialised for v.data) sound vs real xarray Variable on regimes: in-memory-numpy, lazy-inaccessible, dask-chunked. The abstract payload_intact token is a proof-only construct with no runtime footprint.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "5fb4e733517232e69dd8e3bde5023e32898d66f73f66c89a10b982cacc53f9ad",
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:15:33+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100055,
+          "dask_regime": true,
+          "disagreements": 0,
+          "seed": 6721,
+          "shadow": "direct (contract-stripped impl region; inspect_underlying probes the real underlying store in place)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100055, \"disagreements\": 0, \"seed\": 6721, \"shadow\": \"direct (contract-stripped impl region; inspect_underlying probes the real underlying store in place)\", \"dask_regime\": true}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d8e5835149b1c1b3546e38e405e7c9976f6828a1caa541bb5e2b2fb521207cdc",
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:49:20+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390",
+        "model_prepatch.py": "077c6a8753bfedfc86f540ccf12aceb2b986557106488b74b933f3378fd3fb89"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T17:24:42+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1_prepatch.py`, `atk2_echo_after.py`, `atk3_echo_before.py`, `atk5_offbyone.py`, `atk6_cfmaterialise.py`, `atk7_partialdomain.py`, `atk8_ungrounded.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk4_directfield.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:52:00+00:00",
+      "code_version": "8bc8b294d-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390",
+        "model_prepatch.py": "077c6a8753bfedfc86f540ccf12aceb2b986557106488b74b933f3378fd3fb89"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:15:15+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "d6c8951995bcfb09693bd9bb299b6351ce1633d1003a93306d1b7807c6296be7",
+          "impl": "cc28cb914207845090ac2064ec0cac37582f115de9cebeaa167e42447a88d311",
+          "invariants": "477162bc62a0bd7cf4da1a26648509d8fcd1be650d450fd20f229ccb5e6a66f6",
+          "post-conditions": "8771cbc871ff4d3eb2db61655fb5be00b7000bbe907e1d6289b95bc3e60d80e3",
+          "pre-conditions": "11eceea688050fbd058559c60193880a546246bef8490c9f76d5391209afc38f",
+          "pure": "666175d500dcdf295a2b5ed2e87398adac3f24e7ac40f8db492649845f0a1546",
+          "spec_view": "6f28af02f0f09108f81553b7bf9df3fa3c53f888e7f3ade23702768a35ceda90"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:15:16+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "3a6f28b9e7e9da700441ca11c90cca49688971c6922083739b19bfbcc6482233",
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:15:16+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T10:18:52+00:00",
+      "code_version": "cef05a441-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 19,
+        "survivors": [
+          "line 218: '+' -> '-'"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 19/20 (95%); survivors: [\"line 218: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "67fb0898c274",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T17:24:44+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) attack: NONE FOUND. The modeled function block_lengths_by_axis is a sound abstraction of the fixed xarray.core.common.get_chunksizes over the realizable input domain.\n\nMachine-checkable evidence:\n- Model verifies with pinned Nagini: `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' (15.97s, exit 0).\n- axiom_check.py (G-AX) run against the REAL base-commit repo ($SCRATCH @ d3b6aa6d8b997df115a53c001d00222a0f92f63a = base_commit) passes on all three realizable regimes: in-memory-numpy (block_backed=F,forces_load=F), lazy-inaccessible (block_backed=F,forces_load=T; the EXACT LazilyIndexedArray+InaccessibleArray store the F2P test test_chunks_does_not_load_data uses), and dask-chunked (block_backed=T,forces_load=F). It validates both the block-status contract (inspect_underlying=hasattr(v._data,'chunks'), inspect_materialised=hasattr(v.data,'chunks')) AND the forced-load side effect against real Variable._data/Variable.data/Variable.values. Exit 0.\n- Refinement fidelity: gold patch is the one-line v.data->v._data change (common.py:2026 at repo; body inspected in worktree). Model's Entry.block_backed <-> hasattr(v._data,'chunks'); forces_load <-> non-duck lazy store; per-entry axis/length <-> v.chunksizes; the (-1,-1) skip marker <-> non-chunked entry contributes nothing. Aggregation (flat pair list) <-> Frozen(dict) is identity-on-content. All steps R/A-consumed/I; no kind-3.\n\nProbed the one regime axiom_check omits (block_backed=True AND forces_load=True): only constructible with a CONTRIVED non-duck array that fakes a .chunks attribute (FakeChunked). In real xarray, any array advertising .chunks is a dask (duck) array, so Variable.data (variable.py:344-348, is_duck_array short-circuit) returns self._data WITHOUT a load => forces_load=False. Hence block_backed=True => forces_load=False for all realizable Variables; no realizable input drives the fixed repo to force a load or to disagree with the spec's loads==0 / payload_intact postconditions. The payload_intact token is an explicit proof-only construct with no runtime footprint (documented and confirmed by axiom_check), so it cannot itself introduce repo drift.\n\nConclusion: no diverging input exists on the realizable domain; the spec is not too strong. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "G-LEAK leakage/gold-reconstruction review of the nagini spec view for pydata__xarray-6721.\n\nGold edit: xarray/core/common.py inside get_chunksizes, `if hasattr(v.data, \"chunks\"):` -> `if hasattr(v._data, \"chunks\"):` (inspect the UNDERLYING store `v._data` instead of the MATERIALISED payload `v.data`, avoiding a forced load).\n\nMechanical screen (swebench_unified.leakage.screen against frozen problem_statement, NOT hints_text): PASSED with zero hard failures \u2014 no diff markers, no reproduced gold-patch line, no patched file/module path, no spec-view identifier or comment echoing a patched repo symbol, no bug/fix narration keywords.\n\nSemantic reconstruction check: the spec view is fully abstracted. Modeled function is `block_lengths_by_axis(entries: List[Entry])`; callees `inspect_underlying`/`inspect_materialised`; fields `block_backed`/`forces_load`/`axis`/`length`; token `payload_intact`. None of `get_chunksizes`, `hasattr`, `chunks`, `v.data`, `v._data`, `_data`, `Frozen`, `chunksizes`, `common.py`, `variable.py`, `np.asarray`, `zarr`, `dask`, or `encoding` appears anywhere in the spec view (verified by substring scan).\n\nProblem_statement disclosure baseline: the PUBLIC problem_statement is far more revealing than the spec view \u2014 it names get_chunksizes, shows the verbatim buggy line `if hasattr(v.data, \"chunks\"):`, and traces the materialisation chain v.data -> self.values -> _as_array_or_item -> np.asarray (with self._data visible), and states the desired behaviour (accessing chunks should not load into memory; should inspect the underlying arrays). The spec view's 'consult the underlying store only, never materialise any lazily-backed entry' is strictly a generic re-statement of behaviour the problem_statement already demands, expressed over abstract Entry/token vocabulary \u2014 it does not reveal the one-line edit, the symbol names, the file, or the diff beyond what the solver-visible task already contains.\n\nConclusion: the spec view leaks nothing about the gold edit beyond the public problem_statement. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) attack: NONE FOUND. The modeled function block_lengths_by_axis is a sound abstraction of the fixed xarray.core.common.get_chunksizes over the realizable input domain.\n\nMachine-checkable evidence:\n- Model verifies with pinned Nagini: `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' (15.97s, exit 0).\n- axiom_check.py (G-AX) run against the REAL base-commit repo ($SCRATCH @ d3b6aa6d8b997df115a53c001d00222a0f92f63a = base_commit) passes on all three realizable regimes: in-memory-numpy (block_backed=F,forces_load=F), lazy-inaccessible (block_backed=F,forces_load=T; the EXACT LazilyIndexedArray+InaccessibleArray store the F2P test test_chunks_does_not_load_data uses), and dask-chunked (block_backed=T,forces_load=F). It validates both the block-status contract (inspect_underlying=hasattr(v._data,'chunks'), inspect_materialised=hasattr(v.data,'chunks')) AND the forced-load side effect against real Variable._data/Variable.data/Variable.values. Exit 0.\n- Refinement fidelity: gold patch is the one-line v.data->v._data change (common.py:2026 at repo; body inspected in worktree). Model's Entry.block_backed <-> hasattr(v._data,'chunks'); forces_load <-> non-duck lazy store; per-entry axis/length <-> v.chunksizes; the (-1,-1) skip marker <-> non-chunked entry contributes nothing. Aggregation (flat pair list) <-> Frozen(dict) is identity-on-content. All steps R/A-consumed/I; no kind-3.\n\nProbed the one regime axiom_check omits (block_backed=True AND forces_load=True): only constructible with a CONTRIVED non-duck array that fakes a .chunks attribute (FakeChunked). In real xarray, any array advertising .chunks is a dask (duck) array, so Variable.data (variable.py:344-348, is_duck_array short-circuit) returns self._data WITHOUT a load => forces_load=False. Hence block_backed=True => forces_load=False for all realizable Variables; no realizable input drives the fixed repo to force a load or to disagree with the spec's loads==0 / payload_intact postconditions. The payload_intact token is an explicit proof-only construct with no runtime footprint (documented and confirmed by axiom_check), so it cannot itself introduce repo drift.\n\nConclusion: no diverging input exists on the realizable domain; the spec is not too strong. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 G-LEAK leakage/gold-reconstruction review of the nagini spec view for pydata__xarray-6721.\n\nGold edit: xarray/core/common.py inside get_chunksizes, `if hasattr(v.data, \"chunks\"):` -> `if hasattr(v._data, \"chunks\"):` (inspect the UNDERLYING store `v._data` instead of the MATERIALISED payload `v.data`, avoiding a forced load).\n\nMechanical screen (swebench_unified.leakage.screen against frozen problem_statement, NOT hints_text): PASSED with zero hard failures \u2014 no diff markers, no reproduced gold-patch line, no patched file/module path, no spec-view identifier or comment echoing a patched repo symbol, no bug/fix narration keywords.\n\nSemantic reconstruction check: the spec view is fully abstracted. Modeled function is `block_lengths_by_axis(entries: List[Entry])`; callees `inspect_underlying`/`inspect_materialised`; fields `block_backed`/`forces_load`/`axis`/`length`; token `payload_intact`. None of `get_chunksizes`, `hasattr`, `chunks`, `v.data`, `v._data`, `_data`, `Frozen`, `chunksizes`, `common.py`, `variable.py`, `np.asarray`, `zarr`, `dask`, or `encoding` appears anywhere in the spec view (verified by substring scan).\n\nProblem_statement disclosure baseline: the PUBLIC problem_statement is far more revealing than the spec view \u2014 it names get_chunksizes, shows the verbatim buggy line `if hasattr(v.data, \"chunks\"):`, and traces the materialisation chain v.data -> self.values -> _as_array_or_item -> np.asarray (with self._data visible), and states the desired behaviour (accessing chunks should not load into memory; should inspect the underlying arrays). The spec view's 'consult the underlying store only, never materialise any lazily-backed entry' is strictly a generic re-statement of behaviour the problem_statement already demands, expressed over abstract Entry/token vocabulary \u2014 it does not reveal the one-line edit, the symbol names, the file, or the diff beyond what the solver-visible task already contains.\n\nConclusion: the spec view leaks nothing about the gold edit beyond the public problem_statement. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1_prepatch.py`, `atk2_echo_after.py`, `atk3_echo_before.py`, `atk5_offbyone.py`, `atk6_cfmaterialise.py`, `atk7_partialdomain.py`, `atk8_ungrounded.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk4_directfield.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) attack: NONE FOUND. The modeled function block_lengths_by_axis is a sound abstraction of the fixed xarray.core.common.get_chunksizes over the realizable input domain.\n\nMachine-checkable evidence:\n- Model verifies with pinned Nagini: `bash scripts/nagini_verify.sh model.py` -> 'Verification successful' (15.97s, exit 0).\n- axiom_check.py (G-AX) run against the REAL base-commit repo ($SCRATCH @ d3b6aa6d8b997df115a53c001d00222a0f92f63a = base_commit) passes on all three realizable regimes: in-memory-numpy (block_backed=F,forces_load=F), lazy-inaccessible (block_backed=F,forces_load=T; the EXACT LazilyIndexedArray+InaccessibleArray store the F2P test test_chunks_does_not_load_data uses), and dask-chunked (block_backed=T,forces_load=F). It validates both the block-status contract (inspect_underlying=hasattr(v._data,'chunks'), inspect_materialised=hasattr(v.data,'chunks')) AND the forced-load side effect against real Variable._data/Variable.data/Variable.values. Exit 0.\n- Refinement fidelity: gold patch is the one-line v.data->v._data change (common.py:2026 at repo; body inspected in worktree). Model's Entry.block_backed <-> hasattr(v._data,'chunks'); forces_load <-> non-duck lazy store; per-entry axis/length <-> v.chunksizes; the (-1,-1) skip marker <-> non-chunked entry contributes nothing. Aggregation (flat pair list) <-> Frozen(dict) is identity-on-content. All steps R/A-consumed/I; no kind-3.\n\nProbed the one regime axiom_check omits (block_backed=True AND forces_load=True): only constructible with a CONTRIVED non-duck array that fakes a .chunks attribute (FakeChunked). In real xarray, any array advertising .chunks is a dask (duck) array, so Variable.data (variable.py:344-348, is_duck_array short-circuit) returns self._data WITHOUT a load => forces_load=False. Hence block_backed=True => forces_load=False for all realizable Variables; no realizable input drives the fixed repo to force a load or to disagree with the spec's loads==0 / payload_intact postconditions. The payload_intact token is an explicit proof-only construct with no runtime footprint (documented and confirmed by axiom_check), so it cannot itself introduce repo drift.\n\nConclusion: no diverging input exists on the realizable domain; the spec is not too strong. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "G-LEAK leakage/gold-reconstruction review of the nagini spec view for pydata__xarray-6721.\n\nGold edit: xarray/core/common.py inside get_chunksizes, `if hasattr(v.data, \"chunks\"):` -> `if hasattr(v._data, \"chunks\"):` (inspect the UNDERLYING store `v._data` instead of the MATERIALISED payload `v.data`, avoiding a forced load).\n\nMechanical screen (swebench_unified.leakage.screen against frozen problem_statement, NOT hints_text): PASSED with zero hard failures \u2014 no diff markers, no reproduced gold-patch line, no patched file/module path, no spec-view identifier or comment echoing a patched repo symbol, no bug/fix narration keywords.\n\nSemantic reconstruction check: the spec view is fully abstracted. Modeled function is `block_lengths_by_axis(entries: List[Entry])`; callees `inspect_underlying`/`inspect_materialised`; fields `block_backed`/`forces_load`/`axis`/`length`; token `payload_intact`. None of `get_chunksizes`, `hasattr`, `chunks`, `v.data`, `v._data`, `_data`, `Frozen`, `chunksizes`, `common.py`, `variable.py`, `np.asarray`, `zarr`, `dask`, or `encoding` appears anywhere in the spec view (verified by substring scan).\n\nProblem_statement disclosure baseline: the PUBLIC problem_statement is far more revealing than the spec view \u2014 it names get_chunksizes, shows the verbatim buggy line `if hasattr(v.data, \"chunks\"):`, and traces the materialisation chain v.data -> self.values -> _as_array_or_item -> np.asarray (with self._data visible), and states the desired behaviour (accessing chunks should not load into memory; should inspect the underlying arrays). The spec view's 'consult the underlying store only, never materialise any lazily-backed entry' is strictly a generic re-statement of behaviour the problem_statement already demands, expressed over abstract Entry/token vocabulary \u2014 it does not reveal the one-line edit, the symbol names, the file, or the diff beyond what the solver-visible task already contains.\n\nConclusion: the spec view leaks nothing about the gold edit beyond the public problem_statement. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:09:53+00:00",
+      "code_version": "5c158293b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder-hoist",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-write-block-backed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "reject",
+            "id": "frame-write-axis",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 23.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-materialise-then-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.3
+          },
+          {
+            "expect": "reject",
+            "id": "weak-echo-underlying-then-materialise",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-swap-axis-length",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 83.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-skip-first-entry",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 98.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-wrong-empty-marker",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 90.6
+          },
+          {
+            "expect": "reject",
+            "id": "tally-nonzero-trailing-slot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.3
+          },
+          {
+            "expect": "reject",
+            "id": "trunc-missing-tally-slot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.5
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 9
+        },
+        "manifest_sha256": "0886d08a28fc4eaa2d51f9c01ed1fca662568b21460f67ee5c305e39c330a701",
+        "n_cases": 11,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 11 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "d078903f049e074aebac971545e1a6ed2be59241724857e95b0e1519cc15e390",
+        "properties.py": "0886d08a28fc4eaa2d51f9c01ed1fca662568b21460f67ee5c305e39c330a701"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T16:09:23+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T10:09:57+00:00",
+      "code_version": "cef05a441-dirty",
+      "data": {
+        "wall_time_s": 32.0
+      },
+      "detail": "verified in 32.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "67fb0898c274",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-6721",
+  "modeled_functions": [
+    {
+      "carrier_type": "Iterable[Variable] -> List[Entry] (minimal object with the touched fields block_backed/forces_load/axis/length); Frozen(dict) result -> flat List[int] of (axis,length) pairs + a trailing materialisation tally",
+      "model_symbol": "block_lengths_by_axis",
+      "repo_location": "xarray/core/common.py:2020-2034",
+      "repo_symbol": "xarray.core.common.get_chunksizes",
+      "role": "modeled changed function: inspects a collection of variables and reports, per dimension, the block (chunk) lengths of the chunked variables; the gold change is the one-line payload-view swap at common.py:2026"
+    }
+  ],
+  "object_modeling": "each Variable abstracted to an Entry carrying only the touched fields (block_backed = underlying store advertises 'chunks'; forces_load = obtaining the materialised payload would pull a lazily-backed non-duck store into memory; axis,length = one chunksizes entry). The materialisation side effect is made observable AND UNFORGEABLE by an abstract consumable capability token payload_intact: inspect_underlying threads it through, inspect_materialised consumes it, and block_lengths_by_axis must re-establish it for every entry in its postcondition -- so a verifying impl can never have materialised any entry. A loads tally threaded through and required to stay 0 is a redundant secondary witness.",
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; single line: common.py:2026 v.data -> v._data)",
+  "prepatch_models": [
+    {
+      "fails_on": "verification fails -- inspect_materialised consumes payload_intact, so the postcondition 'every entry payload_intact' is undischargeable; it additionally reports the wrong block status for a chunked-but-lazy entry, so the per-entry value invariant also cannot be preserved. (Both are sufficient for G-DIFF.)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "get_chunksizes must not materialise (eagerly load) any variable's payload when inspecting for a chunk structure",
+      "reverted_to": "inspect the MATERIALISED payload (v.data) instead of the underlying store (v._data): inspect_materialised, which forces a load on any lazily-backed non-duck variable and CONSUMES that entry's payload_intact token"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "d6c8951995bcfb09693bd9bb299b6351ce1633d1003a93306d1b7807c6296be7",
+    "impl": "cc28cb914207845090ac2064ec0cac37582f115de9cebeaa167e42447a88d311",
+    "invariants": "477162bc62a0bd7cf4da1a26648509d8fcd1be650d450fd20f229ccb5e6a66f6",
+    "post-conditions": "8771cbc871ff4d3eb2db61655fb5be00b7000bbe907e1d6289b95bc3e60d80e3",
+    "pre-conditions": "11eceea688050fbd058559c60193880a546246bef8490c9f76d5391209afc38f",
+    "pure": "666175d500dcdf295a2b5ed2e87398adac3f24e7ac40f8db492649845f0a1546",
+    "spec_view": "6f28af02f0f09108f81553b7bf9df3fa3c53f888e7f3ade23702768a35ceda90"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "2022.06"
+}

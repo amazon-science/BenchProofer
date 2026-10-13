@@ -1,0 +1,449 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "supporting refactor (timedelta literal -> plain Value(output_field=DurationField()), DurationValue subclass deleted); makes operand_format_flag (function #2) sufficient. No separate spec obligation: the observable consequence is exactly the format/dispatch decisions modeled in #1/#2.",
+      "repo_location": "django/db/models/expressions.py:59-62, 712-717",
+      "repo_symbol": "django.db.models.expressions.Combinable._combine + DurationValue removal"
+    },
+    {
+      "handling": "dead-code removal consequential to deleting DurationValue (its only caller); no F2P-observable behaviour; not modeled (refinement.md C).",
+      "repo_location": "django/db/backends/{base,mysql,sqlite3}/operations.py",
+      "repo_symbol": "BaseDatabaseOperations.date_interval_sql + MySQL/SQLite overrides (removed)"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "ec5aa2161d8015a3fe57dcbbfe14200cd18f0a16",
+  "changed_files": [
+    "django/db/models/expressions.py",
+    "django/db/backends/base/operations.py",
+    "django/db/backends/mysql/operations.py",
+    "django/db/backends/sqlite3/operations.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): model == verbatim-source oracle exhaustively over all (lhs,rhs,connector,native) + 20000 fuzz; end-to-end SQLite F2P scenario",
+      "encoded_property": "duration+duration on a non-native backend is NOT routed to the duration-arithmetic subclass (the discriminator); mixed duration+temporal is; same-kind temporal SUB is the temporal-subtraction subclass; else plain",
+      "kind": "A-reference",
+      "models": "CombinedExpression.as_sql rendering-class dispatch (post-patch)",
+      "name": "select_arithmetic_path",
+      "provenance": "django/db/models/expressions.py:443-459; guards: not has_native_duration_field and 'DurationField' in {lhs_type,rhs_type} and lhs_type!=rhs_type -> DurationExpression; connector==SUB and lhs_type in {Date,DateTime,Time} and lhs_type==rhs_type -> TemporalSubtraction; else plain",
+      "role": "deep model (impl) of changed dispatch; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): model == verbatim-source oracle exhaustively over all (operand_kind, is_literal) + fuzz",
+      "encoded_property": "every duration-kind operand is formatted, including a literal duration operand (the discriminator); the decision is independent of literal-vs-column",
+      "kind": "A-reference",
+      "models": "DurationExpression.compile per-operand format decision (post-patch)",
+      "name": "operand_format_flag",
+      "provenance": "django/db/models/expressions.py:482-492; format_for_duration_arithmetic applied iff output_field.get_internal_type()=='DurationField', uniformly (no DurationValue exemption)",
+      "role": "deep model (impl) of changed per-operand format; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T11:49:39+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: select_arithmetic_path / operand_format_flag deep models validated == real post-patch Django dispatch (exhaustive + 20000 fuzz) AND the durations-only F2P scenario round-trips on SQLite with the duration+duration pairing NOT routed to the duration-arithmetic subclass.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "8c0c90a57913a40fe3a71f2ef1a73c13f9f8d641ee0dce1074fcb40953464801",
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T11:49:46+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 200588,
+          "disagreements": 0,
+          "seed": 13121,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 200588, \"disagreements\": 0, \"seed\": 13121, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "196a6717148c0eac2a821af829eab70230fa48bc1fe2dde8893baa8690b2e618",
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:52:09+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563",
+        "model_prepatch.py": "d6a51710052866674de5657f48169e2b5ccc75ceac9d8edd51892a9db0b9efe3",
+        "model_prepatch_2.py": "01d9d92d7d67cbba2891ea97da64229a5642f454a19dcb92c932fc54edb1a82a"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T08:03:24+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 6 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:53:14+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563",
+        "model_prepatch.py": "d6a51710052866674de5657f48169e2b5ccc75ceac9d8edd51892a9db0b9efe3",
+        "model_prepatch_2.py": "01d9d92d7d67cbba2891ea97da64229a5642f454a19dcb92c932fc54edb1a82a"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T11:49:32+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "325d6556aa7cafed68135643b50db209898d29f72904903c09b62f46248eff5b",
+          "impl": "543a498d0af358ea856b560b275d0584a96dea03fe041a201b053b6558ef01df",
+          "post-conditions": "23c580f17c836b285e02f24d1a8e3aded07f0fb9dce94fde1d8df8db615d42f5",
+          "pre-conditions": "1aef152f3896cb97d5060f1484a7d21d4924aa6840bcf73b5ecadfde8a06f7ed",
+          "pure": "9358027d519383fffb735c957690592b79953f552b645338cdc4a4a720cc998c",
+          "spec_view": "c9f5ef5ea472b363d8c3f282d61e8ac3757c2df0013d690f75f76ab84f84156f"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T11:49:32+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "54460a9975a11c5a8c05ec95d47fa160733e337ab3c4dc9f643e50a7d1442bc1",
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T11:49:33+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T09:25:44+00:00",
+      "code_version": "1a997691d-dirty",
+      "data": {
+        "judged": 14,
+        "killed": 14,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 14,
+        "unjudged": []
+      },
+      "detail": "killed 14/14 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "67fb0898c274",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T08:03:25+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness confirmed: the two modeled functions agree with the real post-patch Django callees on every input; no diverging input exists.\n\nEvidence:\n- Real pre-patch source read from a base_commit worktree (ec5aa2161d) and the gold patch fetched verbatim from data/swe_bench_verified/test.jsonl. axiom_check.py's oracle is a line-faithful transcription of the actual post-patch CombinedExpression.as_sql and DurationExpression.compile.\n- model.py verifies under the pinned Nagini (Verification successful, 16.6s).\n- axiom_check.py model-vs-oracle layer PASSES: exhaustive over all (lhs_kind, rhs_kind, is_subtract, native) = 6x6x2x2 and all (operand_kind, is_literal) combos, plus 20000-seed fuzz, plus explicit discriminators. (The live-Django SQLite F2P layer was SKIPped only because Django is not importable in this env; the transcribed oracle covers the same predicates.)\n\nAbstraction-boundary reasoning (why the spec is not too strong / does not drift):\n1. select_arithmetic_path guard 1 (duration): real is `not native and 'DurationField' in {lhs_type,rhs_type} and lhs_type != rhs_type`; model is `not native and (lhs==DUR or rhs==DUR) and lhs!=rhs`. Equivalent: 'DurationField' in {..} <=> at least one side duration. The KIND_OTHER collapse (all non-temporal/non-duration real types mapped to one code) is sound because the `!=` test only alters the outcome when exactly one side is a duration, and any distinct non-duration real type yields lhs!=rhs in both model and reality. FieldError->None->KIND_NONE preserved (None != 'DurationField').\n2. guard 2 (temporal SUB): temporal kinds are distinct codes, so lhs==rhs among temporals <=> real lhs_type==rhs_type among {DateField,DateTimeField,TimeField}; native correctly irrelevant. Post-patch also drops the pre-patch `lhs_output and rhs_output` non-None guard, but `lhs_type in datetime_fields` already forces non-None, matching the model.\n3. operand_format_flag: post-patch removes the isinstance(side, DurationValue) exemption; wrapper applied iff get_internal_type()=='DurationField'. Model returns 1 iff operand_kind==DURATION, independent of is_literal. Matches exactly, including the literal-duration case (KIND_DURATION, is_literal=True) -> 1.\n\nThe int-enum refinement of get_internal_type() is faithful because the real guards read the type only via ==, != and finite-set membership. No axioms are consumed (deep model); G-AX A-references validated. Spec region byte-identical (bundle unmodified). FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = projected model.py (docstring + pure/pre/post regions, impl elided). refinement.md/mapping.md/meta.json are AUDITOR docs, not the solver-visible spec view, so their naming of expressions.py/DurationValue/as_sql/gold hunks is out of scope. Checked the spec view against all 9 gold-patch changed symbols (Combinable, DurationValue, as_sql, date_interval_sql, get_group_by_cols, resolve_expression, set_source_expressions, date_extract_sql, time_trunc_sql) plus post-patch specifics (TemporalSubtraction, DurationExpression, format_for_duration_arithmetic, has_native_duration_field, isinstance, expressions.py): NONE appear in the view as identifiers or in comments. Mechanical screen leakage.screen() PASSED (no L1 diff markers, no reproduced gold lines, no L2 file/module paths, no L2/L5 identifier collisions, no L3 narration). The only 'patch' string hits are substrings of 'dispatch'/'dispatch-path', which the word-boundary narration regex correctly ignores. Spec-view identifiers are abstract model names (select_arithmetic_path, operand_format_flag, KIND_*/PATH_* codes). The behavioral discriminators the spec pins ('a both-duration pairing is NOT the duration path'; 'format flag independent of literal-vs-column') are stated as DESIRED behavior over an integer abstraction, not as an edit/pre-patch narration; the public problem_statement already discloses durations-only expressions are broken on SQLite/MySQL. Describing correct behavior abstractly does not localize the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 6 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness confirmed: the two modeled functions agree with the real post-patch Django callees on every input; no diverging input exists.\n\nEvidence:\n- Real pre-patch source read from a base_commit worktree (ec5aa2161d) and the gold patch fetched verbatim from data/swe_bench_verified/test.jsonl. axiom_check.py's oracle is a line-faithful transcription of the actual post-patch CombinedExpression.as_sql and DurationExpression.compile.\n- model.py verifies under the pinned Nagini (Verification successful, 16.6s).\n- axiom_check.py model-vs-oracle layer PASSES: exhaustive over all (lhs_kind, rhs_kind, is_subtract, native) = 6x6x2x2 and all (operand_kind, is_literal) combos, plus 20000-seed fuzz, plus explicit discriminators. (The live-Django SQLite F2P layer was SKIPped only because Django is not importable in this env; the transcribed oracle covers the same predicates.)\n\nAbstraction-boundary reasoning (why the spec is not too strong / does not drift):\n1. select_arithmetic_path guard 1 (duration): real is `not native and 'DurationField' in {lhs_type,rhs_type} and lhs_type != rhs_type`; model is `not native and (lhs==DUR or rhs==DUR) and lhs!=rhs`. Equivalent: 'DurationField' in {..} <=> at least one side duration. The KIND_OTHER collapse (all non-temporal/non-duration real types mapped to one code) is sound because the `!=` test only alters the outcome when exactly one side is a duration, and any distinct non-duration real type yields lhs!=rhs in both model and reality. FieldError->None->KIND_NONE preserved (None != 'DurationField').\n2. guard 2 (temporal SUB): temporal kinds are distinct codes, so lhs==rhs among temporals <=> real lhs_type==rhs_type among {DateField,DateTimeField,TimeField}; native correctly irrelevant. Post-patch also drops the pre-patch `lhs_output and rhs_output` non-None guard, but `lhs_type in datetime_fields` already forces non-None, matching the model.\n3. operand_format_flag: post-patch removes the isinstance(side, DurationValue) exemption; wrapper applied iff get_internal_type()=='DurationField'. Model returns 1 iff operand_kind==DURATION, independent of is_literal. Matches exactly, including the literal-duration case (KIND_DURATION, is_literal=True) -> 1.\n\nThe int-enum refinement of get_internal_type() is faithful because the real guards read the type only via ==, != and finite-set membership. No axioms are consumed (deep model); G-AX A-references validated. Spec region byte-identical (bundle unmodified). FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view = projected model.py (docstring + pure/pre/post regions, impl elided). refinement.md/mapping.md/meta.json are AUDITOR docs, not the solver-visible spec view, so their naming of expressions.py/DurationValue/as_sql/gold hunks is out of scope. Checked the spec view against all 9 gold-patch changed symbols (Combinable, DurationValue, as_sql, date_interval_sql, get_group_by_cols, resolve_expression, set_source_expressions, date_extract_sql, time_trunc_sql) plus post-patch specifics (TemporalSubtraction, DurationExpression, format_for_duration_arithmetic, has_native_duration_field, isinstance, expressions.py): NONE appear in the view as identifiers or in comments. Mechanical screen leakage.screen() PASSED (no L1 diff markers, no reproduced gold lines, no L2 file/module paths, no L2/L5 identifier collisions, no L3 narration). The only 'patch' string hits are substrings of 'dispatch'/'dispatch-path', which the word-boundary narration regex correctly ignores. Spec-view identifiers are abstract model names (select_arithmetic_path, operand_format_flag, KIND_*/PATH_* codes). The behavioral discriminators the spec pins ('a both-duration pairing is NOT the duration path'; 'format flag independent of literal-vs-column') are stated as DESIRED behavior over an integer abstraction, not as an edit/pre-patch narration; the public problem_statement already discloses durations-only expressions are broken on SQLite/MySQL. Describing correct behavior abstractly does not localize the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness confirmed: the two modeled functions agree with the real post-patch Django callees on every input; no diverging input exists.\n\nEvidence:\n- Real pre-patch source read from a base_commit worktree (ec5aa2161d) and the gold patch fetched verbatim from data/swe_bench_verified/test.jsonl. axiom_check.py's oracle is a line-faithful transcription of the actual post-patch CombinedExpression.as_sql and DurationExpression.compile.\n- model.py verifies under the pinned Nagini (Verification successful, 16.6s).\n- axiom_check.py model-vs-oracle layer PASSES: exhaustive over all (lhs_kind, rhs_kind, is_subtract, native) = 6x6x2x2 and all (operand_kind, is_literal) combos, plus 20000-seed fuzz, plus explicit discriminators. (The live-Django SQLite F2P layer was SKIPped only because Django is not importable in this env; the transcribed oracle covers the same predicates.)\n\nAbstraction-boundary reasoning (why the spec is not too strong / does not drift):\n1. select_arithmetic_path guard 1 (duration): real is `not native and 'DurationField' in {lhs_type,rhs_type} and lhs_type != rhs_type`; model is `not native and (lhs==DUR or rhs==DUR) and lhs!=rhs`. Equivalent: 'DurationField' in {..} <=> at least one side duration. The KIND_OTHER collapse (all non-temporal/non-duration real types mapped to one code) is sound because the `!=` test only alters the outcome when exactly one side is a duration, and any distinct non-duration real type yields lhs!=rhs in both model and reality. FieldError->None->KIND_NONE preserved (None != 'DurationField').\n2. guard 2 (temporal SUB): temporal kinds are distinct codes, so lhs==rhs among temporals <=> real lhs_type==rhs_type among {DateField,DateTimeField,TimeField}; native correctly irrelevant. Post-patch also drops the pre-patch `lhs_output and rhs_output` non-None guard, but `lhs_type in datetime_fields` already forces non-None, matching the model.\n3. operand_format_flag: post-patch removes the isinstance(side, DurationValue) exemption; wrapper applied iff get_internal_type()=='DurationField'. Model returns 1 iff operand_kind==DURATION, independent of is_literal. Matches exactly, including the literal-duration case (KIND_DURATION, is_literal=True) -> 1.\n\nThe int-enum refinement of get_internal_type() is faithful because the real guards read the type only via ==, != and finite-set membership. No axioms are consumed (deep model); G-AX A-references validated. Spec region byte-identical (bundle unmodified). FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view = projected model.py (docstring + pure/pre/post regions, impl elided). refinement.md/mapping.md/meta.json are AUDITOR docs, not the solver-visible spec view, so their naming of expressions.py/DurationValue/as_sql/gold hunks is out of scope. Checked the spec view against all 9 gold-patch changed symbols (Combinable, DurationValue, as_sql, date_interval_sql, get_group_by_cols, resolve_expression, set_source_expressions, date_extract_sql, time_trunc_sql) plus post-patch specifics (TemporalSubtraction, DurationExpression, format_for_duration_arithmetic, has_native_duration_field, isinstance, expressions.py): NONE appear in the view as identifiers or in comments.\n\nMechanical screen leakage.screen() PASSED (no L1 diff markers, no reproduced gold lines, no L2 file/module paths, no L2/L5 identifier collisions, no L3 narration). The only 'patch' string hits are substrings of 'dispatch'/'dispatch-path', which the word-boundary narration regex correctly ignores. Spec-view identifiers are abstract model names (select_arithmetic_path, operand_format_flag, KIND_*/PATH_* codes). The behavioral discriminators the spec pins ('a both-duration pairing is NOT the duration path'; 'format flag independent of literal-vs-column') are stated as DESIRED behavior over an integer abstraction, not as an edit/pre-patch narration; the public problem_statement already discloses durations-only expressions are broken on SQLite/MySQL. Describing correct behavior abstractly does not localize the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:21:54+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-path-single-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 38.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-format-inverted-test",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 33.3
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self-calls",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 35.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-prepatch-dur-dur",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.4
+          },
+          {
+            "expect": "reject",
+            "id": "rival-drop-native-gate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.0
+          },
+          {
+            "expect": "reject",
+            "id": "rival-drop-subtract-gate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-widen-temporal-family",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.2
+          },
+          {
+            "expect": "reject",
+            "id": "rival-literal-exemption",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-format-inverted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.8
+          },
+          {
+            "expect": "reject",
+            "id": "rival-diverging-self-call",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "d9e1481c0badc4d5e3c4bba8d1768696c5690194cb53ec30bb59b693569974b2",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "1a91c49f32da0fed41f07686dcb4b7e23d143bd09ad546d23f992ff6a53d0563",
+        "properties.py": "d9e1481c0badc4d5e3c4bba8d1768696c5690194cb53ec30bb59b693569974b2"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T11:38:26+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T09:22:50+00:00",
+      "code_version": "1a997691d-dirty",
+      "data": {
+        "wall_time_s": 12.9
+      },
+      "detail": "verified in 12.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "67fb0898c274",
+      "mode": "strict",
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13121",
+  "modeled_functions": [
+    {
+      "carrier_type": "output_field.get_internal_type() names + None -> int KIND_* codes; dispatch target -> int PATH_* codes",
+      "model_symbol": "select_arithmetic_path",
+      "repo_location": "django/db/models/expressions.py:443-459",
+      "repo_symbol": "django.db.models.expressions.CombinedExpression.as_sql (rendering-class dispatch)",
+      "role": "modeled changed function #1: chooses DurationExpression / TemporalSubtraction / plain CombinedExpression for an arithmetic combination"
+    },
+    {
+      "carrier_type": "result-kind name -> int KIND_* code; literal-vs-column -> bool; format-or-not -> int 0/1",
+      "model_symbol": "operand_format_flag",
+      "repo_location": "django/db/models/expressions.py:482-492",
+      "repo_symbol": "django.db.models.expressions.DurationExpression.compile (per-operand format decision)",
+      "role": "modeled changed function #2: whether the duration-format wrapper is applied to one operand"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(lhs==KIND_DURATION and rhs==KIND_DURATION, Result()!=PATH_DURATION)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "CombinedExpression.as_sql dispatch: duration+duration must NOT use the duration-arithmetic subclass",
+      "reverted_to": "pre-patch guard routing to the duration-arithmetic subclass when EITHER side is a DurationField (no lhs!=rhs requirement)"
+    },
+    {
+      "fails_on": "postcondition Result() == 1 if operand_kind==KIND_DURATION else 0, on (KIND_DURATION, is_literal=True)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "DurationExpression.compile per-operand format: a literal duration operand must be formatted",
+      "reverted_to": "pre-patch DurationValue exemption (a literal operand is skipped: if is_literal: return 0)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "325d6556aa7cafed68135643b50db209898d29f72904903c09b62f46248eff5b",
+    "impl": "543a498d0af358ea856b560b275d0584a96dea03fe041a201b053b6558ef01df",
+    "post-conditions": "23c580f17c836b285e02f24d1a8e3aded07f0fb9dce94fde1d8df8db615d42f5",
+    "pre-conditions": "b3994965c40548508a7b6eaaccf091f3918ac463dabe5374741d430f8865cc32",
+    "pure": "9358027d519383fffb735c957690592b79953f552b645338cdc4a4a720cc998c",
+    "spec_view": "3b69044858bce0db9f3938fe09e69ca35f47ec5b7ab08e55985560639dd4930c"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none; the str field-type names from get_internal_type() are abstracted to a finite int enum (KIND_*) because the dispatch reads them only by equality / finite-set membership (R refinement)",
+  "version": "3.2"
+}

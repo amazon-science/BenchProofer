@@ -1,0 +1,628 @@
+{
+  "axioms": [],
+  "base_commit": "1136aa5005f0ae70fea12796b7e37d6f027b9263",
+  "changed_files": [
+    "django/core/serializers/python.py",
+    "django/core/serializers/xml_serializer.py"
+  ],
+  "conf_skip": true,
+  "conf_skip_reason": "no-RI-content: impl region's value-carrying ops are all A-reference callees; residual content is the planRejected predicate over them, with no R/I data carrier to differentially fuzz",
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "resets the related selection to the unrestricted boolean form (query.select_related = True), so isinstance(select_related, dict) becomes False",
+      "kind": "A-reference",
+      "models": "django.db.models.query.QuerySet.select_related() (no-arg form) @ django/db/models/query.py:1546",
+      "name": "selectAllRelated"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "restricts the immediate-load mask to the primary key, deferring every other field (including the related fk)",
+      "kind": "A-reference",
+      "models": "django.db.models.query.QuerySet.only('pk') @ django/db/models/query.py:1728",
+      "name": "loadOnlyPk"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): equals the real compiler verdict across {restricted dict | unrestricted} x {only('pk') | full load}",
+      "encoded_property": "the compiler refuses the plan iff the related selection is restricted-to-names AND at least one named relation is deferred (the deferred + traversed conflict)",
+      "kind": "A-reference",
+      "models": "the FieldError raised by django.db.models.query_utils.select_related_descend @ django/db/models/query_utils.py:343, surfaced through SQLCompiler.get_related_selections",
+      "name": "planRejected"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:18:13+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: selectAllRelated (no-arg select_related -> unrestricted boolean), loadOnlyPk (only('pk') defers the related fk), and planRejected (== real SQL-compiler FieldError) sound on 2008 observations across restricted (dict select_related) and unrestricted configurations x {only('pk'), full load}; pre-patch plan raises, gold .select_related().only('pk') does not.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f",
+        "axiom_check.py": "b23360cd48589c263dfaaea203d5600b95673b8ccfcd6f477087c246fec186ce"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:18:14+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "conf_skipped": true
+      },
+      "detail": "no-RI-content (impl region all-A-tagged)",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:18:26+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f",
+        "Solution_prepatch.lean": "5bef8d9f3be348260561b1d8e00424a8f6b46f71226e728ab912c91b830a6f6f"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T20:54:14+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 9 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_9.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_6.lean`, `atk_7.lean`, `atk_8.lean` |\n\n**Non-vacuity.** The positive control `pc_gold.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:18:34+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f",
+        "Solution_prepatch.lean": "5bef8d9f3be348260561b1d8e00424a8f6b46f71226e728ab912c91b830a6f6f"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:18:08+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "f18b71e667c54d0efd4e501674e247a3503495ae65840cc0ac80667647245303",
+          "impl": "2812ad67cd8f31e4d9a3faf036248b16e8031f1e342364650af7cb5efef54ff6",
+          "pure": "b1bd6f452a72cd29ae15ed0d5192d75d7aa5dfa857fb36f35199287a35052366",
+          "spec_view": "5fa0c0bc7a07a6b2fbd3ff253364a474a511402c1bdb4d8b5f8fc8e47fb28b93"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:18:09+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f",
+        "instance.json": "8b226765f0d0d7419f8cd6df0b7822f993096be747561f00ed8755c7b7ba4d83"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:18:10+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T11:51:07+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T20:54:18+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness-break (too-strong/drift) analysis for django__django-16938 velvet. same_spec(Solution, Solution_prepatch) == True with velvet backend. The spec models the load plan of the gold code getattr(obj,field.name).select_related().only('pk').iterator() via three A-reference transformers, each verified against the real Django ORM at base_commit (repo present $SCRATCH): (1) no-arg select_related() sets query.select_related=True \u2192 unrestricted (query.py:1059); (2) only('pk') \u2192 add_immediate_loading, defers the related fk (sql/query.py:2086); (3) planRejected == select_related_descend FieldError raise condition (query_utils.py:201-235). Ran axiom_check.py against the real repo (PYTHONPATH=$SCRATCH): G-AX OK on 2008 observations across restricted-dict and unrestricted configs \u00d7 {only('pk'), full load} including boundary matrix \u2014 for every input the model's planRejected equals whether the real SQL compiler raises FieldError; pre-patch only('pk') over a select_related('master') manager raises and the model agrees, gold select_related().only('pk') does not raise and the model agrees. Postconditions pin output to {unrestricted, some['pk']}, which is exactly the plan the fixed code assembles for ANY input queryset: select_related() always yields boolean True (isRestricted=false), only('pk') always yields immediate={pk} (defer flag False; the 'pk'\u2192'id' rename and relation-name granularity abstraction do not affect the conflict since pk is never a traversed relation), and planRejected is false because related is unrestricted. No input found where the modeled function disagrees with the real callee; the abstraction is sound for the deferred-and-traversed conflict it targets. Lean: Solution.lean verifies (exit 0); Solution_prepatch.lean fails exactly on ensures isRestricted/planRejected (G-DIFF sound). The recorded G-PANEL-1 fail is the partial-correctness vacuity weakness (repaired to total semantics), which is a too-weak concern, orthogonal to this too-strong/drift angle.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "same_spec(Solution.lean, Solution_prepatch.lean, velvet backend) = True \u2014 frozen spec view is byte-identical across twins (verified via swebench_unified.markers.same_spec). Assessed the spec view (spec_view over the velvet backend) for disclosure of the gold edit beyond the public problem_statement.\n\nGold edit: insert a no-arg `.select_related()` before `.only(\"pk\")` in the `queryset_iterator` closure (python.py:81 / xml_serializer.py:158), resetting query.select_related=True so `restricted` becomes False.\n\nThe public problem_statement ALREADY discloses: the exact site (full traceback through queryset_iterator \u2192 get_related_selections \u2192 select_related_descend), the exact cause (restricted select_related from a custom manager's `select_related(\"master\")` combined with `.only(\"pk\")` raising FieldError 'cannot be both deferred and traversed using select_related at the same time'), and the stated workaround (drop the custom manager's restricted select_related).\n\nSpec-view content: (1) a Background block that RESTATES the public issue in abstracted terms ('a related selection', 'the database layer refuses the plan') \u2014 never quoting the method name `.select_related()`; (2) modeling vocabulary in the pure region (RelatedPlan/QState/isRestricted/planRejected/selectAllRelated/loadOnlyPk); (3) three postconditions: planRejected out = false, isRestricted out.related = false, out.immediate = some [\"pk\"].\n\nThe postcondition `isRestricted out.related = false` encodes the intended outcome (unrestricted related selection) \u2014 but this is exactly the resolution the public problem_statement's own workaround describes (removing the restricted select_related), so it does not go beyond the public statement. No spec-view line quotes the gold patch string `.select_related()`, the specific insertion, or problem-statement phrasing verbatim; `loadOnlyPk`/`only(\"pk\")` was pre-patch content, not the edit. The disclosure is abstract intended-behaviour, all derivable from the public problem_statement. G-LEAK lexical screen: no gold-patch specifics leaked.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 9 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness-break (too-strong/drift) analysis for django__django-16938 velvet. same_spec(Solution, Solution_prepatch) == True with velvet backend. The spec models the load plan of the gold code getattr(obj,field.name).select_related().only('pk').iterator() via three A-reference transformers, each verified against the real Django ORM at base_commit (repo present $SCRATCH): (1) no-arg select_related() sets query.select_related=True \u2192 unrestricted (query.py:1059); (2) only('pk') \u2192 add_immediate_loading, defers the related fk (sql/query.py:2086); (3) planRejected == select_related_descend FieldError raise condition (query_utils.py:201-235). Ran axiom_check.py against the real repo (PYTHONPATH=$SCRATCH): G-AX OK on 2008 observations across restricted-dict and unrestricted configs \u00d7 {only('pk'), full load} including boundary matrix \u2014 for every input the model's planRejected equals whether the real SQL compiler raises FieldError; pre-patch only('pk') over a select_related('master') manager raises and the model agrees, gold select_related().only('pk') does not raise and the model agrees. Postconditions pin output to {unrestricted, some['pk']}, which is exactly the plan the fixed code assembles for ANY input queryset: select_related() always yields boolean True (isRestricted=false), only('pk') always yields immediate={pk} (defer flag False; the 'pk'\u2192'id' rename and relation-name granularity abstraction do not affect the conflict since pk is never a traversed relation), and planRejected is false because related is unrestricted. No input found where the modeled function disagrees with the real callee; the abstraction is sound for the deferred-and-traversed conflict it targets. Lean: Solution.lean verifies (exit 0); Solution_prepatch.lean fails exactly on ensures isRestricted/planRejected (G-DIFF sound). The recorded G-PANEL-1 fail is the partial-correctness vacuity weakness (repaired to total semantics), which is a too-weak concern, orthogonal to this too-strong/drift angle.; G-PANEL-3 (leakage): pass \u2014 same_spec(Solution.lean, Solution_prepatch.lean, velvet backend) = True \u2014 frozen spec view is byte-identical across twins (verified via swebench_unified.markers.same_spec). Assessed the spec view (spec_view over the velvet backend) for disclosure of the gold edit beyond the public problem_statement.\n\nGold edit: insert a no-arg `.select_related()` before `.only(\"pk\")` in the `queryset_iterator` closure (python.py:81 / xml_serializer.py:158), resetting query.select_related=True so `restricted` becomes False.\n\nThe public problem_statement ALREADY discloses: the exact site (full traceback through queryset_iterator \u2192 get_related_selections \u2192 select_related_descend), the exact cause (restricted select_related from a custom manager's `select_related(\"master\")` combined with `.only(\"pk\")` raising FieldError 'cannot be both deferred and traversed using select_related at the same time'), and the stated workaround (drop the custom manager's restricted select_related).\n\nSpec-view content: (1) a Background block that RESTATES the public issue in abstracted terms ('a related selection', 'the database layer refuses the plan') \u2014 never quoting the method name `.select_related()`; (2) modeling vocabulary in the pure region (RelatedPlan/QState/isRestricted/planRejected/selectAllRelated/loadOnlyPk); (3) three postconditions: planRejected out = false, isRestricted out.related = false, out.immediate = some [\"pk\"].\n\nThe postcondition `isRestricted out.related = false` encodes the intended outcome (unrestricted related selection) \u2014 but this is exactly the resolution the public problem_statement's own workaround describes (removing the restricted select_related), so it does not go beyond the public statement. No spec-view line quotes the gold patch string `.select_related()`, the specific insertion, or problem-statement phrasing verbatim; `loadOnlyPk`/`only(\"pk\")` was pre-patch content, not the edit. The disclosure is abstract intended-behaviour, all derivable from the public problem_statement. G-LEAK lexical screen: no gold-patch specifics leaked.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 9 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 9 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_9.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk_6.lean`, `atk_7.lean`, `atk_8.lean` |\n\n**Non-vacuity.** The positive control `pc_gold.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness-break (too-strong/drift) analysis for django__django-16938 velvet. same_spec(Solution, Solution_prepatch) == True with velvet backend. The spec models the load plan of the gold code getattr(obj,field.name).select_related().only('pk').iterator() via three A-reference transformers, each verified against the real Django ORM at base_commit (repo present $SCRATCH):\n\n(1) no-arg select_related() sets query.select_related=True \u2192 unrestricted (query.py:1059);\n\n(2) only('pk') \u2192 add_immediate_loading, defers the related fk (sql/query.py:2086);\n\n(3) planRejected == select_related_descend FieldError raise condition (query_utils.py:201-235). Ran axiom_check.py against the real repo (PYTHONPATH=$SCRATCH): G-AX OK on 2008 observations across restricted-dict and unrestricted configs \u00d7 {only('pk'), full load} including boundary matrix \u2014 for every input the model's planRejected equals whether the real SQL compiler raises FieldError; pre-patch only('pk') over a select_related('master') manager raises and the model agrees, gold select_related().only('pk') does not raise and the model agrees.\n\nPostconditions pin output to {unrestricted, some['pk']}, which is exactly the plan the fixed code assembles for ANY input queryset: select_related() always yields boolean True (isRestricted=false), only('pk') always yields immediate={pk} (defer flag False; the 'pk'\u2192'id' rename and relation-name granularity abstraction do not affect the conflict since pk is never a traversed relation), and planRejected is false because related is unrestricted. No input found where the modeled function disagrees with the real callee; the abstraction is sound for the deferred-and-traversed conflict it targets. Lean: Solution.lean verifies (exit 0); Solution_prepatch.lean fails exactly on ensures isRestricted/planRejected (G-DIFF sound). The recorded G-PANEL-1 fail is the partial-correctness vacuity weakness (repaired to total semantics), which is a too-weak concern, orthogonal to this too-strong/drift angle.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-AX `pass` (the axiom battery). The account names `Solution.lean`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "same_spec(Solution.lean, Solution_prepatch.lean, velvet backend) = True \u2014 frozen spec view is byte-identical across twins (verified via swebench_unified.markers.same_spec). Assessed the spec view (spec_view over the velvet backend) for disclosure of the gold edit beyond the public problem_statement.\n\nGold edit: insert a no-arg `.select_related()` before `.only(\"pk\")` in the `queryset_iterator` closure (python.py:81 / xml_serializer.py:158), resetting query.select_related=True so `restricted` becomes False.\n\nThe public problem_statement ALREADY discloses: the exact site (full traceback through queryset_iterator \u2192 get_related_selections \u2192 select_related_descend), the exact cause (restricted select_related from a custom manager's `select_related(\"master\")` combined with `.only(\"pk\")` raising FieldError 'cannot be both deferred and traversed using select_related at the same time'), and the stated workaround (drop the custom manager's restricted select_related).\n\nSpec-view content: (1) a Background block that RESTATES the public issue in abstracted terms ('a related selection', 'the database layer refuses the plan') \u2014 never quoting the method name `.select_related()`; (2) modeling vocabulary in the pure region (RelatedPlan/QState/isRestricted/planRejected/selectAllRelated/loadOnlyPk); (3) three postconditions: planRejected out = false, isRestricted out.related = false, out.immediate = some [\"pk\"].\n\nThe postcondition `isRestricted out.related = false` encodes the intended outcome (unrestricted related selection) \u2014 but this is exactly the resolution the public problem_statement's own workaround describes (removing the restricted select_related), so it does not go beyond the public statement. No spec-view line quotes the gold patch string `.select_related()`, the specific insertion, or problem-statement phrasing verbatim; `loadOnlyPk`/`only(\"pk\")` was pre-patch content, not the edit. The disclosure is abstract intended-behaviour, all derivable from the public problem_statement. G-LEAK lexical screen: no gold-patch specifics leaked.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T11:51:23+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-direct-construct",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reorder-transforms",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.6
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reproducer-shaped-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.5
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.restricted [\"master\"], immediate := none } = false is false",
+            "id": "rival-keep-restriction",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.unrestricted, immediate := some [\"name\"] } = false is false",
+            "id": "rival-no-narrow",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.restricted [\"a\", \"b\"], immediate := some [\"x\"] } = false is false",
+            "id": "rival-overload-immediate",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.unrestricted, immediate := none } = false is false",
+            "id": "rival-conditional-clear",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.unrestricted, immediate := none } = false is false",
+            "id": "rival-fabricate-pk-relation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.0,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "ec83d87670dd02dc10f582693f04fec8a07c9d806558434cc791e80f54ec1087",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f",
+        "properties.py": "ec83d87670dd02dc10f582693f04fec8a07c9d806558434cc791e80f54ec1087"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T21:07:27+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:18:21+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "wall_time_s": 3.6
+      },
+      "detail": "verified in 3.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "54835635a4c251dc53d1c35020e41e8667cb4360a72c23eda85ffc783895ae0f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-16938",
+  "modeled_functions": [
+    {
+      "also_models": "django.core.serializers.xml_serializer.Serializer.handle_m2m.<locals>.queryset_iterator @ django/core/serializers/xml_serializer.py:158 (byte-identical change)",
+      "carrier_type": "QuerySet load plan -> QState (RelatedPlan + immediate-load mask); spec over QState",
+      "model_symbol": "queryIterPlan",
+      "repo_location": "django/core/serializers/python.py:81",
+      "repo_symbol": "django.core.serializers.python.Serializer.handle_m2m_field.<locals>.queryset_iterator"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "A-statement-integrity",
+        "kind": "statement-diff",
+        "outcome": "CLEAN. Split every case's module at the impl markers and compared the pre-impl prefix (imports, set_options, pure region, method header, all three ensures) and the post-impl suffix (including `prove_correct queryIterPlan by loom_solve`) against the frozen file byte-for-byte. All 7 original cases: pre-identical=True, post-identical=True. No reformatted statement, no weakened hypothesis, no neutered obligation."
+      },
+      {
+        "id": "D-spec-uniqueness-theorem",
+        "kind": "wrong-impl / proof",
+        "outcome": "NO HOLE, closed by proof rather than sampling. Proved as a standalone theorem against the frozen spec that the three ensures as hypotheses force the output: (planRejected o = false) \u2227 (isRestricted o.related = false) \u2227 (o.immediate = some [\"pk\"]) \u2192 o = { .unrestricted, some [\"pk\"] }. Build exit 0. Since gold returns that constant for every input, NO impl can satisfy this spec and differ observably from gold \u2014 so attack D cannot succeed here, and the six wrong impls below are confirmations of that, not a search."
+      },
+      {
+        "id": "D1-empty-restriction",
+        "kind": "wrong-impl",
+        "outcome": "REJECTED (exit 1) on `isRestricted (RelatedPlan.restricted []) = false`. No hole."
+      },
+      {
+        "id": "D2-thread-mask-when-restricted",
+        "kind": "wrong-impl",
+        "outcome": "REJECTED (exit 1) on the (P) goal. No hole."
+      },
+      {
+        "id": "D3-orelse-mask",
+        "kind": "wrong-impl",
+        "outcome": "REJECTED (exit 1). Keeps the arriving mask when present, falls back to pk-only otherwise. No hole."
+      },
+      {
+        "id": "D4-dup-pk-mask",
+        "kind": "wrong-impl (near-miss)",
+        "outcome": "REJECTED (exit 1). `some [\"pk\",\"pk\"]` \u2014 same multiset, different list \u2014 is caught by the exact list equality in (P). No hole."
+      },
+      {
+        "id": "D5-none-mask",
+        "kind": "wrong-impl",
+        "outcome": "REJECTED (exit 1). No hole."
+      },
+      {
+        "id": "D6-keep-related-narrow-when-unrestricted",
+        "kind": "wrong-impl (partial-domain)",
+        "outcome": "REJECTED (exit 1) on the (P) goal. NOT a spec hole, but it exposed a BATTERY gap: no existing witness point could discriminate it. PROMOTED into the battery as rival-conditional-clear."
+      },
+      {
+        "id": "D7-fabricate-pk-request",
+        "kind": "wrong-impl ((S)-isolating)",
+        "outcome": "REJECTED (exit 1) on `isRestricted (RelatedPlan.restricted [\"pk\"]) = false` \u2014 and notably (R) and (P) both hold there, so (S) alone rejects it. NOT a spec hole, but it exposed that (S) was never attacked in isolation. PROMOTED into the battery as rival-fabricate-pk-relation."
+      },
+      {
+        "id": "E1-nested-call",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES (exit 0). `loadOnlyPk (selectAllRelated q)` as one nested expression. No SPEC-TOO-STRONG."
+      },
+      {
+        "id": "E2-match-on-related",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES (exit 0). Pattern-matches on the RelatedPlan constructor and builds each branch's output independently \u2014 a materially different control shape from the frozen chain, and the spec accepts it. No SPEC-TOO-STRONG."
+      },
+      {
+        "id": "E3-if-on-isRestricted",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES (exit 0). Branches on isRestricted, keeping q.related on the already-unrestricted branch. No SPEC-TOO-STRONG."
+      },
+      {
+        "id": "E4-double-clear",
+        "kind": "correct-reshape (idempotence)",
+        "outcome": "VERIFIES (exit 0). Applies each transformer twice, exercising idempotence of both. No SPEC-TOO-STRONG."
+      },
+      {
+        "id": "clause-independence",
+        "kind": "spec-structure probe",
+        "outcome": "Proved (S) \u2192 (R) (`audit_S_implies_R`, exit 0), confirming the manifest's claim; and DISPROVED the converse by exhibiting `planRejected { .restricted [], some [\"pk\"] } = false` with `isRestricted = true` (decide, exit 0). Also proved the separability shape: any output satisfying (R)+(P) but violating (S) must be restricted to names that are all \"pk\" (exit 0) \u2014 a degenerate family, which is why the (S)-only rival had to be built at `restricted [\"pk\"]`."
+      },
+      {
+        "id": "ADM-false-assert",
+        "kind": "admissibility slot integrity",
+        "outcome": "FAILS to build (exit 1, `unsolved goals ... = true`), proving the assert slot is a real VC and an admissibility case cannot pass by having its assert ignored."
+      },
+      {
+        "id": "ADM-trivial-assert",
+        "kind": "admissibility slot integrity",
+        "outcome": "Builds (exit 0) \u2014 as expected for `1 = 1`; this is what shows the original `planRejected = false` assert needed strengthening, since a trivially-true assert in that slot also passes."
+      },
+      {
+        "id": "F-frame-mutation-expressibility",
+        "kind": "omission re-derivation",
+        "outcome": "CONFIRMED INEXPRESSIBLE by build, not by argument. `q := selectAllRelated q` \u2192 exit 1: \"`q` cannot be mutated, only variables declared using `let mut` can be mutated\". `q.related := ...` \u2192 exit 1, same class. The frozen spec declares no `mut` binder (grepped: none), so the nagini fractional-permission rivals genuinely have no carrier counterpart."
+      },
+      {
+        "id": "divergence-probe",
+        "kind": "termination",
+        "outcome": "Confirmed NOT applicable to this cell, with a build. Spliced `while true` into the impl region: exit 1, \"Decreasing annotations are required in total correctness semantics\". This bundle is `termination \"total\"`, so the known `partial` spec hole (the corpus-wide termination-semantics finding, scoped to 401 partial bundles; this instance does not appear in it) cannot be reached here. Not re-reported as a spec hole. The port's disposition was right; I replaced its stated reason (\"vacuous on a referentially transparent carrier\") with the measured one plus the citation."
+      },
+      {
+        "id": "G-coverage",
+        "kind": "coverage reporter",
+        "outcome": "Clean before and after (`obl=1 cases=7 (+4/-3) binders=1 pts=3-3 ok` \u2192 now 9 cases, pts=4). Treated as advisory: I checked the variation is MEANINGFUL rather than two spellings of one point, and found it was NOT fully so \u2014 all three original points were conflict-shaped (restriction or non-pk mask present), which is exactly the gap rival-conditional-clear fills at the ordinary default plan. The clean report did not surface that; the reshape/partial-domain probe did."
+      },
+      {
+        "id": "refinement-claims-vs-real-tests",
+        "kind": "prose verification",
+        "outcome": "Checked the rivals' 'does not resolve' arguments against instance.json's test_patch rather than taking them on faith. The patch adds `assertNotIn(quote_name(\"category_id\"), topics_data_sql)` to test_serialize_only_pk and test_serialize_no_only_pk_with_natural_keys, and raises the assertNumQueries counts \u2014 i.e. the tests really do assert both that the pk-only read carries no extra relation column and that no extra join appears. That substantiates the (S) and (P) refinement arguments, including the new rivals'. Also diffed Solution_prepatch.lean and confirmed rival-keep-restriction's impl is exactly the modeled prepatch body, as its refinement claims."
+      }
+    ],
+    "audited_at": "a7",
+    "cases": [
+      {
+        "evidence": "Attack A: pre-impl and post-impl text byte-identical to frozen (method header, all three ensures, prove_correct) \u2014 checked programmatically, not by eye. Impl returns the gold-chain constant `{ .unrestricted, some [\"pk\"] }` directly, bypassing both transformers, so it is a genuinely different shape and not definitionally the frozen chain by syntax. Rebuilt: exit 0. Not neutered: the frozen `loom_solve` is kept verbatim and the obligation survives (validate-only: scope-ok).",
+        "id": "pos-direct-construct",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical statement (attack A). Rebuilt: exit 0. The reorder is meaningful rather than cosmetic: `loadOnlyPk` then `selectAllRelated` touches the two disjoint QState facets in the opposite order, and I machine-checked the composition agrees with gold on both observed projections (isRestricted, immediate) at three inputs (q_clause_attrib2, exit 0). A real commutation, not a whitespace reshape.",
+        "id": "pos-reorder-transforms",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Byte-identical statement; rebuilt exit 0. Honest but near-vacuous: it only adds `let out := q2; return out` to the frozen chain, which is definitionally the frozen impl \u2014 it tests that a trailing let-binding does not break loom_solve and nothing more. Left in place (it passes for a real if thin reason, and the port documents it as a re-expression of a nagini helper case that has no method obligation here). Its weight is now carried by my stronger reshapes: E1 nested-call, E2 match-on-related, E3 if-on-isRestricted, E4 double-clear all VERIFY (exit 0 each), so the SPEC-TOO-STRONG direction is covered by branching/matching shapes, not just a rebinding.",
+        "id": "pos-local-reshape",
+        "verdict": "earned-but-weak"
+      },
+      {
+        "evidence": "DEFECT FOUND: the asserted obligation was the WEAKEST of the three facts about the reproducer point \u2014 `planRejected (loadOnlyPk (selectAllRelated {restricted [\"master\"], some [\"pk\"]})) = false` \u2014 which is implied by the restriction being cleared and holds of ANY unrestricted plan, leaving the reproducer's mask and restricted-ness unpinned. Replaced with an assert that pins the reproducer's image EXACTLY on both facets: `... = { .unrestricted, some [\"pk\"] }`. Built the strengthened form standalone: exit 0. Confirmed the assert slot is load-bearing and not silently ignored by building a deliberately FALSE assert in the same slot: exit 1 with `unsolved goals ... planRejected ... = true`. Gate re-ran the strengthened case: verified [17.2s].",
+        "id": "admiss-reproducer-shaped-input",
+        "verdict": "repaired"
+      },
+      {
+        "evidence": "Attack C: observably wrong, not merely reshaped \u2014 at its witness point it violates (R) and (S) while gold satisfies all three; machine-checked (R,S,P)=(false,false,true) for the rival vs (true,true,true) for gold, and the two observed projections differ (q_clause_attrib2 exit 0). Plain variant build fails on the RIGHT goals: `unsolved goals ... isRestricted (loadOnlyPk q).related = false` and `planRejected (loadOnlyPk q) = false` \u2014 the spec clauses, not a tactic mismatch. Witness rebuilt both ways; gold-side failure is semantic (see witnesses_rebuilt). Refinement claim is true: it is byte-for-byte the Solution_prepatch impl (diffed), i.e. the modeled pre-fix behaviour.",
+        "id": "rival-keep-restriction",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack C: violates ONLY (P) at its witness point \u2014 machine-checked (R,S,P)=(true,true,false), so the rationale's clause attribution is exactly right and the case genuinely isolates (P) from (R)/(S). Observably differs from gold on the immediate facet at that point. Witness rebuilt both ways with semantic gold-side refutation. Not definitionally equal to gold: it threads q.immediate through, so it coincides with gold only when the arriving mask is already some [\"pk\"].",
+        "id": "rival-no-narrow",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Genuine near-miss, verified as such: machine-checked that `[\"pk\",\"master\"].contains \"pk\" = true` yet (R,S,P)=(true,true,false) \u2014 so a spec pinning only pk-membership would admit it and exact list equality is what rejects it. That is a real distinction from rival-no-narrow (wrong mask contents entirely), so the case is not subsumed. Witness rebuilt both ways with semantic gold-side refutation.",
+        "id": "rival-overload-immediate",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Closes a real coverage gap: all three original rivals are TOTAL-domain and every original witness point carries a restriction or a non-pk mask, so none can see a PARTIAL-domain rival that repairs the conflict case and passes ordinary plans through. Machine-checked that this rival AGREES with gold on both observed facets at witness points 1 and 3 (so no existing case subsumes it) and violates ONLY (P) at the ordinary default plan `{ .unrestricted, none }`, where (R) and (S) both hold. Variant build: exit 1 on the (P) goal. Witness rebuilt both ways (rival 0 / gold 1, semantic). Gate: rejected (witness refutes the rival) [29.1s].",
+        "id": "rival-conditional-clear",
+        "verdict": "added-by-audit"
+      },
+      {
+        "evidence": "Closes the (S)-isolation gap and half-lands a case the port had dropped as having no counterpart. It returns `{ .restricted [\"pk\"], some [\"pk\"] }`: the named relation is the one field the mask loads, so the refusal predicate does NOT fire \u2014 (R) and (P) both hold and (S) is the SOLE refuting clause. Variant build: exit 1 on exactly `isRestricted (RelatedPlan.restricted [\"pk\"]) = false`. Witness rebuilt both ways (rival 0 / gold 1, semantic). Gate: rejected [24.3s]. This is the case that makes the manifest's own claim ((R) is a consequence of (S)) non-reversible and demonstrable.",
+        "id": "rival-fabricate-pk-relation",
+        "verdict": "added-by-audit"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "notes": "SOUND was NOT fully earned as ported: 7/7 cases behaved as declared, but one positive's obligation was weaker than its prose claimed and the reject lane had two structural blind spots. Three repairs, all machine-checked before editing and all re-gated after. (1) admiss-reproducer-shaped-input asserted only `planRejected ... = false` at the reproducer \u2014 the weakest of the three facts about that point, implied by the other two and true of any unrestricted plan. Strengthened to pin the reproducer's image exactly on both facets. I confirmed the slot is load-bearing (a false assert there fails to build) and that a trivially-true assert also passes, which is precisely why the original form was too weak. (2) Every original witness point was conflict-shaped, so a partial-domain rival that repairs the conflict case and passes ordinary plans through was invisible to the whole battery; added rival-conditional-clear at the ordinary default plan, machine-checked to agree with gold on both observed facets at two of the three original points. (3) Clause (S) was never attacked in isolation; added rival-fabricate-pk-relation at `{ .restricted [\"pk\"], some [\"pk\"] }`, where (R) and (P) hold and only (S) rejects \u2014 which also half-lands the nagini case the port had written off entirely. I also corrected four prose claims the manifest made that my builds contradicted or that overstated: the (R)/(S) implication is strictly one-way (the manifest implied (S) and (P) were 'the two independent load-bearing clauses' without noting (R) does not recover (S)); the 'NO CARRIER COUNTERPART' accounting for the fabricate rival; the divergence reason (right disposition, wrong reason \u2014 now cites the corpus-wide termination-semantics finding plus the measured build error, since this bundle is `total` and does not appear in that finding); and the stale three-witnesses/7-case counts. No spec hole: rather than sample for one, I PROVED the three clauses pin the output to gold's constant, so SPEC-TOO-WEAK is closed on this carrier by theorem \u2014 all seven of my wrong impls are rejected as that theorem predicts, and all four correct reshapes verify. Frozen artifacts untouched (Solution.lean, Solution_prepatch.lean, instance.json show no diff; meta.json changed only by the gate's own stamp). 40 verifier builds total, all under /tmp in a private scratch dir now removed; nothing written into the bundle or the repo. Recorded manifest_sha256 in meta.json matches the edited properties.py, so the green record is bound to the battery that actually ran.",
+    "omissions_reviewed": [
+      {
+        "evidence": "Demonstrated by build, not asserted. The nagini rival writes a read-only field held at Acc(.,1/2) and is rejected for insufficient permission. On this carrier I attempted the write two ways: `q := selectAllRelated q` and `q.related := RelatedPlan.unrestricted`, both spliced into the impl region. Both fail to elaborate (exit 1): \"`q` cannot be mutated, only variables declared using `let mut` can be mutated\". The frozen method declares no `mut` binder and there is no heap/aliasing/permission system, so there is no read-only field to overwrite. The class is genuinely vacuous here.",
+        "nagini_case": "frame-mut-base-restricted-write",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Same class and same evidence as above \u2014 the write itself is rejected by the language before any spec question arises. Both nagini frame-mutation rivals collapse to the same non-expressible construction on an immutable value carrier.",
+        "nagini_case": "frame-mut-clear-q-restricted-write",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "FINDING \u2014 the port's 'no carrier counterpart' verdict was too broad, and I landed the expressible half. The nagini rival violates the grounding clause (G) `Result().requested == base.requested` by fabricating the request as {pk}. Its BASE-PRESERVATION half is indeed inexpressible: gold's `selectAllRelated` sets related := .unrestricted regardless of input, so gold itself discards the arriving selection and any clause demanding preservation would be false of gold. But its FABRICATION half survives the narrowing: a rival can invent a restricted selection of its own, and clause (S) catches it. Landed as rival-fabricate-pk-relation, deliberately restricted to [\"pk\"] so the refusal predicate does not fire and (S) is the SOLE refuting clause \u2014 which also closed the battery's only unattacked-in-isolation clause. Variant build exit 1 on `isRestricted (RelatedPlan.restricted [\"pk\"]) = false`; witness rival 0 / gold 1; gate records rejected.",
+        "nagini_case": "partial-drop-base-fabricate-request",
+        "verdict": "expressible"
+      },
+      {
+        "evidence": "The nagini case reshapes the `only_pk` HELPER, which is separately contracted there. Here `loadOnlyPk` is a pure `def` in the `pure` region, not a `method`, so it carries no obligation to defend and there is nothing for a variant to attack (the impl-region surgery cannot reach it). The port's re-expression as a local-binding reshape of the modeled method is honest but thin (it is definitionally the frozen impl); I left it and added stronger reshapes as E-probes (nested-call, match-on-related, if-on-isRestricted, double-clear all verify, exit 0) so the SPEC-TOO-STRONG direction rests on real shape variation.",
+        "nagini_case": "pos-onlypk-local-reshape",
+        "verdict": "inexpressible (as a helper-attached case) \u2014 re-expressed"
+      },
+      {
+        "evidence": "Correctly dropped, and no-op regardless. The frozen file's axioms region is empty (no consumed axioms); the three plan transformers are A-reference deep models whose equivalence to the real queryset machinery is G-AX's lane (axiom_check.py), and gates/pbt.py ignores AXIOM_TESTS entirely for all backends. Nothing to port.",
+        "nagini_case": "AXIOM_TESTS (empty)",
+        "verdict": "inexpressible (wrong lane)"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "gold_exit": 1,
+        "gold_failure_text": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.restricted [\"master\"], immediate := none } = false is false \u2014 a SEMANTIC refutation: the kernel evaluated the claim and found gold satisfies the postcondition there. Not an unknown identifier, type error, unfolding failure, stuck reduction, or timeout.",
+        "id": "rival-keep-restriction",
+        "probe_exit": "n/a \u2014 consistency_probe(witness) returns None (witness head binds nothing; refutation stated at a literal plan, so there are no hypotheses to be inconsistent)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "gold_failure_text": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.unrestricted, immediate := some [\"name\"] } = false is false \u2014 semantic refutation.",
+        "id": "rival-no-narrow",
+        "probe_exit": "n/a \u2014 no binders, probe is None",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "gold_failure_text": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.restricted [\"a\", \"b\"], immediate := some [\"x\"] } = false is false \u2014 semantic refutation.",
+        "id": "rival-overload-immediate",
+        "probe_exit": "n/a \u2014 no binders, probe is None",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "gold_failure_text": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.unrestricted, immediate := none } = false is false \u2014 semantic refutation. (Witness authored and rebuilt by the audit before adding the case.)",
+        "id": "rival-conditional-clear",
+        "probe_exit": "n/a \u2014 no binders, probe is None",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "gold_failure_text": "Tactic `decide` proved that the proposition queryIterPlanTester { related := RelatedPlan.unrestricted, immediate := none } = false is false \u2014 semantic refutation. (Witness authored and rebuilt by the audit before adding the case.)",
+        "id": "rival-fabricate-pk-relation",
+        "probe_exit": "n/a \u2014 no binders, probe is None",
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 5
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "string_modeling": "n/a (no string carrier; the fix is a queryset load-plan composition change modeled as an abstract state machine)",
+  "version": "5.0"
+}

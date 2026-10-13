@@ -1,0 +1,591 @@
+{
+  "axioms": [],
+  "conf_skip": false,
+  "construction_note": "RE-CONSTRUCTION of a previously-BLOCKED bundle. Fixed the P2 audit Role-3 faithfulness defect: the earlier spec stripped ASCII space only (`\u00b7 == ' '`), diverging from the real callee inspect.cleandoc which uses str.lstrip()/`not line` over the FULL whitespace set. Now modeled via whitespaceCodes/isSpaceChar (the 29 str.isspace() code points); G-CONF fuzz alphabet widened to exercise CRLF/formfeed/NBSP inputs. Proof left as `by sorry` for the proof agent.",
+  "deep_model_references": [
+    {
+      "lean": "normalizeIndentSpec / marginSpec / dedentSpec / dropTrailingEmpty / dropLeadingEmpty (the PEP 257 docstring de-indent algorithm)",
+      "python": "inspect.cleandoc(docstring)",
+      "validated_by": "G-CONF (A-reference)"
+    },
+    {
+      "lean": "marginSpec measured over (lines.drop 1) \u2014 the discriminating clause",
+      "python": "cleandoc computes the common margin over lines[1:], not over all lines (the trim_docstring bug measured over all)",
+      "validated_by": "G-CONF (A-reference); G-DIFF (prepatch)"
+    },
+    {
+      "lean": "isSpaceChar / whitespaceCodes (the 29 code points str.isspace() recognizes) driving leadingWs / lstripWs / isBlank",
+      "python": "cleandoc's line.lstrip() and `not line` blank test act on the FULL whitespace set (space, \\t \\n \\r \\v \\f, ASCII separators U+001C-U+001F, U+0085, NBSP, Unicode space separators), NOT just the ASCII space; expandtabs() expands only \\t so the rest survive into the line list",
+      "validated_by": "G-CONF (A-reference; wide-alphabet fuzz incl. \\r \\f \\v \\xa0)"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:16:32+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "status=skip no consumed callee axioms (indentation normalization modeled deeply; validated by G-CONF as A-reference)",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "axiom_check.py": "fce49f3a832f79a782424f3a15fa21dbec7f1527145147ca6b153c4026713406"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:16:37+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "status=pass",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "conformance_check.py": "07bbf6f9f9893889c5a547eb42f77f870d84c6428753d22244cdef2049c8c29f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T10:51:43+00:00",
+      "code_version": "15a93b535-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "Solution_prepatch.lean": "a3d95036220f5e4e01880f613abd06bf5cfadd46472b02cfbb9a6752ba36a9c8"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T19:38:31+00:00",
+      "code_version": "d2358eb63-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: INCONCLUSIVE \u2014 1 attack(s) inconclusive",
+      "gate": "G-EQ",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "G-EQ: 8 attacks re-verified from the retained audit evidence (verdict.md), none breaks the spec; positive control verifies. Re-derived at a higher verifier cap after a host-load timeout had made the original run inconclusive; same attacks, same derivation.\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_8.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "recheck": {
+        "attacks": 8,
+        "reason": "timeout",
+        "timeout_s": 1800
+      },
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "properties.py": "4aa4bedeba991c97d5c7ae4a918bda5d8a6806923b1427c0abb4f3d87f9fcf38"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T10:52:08+00:00",
+      "code_version": "15a93b535-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "Solution_prepatch.lean": "a3d95036220f5e4e01880f613abd06bf5cfadd46472b02cfbb9a6752ba36a9c8"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:16:29+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "95bde18405b2c9e160646b0323a495267046dfee81a76cc50fa5e2ed275580d6",
+          "impl": "30823d5192e495f81488dfffa63b1617c969f505198a5201dcad8c45fbabddab",
+          "post-conditions": "e795f3abb21f20a82bf55ba09aeba85fc6e03c13d2154207c0a1cd834af647e0",
+          "proof": "87d83888c132de0356b341a86bd69cb0657735905d9972169663d2712a9895dc",
+          "pure": "abb5d232364c87e150922ddbbecb1fa042c8849a4ba9174cbf69acf48ec66040",
+          "spec_view": "75bfbb6836b800429d042c8c575995abda9bf1e3c4806c9e2ffc2ca31b77b1e5"
+        }
+      },
+      "detail": "imports/markers/regions/axioms clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:16:30+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "instance.json": "a5a002b1ed6fb7eddf6a2d1aa548d148411a528c9bf5b8184f12e8ab9933c6a9"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:16:30+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T07:50:37+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T18:49:54+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec vs real repo callee) verified for django__django-12155 (lean). The modeled function normalizeIndentSpec/implementation_normalizeIndent models the post-patch behavior \u2014 the docstring indentation normalization now performed via inspect.cleandoc (PEP 257), replacing the buggy hand-rolled trim_docstring (mapping.md site A utils.py:27-39, site B views.py). The real callee is stdlib inspect.cleandoc, used as the oracle in conformance_check.py.\n\nChecks performed:\n1. same_spec (spec_signature) post vs pre-patch = True; spec region parses cleanly. Spec view stable.\n2. Solution.lean compiles via lean_verify.sh (exit 0, no sorry). `#print axioms correct_normalizeIndent` = [propext, Quot.sound] \u2014 NO sorryAx, the proof is real (only harmless forIn_yield_eq_foldl deprecation warnings). impl\u2194spec proof (impl_as_folds/margin_loop_eq/dedent_loop_eq) genuinely closes.\n3. Whitespace set exactness: Lean whitespaceCodes (29 code points) == Python's full str.isspace() set == the exact set str.lstrip() removes over all 0x110000 code points (verified all three equal). This is the crux \u2014 cleandoc uses lstrip()/`not line` over the FULL whitespace set, and the model mirrors it exactly (correcting a prior ASCII-only Role-3 defect).\n4. Algorithm match: cleandoc source (margin=min indent over lines[1:] non-blank; lines[0].lstrip(); dedent i>=1 by margin; drop trailing then leading empty '') is transliterated op-for-op into the shadow and matches the Lean defs (marginSpec over lines.drop 1, lstripWs first, .drop m, dropTrailingEmpty then dropLeadingEmpty).\n5. Independent differential fuzz beyond the bundled alphabet: 2,000,000 random inputs over an alphabet containing EVERY unicode whitespace char + letters + heavy newlines; plus 500,000 structured indent+body line inputs with unicode-whitespace prefixes \u2014 0 disagreements vs real inspect.cleandoc. Bundled conformance (120,020 inputs) also passes.\n6. Corner cases: lone surrogates (\\ud800) \u2014 real cleandoc's expandtabs does not raise here on this Python; oracle and shadow agree. Empty string agrees. F2P behavior (issue: 'firstline\\n\\n    second line' must dedent the indented later line) reproduced and matches.\n\nNo input found where the spec disagrees with the real repo behavior. The spec is neither too strong nor drifted: it is a deep, faithful model of the patched callee. Note: this bundle predates the G-CONF-required policy but conformance_check.py is present and passes; carrier correspondence (expandtabs+split/join) is bridged there and consistent with real cleandoc's own expandtabs/split.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Judged the projected spec view (computed via markers.spec_view + leakage.screen; mechanical screen passes clean: no diff markers, no reproduced gold-patch lines, no patched file/module path, no patched-symbol identifier/comment echo, no bug/fix narration).\n\nSemantic assessment (leakage / gold-reconstruction) vs the SOLVER-VISIBLE problem_statement ONLY:\n\n1. The discriminating behavior the spec encodes \u2014 that the common indentation is measured over the lines AFTER the first (spec doc: 'the smallest number of leading whitespace characters occurring on any non-blank line *among the lines that follow the first*') \u2014 is ALREADY PUBLIC in problem_statement. The issue text verbatim gives the buggy line `indent = min(len(line) - len(line.lstrip()) for line in lines if line.lstrip())`, states 'The problem is that the indentation of the first line is 0', and gives 'The solution is to skip the first line: ... for line in lines[1:] ...'. So the spec reveals nothing beyond the publicly-disclosed fix discriminator.\n\n2. The spec view is in fact MORE abstract than problem_statement: it never names the gold edit's substance \u2014 no `trim_docstring`, `parse_docstring`, `inspect.cleandoc`, `docstring`, `admindocs`, `PEP 257`, no patched file paths, and no mention that the fix is 'switch to cleandoc'. It describes a generic 'indentation normalization of a multi-line block of text' as an input\u2192output relation. A solver reading only the spec could not reconstruct the specific gold edit (import + delete trim_docstring + call cleandoc) \u2014 it only learns the abstract normalization behavior, which is exactly what a faithful behavioral spec should convey.\n\n3. Extra spec details (leading/trailing empty-line removal, the full str.isspace() whitespace set, no-margin case) are faithful behavioral descriptions of the normalization; none of them localizes or names the edit or leaks gold specifics beyond problem_statement.\n\n4. Comments/docstrings in the view are abstract ('the ambient string library's whitespace predicate', 'the conventional rule for laying out indented text blocks') and carry no bug/fix narration or patched-symbol names.\n\nConclusion: no line in the spec view leaks the gold edit beyond the already-public problem_statement (hints_text, which additionally mentions cleandoc, was correctly NOT used as the leakage baseline).",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec vs real repo callee) verified for django__django-12155 (lean). The modeled function normalizeIndentSpec/implementation_normalizeIndent models the post-patch behavior \u2014 the docstring indentation normalization now performed via inspect.cleandoc (PEP 257), replacing the buggy hand-rolled trim_docstring (mapping.md site A utils.py:27-39, site B views.py). The real callee is stdlib inspect.cleandoc, used as the oracle in conformance_check.py.\n\nChecks performed:\n1. same_spec (spec_signature) post vs pre-patch = True; spec region parses cleanly. Spec view stable.\n2. Solution.lean compiles via lean_verify.sh (exit 0, no sorry). `#print axioms correct_normalizeIndent` = [propext, Quot.sound] \u2014 NO sorryAx, the proof is real (only harmless forIn_yield_eq_foldl deprecation warnings). impl\u2194spec proof (impl_as_folds/margin_loop_eq/dedent_loop_eq) genuinely closes.\n3. Whitespace set exactness: Lean whitespaceCodes (29 code points) == Python's full str.isspace() set == the exact set str.lstrip() removes over all 0x110000 code points (verified all three equal). This is the crux \u2014 cleandoc uses lstrip()/`not line` over the FULL whitespace set, and the model mirrors it exactly (correcting a prior ASCII-only Role-3 defect).\n4. Algorithm match: cleandoc source (margin=min indent over lines[1:] non-blank; lines[0].lstrip(); dedent i>=1 by margin; drop trailing then leading empty '') is transliterated op-for-op into the shadow and matches the Lean defs (marginSpec over lines.drop 1, lstripWs first, .drop m, dropTrailingEmpty then dropLeadingEmpty).\n5. Independent differential fuzz beyond the bundled alphabet: 2,000,000 random inputs over an alphabet containing EVERY unicode whitespace char + letters + heavy newlines; plus 500,000 structured indent+body line inputs with unicode-whitespace prefixes \u2014 0 disagreements vs real inspect.cleandoc. Bundled conformance (120,020 inputs) also passes.\n6. Corner cases: lone surrogates (\\ud800) \u2014 real cleandoc's expandtabs does not raise here on this Python; oracle and shadow agree. Empty string agrees. F2P behavior (issue: 'firstline\\n\\n    second line' must dedent the indented later line) reproduced and matches.\n\nNo input found where the spec disagrees with the real repo behavior. The spec is neither too strong nor drifted: it is a deep, faithful model of the patched callee. Note: this bundle predates the G-CONF-required policy but conformance_check.py is present and passes; carrier correspondence (expandtabs+split/join) is bridged there and consistent with real cleandoc's own expandtabs/split.; G-PANEL-3 (leakage): pass \u2014 Judged the projected spec view (computed via markers.spec_view + leakage.screen; mechanical screen passes clean: no diff markers, no reproduced gold-patch lines, no patched file/module path, no patched-symbol identifier/comment echo, no bug/fix narration).\n\nSemantic assessment (leakage / gold-reconstruction) vs the SOLVER-VISIBLE problem_statement ONLY:\n\n1. The discriminating behavior the spec encodes \u2014 that the common indentation is measured over the lines AFTER the first (spec doc: 'the smallest number of leading whitespace characters occurring on any non-blank line *among the lines that follow the first*') \u2014 is ALREADY PUBLIC in problem_statement. The issue text verbatim gives the buggy line `indent = min(len(line) - len(line.lstrip()) for line in lines if line.lstrip())`, states 'The problem is that the indentation of the first line is 0', and gives 'The solution is to skip the first line: ... for line in lines[1:] ...'. So the spec reveals nothing beyond the publicly-disclosed fix discriminator.\n\n2. The spec view is in fact MORE abstract than problem_statement: it never names the gold edit's substance \u2014 no `trim_docstring`, `parse_docstring`, `inspect.cleandoc`, `docstring`, `admindocs`, `PEP 257`, no patched file paths, and no mention that the fix is 'switch to cleandoc'. It describes a generic 'indentation normalization of a multi-line block of text' as an input\u2192output relation. A solver reading only the spec could not reconstruct the specific gold edit (import + delete trim_docstring + call cleandoc) \u2014 it only learns the abstract normalization behavior, which is exactly what a faithful behavioral spec should convey.\n\n3. Extra spec details (leading/trailing empty-line removal, the full str.isspace() whitespace set, no-margin case) are faithful behavioral descriptions of the normalization; none of them localizes or names the edit or leaks gold specifics beyond problem_statement.\n\n4. Comments/docstrings in the view are abstract ('the ambient string library's whitespace predicate', 'the conventional rule for laying out indented text blocks') and carry no bug/fix narration or patched-symbol names.\n\nConclusion: no line in the spec view leaks the gold edit beyond the already-public problem_statement (hints_text, which additionally mentions cleandoc, was correctly NOT used as the leakage baseline).",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T19:38:31+00:00",
+      "code_version": "d2358eb63-dirty",
+      "harness_digest": "d641aa3e48ac",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "G-PANEL-1: 8 attacks re-verified from the retained audit evidence (verdict.md), none breaks the spec; positive control verifies. Re-derived at a higher verifier cap after a host-load timeout had made the original run inconclusive; same attacks, same derivation.\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_8.lean` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "recheck": {
+        "attacks": 8,
+        "reason": "timeout",
+        "timeout_s": 1800
+      },
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "properties.py": "4aa4bedeba991c97d5c7ae4a918bda5d8a6806923b1427c0abb4f3d87f9fcf38"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec vs real repo callee) verified for django__django-12155 (lean). The modeled function normalizeIndentSpec/implementation_normalizeIndent models the post-patch behavior \u2014 the docstring indentation normalization now performed via inspect.cleandoc (PEP 257), replacing the buggy hand-rolled trim_docstring (mapping.md site A utils.py:27-39, site B views.py). The real callee is stdlib inspect.cleandoc, used as the oracle in conformance_check.py.\n\nChecks performed:\n1. same_spec (spec_signature) post vs pre-patch = True; spec region parses cleanly. Spec view stable.\n2. Solution.lean compiles via lean_verify.sh (exit 0, no sorry). `#print axioms correct_normalizeIndent` = [propext, Quot.sound] \u2014 NO sorryAx, the proof is real (only harmless forIn_yield_eq_foldl deprecation warnings). impl\u2194spec proof (impl_as_folds/margin_loop_eq/dedent_loop_eq) genuinely closes.\n3. Whitespace set exactness: Lean whitespaceCodes (29 code points) == Python's full str.isspace() set == the exact set str.lstrip() removes over all 0x110000 code points (verified all three equal). This is the crux \u2014 cleandoc uses lstrip()/`not line` over the FULL whitespace set, and the model mirrors it exactly (correcting a prior ASCII-only Role-3 defect).\n4. Algorithm match: cleandoc source (margin=min indent over lines[1:] non-blank; lines[0].lstrip(); dedent i>=1 by margin; drop trailing then leading empty '') is transliterated op-for-op into the shadow and matches the Lean defs (marginSpec over lines.drop 1, lstripWs first, .drop m, dropTrailingEmpty then dropLeadingEmpty).\n5. Independent differential fuzz beyond the bundled alphabet: 2,000,000 random inputs over an alphabet containing EVERY unicode whitespace char + letters + heavy newlines; plus 500,000 structured indent+body line inputs with unicode-whitespace prefixes \u2014 0 disagreements vs real inspect.cleandoc. Bundled conformance (120,020 inputs) also passes.\n6. Corner cases: lone surrogates (\\ud800) \u2014 real cleandoc's expandtabs does not raise here on this Python; oracle and shadow agree. Empty string agrees. F2P behavior (issue: 'firstline\\n\\n    second line' must dedent the indented later line) reproduced and matches.\n\nNo input found where the spec disagrees with the real repo behavior. The spec is neither too strong nor drifted: it is a deep, faithful model of the patched callee. Note: this bundle predates the G-CONF-required policy but conformance_check.py is present and passes; carrier correspondence (expandtabs+split/join) is bridged there and consistent with real cleandoc's own expandtabs/split.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, `conformance_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Judged the projected spec view (computed via markers.spec_view + leakage.screen; mechanical screen passes clean: no diff markers, no reproduced gold-patch lines, no patched file/module path, no patched-symbol identifier/comment echo, no bug/fix narration).\n\nSemantic assessment (leakage / gold-reconstruction) vs the SOLVER-VISIBLE problem_statement ONLY:\n\n1. The discriminating behavior the spec encodes \u2014 that the common indentation is measured over the lines AFTER the first (spec doc: 'the smallest number of leading whitespace characters occurring on any non-blank line *among the lines that follow the first*') \u2014 is ALREADY PUBLIC in problem_statement. The issue text verbatim gives the buggy line `indent = min(len(line) - len(line.lstrip()) for line in lines if line.lstrip())`, states 'The problem is that the indentation of the first line is 0', and gives 'The solution is to skip the first line: ... for line in lines[1:] ...'. So the spec reveals nothing beyond the publicly-disclosed fix discriminator.\n\n2. The spec view is in fact MORE abstract than problem_statement: it never names the gold edit's substance \u2014 no `trim_docstring`, `parse_docstring`, `inspect.cleandoc`, `docstring`, `admindocs`, `PEP 257`, no patched file paths, and no mention that the fix is 'switch to cleandoc'. It describes a generic 'indentation normalization of a multi-line block of text' as an input\u2192output relation. A solver reading only the spec could not reconstruct the specific gold edit (import + delete trim_docstring + call cleandoc) \u2014 it only learns the abstract normalization behavior, which is exactly what a faithful behavioral spec should convey.\n\n3. Extra spec details (leading/trailing empty-line removal, the full str.isspace() whitespace set, no-margin case) are faithful behavioral descriptions of the normalization; none of them localizes or names the edit or leaks gold specifics beyond problem_statement.\n\n4. Comments/docstrings in the view are abstract ('the ambient string library's whitespace predicate', 'the conventional rule for laying out indented text blocks') and carry no bug/fix narration or patched-symbol names.\n\nConclusion: no line in the spec view leaks the gold edit beyond the already-public problem_statement (hints_text, which additionally mentions cleandoc, was correctly NOT used as the leakage baseline).\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T07:51:05+00:00",
+      "code_version": "e270ccb33-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition \u00acimplementation_normalizeIndent [['a'], [' ', 'b']] = normalizeIndentSpec [['a'], [' ', 'b']] is false",
+            "id": "margin-over-all-lines",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 8.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition \u00acimplementation_normalizeIndent [['a'], [' '], [' ', ' ', ' ', ' ', 'b']] = normalizeIndentSpec [['a'], [' '], [' ', ' ', ' ', ' ', 'b']] is false",
+            "id": "blank-line-contributes-margin",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 8.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition \u00acimplementation_normalizeIndent [[' ', ' ', 'a'], [' ', 'b']] = normalizeIndentSpec [[' ', ' ', 'a'], [' ', 'b']] is false",
+            "id": "first-line-not-flushed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 9.0,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition \u00acimplementation_normalizeIndent [['a'], [' ', ' ', 'b']] = normalizeIndentSpec [['a'], [' ', ' ', 'b']] is false",
+            "id": "body-not-dedented",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 8.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition \u00acimplementation_normalizeIndent [['a'], []] = normalizeIndentSpec [['a'], []] is false",
+            "id": "no-trailing-empty-removal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 9.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition \u00acimplementation_normalizeIndent [[], ['a']] = normalizeIndentSpec [[], ['a']] is false",
+            "id": "no-leading-empty-removal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 8.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "verify",
+            "id": "pos-functional-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 7.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-ground-instance",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 9.0
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "4aa4bedeba991c97d5c7ae4a918bda5d8a6806923b1427c0abb4f3d87f9fcf38",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3",
+        "properties.py": "4aa4bedeba991c97d5c7ae4a918bda5d8a6806923b1427c0abb4f3d87f9fcf38"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T10:31:56+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T10:51:32+00:00",
+      "code_version": "15a93b535-dirty",
+      "data": {
+        "reported": {
+          "correct_normalizeIndent": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        "wall_time_s": 7.9
+      },
+      "detail": "verified in 7.9s; 1 correct_* theorem(s) closed, axioms clean",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "221086df1fe36a147e5a4246f941325f310eb4abb4b13c1ccba86e96200f15f3"
+      },
+      "status": "pass"
+    }
+  },
+  "modeled_functions": [
+    {
+      "file": "django/contrib/admindocs/utils.py",
+      "lean": "implementation_normalizeIndent / problem_spec_normalizeIndent / correct_normalizeIndent",
+      "lines": "27-46 @ base_commit (gold removes trim_docstring at 27-39 and switches parse_docstring's de-indent call at 46 to the stdlib cleaner; the same callee substitution also at django/contrib/admindocs/views.py get_context_data ~259)",
+      "python": "the docstring indentation-normalization the patch performs before parsing (replacing the hand-rolled trim_docstring with the PEP 257 standard-library cleaner)"
+    }
+  ],
+  "opaque_callees": [],
+  "patch_equals_gold": true,
+  "pbt_audit": {
+    "agent_verdict": "SHIP",
+    "attacks_tried": [
+      {
+        "id": "D-exact-equality-spec-hole",
+        "kind": "spec-too-weak",
+        "outcome": "no hole possible on this carrier: problem_spec_normalizeIndent is the EXACT equality result = normalizeIndentSpec lines, which is total. Any impl that verifies is extensionally equal to the reference, so no wrong-but-verifying impl exists. A spec hole here could only be a faithfulness (reference\u2260real cleandoc) defect, which is out of the PBT lane (G-PANEL-2/G-CONF territory). No spec_holes reported."
+      },
+      {
+        "id": "E-functional-reshape",
+        "kind": "spec-too-strong",
+        "outcome": "the battery's own pos-functional-reshape IS the strongest attack-E reshape (returns the pure reference in a completely different code shape); it VERIFIES (exit 0). No faithful correct impl is rejected by the spec."
+      },
+      {
+        "id": "C5-order-swap-vacuity-probe",
+        "kind": "vacuity",
+        "outcome": "checked whether swapping dropTrailingEmpty/dropLeadingEmpty order is observable, to confirm the two C5 rivals attack genuinely distinct points. Exhaustive small-input search: order never changes the result, so C5a and C5b are the correct decomposition (skip-one-stage each) rather than an order artifact \u2014 both rivals are non-vacuous (confirmed by distinct witness inputs [['a'],[]] and [[],['a']])."
+      }
+    ],
+    "audited_at": "a5",
+    "cases": [
+      {
+        "evidence": "C1 rival (margin over ALL lines). Python model: at [['a'],[' ','b']] spec=[['a'],['b']], rival=[['a'],[' ','b']] (differs), frozen==spec. Real builds: witness elaborates vs rival (exit 0), FAILS vs gold (exit 1) with SEMANTIC refutation `decide proved \u00ac(impl = normalizeIndentSpec ...) is false`. Genuine discriminator.",
+        "id": "margin-over-all-lines",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "C2 rival (no isBlank guard). Python model: at [['a'],[' '],[' ',' ',' ',' ','b']] spec=[['a'],[],['b']], rival=[['a'],[],[' ',' ',' ','b']] (differs), frozen==spec. Builds: rival exit 0, gold exit 1 semantic (`decide proved \u00ac... is false`).",
+        "id": "blank-line-contributes-margin",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "C3 rival (first line seeded unstripped). Python model: at [[' ',' ','a'],[' ','b']] spec=[['a'],['b']], rival=[[' ',' ','a'],['b']] (differs), frozen==spec. Builds: rival exit 0, gold exit 1 semantic refutation.",
+        "id": "first-line-not-flushed",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "C4 rival (some-m branch keeps line). Python model: at [['a'],[' ',' ','b']] spec=[['a'],['b']], rival=[['a'],[' ',' ','b']] (differs), frozen==spec. Distinct point from C1 (drops removal vs mis-scopes). Builds: rival exit 0, gold exit 1 semantic refutation.",
+        "id": "body-not-dedented",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "C5a rival (skip dropTrailingEmpty). Python model: at [['a'],[]] spec=[['a']], rival=[['a'],[]] (differs), frozen==spec. Builds: rival exit 0, gold exit 1 semantic refutation. New clause the nagini carrier never modeled.",
+        "id": "no-trailing-empty-removal",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "C5b rival (skip dropLeadingEmpty). Python model: at [[],['a']] first flushes to [] then head-trim removes it; spec=[['a']], rival=[[],['a']] (differs), frozen==spec. Builds: rival exit 0, gold exit 1 semantic refutation. Only rival probing an empty first line.",
+        "id": "no-leading-empty-removal",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Soundness positive: impl returns normalizeIndentSpec directly, proof re-authored (proof region only), theorem statement byte-identical, no new axiom/sorry/native_decide. Real build: exit 0 (verifies; only harmless forIn_yield_eq_foldl deprecation warning). Non-trivial reshape (drops Id.run/mut/for scaffold) that the frozen fold-congruence proof would not close, closed instead by rfl after unfolding \u2014 a real soundness control.",
+        "id": "pos-functional-reshape",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Admissibility positive: F2P-shaped ground `have` [['a'],[],[' ',' ',' ',' ','b']] discharged by decide inside the existing tactic body, then frozen obligation closed verbatim; statement byte-identical, no new declaration. Real build: exit 0. Confirms the obligation is satisfiable at the normal input (analogue of PRECOND-TOO-STRONG check); the unguarded \u2200 theorem has no precondition binder to attack, so this is the honest substitute.",
+        "id": "admiss-f2p-ground-instance",
+        "verdict": "earned"
+      }
+    ],
+    "edited": false,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "notes": "SHIP. All 8 cases machine-checked. Six reject witnesses rebuilt with the real verifier via swebench_unified.pbt_witness.witness_file (proof regions stripped, witness appended) \u2014 the exact files the gate builds. Every rival build exit 0; every gold build exit 1 with a SEMANTIC refutation (`Tactic decide proved that \u00ac(implementation_normalizeIndent <input> = normalizeIndentSpec <input>) is false`), i.e. gold satisfies the spec at that literal input \u2014 not an unknown-identifier/type/timeout failure. No witness binds head hypotheses, so consistency_probe is None for all (no vacuity-via-contradiction risk). witness_problems/witness_scope_problems both clean (no banned tokens, no variant-only names). Attack D is structurally impossible: the spec is exact equality to a total reference, so no wrong impl verifies. Attack E's strongest form is the battery's own pos-functional-reshape, which verifies. Coverage reporter: binder `lines` varies over 6 meaningful input settings (flush/indented first line, indented body, shallow blank line, trailing empty, leading empty) \u2014 no two witnesses are the same point. Divergence lane not applicable (referentially transparent lean carrier, no `partial`). Removed a stray __pycache__ dir that my own `import properties` created inside the bundle so G-INTEGRITY stays clean; properties.py itself unchanged.",
+    "omissions_reviewed": [
+      {
+        "evidence": "Nagini holds eff at Acc(...,1/2) read-only and rejects an in-place write for insufficient permission. Lean is referentially transparent: `lines : List (List Char)` carries no heap permission, no read-only fraction, no aliasing. There is no writable term to overwrite, so the class has no instance on this carrier. Port's disposition (dropped, no substitute) is correct.",
+        "nagini_case": "frame-mutation",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Nagini encodes each line as an int summary with a distinguished blank marker -1; the rival corrupts that marker (blank\u2192nonblank 0). The Lean carrier represents a line as its literal `List Char` and has NO separate blank marker \u2014 a blank line is just a line whose content is whitespace, copied through / dedented like any other. There is no marker field to corrupt, so this exact rival collapses. The underlying behavior it guarded (a blank/whitespace line must not drag the common margin) IS covered here by the C2 rival (blank-line-contributes-margin), which attacks isBlank directly. Carrier collapse, not a proof-difficulty drop.",
+        "nagini_case": "blank-body-line-emitted-nonblank",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Ported as `margin-over-all-lines` (C1). Same literal pre-patch bug (margin over all lines vs lines.drop 1). Present and discriminating (rebuilt: rival 0 / gold 1). Not an omission.",
+        "nagini_case": "prepatch-all-lines-margin",
+        "verdict": "expressible-and-present"
+      },
+      {
+        "evidence": "Ported verbatim as `first-line-not-flushed` (C3). Present and discriminating.",
+        "nagini_case": "first-line-not-flushed",
+        "verdict": "expressible-and-present"
+      },
+      {
+        "evidence": "Ported as `body-not-dedented` (C4). Present and discriminating.",
+        "nagini_case": "body-not-dedented",
+        "verdict": "expressible-and-present"
+      },
+      {
+        "evidence": "The soundness positive is present as `pos-functional-reshape` (a functional-reshape variant rather than a branch reorder, but the same soundness role). Verifies (exit 0).",
+        "nagini_case": "pos-control-branch-reorder",
+        "verdict": "expressible-and-present"
+      },
+      {
+        "evidence": "Present as `admiss-f2p-ground-instance` on the same F2P input shape. Verifies (exit 0).",
+        "nagini_case": "admissibility",
+        "verdict": "expressible-and-present"
+      },
+      {
+        "evidence": "Axiom-lane probe (A-reference soundness of `dedented` vs real inspect.cleandoc). meta.json axioms==[] and the normalization is modeled deeply with no consumed axiom the proof relies on, so there is no axiom obligation for the PBT gate to carry. This is G-AX/G-CONF's job (both recorded pass), not G-PBT's. Correctly omitted from AXIOM_TESTS.",
+        "nagini_case": "ax-sound-dedented",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Axiom-lane containment probe. Same rationale: empty axiom lane on this carrier, no consumed callee axiom; caller-domain containment is not a PBT obligation here. G-AX (skip, no consumed axioms) + G-CONF cover faithfulness. Correctly omitted.",
+        "nagini_case": "ax-contain-dedented",
+        "verdict": "inexpressible"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "gold_exit": 1,
+        "id": "margin-over-all-lines",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "blank-line-contributes-margin",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "first-line-not-flushed",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "body-not-dedented",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "no-trailing-empty-removal",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "no-leading-empty-removal",
+        "probe_exit": null,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 6
+  },
+  "prepatch_variants": [
+    "Solution_prepatch.lean (reinstates the trim_docstring bug: the common indent margin is measured over ALL non-blank lines including the first, so a flush-left first line collapses the margin to 0 and the indented following lines are not dedented -> violates problem_spec_normalizeIndent on the F2P input 'firstline\\n\\n    second line')"
+  ],
+  "region_hashes": {
+    "axioms": "95bde18405b2c9e160646b0323a495267046dfee81a76cc50fa5e2ed275580d6",
+    "impl": "30823d5192e495f81488dfffa63b1617c969f505198a5201dcad8c45fbabddab",
+    "post-conditions": "e795f3abb21f20a82bf55ba09aeba85fc6e03c13d2154207c0a1cd834af647e0",
+    "proof": "5bd56164544aa21373d5b7854b69b49014224c3ce7282b429b2999515337097d",
+    "pure": "abb5d232364c87e150922ddbbecb1fa042c8849a4ba9174cbf69acf48ec66040",
+    "spec_view": "75bfbb6836b800429d042c8c575995abda9bf1e3c4806c9e2ffc2ca31b77b1e5"
+  },
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "verifier_pins": {
+    "conf_seed": 20240629,
+    "lean_toolchain": "lean_shared (direct-Mathlib workspace)",
+    "verify_timeout_seconds": 300
+  }
+}

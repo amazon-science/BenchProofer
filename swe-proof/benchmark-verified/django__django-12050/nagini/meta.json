@@ -1,0 +1,426 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): container-independence over 7 boundary + 20000 fuzz item-sequences + REAL Query.resolve_lookup_value end-to-end",
+      "encoded_property": "Ensures(True) -- weakest sufficient contract; the proof needs only that result item i == normalise_item(input item i), a deterministic function of the item alone. Load-bearing soundness fact (G-AX-validated, not assumed): container-independent (same result in a list or a tuple).",
+      "kind": "A-consumed",
+      "models": "Query.resolve_lookup_value applied to a single sub-value (the recursive per-item call introduced by the gold patch); equivalently the inlined per-item resolve_expression-or-passthrough rule the pre-patch ran",
+      "name": "normalise_item",
+      "provenance": "django/db/models/sql/query.py:1053; per-item rule: a sub-value without resolve_expression passes through unchanged, a sub-value with resolve_expression resolves to sub.resolve_expression(self, reuse=can_reuse, allow_joins=allow_joins[, simple_col]). UNCHANGED by the patch (only the surrounding container construction changed).",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "b93a0e34d9b9b99d41103782b7e7aeabf47517e3",
+  "changed_files": [
+    "django/db/models/sql/query.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:15:54+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: gold normalisation preserves the iterable type (list->list, tuple->tuple) while pre-patch coerces to tuple; per-item normalisation is container-independent (normalise_item axiom sound) over 7 boundary + 20000 fuzz item-sequences; REAL Query.resolve_lookup_value keeps lists as lists and tuples as tuples.",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "666c97115aec290d32198f4b8a074b8ab7add5f7734e7491cf905c1bdb5c9ece",
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:16:01+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100019,
+          "disagreements": 0,
+          "seed": 12050,
+          "shadow": "direct (contract-stripped impl region; ContractOnly callee bridged to the real per-item resolution)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100019, \"disagreements\": 0, \"seed\": 12050, \"shadow\": \"direct (contract-stripped impl region; ContractOnly callee bridged to the real per-item resolution)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "71792617a16a3d41bac7e48135ea4e3e6b3c0cb0dd884d5872c17ba30c83cefa",
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:42:48+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d",
+        "model_prepatch.py": "5dc835af0198fa4640f1add30c50f9ce3f7ec5a85232268ba0d746045b8d829b"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T13:58:00+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 10 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 10 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 9 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_8.py`, `atk_9.py`, `atk_10.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:43:38+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d",
+        "model_prepatch.py": "5dc835af0198fa4640f1add30c50f9ce3f7ec5a85232268ba0d746045b8d829b"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:15:38+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "4c23ebc7c728059fdea9052385c9e72723577bd09b20a55a54fbb70ad6a74743",
+          "impl": "655b04a2e88e5e5cb48d54759a8ae822172160e46001fdd88c5a6f88bfdc3dbe",
+          "invariants": "03c1c5ca62e6350a5e75badaf698977dd2639270c2128953b02b7891ae7e69f3",
+          "post-conditions": "c06ce6a6adcc28acb6067efabdddc10a271e9f4b637d9f12c0cb22d5d779cf07",
+          "pre-conditions": "82559a4739a87acf65f07f9a7baff4c321f7542a655ad3f450b5db2fd7ba688d",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "b6aba7cf3b44cf3dd44d982256690b1a0c6868fafb66e28dbd8e0d0126820aa0"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:15:39+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "ecc14547f46afd9e93385fba37d0e8ad6edbb73e648be5c46f845474e3178aea",
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:15:40+00:00",
+      "code_version": "4dc1e4564-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T07:44:49+00:00",
+      "code_version": "59653e37e-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T13:58:02+00:00",
+      "code_version": "263f89b2-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 10 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Model verifies (nagini_verify.sh exit 0, 11.5s); spec region byte-identical (same-spec exit 0). Modeled domain: value.kind\u2208{0,1} strict bijection kind==0\u21d4list, kind==1\u21d4tuple; items:List[int] opaque identities resolved by the UNINTERPRETED axiom normalise_item (Ensures(True)). Postconditions: Result().kind==value.kind, len(Result().items)==len(value.items), Result().items[k]==normalise_item(value.items[k]) in order. These faithfully mirror the real gold callee Query.resolve_lookup_value list/tuple branch: return type(value)(self.resolve_lookup_value(sub) for sub in value) \u2014 type-preserving (list->list, tuple->tuple), length-preserving, item i = per-item resolution of input i, in order.\n\nWhy not too strong: (a) items are opaque under an uninterpreted axiom, so NO per-item behavioral over-claim is even expressible; the only discriminating content is type-preservation, modeled deeply. (b) G-CONF re-ran 100,019 inputs (seed 12050) contract-stripped against the REAL per-item resolution with 0 disagreements. (c) G-AX validated container-independence over 7 boundary + 20000 fuzz sequences and drove the real Django callee (list->list, tuple->tuple).\n\nOnly boundary edge examined: tuple-subclass/namedtuple, where the real isinstance(value,(list,tuple)) guard admits subclasses and gold's type(value)(generator) raises TypeError while the model reports success. This is genuinely OUTSIDE the modeled domain \u2014 kind is a single bit distinguishing EXACTLY list vs tuple with no carrier for a subclass; SWE-bench F2P/tests only exercise plain lists/tuples. Un-representable input, not a within-domain disagreement, so it does not break verify(model)=>resolved. No diverging input exists within the spec's modeled domain.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view computed via markers.spec_view(model.py, nagini): the impl region is ELIDED ('...  # implementation elided \u2014 supplied by the consumer'); only the docstring, axiom stub `normalise_item` (Ensures(True)), the `Iterable` carrier, and the pre/postconditions of `resolve_iterable_value` are visible. Mechanical G-LEAK screen (leakage.screen) PASSES clean (no diff markers, no gold-patch line reproduced, no patched file/module path, no bug/fix narration, no spec-view identifier embedding a patched symbol).\n\nGold-edit discriminator = 'preserve the input's concrete iterable type instead of coercing list\u2192tuple', carried in the spec by postcondition `Result().kind == value.kind`. This is NOT a leak beyond problem_statement, because the PUBLIC problem_statement already states it verbatim: 'Query.resolve_lookup_value coerces value of type list to tuple breaking exact value queries... The expected iterable return type should match input iterable type.' The docstring's 'SAME concrete iterable type as the input' / 'ordered list normalises to an ordered list; an ordered tuple normalises to an ordered tuple' and the 'value-equality against a stored value (e.g. PickledField)' aside merely restate the public requirement (the problem statement explicitly names PickledField and matching input types).\n\nPatched repo symbol `resolve_lookup_value` (the only distinctive changed symbol) itself appears in problem_statement, so it is public; the model renames the function `resolve_iterable_value`, which does not embed the patched symbol. Per-item resolution logic (the F/resolve_expression branch removed by the patch) is abstracted behind the opaque axiom `normalise_item(Ensures(True))` and is NOT revealed. No gold-specific construction detail (`type(value)(...)`, `tuple(resolved_values)`) appears in the spec view \u2014 those live only in refinement.md/mapping.md, which are audit artifacts, not the consumer spec view. Conclusion: the spec view leaks nothing about the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 10 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Model verifies (nagini_verify.sh exit 0, 11.5s); spec region byte-identical (same-spec exit 0). Modeled domain: value.kind\u2208{0,1} strict bijection kind==0\u21d4list, kind==1\u21d4tuple; items:List[int] opaque identities resolved by the UNINTERPRETED axiom normalise_item (Ensures(True)). Postconditions: Result().kind==value.kind, len(Result().items)==len(value.items), Result().items[k]==normalise_item(value.items[k]) in order. These faithfully mirror the real gold callee Query.resolve_lookup_value list/tuple branch: return type(value)(self.resolve_lookup_value(sub) for sub in value) \u2014 type-preserving (list->list, tuple->tuple), length-preserving, item i = per-item resolution of input i, in order.\n\nWhy not too strong: (a) items are opaque under an uninterpreted axiom, so NO per-item behavioral over-claim is even expressible; the only discriminating content is type-preservation, modeled deeply. (b) G-CONF re-ran 100,019 inputs (seed 12050) contract-stripped against the REAL per-item resolution with 0 disagreements. (c) G-AX validated container-independence over 7 boundary + 20000 fuzz sequences and drove the real Django callee (list->list, tuple->tuple).\n\nOnly boundary edge examined: tuple-subclass/namedtuple, where the real isinstance(value,(list,tuple)) guard admits subclasses and gold's type(value)(generator) raises TypeError while the model reports success. This is genuinely OUTSIDE the modeled domain \u2014 kind is a single bit distinguishing EXACTLY list vs tuple with no carrier for a subclass; SWE-bench F2P/tests only exercise plain lists/tuples. Un-representable input, not a within-domain disagreement, so it does not break verify(model)=>resolved. No diverging input exists within the spec's modeled domain.; G-PANEL-3 (leakage): pass \u2014 Spec view computed via markers.spec_view(model.py, nagini): the impl region is ELIDED ('...  # implementation elided \u2014 supplied by the consumer'); only the docstring, axiom stub `normalise_item` (Ensures(True)), the `Iterable` carrier, and the pre/postconditions of `resolve_iterable_value` are visible. Mechanical G-LEAK screen (leakage.screen) PASSES clean (no diff markers, no gold-patch line reproduced, no patched file/module path, no bug/fix narration, no spec-view identifier embedding a patched symbol).\n\nGold-edit discriminator = 'preserve the input's concrete iterable type instead of coercing list\u2192tuple', carried in the spec by postcondition `Result().kind == value.kind`. This is NOT a leak beyond problem_statement, because the PUBLIC problem_statement already states it verbatim: 'Query.resolve_lookup_value coerces value of type list to tuple breaking exact value queries... The expected iterable return type should match input iterable type.' The docstring's 'SAME concrete iterable type as the input' / 'ordered list normalises to an ordered list; an ordered tuple normalises to an ordered tuple' and the 'value-equality against a stored value (e.g. PickledField)' aside merely restate the public requirement (the problem statement explicitly names PickledField and matching input types).\n\nPatched repo symbol `resolve_lookup_value` (the only distinctive changed symbol) itself appears in problem_statement, so it is public; the model renames the function `resolve_iterable_value`, which does not embed the patched symbol. Per-item resolution logic (the F/resolve_expression branch removed by the patch) is abstracted behind the opaque axiom `normalise_item(Ensures(True))` and is NOT revealed. No gold-specific construction detail (`type(value)(...)`, `tuple(resolved_values)`) appears in the spec view \u2014 those live only in refinement.md/mapping.md, which are audit artifacts, not the consumer spec view. Conclusion: the spec view leaks nothing about the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 10 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 10 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 9 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_8.py`, `atk_9.py`, `atk_10.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Model verifies (nagini_verify.sh exit 0, 11.5s); spec region byte-identical (same-spec exit 0). Modeled domain: value.kind\u2208{0,1} strict bijection kind==0\u21d4list, kind==1\u21d4tuple; items:List[int] opaque identities resolved by the UNINTERPRETED axiom normalise_item (Ensures(True)). Postconditions: Result().kind==value.kind, len(Result().items)==len(value.items), Result().items[k]==normalise_item(value.items[k]) in order. These faithfully mirror the real gold callee Query.resolve_lookup_value list/tuple branch: return type(value)(self.resolve_lookup_value(sub) for sub in value) \u2014 type-preserving (list->list, tuple->tuple), length-preserving, item i = per-item resolution of input i, in order.\n\nWhy not too strong: (a) items are opaque under an uninterpreted axiom, so NO per-item behavioral over-claim is even expressible; the only discriminating content is type-preservation, modeled deeply. (b) G-CONF re-ran 100,019 inputs (seed 12050) contract-stripped against the REAL per-item resolution with 0 disagreements. (c) G-AX validated container-independence over 7 boundary + 20000 fuzz sequences and drove the real Django callee (list->list, tuple->tuple).\n\nOnly boundary edge examined: tuple-subclass/namedtuple, where the real isinstance(value,(list,tuple)) guard admits subclasses and gold's type(value)(generator) raises TypeError while the model reports success. This is genuinely OUTSIDE the modeled domain \u2014 kind is a single bit distinguishing EXACTLY list vs tuple with no carrier for a subclass; SWE-bench F2P/tests only exercise plain lists/tuples. Un-representable input, not a within-domain disagreement, so it does not break verify(model)=>resolved. No diverging input exists within the spec's modeled domain.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view computed via markers.spec_view(model.py, nagini): the impl region is ELIDED ('...  # implementation elided \u2014 supplied by the consumer'); only the docstring, axiom stub `normalise_item` (Ensures(True)), the `Iterable` carrier, and the pre/postconditions of `resolve_iterable_value` are visible. Mechanical G-LEAK screen (leakage.screen) PASSES clean (no diff markers, no gold-patch line reproduced, no patched file/module path, no bug/fix narration, no spec-view identifier embedding a patched symbol).\n\nGold-edit discriminator = 'preserve the input's concrete iterable type instead of coercing list\u2192tuple', carried in the spec by postcondition `Result().kind == value.kind`. This is NOT a leak beyond problem_statement, because the PUBLIC problem_statement already states it verbatim: 'Query.resolve_lookup_value coerces value of type list to tuple breaking exact value queries... The expected iterable return type should match input iterable type.' The docstring's 'SAME concrete iterable type as the input' / 'ordered list normalises to an ordered list; an ordered tuple normalises to an ordered tuple' and the 'value-equality against a stored value (e.g. PickledField)' aside merely restate the public requirement (the problem statement explicitly names PickledField and matching input types).\n\nPatched repo symbol `resolve_lookup_value` (the only distinctive changed symbol) itself appears in problem_statement, so it is public; the model renames the function `resolve_iterable_value`, which does not embed the patched symbol. Per-item resolution logic (the F/resolve_expression branch removed by the patch) is abstracted behind the opaque axiom `normalise_item(Ensures(True))` and is NOT revealed. No gold-specific construction detail (`type(value)(...)`, `tuple(resolved_values)`) appears in the spec view \u2014 those live only in refinement.md/mapping.md, which are audit artifacts, not the consumer spec view. Conclusion: the spec view leaks nothing about the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:23:52+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-hoist",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 50.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-kindvar",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 51.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 46.0
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-items",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.5
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-kind",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 49.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-always-tuple",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-always-list",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.6
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-flip-kind",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 58.7
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-drop-last",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.5
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-identity-passthrough",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 69.1
+          },
+          {
+            "expect": "reject",
+            "id": "uniq-broadcast-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 68.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "e1f1dce37ffb911e6427de482c8b37e73a37f27af5b448fcc8740ac13230ebda",
+        "n_cases": 11,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 11 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d",
+        "properties.py": "e1f1dce37ffb911e6427de482c8b37e73a37f27af5b448fcc8740ac13230ebda"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T10:26:13+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T10:50:04+00:00",
+      "code_version": "15a93b535-dirty",
+      "data": {
+        "wall_time_s": 36.1
+      },
+      "detail": "verified in 36.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c3d8172862bf5fc9b68bbff73e9fb6339e4accc38f12c3890ccb3d821ea9c3d"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-12050",
+  "modeled_functions": [
+    {
+      "carrier_type": "iterable value -> Iterable{kind: int (0=list,1=tuple), items: List[int] of opaque item identities}; specification over PSeq[int] via the items list",
+      "model_symbol": "resolve_iterable_value",
+      "repo_location": "django/db/models/sql/query.py:1053 (branch at 1059, body 1062-1076)",
+      "repo_symbol": "django.db.models.sql.query.Query.resolve_lookup_value (the list/tuple branch)",
+      "role": "modeled changed function (the iterable-normalisation branch); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result().kind == value.kind (fails when value.kind == 0, i.e. a list input -- the F2P scenario Q(name=['a', 'b']))",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "container type of the normalised iterable",
+      "reverted_to": "always build a tuple (out = Iterable(1)), mirroring the pre-patch `value = tuple(resolved_values)` unconditional coercion"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "4c23ebc7c728059fdea9052385c9e72723577bd09b20a55a54fbb70ad6a74743",
+    "impl": "655b04a2e88e5e5cb48d54759a8ae822172160e46001fdd88c5a6f88bfdc3dbe",
+    "invariants": "03c1c5ca62e6350a5e75badaf698977dd2639270c2128953b02b7891ae7e69f3",
+    "post-conditions": "c06ce6a6adcc28acb6067efabdddc10a271e9f4b637d9f12c0cb22d5d779cf07",
+    "pre-conditions": "82559a4739a87acf65f07f9a7baff4c321f7542a655ad3f450b5db2fd7ba688d",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "b6aba7cf3b44cf3dd44d982256690b1a0c6868fafb66e28dbd8e0d0126820aa0"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "n/a (items are opaque int identities; the change is about container type, not item content). Container type carried by a kind: int tag (0=list, 1=tuple); ordered items by List[int]/PSeq.",
+  "version": "3.1"
+}

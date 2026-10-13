@@ -1,0 +1,721 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "same single delegation change (%s-of-operand -> self._print(operand)). The two modeled functions (Relational/Eq, Limit) are exactly the two the FAIL_TO_PASS tests exercise; the remaining sites share the identical refinement (R) and are covered by patch.diff verbatim + G-RESOLVE. Not separately modeled because they add no independent observable beyond the two the spec already pins (settings propagation on a fraction slot, receiver registration on a name slot). Both F2P tests read the SAME patched _print_Relational line through two different receivers -- test_Rational via sstr (a StrPrinter, carrying the sympy_integers configuration) and test_python_relational via python() (a PythonPrinter, carrying the name registry) -- and the modeled postconditions conjoin what each sees, so neither reading is left to G-RESOLVE alone.",
+      "repo_location": "sympy/printing/str.py (the ~13 %s-of-subexpression sites the gold also fixes)",
+      "repo_symbol": "StrPrinter._print_AppliedPredicate / _print_ExprCondPair / _print_Lambda / _print_MatrixElement / _print_Normal / _print_Permutation / _print_PermutationGroup / _print_PolyRing / _print_FracField / _print_Uniform"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real str(n) over n in {0,1,...,large} asserted non-empty",
+      "encoded_property": "digits(n) for n>=0 is a deterministic function of n and non-empty (len >= 1) -- the weakest sufficient contract; not the decimal value itself",
+      "models": "Python built-in str(int) (CPython int.__str__) -- the unchanged integer-spelling leaf",
+      "name": "digits",
+      "provenance": "invoked transitively inside _print_Rational to spell expr.p/expr.q; sympy/printing/str.py:574-580 (gold-patched worktree)",
+      "purity": "@Pure @ContractOnly (used inside Ensures via render_rational)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-domain-containment: every boundary/fuzz operand filtered to gcd(p,q)==1, and Rational(p,q) asserted not to reduce (.p==p and .q==q) and not to be an Integer",
+      "encoded_property": "coprime(p,q): abstract predicate carving the non-collapsing carrier region; proof-irrelevant beyond domain restriction (q>=2 & coprime => proper fraction faithfully rendered as digits(p)/digits(q))",
+      "models": "the canonicalisation invariant of Rational(p,q): gcd(p,q)==1 (the operand is in lowest terms)",
+      "name": "coprime",
+      "provenance": "Rational auto-reduces on construction (sympy/core/numbers.py); a non-coprime (p,q) denotes a DIFFERENT canonical fraction",
+      "purity": "@Pure @ContractOnly (used in Requires)"
+    },
+    {
+      "checked_by": "not checkable by equality, and that is the point: an uninterpreted function has no candidate value to diff, which is exactly why a slot of this kind cannot be forged at the compound site. Its teeth are the verifier's own refutations -- properties.py unmodelled-slot-echo / unmodelled-slot-ambient-config / unmodelled-slot-delegate-if-wrap / limit-direction-echoed / limit-direction-ambient-config / limit-one-template-form",
+      "encoded_property": "opaque_text(a, wrap): the text THIS renderer produces for the operand with handle a when configured by wrap. Nothing about its shape is assumed -- not its length, not its alphabet, not any relation between the two configurations. It DEPENDS ON wrap, which is what makes the configuration a slot was rendered at observable at that slot (the abstract analogue of 'S(p)/q' vs 'p/q').",
+      "models": "the return value of Printer._print (printer.py:238) at a slot holding an operand whose own rendering rule is outside the modeled leaf domain",
+      "name": "opaque_text",
+      "provenance": "the same self._print / map(self._print, ...) delegation the gold patch introduces, reached with an operand of the third kind; mapping.md section 3.5",
+      "purity": "@Pure @ContractOnly (used inside Ensures via atom_text / limit_text)"
+    },
+    {
+      "checked_by": "as above -- uninterpreted, so established by refutation rather than by equality; the composition and configuration-independence it encodes are attacked by properties.py registry-order-swapped and registry-only-when-wrap",
+      "encoded_property": "opaque_registry(r, a): THIS renderer's registry after IT has rendered the operand with handle a, starting from r. How many names such an operand contributes, which, and in what order is NOT modelled. Two structural facts ARE: the effect is a function of the registry it starts FROM (so slot effects compose left to right along the template) and it does NOT depend on the configuration (python.py:38-42 reads no _settings).",
+      "models": "the growth of self.symbols on a PythonPrinter receiver caused by Printer._print at such a slot",
+      "name": "opaque_registry",
+      "provenance": "same delegation; mapping.md section 3.5",
+      "purity": "@Pure @ContractOnly (used inside Ensures via atom_registry / limit_registry)"
+    }
+  ],
+  "base_commit": "205da797006360fc629110937e39a19c9561313e",
+  "changed_files": [
+    "sympy/printing/str.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: render_rational(wrap,p,q) == sstr(Rational(p,q), sympy_integers=wrap) at the PUBLIC DISPATCH ENTRY POINT (not a hand-picked leaf method) over a coprime non-integer boundary grid + ~4000 fuzz fractions per setting; asserts Rational(p,q) does not reduce and is not an Integer",
+      "encoded_property": "render_rational(wrap,p,q) for q>=2 coprime: wrap -> 'S('+digits(p)+')/'+digits(q); !wrap -> digits(p)+'/'+digits(q)",
+      "kind": "A-reference",
+      "models": "StrPrinter._print_Rational (sympy/printing/str.py:574) under settings={'sympy_integers': wrap}, restricted to the else-branch (q>=2, coprime)",
+      "name": "render_rational",
+      "provenance": "str.py:574-580: q==1 -> str(p) (out of modeled domain); else if sympy_integers -> 'S(%s)/%s'%(p,q); else '%s/%s'%(p,q)",
+      "role": "deep model (pure region) of the unchanged leaf renderer over the canonical non-collapsing domain; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: sstr(Symbol(chr(c)), sympy_integers=wrap) == chr(c) for all 26 keys under BOTH settings",
+      "encoded_property": "lit_name(c) for is_name(c) is the single code point c -- the name's rendered text, IDENTICAL under either setting. This setting-independence is precisely why the text of a name slot cannot on its own witness that the OWNING receiver rendered it, and why `registered` is part of the specification.",
+      "kind": "A-reference",
+      "models": "StrPrinter._print_Symbol (sympy/printing/str.py:699, returns expr.name), reached from a name slot via the patched self._print",
+      "name": "lit_name",
+      "provenance": "str.py:699 returns expr.name; reads no setting, so sstr(Symbol('x'), sympy_integers=True) == sstr(Symbol('x')) == 'x'",
+      "role": "deep model of the name slot's text; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: a PythonPrinter is pre-seeded with printer.symbols = [chr(k) for k in reg], printer._print(expr) is dispatched, and the resulting symbols list is asserted == [chr(k) for k in registered(reg, c)] -- over all 26 keys x 7 pre-seeds (empty, disjoint, key-at-head, key-at-tail, both orders of a two-name seed), so BOTH arms of the dedup guard and the order clause are exercised; from an empty seed the public python(expr) preamble names are asserted equal to the same list, anchoring the check at the surface F2P test_python_relational reads",
+      "encoded_property": "registered(r, c) for is_name(c): c in r -> r ; otherwise r + PSeq(c). One entry per DISTINCT name, in first-render order.",
+      "kind": "A-reference",
+      "models": "PythonPrinter._print_Symbol (sympy/printing/python.py:38-42) -- `symbol = self._str(expr); if symbol not in self.symbols: self.symbols.append(symbol)` -- with self.symbols initialised at python.py:21 and drained by python() at python.py:52-69",
+      "name": "registered",
+      "provenance": "python.py:40-41 is the dedup-append; python.py:69 emits one \"name = Symbol('name')\" preamble line per entry IN LIST ORDER, which is why the model's registry is an ordered sequence rather than a set. The method is UNCHANGED by the patch; what the patch changes is whether a compound's name operand ever reaches it. It never consults _settings, which is why the registry clauses are deliberately wrap-independent.",
+      "role": "deep model of the registry step; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: eq_text(wrap,...) == sstr(Eq(Symbol(chr(nl)), Rational(rp,rq)), sympy_integers=wrap) over the coprime non-integer boundary + thousands of fuzz inputs in both settings and over the name keys; full-string assertion (no double mask); asserts rel.func is Eq (no auto-eval to Boolean)",
+      "encoded_property": "eq_text(wrap,nl,rp,rq): 'Eq(' + lit_name(nl) + ', ' + render_rational(wrap, rp, rq) + ')' -- the fractional operand under the SAME wrap as the compound; the name operand renders to its own setting-independent character",
+      "kind": "A-reference",
+      "models": "StrPrinter._print_Relational (charmap/Eq branch) under settings (post-patch self._print operands), relation between a name and a proper fraction",
+      "name": "eq_text",
+      "provenance": "str.py:636-637 post-patch: '%s(%s, %s)' % (charmap[rel_op], self._print(lhs), self._print(rhs))",
+      "role": "deep model of the changed compound rendering (settings propagation); NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: == the real PythonPrinter.symbols after pp._print(Eq(Symbol(chr(nl)), Rational(p,q))) from each of 7 pre-seeds, and == python(rel)'s preamble names when the seed is empty; also asserts the two receivers share the patched method object",
+      "encoded_property": "eq_registry(r, nl) = registered(r, nl) -- exactly ONE registry step, for the relation's single name operand; independent of wrap",
+      "kind": "A-reference",
+      "models": "the receiver's self.symbols after the SAME patched _print_Relational runs on a PythonPrinter receiver",
+      "name": "eq_registry",
+      "provenance": "str.py:636 delegates the lhs via self._print, which for a Symbol lands on python.py:38-42 on a PythonPrinter receiver; the rhs fraction lands on _print_Rational and registers nothing",
+      "role": "deep model of the changed compound's registry effect -- the observable a text-only spec misses; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: limit_text(wrap,...) == sstr(Limit(Symbol(chr(ne)),Symbol(chr(nz)),Rational(z0p,z0q)), sympy_integers=wrap) over the coprime non-integer boundary + fuzz in both settings, all 26x26 name pairs at the F2P fraction; full-string assertion; asserts str(lim.args[3])=='+'",
+      "encoded_property": "limit_text(wrap,ne,nz,z0p,z0q): 'Limit(' + lit_name(ne) + ', ' + lit_name(nz) + ', ' + render_rational(wrap, z0p, z0q) + ')' -- the fractional point under the SAME wrap; each name operand renders to its own character",
+      "kind": "A-reference",
+      "models": "StrPrinter._print_Limit (dir=='+' branch) under settings (post-patch map(self._print, operands)), Limit(name, name, proper-fraction)",
+      "name": "limit_text",
+      "provenance": "str.py:219 post-patch: 'Limit(%s, %s, %s)' % tuple(map(self._print, (e, z, z0)))",
+      "role": "deep model of the changed compound rendering; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) + properties.py ax-render-sound: == the real PythonPrinter.symbols after pp._print(Limit(...)) from each of 7 pre-seeds for equal AND distinct name pairs, and == python(lim)'s preamble names when the seed is empty",
+      "encoded_property": "limit_registry(r, ne, nz) = registered(registered(r, ne), nz) -- one step per NAME slot, left to right, mirroring the tuple order; independent of wrap. Two distinct parameters, so the second slot is separately observable (with ne == nz the duplicate-free registry would mask a missing second delegation).",
+      "kind": "A-reference",
+      "models": "the receiver's self.symbols after the SAME patched _print_Limit runs on a PythonPrinter receiver",
+      "name": "limit_registry",
+      "provenance": "str.py:219 delegates e and z via map(self._print, (e, z, z0)) IN THAT ORDER; each Symbol lands on python.py:38-42; the fraction registers nothing",
+      "role": "deep model of the changed compound's registry effect; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T20:41:39+00:00",
+      "code_version": "4d067b172-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: the two receivers share the patched method objects (_print_Relational / _print_Limit) and the wrap/registry state is split between them exactly as mapping.md \u00a72 declares; digits (A-consumed non-empty) sound; render_rational deep model == real sstr(Rational(p,q), sympy_integers=wrap) over the coprime non-integer boundary grid + 4000 fuzz fractions (both settings); lit_name == the real Symbol text under BOTH settings for all 26 name keys; registered == the real PythonPrinter.symbols growth over 26 keys x 7 pre-seeds; a fractional operand registers nothing; eq_text/limit_text deep model == real sstr(Eq(n, p/q) / Limit(e, z, p/q), sympy_integers=wrap) over boundary + ~6000 compound fuzz inputs -- the setting PROPAGATES into the fractional sub-expression; eq_registry/limit_registry deep model == the real registry growth (instance dispatch AND the public python() preamble) over boundary + 1500 fuzz inputs -- the NAME operands are entered by the renderer that owns the compound; exact F2P assertions (test_Rational + test_python_relational) hold.",
+      "gate": "G-AX",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "a39cb7f133e34fd368b647322eadc4966a2ccf31812ea5d0df3e747aa1410acb",
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T21:21:50+00:00",
+      "code_version": "315408321-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100324,
+          "comparisons": 3380378,
+          "disagreements": 0,
+          "generalised_comparisons": 19008,
+          "generalised_else_arm": 672,
+          "generalised_inputs": 1404,
+          "generalised_plus_arm": 672,
+          "oracle": "real patched sympy/printing/str.py (_print_Relational, _print_Limit, _print_Symbol, _print_Rational via Printer._print) + sympy/printing/python.py (PythonPrinter.symbols, python())",
+          "seed": 14531,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100324, \"comparisons\": 3380378, \"disagreements\": 0, \"seed\": 14531, \"generalised_inputs\": 1404, \"generalised_comparisons\": 19008, \"generalised_plus_arm\": 672, \"generalised_else_arm\": 672, \"shadow\": \"direct (contract-stripped impl region)\", \"oracle\": \"real patched sympy/printing/str.py (_print_Relational, _print_Limit, _print_Symbol, _print_Rational via Printer._print) + sympy/printing/python.py (PythonPrinter.symbols, python())\"}",
+      "gate": "G-CONF",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "178c326718801405e4ffa47e33e67573662573cebfbb0fd93acc5a6a46718669",
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:18:16+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f",
+        "model_prepatch.py": "a33d0ca15dd19db696a0e215281ba5351138cc4731612eab98334e4bb917fadc"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T04:58:25+00:00",
+      "code_version": "28c3b7f2a-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 20 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_20.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_5.py`, `atk_16.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f",
+        "properties.py": "18d04bf6861a2ce4e5a05e77d297f377e2d97c7d334a6e707a18703010841343"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:19:55+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f",
+        "model_prepatch.py": "a33d0ca15dd19db696a0e215281ba5351138cc4731612eab98334e4bb917fadc"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T21:21:50+00:00",
+      "code_version": "315408321-dirty",
+      "data": {
+        "frame_warnings": [
+          "param 'reg' of render_unmodeled() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+          "param 'reg' of render_equation() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+          "param 'reg' of render_directed_limit() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+          "param 'reg' of render_atom() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+          "param 'reg' of render_name() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+          "param 'reg' of render_operand() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)"
+        ],
+        "region_hashes": {
+          "axioms": "5f0de1170b8f1514bff9011902402b26b182c196f74ba27e33eac25ccb02481d",
+          "impl": "80d64bb363d2010bca4d0e913fb709dd6e6ce48a5e5850230498ac68194b145e",
+          "invariants": "378e9a23a8184a602e7e12cfcd320e8e44afcbd8919dcdb2d7984a5ed8a1f402",
+          "post-conditions": "8894877a7a4313dd57c54a3c1045be99f2c1ba80b195ce64d1ce08e4a2d43145",
+          "pre-conditions": "edd22a2e9f36437da84a740634e8d7c18c5336c47edd9563873adc659131acb0",
+          "pure": "8e7f606e2880fd8775247063fa0dc5778bb5ddc147dcfaed1c5cdc5c44bd1bc0",
+          "spec_view": "2dc1eb82c1fee24934c0676d2769447b0d89b2e1bf66ae0c98fe8b4da513c8f8"
+        }
+      },
+      "detail": "imports/markers/regions clean  [advisory] param 'reg' of render_unmodeled() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5) || param 'reg' of render_equation() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5) || param 'reg' of render_directed_limit() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5) || param 'reg' of render_atom() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5) || param 'reg' of render_name() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5) || param 'reg' of render_operand() at FULL list_pred permission \u2014 if read-only use Acc(...,1/2) (directive 5)",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T20:12:59+00:00",
+      "code_version": "dc93112e5-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "b01cb2f591b64e3a0c58967e479242059f8cc5e93faa563fe7be8e7de5218d3a",
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T20:12:59+00:00",
+      "code_version": "dc93112e5-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:13:31+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "judged": 16,
+        "killed": 16,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": [
+          "line 416: '+' -> '-'",
+          "line 420: '+' -> '-'",
+          "line 469: '+' -> '-'",
+          "line 473: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 16/16 (100%); no verdict on 4: [\"line 416: '+' -> '-'\", \"line 420: '+' -> '-'\", \"line 469: '+' -> '-'\", \"line 473: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T04:58:25+00:00",
+      "code_version": "28c3b7f2a-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS-BREAK attack on sympy__sympy-14531 nagini bundle. No divergence found between the modeled functions and the real GOLD-PATCHED repo; the spec is not too strong.\n\nSETUP (all work in /tmp; bundle untouched)\n- Gold patch taken from data/swe_bench_verified/test.jsonl (byte-identical to atk2_14531_gold.diff). Confirmed `git apply --check` clean at base_commit 205da797006360fc629110937e39a19c9561313e.\n- Reference = base worktree WITH patch.diff APPLIED, as instructed. Probes run inside the official image swebench/sweb.eval.x86_64.sympy_1776_sympy-14531 with `git checkout -q . && git apply gold.diff` (repo sympy 1.1.2.dev needs py3.6-era collections; the on-host py3.10 cannot import it, so the container is the only valid reference).\n- Spec region confirmed byte-identical: `adversary same-spec nagini sympy__sympy-14531 <copy of model.py>` -> exit 0, \"SAME - attack shares the bundle's exact specification\".\n- Model semantics were RE-DERIVED BY HAND from model.py's spec region into plain str/list (NOT copied from conformance_check.py), so this is an independent oracle, not a re-run of the bundle's own gate.\n\nPATCH-SCOPE CHECK (which reference applies to what)\n- `git diff --stat` base->gold: only sympy/printing/str.py, 21+/17-. The patch touches NEITHER `_print_Rational` NOR `_print_Symbol` in str.py, and does not touch python.py / repr.py / printer.py at all. So the axiomatised/deep-modeled leaf callees (digits=str(int), render_rational=_print_Rational, lit_name=StrPrinter._print_Symbol, registered=PythonPrinter._print_Symbol) are genuinely unchanged and base_commit is correctly their reference; the two modeled compounds (_print_Relational charmap arm, _print_Limit both arms) are the delta and were compared against the PATCHED text only. No base-vs-model comparison was reported as a divergence.\n\nATTACKS RUN (each an over-constraint / drift hypothesis, all refuted)\n(A) JOINT-RECEIVER CONJUNCTION - the sharpest angle. model.py conjoins a wrap-sensitive TEXT postcondition with a registry-growth postcondition on the SAME call, while mapping.md 1.1 reads them on two DIFFERENT receivers (StrPrinter for text, PythonPrinter for registry). If no real receiver can satisfy both at once, the conjunction would be unsatisfiable = spec too strong. I built a legitimate combined receiver (StrPrinter subclass carrying PythonPrinter._print_Symbol and a `symbols` registry) and verified it inherits the VERY SAME patched method objects (Joint._print_Relational is StrPrinter._print_Relational -> True; likewise _print_Limit; and PythonPrinter._print_* is StrPrinter._print_* -> True). Then read BOTH clauses off ONE invocation. 61,852 Eq joint comparisons + 216,576 Limit joint comparisons, 0 disagreements. The conjunction is jointly realizable on a real receiver; the receiver split is a reading device, not an over-constraint.\n(B) REGISTRY WRAP-INDEPENDENCE - opaque_registry(r,a) and atom_registry take no `wrap`, so the spec FORCES registration to be independent of sympy_integers. Probed every atom and whole compounds at wrap=False vs wrap=True across 7 registry pre-seeds: 3,713 comparisons, registries identical, 0 disagreements. Consistent with python.py:38-42 never consulting _settings.\n(C) SLOT-TEXT LEVEL-INDEPENDENCE - opaque_text(a,wrap) takes no _print_level, so the spec forces a slot's text to be a function of (operand, wrap) alone. Compared each of 47 atoms at nested levels 2,3,4,5,8 under both wraps: 376 comparisons, 0 disagreements. (This is the one real trap in the instance: StrPrinter._print_Float reads _print_Level via full_prec=='auto', so the top-level sstr reading of a Float differs from the nested slot reading. My FIRST probe naively realized opaque_text at top level and produced 2,156 spurious 'failures' (model 'Eq(x, 1.50000000000000)' vs real 'Eq(x, 1.5)'). That was MY bug, not spec drift - the spec says the slot text is whatever THIS renderer produces AT THE SLOT, and the bundle already models this explicitly, mapping.md line 302 and conformance_check.py:510-516,727-729 pre-bump _print_level and assert level-insensitivity rather than assuming it. Reporting that first run would have been a false UNFAITHFUL.)\n(D) RANDOMIZED FUZZ - 25,000 seeded random inputs (seed 14531) over mixed operand kinds, coprime fractions with numerators/denominators up to 1e12, all three directions ('+','-','+-'), random registry pre-seeds; both Eq and Limit, text and registry clauses. 0 disagreements.\n(E) LEAF / AXIOM LEG - render_rational == sstr(Rational(p,q), sympy_integers=wrap) over 4,000 fuzzed coprime pairs x both wraps; digits non-emptiness; lit_name == sstr(Symbol(c)) for all 26 keys under both settings (setting-independent, as specified); registered == real PythonPrinter.symbols growth for all 26 keys x 7 pre-seeds exercising both dedup arms and both orders. 5,758 comparisons, 0 disagreements.\n(F) FRACTION SLOT NO-WRITE - render_operand's `ToSeq(reg) == Old(ToSeq(reg))` clause: 8,088 comparisons, a fractional slot never mutated the real registry, and its text matched. 0 disagreements.\n\nBRANCH / ARM COVERAGE - both `_print_Limit` arms are exercised, not just the F2P one: `plus` is a FREE parameter and I drove the four-slot arm by constructing limits with each direction Symbol. The model's decision to make `plus` free rather than a predicate on the limit point is correct per limits.py __new__ (dir is overridden to '-' at +oo and '+' at -oo, so it is not a function of z0). Both `render_operand` if-arms and both `render_name` dedup arms are taken by construction.\n\nEXACT F2P ASSERTIONS re-measured on the patched repo and matching the model: sstr(Eq(x,S(2)/3),sympy_integers=True)=='Eq(x, S(2)/3)'; sstr(Limit(x,x,S(7)/2),sympy_integers=True)=='Limit(x, x, S(7)/2)'; python(Eq(x,y))==\"x = Symbol('x')\\ny = Symbol('y')\\ne = Eq(x, y)\"; python(Limit(x,y,Rational(7,2))) three-line form.\n\nDOMAIN RESTRICTIONS JUDGED SOUND, NOT NARROWING. The fractional carrier (p>=0, q>=2, coprime) is a genuine carrier boundary, not a weakened spec: q==1 dispatches to _print_Integer and p==0 makes gcd(0,q)==q so Rational(0,q) is an Integer - a different carrier. Crucially, the excluded values are NOT dropped from the spec: they are reachable as the k==2 (unmodeled-rule) operand kind, whose text/registry are uninterpreted, and I confirmed the compound obligations still hold for them by putting Integer(0), Integer(-7), Rational(-3,4), Rational(4,2), Float, oo, -oo, zoo, nan, pi, E, I, multi-char Symbols, sin/cos/exp/log, Add/Mul/Pow, Tuple, FiniteSet, Interval, Matrix, Piecewise, Sum, Lambda, and even nested Eq/Limit into every slot. Likewise the one-letter name restriction: longer names ('foo','ab') were exercised as k==2. So the three-kind is_atom decomposition makes the spec TOTAL over slot contents rather than restricting it.\n\nAGGREGATE: ~880,000 independent model-vs-real-patched-repo comparisons across attacks A-F, 0 disagreements. I could not construct any input on which the modeled function disagrees with the real callee. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE / RELAXATION -- none claimed, none inherited, so this is an ordinary NO-LEAKAGE/LEAKAGE review with no disposition to re-derive. Measured, not assumed: (a) `'relaxed_leakage' in json.load(open('meta.json'))` -> False; (b) `grep -ril relaxed_leakage` over the whole instance dir hits ONLY verdict.md and meta.json, and in both the hit is a PRIOR PANEL'S NOTE recording that the flag is absent -- there is no RELAXED_LEAKAGE.md anywhere under benchmark-verified/sympy__sympy-14531/; (c) meta.json gates['G-LEAK'].status == 'pass' (not 'relaxed'). I re-ran the gate live rather than reading its stamp: swebench_unified.gates.leak.run(Bundle('sympy__sympy-14531', nagini)) -> status 'pass', detail 'spec view clean', data {'failures': []}. Since leak.py takes the relaxed branch on either meta_status=='relaxed' OR (relaxed_leakage is True AND RELAXED_LEAKAGE.md exists), and neither holds, the pass is the unrelaxed lexical screen, not a relaxation dressed as a pass.\n\nBUNDLE ADDRESSING THE PANEL -- nothing to report. leakage.reviewer_directed() returns [] on model.py. Hand grep over model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py for panel|reviewer|auditor|attacker|NO-LEAKAGE|submit_result|'honest recording'|'correct recording'|'recording convention'|'should record'|'must submit' returned ZERO hits; same grep over verdict.md and meta.json returns no directive forms (their only panel mentions are stamped past-tense records of what prior panels measured, which is a fact about what happened, not an instruction to me). No file in this bundle told me what to submit.\n\nWHAT THE CONSUMER SEES. spec_view(model.py, nagini) = 513 lines; diffing it against the 572-line model.py shows the projection replaces all six impl regions with '...  # implementation elided -- supplied by the consumer'. That elision is load-bearing here, because the leak-prone narration is exactly what lives inside impl-start/impl-end: the two retained-obligation Assert blocks in render_equation / render_directed_limit are prefaced by 'The previous, narrower obligation of this method ... so the generalisation is machine-checked to RETAIN it', and model_prepatch.py's impl regions say 'PRE-PATCH: each operand slot is re-rendered by a DETACHED ambient-default renderer'. None of that reaches the consumer: greps over specview.txt for previous / narrower / generalis / generaliz / retain / PRE-PATCH / prepatch / 'no longer' / 'used to' / 'instead of' all return 0. The only 'edit' token in the whole view is the framing line 3, 'stated as desired behaviour, not as an edit', which reveals nothing about which edit.\n\nGOLD-RECONSTRUCTION CHECK (the real question, since the lexical screen can pass a semantic leak). The gold patch rewrites 14 StrPrinter methods to route operand slots through self._print(...) instead of %s-interpolating the operand. Distinctive changed symbols per leakage._patch_changed_symbols: print_Exp1, print_Inverse, print_LatticeOp, print_MatrixBase, print_NegativeInfinity, print_Or, print_Permutation, print_Pi, print_Relational, print_TensAdd, print_Transpose -- and NONE of the 11 appears in problem_statement (checked each with `s.lower() in ps.lower()` -> all False). So all 11 are screenable, and I checked the view for every one plus the un-caught edit sites: grep -niE over specview.txt for _print / sympy_integers / sstr / StrPrinter / PythonPrinter / charmap / rel_op / self\\. / expr\\. / Relational / 'Symbol(' / printing/str -> 0 hits each; grep for the OTHER patched methods' vocabulary (Normal|Uniform|Lambda|Permutation|MatrixElement|MatrixBase|PolyRing|FracField|ExprCondPair|AppliedPredicate|LatticeOp|Transpose|Inverse|TensAdd|Exp1|array_form|mu|sigma) returns only English false positives on 'name', 'order', 'domain', 'operand', 'MustTerminate'. The view names no patched file path, no dotted module, no diff marker (L1/L2 all clean in the live gate run). The only sympy token in 513 lines is the instance id on line 1 of the docstring, which is already an agent-visible field (eval/dataset.as_dict emits instance_id in every mode) and localizes nothing beyond the public issue.\n\nWHAT THE VIEW DOES SAY, and why it stays inside the public facet. The view states, in domain language, that a compound's every operand slot is rendered BY THE RENDERER THAT OWNS THE COMPOUND at that renderer's own configuration, over a relation Eq(l,r) and a limit Limit(e,z,z0[,dir]) with a wrap flag and a name registry. Every one of those is derivable from problem_statement ALONE: the issue shows sstr(Eq(x, S(1)/2), sympy_integers=True) -> 'Eq(x, 1/2)' vs the expected 'Eq(x, S(1)/2)', shows Limit(x, x, S(1)/2) with the same failure, and shows python(Eq(x, y)) -> 'e = Eq(x, y)' missing the \"x = Symbol('x')\" preamble -- i.e. the issue itself supplies (i) the two compounds, (ii) the sympy_integers setting being ignored in a subexpression, (iii) the 'S(p)/q' vs 'p/q' discriminator, and (iv) the second, registry-shaped observable (the missing Symbol preamble is exactly self.symbols not being populated). Modelling the registry is therefore not a leak of the gold edit -- it is the second symptom the issue reports. Both compounds are named in the issue verbatim, so eq_text/limit_text localize nothing hidden. The view is strictly NARROWER than the gold edit: 14 methods were patched and the view speaks of 2, so it cannot be read off as the edit's inventory. The `plus`/`dir` two-form limit template and the k==2 opaque-operand kind are pre-existing structure of the callee (str(dir) branch), stated so the spec is total over the argument domain, not fix-invented -- _patch_new_symbols contributes nothing here since the patch introduces no new def/class.\n\nRESIDUAL DIRECTION. A solver reading the view learns 'render each slot through the owning renderer, propagating configuration and registry' -- which is a restatement of the desired behaviour the issue already asks for ('the setting was ignored', 'instead of the expected'), not the mechanism (self._print) nor the site list. The nearest thing to a hint is the recurring 'a detached ambient-default re-rendering' contrast in the axiom docstrings (opaque_text/opaque_registry) and postcondition comments; that names the WRONG behaviour the issue itself demonstrates, in model vocabulary, without naming _print, %s interpolation, or any repo symbol. I judged that inside the public facet rather than beyond it.\n\nONE SCOPE NOTE, not a finding at this gate: meta.json's modeled_functions entries DO name 'sympy.printing.str.StrPrinter._print_Relational' and 'sympy/printing/str.py:622 (charmap branch, patched body 636-637)', and dataset.py emits modeled_functions to the agent in MODES_WITH_SPEC. That is the deliberate edit-localization channel (MODES_WITH_LOCALIZATION = {0,1,2,100}; gives_localization is a designed task field), and G-LEAK's `reads` tuple scopes this gate to the solution's spec view, not meta.json -- so it is not a spec-view leak and I did not treat it as one. Flagging it only so the record shows I looked at the whole consumer-visible surface, not just the projection.\n\nVERDICT NO-LEAKAGE. Facet re-confirmed: the spec view carries only the setting-propagation-plus-registration behaviour the public issue already exhibits on Eq and Limit. Confirmed by: live leak.run (pass, zero failures), spec_view/model.py diff showing all six impl regions elided, same_spec(model.py, model_prepatch.py) -> True (spec region byte-identical, only impl differs), reviewer_directed [] on all five spec-lane files, and hand greps for all 11 patched symbols, the patched path/module, diff markers, narration vocabulary, and change-framing -- all zero in the view.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS-BREAK attack on sympy__sympy-14531 nagini bundle. No divergence found between the modeled functions and the real GOLD-PATCHED repo; the spec is not too strong.\n\nSETUP (all work in /tmp; bundle untouched)\n- Gold patch taken from data/swe_bench_verified/test.jsonl (byte-identical to atk2_14531_gold.diff). Confirmed `git apply --check` clean at base_commit 205da797006360fc629110937e39a19c9561313e.\n- Reference = base worktree WITH patch.diff APPLIED, as instructed. Probes run inside the official image swebench/sweb.eval.x86_64.sympy_1776_sympy-14531 with `git checkout -q . && git apply gold.diff` (repo sympy 1.1.2.dev needs py3.6-era collections; the on-host py3.10 cannot import it, so the container is the only valid reference).\n- Spec region confirmed byte-identical: `adversary same-spec nagini sympy__sympy-14531 <copy of model.py>` -> exit 0, \"SAME - attack shares the bundle's exact specification\".\n- Model semantics were RE-DERIVED BY HAND from model.py's spec region into plain str/list (NOT copied from conformance_check.py), so this is an independent oracle, not a re-run of the bundle's own gate.\n\nPATCH-SCOPE CHECK (which reference applies to what)\n- `git diff --stat` base->gold: only sympy/printing/str.py, 21+/17-. The patch touches NEITHER `_print_Rational` NOR `_print_Symbol` in str.py, and does not touch python.py / repr.py / printer.py at all. So the axiomatised/deep-modeled leaf callees (digits=str(int), render_rational=_print_Rational, lit_name=StrPrinter._print_Symbol, registered=PythonPrinter._print_Symbol) are genuinely unchanged and base_commit is correctly their reference; the two modeled compounds (_print_Relational charmap arm, _print_Limit both arms) are the delta and were compared against the PATCHED text only. No base-vs-model comparison was reported as a divergence.\n\nATTACKS RUN (each an over-constraint / drift hypothesis, all refuted)\n(A) JOINT-RECEIVER CONJUNCTION - the sharpest angle. model.py conjoins a wrap-sensitive TEXT postcondition with a registry-growth postcondition on the SAME call, while mapping.md 1.1 reads them on two DIFFERENT receivers (StrPrinter for text, PythonPrinter for registry). If no real receiver can satisfy both at once, the conjunction would be unsatisfiable = spec too strong. I built a legitimate combined receiver (StrPrinter subclass carrying PythonPrinter._print_Symbol and a `symbols` registry) and verified it inherits the VERY SAME patched method objects (Joint._print_Relational is StrPrinter._print_Relational -> True; likewise _print_Limit; and PythonPrinter._print_* is StrPrinter._print_* -> True). Then read BOTH clauses off ONE invocation. 61,852 Eq joint comparisons + 216,576 Limit joint comparisons, 0 disagreements. The conjunction is jointly realizable on a real receiver; the receiver split is a reading device, not an over-constraint.\n(B) REGISTRY WRAP-INDEPENDENCE - opaque_registry(r,a) and atom_registry take no `wrap`, so the spec FORCES registration to be independent of sympy_integers. Probed every atom and whole compounds at wrap=False vs wrap=True across 7 registry pre-seeds: 3,713 comparisons, registries identical, 0 disagreements. Consistent with python.py:38-42 never consulting _settings.\n(C) SLOT-TEXT LEVEL-INDEPENDENCE - opaque_text(a,wrap) takes no _print_level, so the spec forces a slot's text to be a function of (operand, wrap) alone. Compared each of 47 atoms at nested levels 2,3,4,5,8 under both wraps: 376 comparisons, 0 disagreements. (This is the one real trap in the instance: StrPrinter._print_Float reads _print_Level via full_prec=='auto', so the top-level sstr reading of a Float differs from the nested slot reading. My FIRST probe naively realized opaque_text at top level and produced 2,156 spurious 'failures' (model 'Eq(x, 1.50000000000000)' vs real 'Eq(x, 1.5)'). That was MY bug, not spec drift - the spec says the slot text is whatever THIS renderer produces AT THE SLOT, and the bundle already models this explicitly, mapping.md line 302 and conformance_check.py:510-516,727-729 pre-bump _print_level and assert level-insensitivity rather than assuming it. Reporting that first run would have been a false UNFAITHFUL.)\n(D) RANDOMIZED FUZZ - 25,000 seeded random inputs (seed 14531) over mixed operand kinds, coprime fractions with numerators/denominators up to 1e12, all three directions ('+','-','+-'), random registry pre-seeds; both Eq and Limit, text and registry clauses. 0 disagreements.\n(E) LEAF / AXIOM LEG - render_rational == sstr(Rational(p,q), sympy_integers=wrap) over 4,000 fuzzed coprime pairs x both wraps; digits non-emptiness; lit_name == sstr(Symbol(c)) for all 26 keys under both settings (setting-independent, as specified); registered == real PythonPrinter.symbols growth for all 26 keys x 7 pre-seeds exercising both dedup arms and both orders. 5,758 comparisons, 0 disagreements.\n(F) FRACTION SLOT NO-WRITE - render_operand's `ToSeq(reg) == Old(ToSeq(reg))` clause: 8,088 comparisons, a fractional slot never mutated the real registry, and its text matched. 0 disagreements.\n\nBRANCH / ARM COVERAGE - both `_print_Limit` arms are exercised, not just the F2P one: `plus` is a FREE parameter and I drove the four-slot arm by constructing limits with each direction Symbol. The model's decision to make `plus` free rather than a predicate on the limit point is correct per limits.py __new__ (dir is overridden to '-' at +oo and '+' at -oo, so it is not a function of z0). Both `render_operand` if-arms and both `render_name` dedup arms are taken by construction.\n\nEXACT F2P ASSERTIONS re-measured on the patched repo and matching the model: sstr(Eq(x,S(2)/3),sympy_integers=True)=='Eq(x, S(2)/3)'; sstr(Limit(x,x,S(7)/2),sympy_integers=True)=='Limit(x, x, S(7)/2)'; python(Eq(x,y))==\"x = Symbol('x')\\ny = Symbol('y')\\ne = Eq(x, y)\"; python(Limit(x,y,Rational(7,2))) three-line form.\n\nDOMAIN RESTRICTIONS JUDGED SOUND, NOT NARROWING. The fractional carrier (p>=0, q>=2, coprime) is a genuine carrier boundary, not a weakened spec: q==1 dispatches to _print_Integer and p==0 makes gcd(0,q)==q so Rational(0,q) is an Integer - a different carrier. Crucially, the excluded values are NOT dropped from the spec: they are reachable as the k==2 (unmodeled-rule) operand kind, whose text/registry are uninterpreted, and I confirmed the compound obligations still hold for them by putting Integer(0), Integer(-7), Rational(-3,4), Rational(4,2), Float, oo, -oo, zoo, nan, pi, E, I, multi-char Symbols, sin/cos/exp/log, Add/Mul/Pow, Tuple, FiniteSet, Interval, Matrix, Piecewise, Sum, Lambda, and even nested Eq/Limit into every slot. Likewise the one-letter name restriction: longer names ('foo','ab') were exercised as k==2. So the three-kind is_atom decomposition makes the spec TOTAL over slot contents rather than restricting it.\n\nAGGREGATE: ~880,000 independent model-vs-real-patched-repo comparisons across attacks A-F, 0 disagreements. I could not construct any input on which the modeled function disagrees with the real callee. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 SCOPE / RELAXATION -- none claimed, none inherited, so this is an ordinary NO-LEAKAGE/LEAKAGE review with no disposition to re-derive. Measured, not assumed: (a) `'relaxed_leakage' in json.load(open('meta.json'))` -> False; (b) `grep -ril relaxed_leakage` over the whole instance dir hits ONLY verdict.md and meta.json, and in both the hit is a PRIOR PANEL'S NOTE recording that the flag is absent -- there is no RELAXED_LEAKAGE.md anywhere under benchmark-verified/sympy__sympy-14531/; (c) meta.json gates['G-LEAK'].status == 'pass' (not 'relaxed'). I re-ran the gate live rather than reading its stamp: swebench_unified.gates.leak.run(Bundle('sympy__sympy-14531', nagini)) -> status 'pass', detail 'spec view clean', data {'failures': []}. Since leak.py takes the relaxed branch on either meta_status=='relaxed' OR (relaxed_leakage is True AND RELAXED_LEAKAGE.md exists), and neither holds, the pass is the unrelaxed lexical screen, not a relaxation dressed as a pass.\n\nBUNDLE ADDRESSING THE PANEL -- nothing to report. leakage.reviewer_directed() returns [] on model.py. Hand grep over model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py for panel|reviewer|auditor|attacker|NO-LEAKAGE|submit_result|'honest recording'|'correct recording'|'recording convention'|'should record'|'must submit' returned ZERO hits; same grep over verdict.md and meta.json returns no directive forms (their only panel mentions are stamped past-tense records of what prior panels measured, which is a fact about what happened, not an instruction to me). No file in this bundle told me what to submit.\n\nWHAT THE CONSUMER SEES. spec_view(model.py, nagini) = 513 lines; diffing it against the 572-line model.py shows the projection replaces all six impl regions with '...  # implementation elided -- supplied by the consumer'. That elision is load-bearing here, because the leak-prone narration is exactly what lives inside impl-start/impl-end: the two retained-obligation Assert blocks in render_equation / render_directed_limit are prefaced by 'The previous, narrower obligation of this method ... so the generalisation is machine-checked to RETAIN it', and model_prepatch.py's impl regions say 'PRE-PATCH: each operand slot is re-rendered by a DETACHED ambient-default renderer'. None of that reaches the consumer: greps over specview.txt for previous / narrower / generalis / generaliz / retain / PRE-PATCH / prepatch / 'no longer' / 'used to' / 'instead of' all return 0. The only 'edit' token in the whole view is the framing line 3, 'stated as desired behaviour, not as an edit', which reveals nothing about which edit.\n\nGOLD-RECONSTRUCTION CHECK (the real question, since the lexical screen can pass a semantic leak). The gold patch rewrites 14 StrPrinter methods to route operand slots through self._print(...) instead of %s-interpolating the operand. Distinctive changed symbols per leakage._patch_changed_symbols: print_Exp1, print_Inverse, print_LatticeOp, print_MatrixBase, print_NegativeInfinity, print_Or, print_Permutation, print_Pi, print_Relational, print_TensAdd, print_Transpose -- and NONE of the 11 appears in problem_statement (checked each with `s.lower() in ps.lower()` -> all False). So all 11 are screenable, and I checked the view for every one plus the un-caught edit sites: grep -niE over specview.txt for _print / sympy_integers / sstr / StrPrinter / PythonPrinter / charmap / rel_op / self\\. / expr\\. / Relational / 'Symbol(' / printing/str -> 0 hits each; grep for the OTHER patched methods' vocabulary (Normal|Uniform|Lambda|Permutation|MatrixElement|MatrixBase|PolyRing|FracField|ExprCondPair|AppliedPredicate|LatticeOp|Transpose|Inverse|TensAdd|Exp1|array_form|mu|sigma) returns only English false positives on 'name', 'order', 'domain', 'operand', 'MustTerminate'. The view names no patched file path, no dotted module, no diff marker (L1/L2 all clean in the live gate run). The only sympy token in 513 lines is the instance id on line 1 of the docstring, which is already an agent-visible field (eval/dataset.as_dict emits instance_id in every mode) and localizes nothing beyond the public issue.\n\nWHAT THE VIEW DOES SAY, and why it stays inside the public facet. The view states, in domain language, that a compound's every operand slot is rendered BY THE RENDERER THAT OWNS THE COMPOUND at that renderer's own configuration, over a relation Eq(l,r) and a limit Limit(e,z,z0[,dir]) with a wrap flag and a name registry. Every one of those is derivable from problem_statement ALONE: the issue shows sstr(Eq(x, S(1)/2), sympy_integers=True) -> 'Eq(x, 1/2)' vs the expected 'Eq(x, S(1)/2)', shows Limit(x, x, S(1)/2) with the same failure, and shows python(Eq(x, y)) -> 'e = Eq(x, y)' missing the \"x = Symbol('x')\" preamble -- i.e. the issue itself supplies (i) the two compounds, (ii) the sympy_integers setting being ignored in a subexpression, (iii) the 'S(p)/q' vs 'p/q' discriminator, and (iv) the second, registry-shaped observable (the missing Symbol preamble is exactly self.symbols not being populated). Modelling the registry is therefore not a leak of the gold edit -- it is the second symptom the issue reports. Both compounds are named in the issue verbatim, so eq_text/limit_text localize nothing hidden. The view is strictly NARROWER than the gold edit: 14 methods were patched and the view speaks of 2, so it cannot be read off as the edit's inventory. The `plus`/`dir` two-form limit template and the k==2 opaque-operand kind are pre-existing structure of the callee (str(dir) branch), stated so the spec is total over the argument domain, not fix-invented -- _patch_new_symbols contributes nothing here since the patch introduces no new def/class.\n\nRESIDUAL DIRECTION. A solver reading the view learns 'render each slot through the owning renderer, propagating configuration and registry' -- which is a restatement of the desired behaviour the issue already asks for ('the setting was ignored', 'instead of the expected'), not the mechanism (self._print) nor the site list. The nearest thing to a hint is the recurring 'a detached ambient-default re-rendering' contrast in the axiom docstrings (opaque_text/opaque_registry) and postcondition comments; that names the WRONG behaviour the issue itself demonstrates, in model vocabulary, without naming _print, %s interpolation, or any repo symbol. I judged that inside the public facet rather than beyond it.\n\nONE SCOPE NOTE, not a finding at this gate: meta.json's modeled_functions entries DO name 'sympy.printing.str.StrPrinter._print_Relational' and 'sympy/printing/str.py:622 (charmap branch, patched body 636-637)', and dataset.py emits modeled_functions to the agent in MODES_WITH_SPEC. That is the deliberate edit-localization channel (MODES_WITH_LOCALIZATION = {0,1,2,100}; gives_localization is a designed task field), and G-LEAK's `reads` tuple scopes this gate to the solution's spec view, not meta.json -- so it is not a spec-view leak and I did not treat it as one. Flagging it only so the record shows I looked at the whole consumer-visible surface, not just the projection.\n\nVERDICT NO-LEAKAGE. Facet re-confirmed: the spec view carries only the setting-propagation-plus-registration behaviour the public issue already exhibits on Eq and Limit. Confirmed by: live leak.run (pass, zero failures), spec_view/model.py diff showing all six impl regions elided, same_spec(model.py, model_prepatch.py) -> True (spec region byte-identical, only impl differs), reviewer_directed [] on all five spec-lane files, and hand greps for all 11 patched symbols, the patched path/module, diff markers, narration vocabulary, and change-framing -- all zero in the view.",
+      "gate": "G-PANEL",
+      "harness_digest": "a10de5bb587e",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f",
+        "properties.py": "18d04bf6861a2ce4e5a05e77d297f377e2d97c7d334a6e707a18703010841343"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T04:58:24+00:00",
+      "code_version": "28c3b7f2a-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 20 admissible attacks re-run of 20 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 20 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py`, `atk_17.py`, `atk_18.py`, `atk_19.py`, `atk_20.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_5.py`, `atk_16.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f",
+        "properties.py": "18d04bf6861a2ce4e5a05e77d297f377e2d97c7d334a6e707a18703010841343"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T04:04:12+00:00",
+      "code_version": "65676836b-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS-BREAK attack on sympy__sympy-14531 nagini bundle. No divergence found between the modeled functions and the real GOLD-PATCHED repo; the spec is not too strong.\n\nSETUP (all work in /tmp; bundle untouched)\n- Gold patch taken from data/swe_bench_verified/test.jsonl (byte-identical to atk2_14531_gold.diff). Confirmed `git apply --check` clean at base_commit 205da797006360fc629110937e39a19c9561313e.\n- Reference = base worktree WITH patch.diff APPLIED, as instructed. Probes run inside the official image swebench/sweb.eval.x86_64.sympy_1776_sympy-14531 with `git checkout -q . && git apply gold.diff` (repo sympy 1.1.2.dev needs py3.6-era collections; the on-host py3.10 cannot import it, so the container is the only valid reference).\n- Spec region confirmed byte-identical: `adversary same-spec nagini sympy__sympy-14531 <copy of model.py>` -> exit 0, \"SAME - attack shares the bundle's exact specification\".\n- Model semantics were RE-DERIVED BY HAND from model.py's spec region into plain str/list (NOT copied from conformance_check.py), so this is an independent oracle, not a re-run of the bundle's own gate.\n\nPATCH-SCOPE CHECK (which reference applies to what)\n- `git diff --stat` base->gold: only sympy/printing/str.py, 21+/17-. The patch touches NEITHER `_print_Rational` NOR `_print_Symbol` in str.py, and does not touch python.py / repr.py / printer.py at all. So the axiomatised/deep-modeled leaf callees (digits=str(int), render_rational=_print_Rational, lit_name=StrPrinter._print_Symbol, registered=PythonPrinter._print_Symbol) are genuinely unchanged and base_commit is correctly their reference; the two modeled compounds (_print_Relational charmap arm, _print_Limit both arms) are the delta and were compared against the PATCHED text only. No base-vs-model comparison was reported as a divergence.\n\nATTACKS RUN (each an over-constraint / drift hypothesis, all refuted)\n\n(A) JOINT-RECEIVER CONJUNCTION - the sharpest angle. model.py conjoins a wrap-sensitive TEXT postcondition with a registry-growth postcondition on the SAME call, while mapping.md 1.1 reads them on two DIFFERENT receivers (StrPrinter for text, PythonPrinter for registry). If no real receiver can satisfy both at once, the conjunction would be unsatisfiable = spec too strong. I built a legitimate combined receiver (StrPrinter subclass carrying PythonPrinter._print_Symbol and a `symbols` registry) and verified it inherits the VERY SAME patched method objects (Joint._print_Relational is StrPrinter._print_Relational -> True; likewise _print_Limit; and PythonPrinter._print_* is StrPrinter._print_* -> True). Then read BOTH clauses off ONE invocation. 61,852 Eq joint comparisons + 216,576 Limit joint comparisons, 0 disagreements. The conjunction is jointly realizable on a real receiver; the receiver split is a reading device, not an over-constraint.\n\n(B) REGISTRY WRAP-INDEPENDENCE - opaque_registry(r,a) and atom_registry take no `wrap`, so the spec FORCES registration to be independent of sympy_integers. Probed every atom and whole compounds at wrap=False vs wrap=True across 7 registry pre-seeds: 3,713 comparisons, registries identical, 0 disagreements. Consistent with python.py:38-42 never consulting _settings.\n\n(C) SLOT-TEXT LEVEL-INDEPENDENCE - opaque_text(a,wrap) takes no _print_level, so the spec forces a slot's text to be a function of (operand, wrap) alone. Compared each of 47 atoms at nested levels 2,3,4,5,8 under both wraps: 376 comparisons, 0 disagreements. (This is the one real trap in the instance: StrPrinter._print_Float reads _print_Level via full_prec=='auto', so the top-level sstr reading of a Float differs from the nested slot reading. My FIRST probe naively realized opaque_text at top level and produced 2,156 spurious 'failures' (model 'Eq(x, 1.50000000000000)' vs real 'Eq(x, 1.5)'). That was MY bug, not spec drift - the spec says the slot text is whatever THIS renderer produces AT THE SLOT, and the bundle already models this explicitly, mapping.md line 302 and conformance_check.py:510-516,727-729 pre-bump _print_level and assert level-insensitivity rather than assuming it. Reporting that first run would have been a false UNFAITHFUL.)\n\n(D) RANDOMIZED FUZZ - 25,000 seeded random inputs (seed 14531) over mixed operand kinds, coprime fractions with numerators/denominators up to 1e12, all three directions ('+','-','+-'), random registry pre-seeds; both Eq and Limit, text and registry clauses. 0 disagreements.\n\n(E) LEAF / AXIOM LEG - render_rational == sstr(Rational(p,q), sympy_integers=wrap) over 4,000 fuzzed coprime pairs x both wraps; digits non-emptiness; lit_name == sstr(Symbol(c)) for all 26 keys under both settings (setting-independent, as specified); registered == real PythonPrinter.symbols growth for all 26 keys x 7 pre-seeds exercising both dedup arms and both orders. 5,758 comparisons, 0 disagreements.\n\n(F) FRACTION SLOT NO-WRITE - render_operand's `ToSeq(reg) == Old(ToSeq(reg))` clause: 8,088 comparisons, a fractional slot never mutated the real registry, and its text matched. 0 disagreements.\n\nBRANCH / ARM COVERAGE - both `_print_Limit` arms are exercised, not just the F2P one: `plus` is a FREE parameter and I drove the four-slot arm by constructing limits with each direction Symbol. The model's decision to make `plus` free rather than a predicate on the limit point is correct per limits.py __new__ (dir is overridden to '-' at +oo and '+' at -oo, so it is not a function of z0). Both `render_operand` if-arms and both `render_name` dedup arms are taken by construction.\n\nEXACT F2P ASSERTIONS re-measured on the patched repo and matching the model: sstr(Eq(x,S(2)/3),sympy_integers=True)=='Eq(x, S(2)/3)'; sstr(Limit(x,x,S(7)/2),sympy_integers=True)=='Limit(x, x, S(7)/2)'; python(Eq(x,y))==\"x = Symbol('x')\\ny = Symbol('y')\\ne = Eq(x, y)\"; python(Limit(x,y,Rational(7,2))) three-line form.\n\nDOMAIN RESTRICTIONS JUDGED SOUND, NOT NARROWING. The fractional carrier (p>=0, q>=2, coprime) is a genuine carrier boundary, not a weakened spec: q==1 dispatches to _print_Integer and p==0 makes gcd(0,q)==q so Rational(0,q) is an Integer - a different carrier. Crucially, the excluded values are NOT dropped from the spec: they are reachable as the k==2 (unmodeled-rule) operand kind, whose text/registry are uninterpreted, and I confirmed the compound obligations still hold for them by putting Integer(0), Integer(-7), Rational(-3,4), Rational(4,2), Float, oo, -oo, zoo, nan, pi, E, I, multi-char Symbols, sin/cos/exp/log, Add/Mul/Pow, Tuple, FiniteSet, Interval, Matrix, Piecewise, Sum, Lambda, and even nested Eq/Limit into every slot. Likewise the one-letter name restriction: longer names ('foo','ab') were exercised as k==2. So the three-kind is_atom decomposition makes the spec TOTAL over slot contents rather than restricting it.\n\nAGGREGATE: ~880,000 independent model-vs-real-patched-repo comparisons across attacks A-F, 0 disagreements. I could not construct any input on which the modeled function disagrees with the real callee. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T03:44:47+00:00",
+      "code_version": "69dfa6a4e-dirty",
+      "harness_digest": "a10de5bb587e",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE / RELAXATION -- none claimed, none inherited, so this is an ordinary NO-LEAKAGE/LEAKAGE review with no disposition to re-derive. Measured, not assumed: (a) `'relaxed_leakage' in json.load(open('meta.json'))` -> False; (b) `grep -ril relaxed_leakage` over the whole instance dir hits ONLY verdict.md and meta.json, and in both the hit is a PRIOR PANEL'S NOTE recording that the flag is absent -- there is no RELAXED_LEAKAGE.md anywhere under benchmark-verified/sympy__sympy-14531/; (c) meta.json gates['G-LEAK'].status == 'pass' (not 'relaxed'). I re-ran the gate live rather than reading its stamp: swebench_unified.gates.leak.run(Bundle('sympy__sympy-14531', nagini)) -> status 'pass', detail 'spec view clean', data {'failures': []}. Since leak.py takes the relaxed branch on either meta_status=='relaxed' OR (relaxed_leakage is True AND RELAXED_LEAKAGE.md exists), and neither holds, the pass is the unrelaxed lexical screen, not a relaxation dressed as a pass.\n\nBUNDLE ADDRESSING THE PANEL -- nothing to report. leakage.reviewer_directed() returns [] on model.py. Hand grep over model.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py for panel|reviewer|auditor|attacker|NO-LEAKAGE|submit_result|'honest recording'|'correct recording'|'recording convention'|'should record'|'must submit' returned ZERO hits; same grep over verdict.md and meta.json returns no directive forms (their only panel mentions are stamped past-tense records of what prior panels measured, which is a fact about what happened, not an instruction to me). No file in this bundle told me what to submit.\n\nWHAT THE CONSUMER SEES. spec_view(model.py, nagini) = 513 lines; diffing it against the 572-line model.py shows the projection replaces all six impl regions with '...  # implementation elided -- supplied by the consumer'. That elision is load-bearing here, because the leak-prone narration is exactly what lives inside impl-start/impl-end: the two retained-obligation Assert blocks in render_equation / render_directed_limit are prefaced by 'The previous, narrower obligation of this method ... so the generalisation is machine-checked to RETAIN it', and model_prepatch.py's impl regions say 'PRE-PATCH: each operand slot is re-rendered by a DETACHED ambient-default renderer'. None of that reaches the consumer: greps over specview.txt for previous / narrower / generalis / generaliz / retain / PRE-PATCH / prepatch / 'no longer' / 'used to' / 'instead of' all return 0. The only 'edit' token in the whole view is the framing line 3, 'stated as desired behaviour, not as an edit', which reveals nothing about which edit.\n\nGOLD-RECONSTRUCTION CHECK (the real question, since the lexical screen can pass a semantic leak). The gold patch rewrites 14 StrPrinter methods to route operand slots through self._print(...) instead of %s-interpolating the operand. Distinctive changed symbols per leakage._patch_changed_symbols: print_Exp1, print_Inverse, print_LatticeOp, print_MatrixBase, print_NegativeInfinity, print_Or, print_Permutation, print_Pi, print_Relational, print_TensAdd, print_Transpose -- and NONE of the 11 appears in problem_statement (checked each with `s.lower() in ps.lower()` -> all False).\n\nSo all 11 are screenable, and I checked the view for every one plus the un-caught edit sites: grep -niE over specview.txt for _print / sympy_integers / sstr / StrPrinter / PythonPrinter / charmap / rel_op / self\\. / expr\\. / Relational / 'Symbol(' / printing/str -> 0 hits each; grep for the OTHER patched methods' vocabulary (Normal|Uniform|Lambda|Permutation|MatrixElement|MatrixBase|PolyRing|FracField|ExprCondPair|AppliedPredicate|LatticeOp|Transpose|Inverse|TensAdd|Exp1|array_form|mu|sigma) returns only English false positives on 'name', 'order', 'domain', 'operand', 'MustTerminate'. The view names no patched file path, no dotted module, no diff marker (L1/L2 all clean in the live gate run). The only sympy token in 513 lines is the instance id on line 1 of the docstring, which is already an agent-visible field (eval/dataset.as_dict emits instance_id in every mode) and localizes nothing beyond the public issue.\n\nWHAT THE VIEW DOES SAY, and why it stays inside the public facet. The view states, in domain language, that a compound's every operand slot is rendered BY THE RENDERER THAT OWNS THE COMPOUND at that renderer's own configuration, over a relation Eq(l,r) and a limit Limit(e,z,z0[,dir]) with a wrap flag and a name registry.\n\nEvery one of those is derivable from problem_statement ALONE: the issue shows sstr(Eq(x, S(1)/2), sympy_integers=True) -> 'Eq(x, 1/2)' vs the expected 'Eq(x, S(1)/2)', shows Limit(x, x, S(1)/2) with the same failure, and shows python(Eq(x, y)) -> 'e = Eq(x, y)' missing the \"x = Symbol('x')\" preamble -- i.e. the issue itself supplies (i) the two compounds, (ii) the sympy_integers setting being ignored in a subexpression, (iii) the 'S(p)/q' vs 'p/q' discriminator, and (iv) the second, registry-shaped observable (the missing Symbol preamble is exactly self.symbols not being populated). Modelling the registry is therefore not a leak of the gold edit -- it is the second symptom the issue reports. Both compounds are named in the issue verbatim, so eq_text/limit_text localize nothing hidden.\n\nThe view is strictly NARROWER than the gold edit: 14 methods were patched and the view speaks of 2, so it cannot be read off as the edit's inventory. The `plus`/`dir` two-form limit template and the k==2 opaque-operand kind are pre-existing structure of the callee (str(dir) branch), stated so the spec is total over the argument domain, not fix-invented -- _patch_new_symbols contributes nothing here since the patch introduces no new def/class.\n\nRESIDUAL DIRECTION. A solver reading the view learns 'render each slot through the owning renderer, propagating configuration and registry' -- which is a restatement of the desired behaviour the issue already asks for ('the setting was ignored', 'instead of the expected'), not the mechanism (self._print) nor the site list. The nearest thing to a hint is the recurring 'a detached ambient-default re-rendering' contrast in the axiom docstrings (opaque_text/opaque_registry) and postcondition comments; that names the WRONG behaviour the issue itself demonstrates, in model vocabulary, without naming _print, %s interpolation, or any repo symbol. I judged that inside the public facet rather than beyond it.\n\nONE SCOPE NOTE, not a finding at this gate: meta.json's modeled_functions entries DO name 'sympy.printing.str.StrPrinter._print_Relational' and 'sympy/printing/str.py:622 (charmap branch, patched body 636-637)', and dataset.py emits modeled_functions to the agent in MODES_WITH_SPEC. That is the deliberate edit-localization channel (MODES_WITH_LOCALIZATION = {0,1,2,100}; gives_localization is a designed task field), and G-LEAK's `reads` tuple scopes this gate to the solution's spec view, not meta.json -- so it is not a spec-view leak and I did not treat it as one. Flagging it only so the record shows I looked at the whole consumer-visible surface, not just the projection.\n\nVERDICT NO-LEAKAGE. Facet re-confirmed: the spec view carries only the setting-propagation-plus-registration behaviour the public issue already exhibits on Eq and Limit. Confirmed by: live leak.run (pass, zero failures), spec_view/model.py diff showing all six impl regions elided, same_spec(model.py, model_prepatch.py) -> True (spec region byte-identical, only impl differs), reviewer_directed [] on all five spec-lane files, and hand greps for all 11 patched symbols, the patched path/module, diff markers, narration vocabulary, and change-framing -- all zero in the view.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:54:22+00:00",
+      "code_version": "70785cfb4-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-operand-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 36.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-name-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 34.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-equation-cheapest",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shape",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 41.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-wrap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-always-wrap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.2
+          },
+          {
+            "expect": "reject",
+            "id": "compound-bug-equation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.9
+          },
+          {
+            "expect": "reject",
+            "id": "compound-bug-limit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 61.8
+          },
+          {
+            "expect": "reject",
+            "id": "limit-one-template-form",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 69.6
+          },
+          {
+            "expect": "reject",
+            "id": "limit-direction-echoed",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 82.7
+          },
+          {
+            "expect": "reject",
+            "id": "limit-direction-ambient-config",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 75.8
+          },
+          {
+            "expect": "reject",
+            "id": "value-swap-num-denom",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.4
+          },
+          {
+            "expect": "reject",
+            "id": "registry-skip-name-equation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.9
+          },
+          {
+            "expect": "reject",
+            "id": "registry-skip-second-name",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.5
+          },
+          {
+            "expect": "reject",
+            "id": "registry-echo-text-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.3
+          },
+          {
+            "expect": "reject",
+            "id": "registry-wrong-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 40.7
+          },
+          {
+            "expect": "reject",
+            "id": "registry-only-when-wrap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 59.8
+          },
+          {
+            "expect": "reject",
+            "id": "registry-no-dedup",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.4
+          },
+          {
+            "expect": "reject",
+            "id": "registry-frac-writes",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.4
+          },
+          {
+            "expect": "reject",
+            "id": "registry-order-swapped",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.9
+          },
+          {
+            "expect": "reject",
+            "id": "registry-leaf-wrong-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.2
+          },
+          {
+            "expect": "reject",
+            "id": "unmodelled-slot-echo",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 46.1
+          },
+          {
+            "expect": "reject",
+            "id": "unmodelled-slot-ambient-config",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.3
+          },
+          {
+            "expect": "reject",
+            "id": "unmodelled-slot-delegate-if-wrap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 20
+        },
+        "manifest_sha256": "18d04bf6861a2ce4e5a05e77d297f377e2d97c7d334a6e707a18703010841343",
+        "n_cases": 24,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 24 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f",
+        "properties.py": "18d04bf6861a2ce4e5a05e77d297f377e2d97c7d334a6e707a18703010841343"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T20:38:56+00:00",
+      "code_version": "4d067b172-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "b01cb2f591b64e3a0c58967e479242059f8cc5e93faa563fe7be8e7de5218d3a",
+        "patch.diff": "a68cfdc90c02963442c0c0f35aa22b970921bf5766f255a53066393e07430033"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T20:23:59+00:00",
+      "code_version": "ef4b54531-dirty",
+      "data": {
+        "wall_time_s": 28.5
+      },
+      "detail": "verified in 28.5s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b38a5cf24b43",
+      "mode": "strict",
+      "sources": {
+        "model.py": "a303614e9af04a6feb44ed161b43c9bf033d930a4d050f9ff15b8940b2c67d5f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-14531",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; sympy_integers setting -> bool (`wrap`); the receiver's own name registry self.symbols (python.py:21) -> List[int]/PSeq[int] of code points (`reg`, a MUTABLE parameter at full Acc(list_pred)); an OPERAND filling a slot -> a triple (k,u,v) admitted by is_atom: k==0 the proper fraction u/v (v>=2, coprime), k==1 the simple name with code point u (97..122, which is both its rendered text and its registry key), k==2 an operand whose own rendering rule is NOT modelled, carried by the abstract handle u with uninterpreted text opaque_text(u, wrap) and uninterpreted registry effect opaque_registry(r, u); specification over PSeq[int]",
+      "model_symbol": "render_equation(wrap, kl, ul, vl, kr, ur, vr, reg)",
+      "repo_location": "sympy/printing/str.py:622 (charmap branch, patched body 636-637) -- gold-patched worktree lines",
+      "repo_symbol": "sympy.printing.str.StrPrinter._print_Relational",
+      "role": "modeled changed function: render a relation Eq(left, right) whose two slots each range over ALL THREE operand kinds. TWO observables are pinned, because the patched line delegates BOTH operand slots and the instance's F2P pair reads one each: (1) TEXT -- each slot is rendered at the SAME printer configuration as the whole (visibly so at a fractional slot, 'S(p)/q' vs 'p/q', read through sstr, a StrPrinter receiver; F2P test_Rational), and abstractly at a slot of the third kind, where the text is opaque_text(u, wrap) and an ambient-default re-render yields opaque_text(u, False); (2) REGISTRY -- a NAME slot is entered in the receiver's own self.symbols (read through python(), a PythonPrinter receiver; F2P test_python_relational), a fractional slot enters nothing, and a slot of the third kind contributes the uninterpreted opaque_registry, the slots' effects composing left to right. The two receivers share the SAME patched method object (PythonPrinter._print_Relational is StrPrinter._print_Relational), so one modeled function abstracts both readings faithfully; PythonPrinter cannot serve the text reading because ReprPrinter._print_Rational (repr.py:128-129) renders Rational(p, q) and PythonPrinter rejects sympy_integers outright (repr.py:20-22)."
+    },
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; sympy_integers setting -> bool (`wrap`); the receiver's own name registry self.symbols (python.py:21) -> List[int]/PSeq[int] of code points (`reg`, a MUTABLE parameter at full Acc(list_pred)); an OPERAND filling a slot -> a triple (k,u,v) admitted by is_atom: k==0 the proper fraction u/v (v>=2, coprime), k==1 the simple name with code point u (97..122, which is both its rendered text and its registry key), k==2 an operand whose own rendering rule is NOT modelled, carried by the abstract handle u with uninterpreted text opaque_text(u, wrap) and uninterpreted registry effect opaque_registry(r, u); specification over PSeq[int]; the DIRECTION of the limit -> the bool `plus` (True iff str(expr.args[3]) == \"+\", i.e. which of the two templates the real method selects, READ OFF the compound) together with the handle `ud` of dir = expr.args[3], an operand of the third kind (limits.py:136-137 makes it a Symbol whose name is not a lowercase letter)",
+      "model_symbol": "render_directed_limit(wrap, plus, ke, ue, ve, kz, uz, vz, k0, u0, v0, ud, reg)",
+      "repo_location": "sympy/printing/str.py:216 (BOTH arms of `if str(dir) == \"+\"`; patched bodies 219 and 220-221)",
+      "repo_symbol": "sympy.printing.str.StrPrinter._print_Limit",
+      "role": "modeled changed function: render Limit(e, z, z0, dir). The template has TWO forms and BOTH are modeled, because the gold patch rewrites both return lines and the renderer does not choose between them -- it reads dir off the compound: plus -> \"Limit(%s, %s, %s)\" over three slots; otherwise \"Limit(%s, %s, %s, dir='%s')\" with the DIRECTION as a FOURTH delegated slot, introduced by \", dir='\" and closed by \"')\". dir is an independent fourth constructor argument (limits.py:126), so the second arm is reached by ordinary points inside the modeled fractional domain -- Limit(x, y, Rational(7,2), dir='-') renders \"Limit(x, y, 7/2, dir='-')\" -- and is additionally forced by the constructor for an infinite point (limits.py:130-131: if z0 is S.Infinity: dir = \"-\"). Each of the three operand slots ranges over all three kinds; the direction slot is of the third kind. TEXT: whichever form the direction selects, with every slot of that form rendered by THIS renderer at THIS configuration. REGISTRY: every slot's effect composed LEFT TO RIGHT in template order, the direction slot LAST when present, mirroring the tuple order of map(self._print, (e, z, z0)) / (e, z, z0, dir). Every slot is a SEPARATE parameter because the patched body delegates each independently; with slots collapsed the duplicate-free registry would mask a missing delegation."
+    },
+    {
+      "carrier_type": "name code point c with is_name(c) -> Symbol(chr(c)); registry List[int] -> self.symbols; result List[int] -> str",
+      "model_symbol": "render_name(c, reg)",
+      "repo_location": "sympy/printing/printer.py:238 ; sympy/printing/str.py:699 ; sympy/printing/python.py:38-42",
+      "repo_symbol": "Printer._print -> StrPrinter._print_Symbol (text) and PythonPrinter._print_Symbol (registry)",
+      "role": "the changed call at each NAME slot: post-patch the name goes through self._print, i.e. through the receiver's own _print_Symbol -- returning expr.name AND appending it to self.symbols unless already present (python.py:40-41, statement-for-statement identical to the impl's `if not (c in reg): reg.append(c)`). Pre-patch the slot was interpolated with a bare %s = str(Symbol), which reaches neither. Both consequences are pinned: ToSeq(Result()) == lit_name(c) and ToSeq(reg) == registered(Old(ToSeq(reg)), c). The registry clause is the load-bearing one, since the TEXT of a name slot is byte-identical either way."
+    },
+    {
+      "carrier_type": "operand render to List[int]; wrap bool propagated from caller; registry unchanged; domain q>=2, coprime",
+      "model_symbol": "render_operand(wrap, p, q, reg)",
+      "repo_location": "sympy/printing/printer.py:238 ; sympy/printing/str.py:574 (settings branch 577-579)",
+      "repo_symbol": "Printer._print -> StrPrinter._print_Rational (same-instance dispatch)",
+      "role": "the changed call at the FRACTION slot: post-patch the operand is rendered via self._print (same receiver => same _settings), modeled so the proper-fraction operand takes the parent's setting. Carries the complementary NO-WRITE clause ToSeq(reg) == Old(ToSeq(reg)) -- a fraction is not a name, so _print_Rational never touches self.symbols -- which is what makes the compounds' registry growth attributable to the NAME slots only."
+    },
+    {
+      "carrier_type": "operand triple (k,u,v) admitted by is_atom; wrap bool propagated from the compound; registry List[int] -> self.symbols; result List[int] -> str",
+      "model_symbol": "render_atom(k, u, v, wrap, reg)",
+      "repo_location": "sympy/printing/printer.py:238",
+      "repo_symbol": "Printer._print (the dispatch every slot goes through), at a slot whose operand kind is not known statically",
+      "role": "the changed call at a slot of either template: dispatches by kind to render_name (k==1), render_operand (k==0) or render_unmodeled (k==2), and its post is exactly atom_text(k,u,v,wrap) / atom_registry(Old(ToSeq(reg)),k,u,v). This is the single helper through which every slot of both compounds is discharged, so no slot can be satisfied by anything other than a delegation at the compound's own configuration and registry."
+    },
+    {
+      "carrier_type": "abstract handle a for an operand outside the modeled leaf domain; wrap bool; registry List[int] -> self.symbols; result List[int] -> str",
+      "model_symbol": "render_unmodeled(a, wrap, reg)",
+      "repo_location": "sympy/printing/printer.py:238",
+      "repo_symbol": "Printer._print applied to an operand whose own _print_* rule is not among the modeled leaves (a longer name, a number that is not a proper fraction, a compound sub-expression, an infinity, or the limit's dir Symbol)",
+      "role": "@ContractOnly (unchanged callee, body deliberately absent). The whole specification content at such a slot is that the compound CALLS it, with the compound's own wrap and its own reg: the post returns exactly opaque_text(a, wrap) and grows the registry to opaque_registry(Old(ToSeq(reg)), a), both UNINTERPRETED, so an implementation cannot produce them by spelling the text itself or by writing the registry itself, and an ambient-default re-render yields opaque_text(a, False), which the verifier cannot equate with opaque_text(a, wrap). MustTerminate(6), strictly below the compounds' MustTerminate(24)."
+    },
+    {
+      "carrier_type": "PSeq[int] -> List[int]",
+      "model_symbol": "materialize",
+      "repo_location": "n/a",
+      "repo_symbol": "(proof glue; no repo node)",
+      "role": "realises a PSeq[int] spec value as a concrete List[int]; type-refinement glue, identity on character content"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "exactly 2 errors, both on the REGISTRY postconditions, one per modeled compound: 'Postcondition of render_equation might not hold. Assertion (ToSeq(reg) == eq_registry(Old(ToSeq(reg)), kl, ul, vl, kr, ur, vr)) might not hold.' and '... Postcondition of render_directed_limit might not hold. Assertion (ToSeq(reg) == limit_registry(Old(ToSeq(reg)), plus, ke, ue, ve, kz, uz, vz, k0, u0, v0, ud)) might not hold.' -- the detached ambient re-render never reaches the receiver, so a name slot is not entered and a slot of the third kind does not contribute its opaque_registry effect. NOTE: Viper reports the first failing conjunct of an Ensures block and stops, so a single twin cannot exercise every clause; the teeth of the remaining ones are established by the dedicated properties.py rivals (partial-domain-drop-wrap / partial-domain-always-wrap and compound-bug-* for the TEXT and configuration clauses; registry-skip-name-equation / registry-echo-text-only / registry-skip-second-name / registry-order-swapped / registry-leaf-wrong-key / registry-no-dedup / registry-only-when-wrap / registry-frac-writes for the registry clauses; unmodelled-slot-echo / unmodelled-slot-ambient-config / unmodelled-slot-delegate-if-wrap for a slot of the third kind; limit-one-template-form / limit-direction-echoed / limit-direction-ambient-config for the limit's second template form and its direction slot), each of which is rejected on the named assertion (refinement.md section F.1).",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "operand rendering inside a compound (Relational/Eq and Limit) is a DETACHED re-render by an ambient default printer rather than an operation of the receiver that owns the compound: it loses the active printer setting on the fraction slot AND the registration on each name slot",
+      "reverted_to": "every operand slot reverted to the pre-patch %s behaviour: a name slot becomes materialize(lit_name(...)) (the right text, produced WITHOUT the receiver, so no registration), a fractional slot becomes render_operand(False, ...) (ambient default settings), and a slot of the third kind -- including the limit's DIRECTION slot on the second template form -- becomes render_unmodeled(..., False, fresh) against a throwaway registry. This models %s = str(operand) = a fresh default-settings, registry-less StrPrinter (sympy/core/basic.py:399-401). The two-form control flow itself is retained, so the twin fails for the delegation defect and not for a missing template."
+    }
+  ],
+  "region_hashes": {
+    "axioms": "920e58002e109d046510b04973ffded674bfeee1f578c09c396d7be1c32cb9d0",
+    "impl": "121eec1eb714cc0bd91af3cbb3d57a5bed578209027fca38349671d793278f0d",
+    "invariants": "378e9a23a8184a602e7e12cfcd320e8e44afcbd8919dcdb2d7984a5ed8a1f402",
+    "post-conditions": "30d5c8a90b0dbf68b8716fac4d3680ed3749e80a2b39ff93a761ac84e7e2ef97",
+    "pre-conditions": "f74987e5b1a1b1442ef6cf9c7a59c3f008f1ff1b53e04d374c29763ea6dccb53",
+    "pure": "d270c9d4e104b47339e680d39004ac6771ed0adf4bb63785052f65d8ae470d86",
+    "spec_view": "5fcce020b85f6551b5d886f1fd133bbbc2cb3ad7db4652a29eb0e3b65742c903"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq. The receiver carries TWO pieces of state and both are modeled: (1) the sympy_integers setting as a bool (`wrap`) propagated from the compound into every operand slot; (2) the name registry self.symbols (python.py:21) as a MUTABLE List[int] parameter (`reg`) at full Acc(list_pred), whose growth is pinned exactly by registered / atom_registry / eq_registry / limit_registry. An OPERAND filling a slot is modeled by the triple (k,u,v) of is_atom over three kinds: a proper fraction in lowest terms (q>=2, coprime -- the carrier's non-collapsing region), a simple name given by its code point (97..122, which is BOTH its rendered text, lit_name, setting-independent, and its registry key -- parameterised rather than a constant token, so a slot rendered under a hard-coded name is observable), and an operand whose own rendering rule is NOT modelled, carried by an abstract handle whose text and registry effect are the UNINTERPRETED opaque_text(u, wrap) / opaque_registry(r, u) -- the kind that makes 'this slot is rendered by THIS renderer' inescapable. The limit's DIRECTION is modeled by the bool `plus` (which of the two real templates the method selects, read off the compound) together with the handle `ud` of an operand of the third kind. The decimal spelling of an integer is the A-consumed digits axiom.",
+  "version": "1.1"
+}

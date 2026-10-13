@@ -1,0 +1,434 @@
+{
+  "additional_change_sites": [],
+  "array_modeling": "NumPy integer array -> List[int] of per-element index values + parallel List[bool] bad mask; input dtype range abstracted by modulus:int (a container admitting modulus distinct values represents 0..modulus-1; unsigned m-bit -> 2**m; the post-patch signed-int carrier -> the impl's carrier=n+3, admitting every special index). The element-wise assignment is the @ContractOnly callee assign_special_rows; the whole-array result is its rows_of postcondition (front-recursive rows_of). The impl materializes the per-element value/mask sequence in a backward loop before the assignment.",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): (1) result == real widened NumPy pipeline (48 boundary + 20000 fuzz); (2) modulus>=n+3 coincides EXACTLY with the real no-deprecation legality across uint8/uint16/int8/int16 around the threshold; (3) F2P witness (uint8 N=256 deprecates on the unmasked value-0 input; widened carrier does not; value unchanged). RC=0 in pinned container (numpy 1.25.2).",
+      "consumed_in_proof": "take_rows: result holds rows_assigned (the unforgeable token) and equals rows_of; obtainable only via a call with carrier=n+3 (modulus>=n+3). model_prepatch passes the input modulus and cannot establish the precondition.",
+      "decorators": [
+        "@ContractOnly"
+      ],
+      "encoded_property": "RESULT: per-element rows_of (select bad->N+2 / over v>N-1->N+1 / under v<0->N / else v, then clip 0..N+2). LEGALITY PRECONDITION (load-bearing): Requires(modulus >= n+3) -- the assignment is well-defined (yields a result AND grants the rows_assigned token) ONLY when the container admits every special index it writes (the largest is N+2). A narrower container does NOT admit the assignment (the contract does not apply), which is exactly the out-of-range store that emits NumPy's out-of-bound-integer DeprecationWarning (escalated to the F2P failure by pytest filterwarnings=error). This is the WEAKEST sufficient legality precondition.",
+      "kind": "A-consumed",
+      "models": "the UNCHANGED per-element special-row assignment over the integer array: xa[xa>N-1]=_i_over; xa[xa<0]=_i_under; xa[mask_bad]=_i_bad; then lut.take(xa, axis=0, mode='clip')",
+      "name": "assign_special_rows",
+      "provenance": "lib/matplotlib/colors.py:730-732 (the three sequential stores) and colors.py:738 (the clip gather); _i_under/_i_over/_i_bad = N/N+1/N+2 from __init__ (colors.py:673-675); lut has N+3 rows (colors.py:1008,1164)"
+    }
+  ],
+  "base_commit": "a3011dfd1aaa2487cce8aa7369475533133ef777",
+  "changed_files": [
+    "lib/matplotlib/colors.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T09:34:24+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: final_row == real widened NumPy pipeline (48 boundary + 20000 fuzz); modulus>=n+3 is the weakest-sufficient legality precondition (coincides exactly with no-deprecation across uint8/uint16/int8/int16 around the threshold); F2P witness: narrow uint8 store of 256/257/258 deprecates on the unmasked value-0 input while a widened carrier does not, value unchanged (row 0).",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "aedd5b24198ad7178ddf37ce7a8a3f2188e0b5a2dce068d2e9fcc5803c7a8ff5",
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T09:34:35+00:00",
+      "code_version": "14e90b2dd-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100014,
+          "disagreements": 0,
+          "seed": 24970001,
+          "shadow": "contract-stripped take_rows impl region; @ContractOnly assign_special_rows realized by the real store+clip-gather operation on the admitting carrier"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100014, \"disagreements\": 0, \"seed\": 24970001, \"shadow\": \"contract-stripped take_rows impl region; @ContractOnly assign_special_rows realized by the real store+clip-gather operation on the admitting carrier\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "f9cbfae36a215f40101eb93c26ceb5db3558a0e3eb680a60ddd328b801a73567",
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:40:28+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a",
+        "model_prepatch.py": "604f62b0d9d787de7bdd15bf4a1fe35a1e81f1b9a71e289e8951cedcb588a4e2"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T19:38:07+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk1.py`, `atk2.py`, `atk5.py`, `atk7.py`, `atk_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk3.py`, `atk4.py`, `atk6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:41:21+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a",
+        "model_prepatch.py": "604f62b0d9d787de7bdd15bf4a1fe35a1e81f1b9a71e289e8951cedcb588a4e2"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T09:34:22+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "447a0cb9fb143182055fed7332409a64e8d8d1b821ad06453e98a4ffd9ea2538",
+          "impl": "3b1668ddfee9775fb42bebb5a6ada7886f3275fd6cf5d12014753eed7b2233e4",
+          "invariants": "824a78c5337ca8d8b97be3fc9488dcb0d1605a281785a6012d473418421cb1cc",
+          "post-conditions": "0246c8fb3b3b9726d6cf6a8381f03bbb0db021115cd9dae64851d75815cb68af",
+          "pre-conditions": "0690ba34a2266f6e28ac9c832324da684c76b7e44a3b7fc59d0244426f9ba084",
+          "pure": "d0694e5715d2b35d4c6a3d57ac4a02d3881d2e262fb9c5fae3fe9d9246f244aa",
+          "spec_view": "c59b284c165f00a6970076de85727f201f49e296a4d6d7ac2de292b6b6ce5dc7"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T09:34:22+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "461a44fdba3c5679c7f74dfd8913f02d0c0259ab980a898b1709b4e423c4435a",
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T09:34:23+00:00",
+      "code_version": "2a57f4b55-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T12:50:16+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "judged": 18,
+        "killed": 17,
+        "survivors": [
+          "line 229: '3' -> '4'"
+        ],
+        "threshold": 0.8,
+        "total": 18,
+        "unjudged": []
+      },
+      "detail": "killed 17/18 (94%); survivors: [\"line 229: '3' -> '4'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T19:38:09+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Modeled function take_rows \u2194 Colormap.__call__ integer index-resolution stage (post-patch), lib/matplotlib/colors.py:683. Faithfulness verified rigorously:\n\n1) VALUE AGREEMENT: reimplemented the real post-patch NumPy pipeline over WHOLE arrays (astype(int) \u2192 sequential stores xa[xa>N-1]=N+1, xa[xa<0]=N, xa[mask]=N+2, in that exact order \u2192 clip to 0..N+2) and compared against the model's rows_of/final_row spec over 200,000 random (n\u2208[1,50], length\u2208[0,8], v\u2208[-10,n+10], bad~0.3) cases. 0 mismatches. This exercises the load-bearing sequential-store interaction (over before under before bad) that the model's selected_index precedence reproduces exactly.\n\n2) DISCRIMINATOR: the gold patch's real effect (widen carrier so special-row stores are in-range \u2192 no out-of-bound DeprecationWarning under filterwarnings=error) is value-invisible on the F2P input cm(uint8(0)) (row 0 either way). The spec correctly models it as the unforgeable rows_assigned @ContractOnly @Predicate token, not a value property. Matches the real pre/post distinction.\n\n3) G-AX: axiom_check.py exits 0 (48 boundary + 20000 fuzz result agreement; legality threshold coincides exactly with no-deprecation across uint8/uint16/int8/int16; F2P witness confirmed against numpy 1.26.4).\n\n4) NON-VACUITY: model.py verifies (RC=0, 12.4s); token is @ContractOnly so it cannot be forged/folded, and carries rows+n so cannot be laundered across a value-equal copy.\n\nEXAMINED NON-ISSUE: for signed dtypes the abstract precondition modulus>=n+3 diverges from the real 'container admits n+2' threshold near dtype max (e.g. int8, N=126: modulus=256>=129 true, but n+2=128>127 does not fit). However (a) this lives in the callee's abstract precondition, not the modeled function's behavior; (b) take_rows NEVER consumes its own modulus argument \u2014 it always sets carrier=n+3 internally; (c) the real post-patch code always casts to int64, so it always completes regardless of input dtype. The modeled function's observable output (rows_of value + guaranteed token) matches the real post-patch __call__ on every input. Not a behavioral divergence of the modeled function; the spec is not too strong. Verdict: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Lexical G-LEAK screen passes (leakage.screen -> passed=True, no hard failures): no gold-diff line reproduced, no diff markers, no patched file path (lib/matplotlib/colors.py) or module, no patched-symbol echo (__call__ is non-distinctive/allowlisted), no bug/fix narration in spec-view comments/docstrings. Bundle is NOT relaxed (relaxed_leakage=None, meta G-LEAK status=pass), so no RELAXED_LEAKAGE deferral is in play.\n\nSemantic review (the real G-PANEL-3 question): the spec view formalizes the special-row indices (N under, N+1 over, N+2 bad), the over->under->bad precedence, the clip into 0..N+2, and the load-bearing requirement that the row-assignment must be carried out on a container that admits every special index so it COMPLETES for any integer width. Every one of these facts is already public in the problem_statement: the three failing NumPy assignments (xa[xa > self.N - 1] = self._i_over, xa[xa < 0] = self._i_under, xa[mask_bad] = self._i_bad) are quoted verbatim in the deprecation-warning traceback, and 'conversion of 257/256/258 to uint8 will fail' + 'Expected outcome: No warnings' already discloses that the narrow (uint8) container cannot represent the special indices and that the operation must complete for all widths. The spec restates that desired behavior faithfully WITHOUT revealing the gold fix mechanism: it never mentions astype(int), the relocation of the int cast out of the float-only branch, np.errstate, or the colors.py path/module. The concrete fix embodiment (carrier = n + 3, routing the result through an admitting assignment) lives entirely in the elided impl region, not the spec view. Nothing in the spec view reconstructs the gold edit beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Modeled function take_rows \u2194 Colormap.__call__ integer index-resolution stage (post-patch), lib/matplotlib/colors.py:683. Faithfulness verified rigorously:\n\n1) VALUE AGREEMENT: reimplemented the real post-patch NumPy pipeline over WHOLE arrays (astype(int) \u2192 sequential stores xa[xa>N-1]=N+1, xa[xa<0]=N, xa[mask]=N+2, in that exact order \u2192 clip to 0..N+2) and compared against the model's rows_of/final_row spec over 200,000 random (n\u2208[1,50], length\u2208[0,8], v\u2208[-10,n+10], bad~0.3) cases. 0 mismatches. This exercises the load-bearing sequential-store interaction (over before under before bad) that the model's selected_index precedence reproduces exactly.\n\n2) DISCRIMINATOR: the gold patch's real effect (widen carrier so special-row stores are in-range \u2192 no out-of-bound DeprecationWarning under filterwarnings=error) is value-invisible on the F2P input cm(uint8(0)) (row 0 either way). The spec correctly models it as the unforgeable rows_assigned @ContractOnly @Predicate token, not a value property. Matches the real pre/post distinction.\n\n3) G-AX: axiom_check.py exits 0 (48 boundary + 20000 fuzz result agreement; legality threshold coincides exactly with no-deprecation across uint8/uint16/int8/int16; F2P witness confirmed against numpy 1.26.4).\n\n4) NON-VACUITY: model.py verifies (RC=0, 12.4s); token is @ContractOnly so it cannot be forged/folded, and carries rows+n so cannot be laundered across a value-equal copy.\n\nEXAMINED NON-ISSUE: for signed dtypes the abstract precondition modulus>=n+3 diverges from the real 'container admits n+2' threshold near dtype max (e.g. int8, N=126: modulus=256>=129 true, but n+2=128>127 does not fit). However (a) this lives in the callee's abstract precondition, not the modeled function's behavior; (b) take_rows NEVER consumes its own modulus argument \u2014 it always sets carrier=n+3 internally; (c) the real post-patch code always casts to int64, so it always completes regardless of input dtype. The modeled function's observable output (rows_of value + guaranteed token) matches the real post-patch __call__ on every input. Not a behavioral divergence of the modeled function; the spec is not too strong. Verdict: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Lexical G-LEAK screen passes (leakage.screen -> passed=True, no hard failures): no gold-diff line reproduced, no diff markers, no patched file path (lib/matplotlib/colors.py) or module, no patched-symbol echo (__call__ is non-distinctive/allowlisted), no bug/fix narration in spec-view comments/docstrings. Bundle is NOT relaxed (relaxed_leakage=None, meta G-LEAK status=pass), so no RELAXED_LEAKAGE deferral is in play.\n\nSemantic review (the real G-PANEL-3 question): the spec view formalizes the special-row indices (N under, N+1 over, N+2 bad), the over->under->bad precedence, the clip into 0..N+2, and the load-bearing requirement that the row-assignment must be carried out on a container that admits every special index so it COMPLETES for any integer width. Every one of these facts is already public in the problem_statement: the three failing NumPy assignments (xa[xa > self.N - 1] = self._i_over, xa[xa < 0] = self._i_under, xa[mask_bad] = self._i_bad) are quoted verbatim in the deprecation-warning traceback, and 'conversion of 257/256/258 to uint8 will fail' + 'Expected outcome: No warnings' already discloses that the narrow (uint8) container cannot represent the special indices and that the operation must complete for all widths. The spec restates that desired behavior faithfully WITHOUT revealing the gold fix mechanism: it never mentions astype(int), the relocation of the int cast out of the float-only branch, np.errstate, or the colors.py path/module. The concrete fix embodiment (carrier = n + 3, routing the result through an admitting assignment) lives entirely in the elided impl region, not the spec view. Nothing in the spec view reconstructs the gold edit beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk1.py`, `atk2.py`, `atk5.py`, `atk7.py`, `atk_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 3 | `atk3.py`, `atk4.py`, `atk6.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Modeled function take_rows \u2194 Colormap.__call__ integer index-resolution stage (post-patch), lib/matplotlib/colors.py:683. Faithfulness verified rigorously:\n\n1) VALUE AGREEMENT: reimplemented the real post-patch NumPy pipeline over WHOLE arrays (astype(int) \u2192 sequential stores xa[xa>N-1]=N+1, xa[xa<0]=N, xa[mask]=N+2, in that exact order \u2192 clip to 0..N+2) and compared against the model's rows_of/final_row spec over 200,000 random (n\u2208[1,50], length\u2208[0,8], v\u2208[-10,n+10], bad~0.3) cases. 0 mismatches. This exercises the load-bearing sequential-store interaction (over before under before bad) that the model's selected_index precedence reproduces exactly.\n\n2) DISCRIMINATOR: the gold patch's real effect (widen carrier so special-row stores are in-range \u2192 no out-of-bound DeprecationWarning under filterwarnings=error) is value-invisible on the F2P input cm(uint8(0)) (row 0 either way). The spec correctly models it as the unforgeable rows_assigned @ContractOnly @Predicate token, not a value property. Matches the real pre/post distinction.\n\n3) G-AX: axiom_check.py exits 0 (48 boundary + 20000 fuzz result agreement; legality threshold coincides exactly with no-deprecation across uint8/uint16/int8/int16; F2P witness confirmed against numpy 1.26.4).\n\n4) NON-VACUITY: model.py verifies (RC=0, 12.4s); token is @ContractOnly so it cannot be forged/folded, and carries rows+n so cannot be laundered across a value-equal copy.\n\nEXAMINED NON-ISSUE: for signed dtypes the abstract precondition modulus>=n+3 diverges from the real 'container admits n+2' threshold near dtype max (e.g. int8, N=126: modulus=256>=129 true, but n+2=128>127 does not fit). However (a) this lives in the callee's abstract precondition, not the modeled function's behavior; (b) take_rows NEVER consumes its own modulus argument \u2014 it always sets carrier=n+3 internally; (c) the real post-patch code always casts to int64, so it always completes regardless of input dtype. The modeled function's observable output (rows_of value + guaranteed token) matches the real post-patch __call__ on every input. Not a behavioral divergence of the modeled function; the spec is not too strong. Verdict: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Lexical G-LEAK screen passes (leakage.screen -> passed=True, no hard failures): no gold-diff line reproduced, no diff markers, no patched file path (lib/matplotlib/colors.py) or module, no patched-symbol echo (__call__ is non-distinctive/allowlisted), no bug/fix narration in spec-view comments/docstrings. Bundle is NOT relaxed (relaxed_leakage=None, meta G-LEAK status=pass), so no RELAXED_LEAKAGE deferral is in play.\n\nSemantic review (the real G-PANEL-3 question): the spec view formalizes the special-row indices (N under, N+1 over, N+2 bad), the over->under->bad precedence, the clip into 0..N+2, and the load-bearing requirement that the row-assignment must be carried out on a container that admits every special index so it COMPLETES for any integer width.\n\nEvery one of these facts is already public in the problem_statement: the three failing NumPy assignments (xa[xa > self.N - 1] = self._i_over, xa[xa < 0] = self._i_under, xa[mask_bad] = self._i_bad) are quoted verbatim in the deprecation-warning traceback, and 'conversion of 257/256/258 to uint8 will fail' + 'Expected outcome: No warnings' already discloses that the narrow (uint8) container cannot represent the special indices and that the operation must complete for all widths. The spec restates that desired behavior faithfully WITHOUT revealing the gold fix mechanism: it never mentions astype(int), the relocation of the int cast out of the float-only branch, np.errstate, or the colors.py path/module.\n\nThe concrete fix embodiment (carrier = n + 3, routing the result through an admitting assignment) lives entirely in the elided impl region, not the spec view. Nothing in the spec view reconstructs the gold edit beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:51:58+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 54.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-local-carrier",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 57.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-wider-carrier",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 57.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-uint8-zero",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 57.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-write-values",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-write-bads",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.5
+          },
+          {
+            "expect": "reject",
+            "id": "rival-narrow-carrier-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 58.2
+          },
+          {
+            "expect": "reject",
+            "id": "rival-carrier-off-by-one",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.1
+          },
+          {
+            "expect": "reject",
+            "id": "rival-partial-domain-last-elem",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 44.7
+          },
+          {
+            "expect": "reject",
+            "id": "rival-fabricate-no-callee",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 47.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "e60228c7e992084ad709ac40072b4217484f45c8e844bdca0e50a7db4c0aa676",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a",
+        "properties.py": "e60228c7e992084ad709ac40072b4217484f45c8e844bdca0e50a7db4c0aa676"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:05:01+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:02:45+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 15.9
+      },
+      "detail": "verified in 15.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "7c5831c4433289d876d2d73516937617414fa8e6fb723ff7f9e95ed6f829478a"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "matplotlib__matplotlib-24970",
+  "modeled_functions": [
+    {
+      "carrier_type": "NumPy integer array -> List[int] of per-element values + parallel List[bool] bad mask; the input dtype range abstracted by modulus:int; specification over PSeq[int] via ToSeq",
+      "model_symbol": "take_rows",
+      "repo_location": "lib/matplotlib/colors.py:683 (integer index-resolution stage, body lines 717-738)",
+      "repo_symbol": "matplotlib.colors.Colormap.__call__",
+      "role": "modeled changed function: resolves each element to its final lookup-table row; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "predicates": [
+    {
+      "decorators": [
+        "@ContractOnly",
+        "@Predicate"
+      ],
+      "grounds": "directive 8 (control-flow/side-effect discriminator with no value-level discriminator -> unforgeable capability-predicate token)",
+      "name": "rows_assigned",
+      "role": "unforgeable capability token: the discriminator for this side-effect bug (warning-vs-no-warning) which has NO value-level difference on the F2P input. Granted ONLY by a well-defined assign_special_rows (carrier admits every special index); REQUIRED by take_rows's result. @ContractOnly @Predicate => an impl cannot Fold it into existence; carries (rows, n) so it cannot be laundered across a value-equal copy.",
+      "signature": "rows_assigned(rows: PSeq[int], n: int) -> bool"
+    }
+  ],
+  "prepatch_models": [
+    {
+      "fails_on": "the precondition of assign_special_rows (modulus >= n+3): a narrow input container (e.g. uint8 modulus=256 at N=256) does not admit the special indices, so the assignment is not well-defined, the rows_assigned token is never granted, and the postcondition rows_assigned(ToSeq(Result()), n) cannot be discharged",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the special-row assignment is carried out on a container that admits every special index it writes (widened to admit up to N+2)",
+      "reverted_to": "keep the input's own integer container for the special-row assignment (carrier = modulus, no widening)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "d42b0243ecde654b0c1c6a5df91588eb78bac5ab72f70ea1079c45eb94197c2f",
+    "impl": "70924c56a8f5c04fe1424cd88d8f71a1ce15d7f04cb9e8ece067d5a7c6584a24",
+    "invariants": "60130651f02faa616f3cb4c5daca6a1be19d9dcbfec479aeb116b446e7565049",
+    "post-conditions": "0246c8fb3b3b9726d6cf6a8381f03bbb0db021115cd9dae64851d75815cb68af",
+    "pre-conditions": "b7c325a81d9588829230398d04aebf887025835eeaa090dc91d0a2028c040f0d",
+    "pure": "d0694e5715d2b35d4c6a3d57ac4a02d3881d2e262fb9c5fae3fe9d9246f244aa",
+    "spec_view": "9157473d4700551d5d7f959eba9adbfdb3afcd4f0847c8856409afc4c2db6d1e"
+  },
+  "repo": "matplotlib/matplotlib",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "3.6"
+}

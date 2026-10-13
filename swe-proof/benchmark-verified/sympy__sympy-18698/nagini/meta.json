@@ -1,0 +1,481 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "behaviourally-inert refactor; NOT modeled. Verified by per-hunk isolation at base_commit that it changes no FAIL_TO_PASS/PASS_TO_PASS observable (Mul.make_args already flattens nested Muls, so the removed branch was dead). Carried in patch.diff verbatim (gold). See refinement.md B.",
+      "repo_location": "sympy/polys/polytools.py:5905-5911",
+      "repo_symbol": "sympy.polys.polytools._symbolic_factor_list argument-classification head (is_Mul branch removal; if->elif)"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "3dff1b98a78f28c953ae2140b69356b8391e399c",
+  "changed_files": [
+    "sympy/polys/polytools.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the model's reported multiplicities (dedup) equal set(...) of the multiplicities, distinct, on 10 boundary + 20000 fuzz lists",
+      "encoded_property": "dedup(s): the values of s with duplicates removed, kept at first occurrence; pins the reported multiplicities exactly (each distinct multiplicity once). Back-recursive on the final element to pair with the forward construction loop.",
+      "kind": "deep model (pure region), consumed by proof",
+      "models": "the distinct multiplicities `set(i for _, i in factors)` of the patch's comprehension",
+      "name": "dedup",
+      "provenance": "sympy/polys/polytools.py new sqf block; the distinct-keeping fold over the multiplicity sequence",
+      "role": "deep model of the consolidation of the multiplicities; discharged by the verified phase-1 loop, NOT a consumed axiom. The postcondition pins len(Result()) == len(dedup(ToSeq(mults)))."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): re-executes the patch's comprehension, asserts merged factor == reduce(mul, group) per multiplicity, over boundary + 20000 fuzz inputs (+ symbolic sympy obligations when sympy is importable)",
+      "encoded_property": "prod_k(facs, mlts, k, n): the product over EXACTLY the contributions of multiplicity k among the first n (filter mlts[i]==k, left-product; empty product 1). The postcondition pins Result()[j] == prod_k(ToSeq(factors), ToSeq(mults), dedup(ToSeq(mults))[j], len(mults)) -- the merged-factor VALUE the F2P test grades is in the verified spec. Prefix-recursive to pair with the phase-2 accumulation loop (lemma_prod_unfold unfolds it).",
+      "kind": "deep model (pure region), consumed by proof",
+      "models": "the per-multiplicity product reduce(mul, (f for f, _ in factors if _ == k)) of the patch's comprehension (the merged factor of group k)",
+      "name": "prod_k",
+      "provenance": "sympy/polys/polytools.py new sqf block; from functools import reduce (polytools.py:5 post-patch) + from operator import mul (post-patch)",
+      "role": "deep model of the changed product operation; CONSUMED by the proof (the postcondition leans on it), NOT delegated. Closes the prior soundness hole where the product was an unconsumed A-reference (a keep-first/next(...) impl now fails to verify)."
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): re-executes the patch's comprehension, asserts merged factor == reduce(mul, group) per multiplicity, order-independent (assoc/comm), over boundary + 20000 fuzz inputs (+ 7 symbolic sympy obligations in-container; RC=0 confirmed in the pinned eval container)",
+      "encoded_property": "integer * of the distinct factor tokens faithfully models reduce(mul, group) over the real Expr group (same value up to the token<->expr bijection); order-independent. The product STRUCTURE is consumed via prod_k; only the token<->Mul monoid correspondence is the (unconsumed) reference.",
+      "kind": "A-reference",
+      "models": "operator.mul => Mul for SymPy Expr is the commutative/associative monoid that integer multiplication of the distinct factor tokens models",
+      "name": "factor-token product monoid (token * <-> Mul)",
+      "provenance": "from operator import mul (post-patch); Mul is commutative+associative",
+      "role": "the faithfulness of the monoid model, validated == real callee out-of-band; NOT a consumed axiom (no @ContractOnly)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T10:57:58+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: consolidation (dedup-by-multiplicity) + A-reference (merged factor == reduce(mul, group)) sound on 10 boundary mult lists + 7 boundary factor lists + 20000 fuzz cases + 7 symbolic sympy obligations",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "f60a7a6660b11b7bea11ed25b251630c42362bc91791b9cb15a0f760ba91bfbb",
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T11:03:45+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100019,
+          "disagreements": 0,
+          "seed": 186980,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100019, \"disagreements\": 0, \"seed\": 186980, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "d9d36628ea0c984d83a96b88c538f9c03fcb0c140e25ac8658e9c4401c2c3fb3",
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:21:56+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48",
+        "model_prepatch.py": "e87ffd497c5bb872e15717e842551e357a12874860f9ed4949d625788fc2cb72"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T11:38:15+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 11 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48",
+        "properties.py": "c603ecdd0d65ea56fe0ed6e531fce7f1c180c855e5da597202b88b564b205404"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:22:58+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48",
+        "model_prepatch.py": "e87ffd497c5bb872e15717e842551e357a12874860f9ed4949d625788fc2cb72"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T10:57:51+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "60e88b8d07a99d401840056f86d37467914fe1dded06dfa3334b8153fb254212",
+          "impl": "8b734cbf0c7ee5dd744701346310bc92f5cc7efb2f9f4f8c9678b273fcc61895",
+          "invariants": "f70c8b6f6d000306875286028dd29453eb0583d2fab131442c7f4d71f569d71a",
+          "post-conditions": "38de298cd73f6642fbd6bece778055e3a0c3148a6b487e2829ee9fe56d59d864",
+          "pre-conditions": "86443c18b4e82f503e5f2833bfa02f845036d69a5faa60cacdf805893e071574",
+          "pure": "a356f46b587c13d1922bd632dbede37dbe80bb519bc284b085bbd7e15de413dc",
+          "spec_view": "dd0b7d9ef8f025abed3b4fcbf102dbe8eee406c0ffffe1acf9c58c9504f4c1b6"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T10:57:51+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "e680e843cae3930dbf79b9fd8d3c4fa889605119e883c09d471236c7ed78c472",
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T10:57:52+00:00",
+      "code_version": "c0aafc53e-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:54:41+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "judged": 19,
+        "killed": 19,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": [
+          "line 300: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 19/19 (100%); no verdict on 1: [\"line 300: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T11:38:15+00:00",
+      "code_version": "fdff88b0f-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "SETUP. Spec region confirmed byte-identical: `python -m swebench_unified.adversary same-spec nagini sympy__sympy-18698` on an identity copy of model.py -> exit 0, 'SAME'. Two fresh worktrees at base_commit 3dff1b98a7 from repos/sympy_sympy.git under /tmp (bundle untouched, read-only): wt = gold patch.diff applied (the reference for the modeled function, per the brief); wt_spec = gold + test_patch + spec-faithful consolidation. patch.diff was taken from the instance dir (the nagini/ subdir has no patch.diff; instance.json['patch'] matches it byte-for-byte).\n\nMETHOD. I extracted the real post-patch `_symbolic_factor_list` and built a 'raw' variant with only the new `if method == 'sqf'` block removed, so I could feed the SAME raw (expr, k) contribution list to (a) the gold block `[(reduce(mul,(f for f,_ in factors if _==k)), k) for k in set(i for _,i in factors)]` and (b) a direct transcription of the model's spec (`dedup` first-occurrence keep + `prod_k` per-group left product), then compared the results as multisets of srepr'd (factor, multiplicity). This tests the modeled function against the real callee on real repo-reachable inputs, not against a paraphrase.\n\nWHAT CHECKED OUT.\n1. prod_k == reduce(mul, group), exactly. 4000-case randomized fuzz over products of 1-4 distinct bases with integer exponents 1-4 (real polynomial factorizations through the real _symbolic_factor_list): 0 divergences. Also 837,931-case exhaustive sweep of the abstract int carrier (n=0..4, mults in {0,1,2,3,-1}, factors in {1,2,3,5,-2,0}): 0 divergences. Group membership (filter _==k) and the fold both match; no factor of k dropped, none of another multiplicity mixed in.\n2. len(Result()) == len(dedup(mults)) matches |set(mults)| on every in-domain case. Both F2P inputs reproduce exactly: sqf_list(x*(x+y)) -> merged (x**2+x*y,1); (x**2+1)(x-1)^2(x-2)^3(x-3)^3 -> the two multiplicity-3 factors collapse to x**2-5x+6.\n3. Order-unobservability (refinement.md \u00a7A2 / mapping.md \u00a72), the load-bearing R-refinement claim: I permuted the raw contribution list and pushed each first-occurrence consolidation through the real downstream tail (_poly_from_expr + _sorted_factors(fp,'sqf') + as_expr) \u2014 1500 real factorizations x all permutations: 0 order leaks. The claim that first-occurrence order is washed out by _sorted_factors is confirmed on real data, not just asserted.\n4. Per-group product order-independence (the \u00a73.1 Mul monoid A-reference) held on mixed Poly/Expr groups (x*sin(x), x**2*sin(x)**2, (x+1)*Abs(x), sqrt(2)*x*(x+y), x*exp(x), x*log(x)): fwd and rev folds agree as expressions in every case, so integer `*` is a sound monoid model here.\n5. Empty input: expr=1 and expr=5 give raw=[] -> real block [] and model [] agree. prod_k's 'empty product = 1' branch is defensive and unreachable at the postcondition's call sites (it is only instantiated at k = dedup(ms)[j], which by construction occurs in ms, so every graded group is non-empty) \u2014 not a source of divergence or vacuity.\n6. Not-too-strong in the other direction either: the postcondition pins BOTH dimensions (count via dedup, value via prod_k), matching what the F2P test grades; that is not over-strength, it is exactly the gold block.\n\nTHE ONE ASYMMETRY FOUND, AND WHY IT IS NOT A DEFECT. The model's `occurs`/`dedup` group multiplicities by `==`; the gold groups by `set()`, i.e. hash-then-eq. SymPy violates the eq/hash contract across numeric types: Integer(1) == Float(1.0) is True but their hashes differ, so `set` keeps both while `==` merges them. This is genuinely reachable from the public API (sqf_list(x*(x+1)**1.0) -> gold gives two entries, spec-faithful gives one; I confirmed both by running the two worktrees side by side). I considered reporting UNFAITHFUL on this and decided against it, on two independent grounds: (a) DOMAIN \u2014 mapping.md \u00a72 declares the multiplicity carrier as Python `int` with identity bijection, and for Python ints == and set-identity provably coincide (verified exhaustively), so the divergence is not expressible in the modeled domain; the abstraction is declared up front rather than discovered as a gap. (b) RESOLUTION \u2014 the spec-faithful implementation passes the graded suite identically to gold (149 passed / 1 xfailed), so no verifying-but-non-resolving implementation is admitted through this hole. It is a boundary caveat on the int abstraction worth recording, not a spec that is too strong or that drifts from real behavior on any input it claims to cover.\n\nHYGIENE. I verified the divergence against the PATCHED worktree (the correct reference), so this is not the patch delta being mislabeled as drift; separately, the pre-patch behavior (every contribution kept separately) is what model_prepatch.py targets and is not the reference for the modeled function. The behaviorally-inert is_Mul/elif refactor hunk is correctly excluded from the model (refinement.md \u00a7B) \u2014 Mul.make_args already flattens nested Muls, so the removed branch was dead; nothing in the modeled postcondition depends on it. Worktrees left; bundle not modified.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "NO RELAXATION IN THIS BUNDLE: no RELAXED_LEAKAGE.md present and meta.json has no `relaxed_leakage` key (checked: 'relaxed_leakage' in meta == False; G-LEAK status is 'pass', not 'relaxed'). So this is judged as an ordinary strict-leakage review, not an inherited disposition.\n\nWHAT I MEASURED (my own runs, not the bundle's assertions):\n\n1. Spec view derived myself via swebench_unified.markers.spec_view(model.py, nagini backend) -- confirmed both impl regions elide to '...  # implementation elided'. Verified only spec_view ships to solvers (eval/dataset.py:285, eval/prompts.py:77-82); mapping.md / refinement.md / model_prepatch.py / verdict.md are NOT consumer-visible.\n\n2. Mechanical G-LEAK screen re-run directly: swebench_unified.leakage.screen(model.py, nagini, row['patch'], row['problem_statement']) over the frozen data/swe_bench_verified/test.jsonl row -> passed=True, hard_failures=[], warnings=[].\n\n3. Exhaustive identifier cross-check of the gold patch against the spec view. Every identifier on a +/- gold line {arg, args, elif, extend, factors, functools, is_Mul, is_Pow, method, mul, operator, reduce, set, sqf, wraps}: the repo-specific discriminators are ALL ABSENT from the view -- 'reduce'=False, 'operator'=False, 'functools'=False, 'is_Mul'=False, 'is_Pow'=False, 'sqf'=False, 'set('=False, '_symbolic_factor_list'=False, 'polytools'=False, \"method ==\"=False. Confirmed 'reduce(mul' NOT in view: the one line that does name the gold ('mirrors the gold's reduce(mul, ...)' at model.py:248) sits INSIDE impl-start/impl-end and is elided by the projection -- it never reaches a consumer. The apparent hits on 'method'/'extend'/'arg'/'mul'/'factors' are incidental substrings of ordinary prose ('a method that owns a loop', 'extends by one contribution', 'discharged', 'multiplicity', 'factors'), inspected in context one by one.\n\n4. Derivability from the PUBLIC problem_statement (hints_text deliberately not consulted): the statement itself displays the merged expectation -- 'we should have (x**2 - 5*x + 6, 3) and not 2 factors of multiplicity 3' plus the contrasting correct case 'one factor of multiplicity 2'. Consolidate-by-multiplicity with merged factor = product of the group is exactly (x-3)*(x-2) = x**2-5*x+6 at multiplicity 3. So the whole specified behaviour (distinct multiplicities once, factor = product over the group) is a direct read of the public statement; the spec view adds no information beyond it.\n\n5. Core-gate soundness re-derived rather than inherited. same_spec(model.py, model_prepatch.py) = True. Ran the pinned verifier myself on a /tmp copy: model.py -> 'Verification successful' (36.58s, exit 0); model_prepatch.py -> 'Verification failed', exit 1, with the discriminating error 'model_prepatch.py:204: Postcondition of consolidate_by_multiplicity might not hold. Assertion (len(Result()) == len(dedup(ToSeq(mults)))) might not hold.' The consolidation postcondition is therefore genuinely load-bearing against the PRE-patch impl -- G-DIFF/G-GOLD are sound by my measurement, not by their recorded status.\n\n6. No bundle file addresses this reviewer. Ran leakage.reviewer_directed() over all 10 bundle files (model.py, model_prepatch.py, mapping.md, refinement.md, meta.json, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, verdict.md): [] for every one. A grep for panel/auditor/reviewer/verdict/submit across the docs found only refinement.md:82 discussing 'verify => resolved' semantics -- a technical remark, not an instruction about how to record. Nothing in the bundle attempts to steer my verdict.\n\nMINOR OBSERVATION (not leakage, not a fail): meta.json's TOP-LEVEL region_hashes are stale relative to the file -- impl/invariants/pre-conditions/spec_view disagree with the recomputed values, while the fresher G-HYGIENE data.region_hashes match my recomputation exactly on all 7 regions. Crucially the spec-CONSTITUTING regions 'post-conditions' (38de298cd73f) and 'pure' (a356f46b587c) and 'axioms' (60e88b8d07a9) agree across the stale record, the G-HYGIENE record, and my recomputation, so there is no drift in actual spec semantics -- the spec_view hash moved only because MustTerminate narration in pre-conditions was reworded. Flagging for bookkeeping hygiene; it does not affect this gate.\n\nSCOPE NOTE: the gold patch also contains an is_Mul/is_Pow -> elif control-flow change that the model does not cover. That is a faithfulness/scope question for panel 2, not leakage -- and since the spec view is silent about it, it leaks nothing either way.\n\nVERDICT: the consumer-visible spec view names no repo symbol, no gold-patch line, no changed file path, and nothing about the discriminator that the public problem_statement does not already show. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 SETUP. Spec region confirmed byte-identical: `python -m swebench_unified.adversary same-spec nagini sympy__sympy-18698` on an identity copy of model.py -> exit 0, 'SAME'. Two fresh worktrees at base_commit 3dff1b98a7 from repos/sympy_sympy.git under /tmp (bundle untouched, read-only): wt = gold patch.diff applied (the reference for the modeled function, per the brief); wt_spec = gold + test_patch + spec-faithful consolidation. patch.diff was taken from the instance dir (the nagini/ subdir has no patch.diff; instance.json['patch'] matches it byte-for-byte).\n\nMETHOD. I extracted the real post-patch `_symbolic_factor_list` and built a 'raw' variant with only the new `if method == 'sqf'` block removed, so I could feed the SAME raw (expr, k) contribution list to (a) the gold block `[(reduce(mul,(f for f,_ in factors if _==k)), k) for k in set(i for _,i in factors)]` and (b) a direct transcription of the model's spec (`dedup` first-occurrence keep + `prod_k` per-group left product), then compared the results as multisets of srepr'd (factor, multiplicity). This tests the modeled function against the real callee on real repo-reachable inputs, not against a paraphrase.\n\nWHAT CHECKED OUT.\n1. prod_k == reduce(mul, group), exactly. 4000-case randomized fuzz over products of 1-4 distinct bases with integer exponents 1-4 (real polynomial factorizations through the real _symbolic_factor_list): 0 divergences. Also 837,931-case exhaustive sweep of the abstract int carrier (n=0..4, mults in {0,1,2,3,-1}, factors in {1,2,3,5,-2,0}): 0 divergences. Group membership (filter _==k) and the fold both match; no factor of k dropped, none of another multiplicity mixed in.\n2. len(Result()) == len(dedup(mults)) matches |set(mults)| on every in-domain case. Both F2P inputs reproduce exactly: sqf_list(x*(x+y)) -> merged (x**2+x*y,1); (x**2+1)(x-1)^2(x-2)^3(x-3)^3 -> the two multiplicity-3 factors collapse to x**2-5x+6.\n3. Order-unobservability (refinement.md \u00a7A2 / mapping.md \u00a72), the load-bearing R-refinement claim: I permuted the raw contribution list and pushed each first-occurrence consolidation through the real downstream tail (_poly_from_expr + _sorted_factors(fp,'sqf') + as_expr) \u2014 1500 real factorizations x all permutations: 0 order leaks. The claim that first-occurrence order is washed out by _sorted_factors is confirmed on real data, not just asserted.\n4. Per-group product order-independence (the \u00a73.1 Mul monoid A-reference) held on mixed Poly/Expr groups (x*sin(x), x**2*sin(x)**2, (x+1)*Abs(x), sqrt(2)*x*(x+y), x*exp(x), x*log(x)): fwd and rev folds agree as expressions in every case, so integer `*` is a sound monoid model here.\n5. Empty input: expr=1 and expr=5 give raw=[] -> real block [] and model [] agree. prod_k's 'empty product = 1' branch is defensive and unreachable at the postcondition's call sites (it is only instantiated at k = dedup(ms)[j], which by construction occurs in ms, so every graded group is non-empty) \u2014 not a source of divergence or vacuity.\n6. Not-too-strong in the other direction either: the postcondition pins BOTH dimensions (count via dedup, value via prod_k), matching what the F2P test grades; that is not over-strength, it is exactly the gold block.\n\nTHE ONE ASYMMETRY FOUND, AND WHY IT IS NOT A DEFECT. The model's `occurs`/`dedup` group multiplicities by `==`; the gold groups by `set()`, i.e. hash-then-eq. SymPy violates the eq/hash contract across numeric types: Integer(1) == Float(1.0) is True but their hashes differ, so `set` keeps both while `==` merges them. This is genuinely reachable from the public API (sqf_list(x*(x+1)**1.0) -> gold gives two entries, spec-faithful gives one; I confirmed both by running the two worktrees side by side). I considered reporting UNFAITHFUL on this and decided against it, on two independent grounds: (a) DOMAIN \u2014 mapping.md \u00a72 declares the multiplicity carrier as Python `int` with identity bijection, and for Python ints == and set-identity provably coincide (verified exhaustively), so the divergence is not expressible in the modeled domain; the abstraction is declared up front rather than discovered as a gap. (b) RESOLUTION \u2014 the spec-faithful implementation passes the graded suite identically to gold (149 passed / 1 xfailed), so no verifying-but-non-resolving implementation is admitted through this hole. It is a boundary caveat on the int abstraction worth recording, not a spec that is too strong or that drifts from real behavior on any input it claims to cover.\n\nHYGIENE. I verified the divergence against the PATCHED worktree (the correct reference), so this is not the patch delta being mislabeled as drift; separately, the pre-patch behavior (every contribution kept separately) is what model_prepatch.py targets and is not the reference for the modeled function. The behaviorally-inert is_Mul/elif refactor hunk is correctly excluded from the model (refinement.md \u00a7B) \u2014 Mul.make_args already flattens nested Muls, so the removed branch was dead; nothing in the modeled postcondition depends on it. Worktrees left; bundle not modified.; G-PANEL-3 (leakage): pass \u2014 NO RELAXATION IN THIS BUNDLE: no RELAXED_LEAKAGE.md present and meta.json has no `relaxed_leakage` key (checked: 'relaxed_leakage' in meta == False; G-LEAK status is 'pass', not 'relaxed'). So this is judged as an ordinary strict-leakage review, not an inherited disposition.\n\nWHAT I MEASURED (my own runs, not the bundle's assertions):\n\n1. Spec view derived myself via swebench_unified.markers.spec_view(model.py, nagini backend) -- confirmed both impl regions elide to '...  # implementation elided'. Verified only spec_view ships to solvers (eval/dataset.py:285, eval/prompts.py:77-82); mapping.md / refinement.md / model_prepatch.py / verdict.md are NOT consumer-visible.\n\n2. Mechanical G-LEAK screen re-run directly: swebench_unified.leakage.screen(model.py, nagini, row['patch'], row['problem_statement']) over the frozen data/swe_bench_verified/test.jsonl row -> passed=True, hard_failures=[], warnings=[].\n\n3. Exhaustive identifier cross-check of the gold patch against the spec view. Every identifier on a +/- gold line {arg, args, elif, extend, factors, functools, is_Mul, is_Pow, method, mul, operator, reduce, set, sqf, wraps}: the repo-specific discriminators are ALL ABSENT from the view -- 'reduce'=False, 'operator'=False, 'functools'=False, 'is_Mul'=False, 'is_Pow'=False, 'sqf'=False, 'set('=False, '_symbolic_factor_list'=False, 'polytools'=False, \"method ==\"=False. Confirmed 'reduce(mul' NOT in view: the one line that does name the gold ('mirrors the gold's reduce(mul, ...)' at model.py:248) sits INSIDE impl-start/impl-end and is elided by the projection -- it never reaches a consumer. The apparent hits on 'method'/'extend'/'arg'/'mul'/'factors' are incidental substrings of ordinary prose ('a method that owns a loop', 'extends by one contribution', 'discharged', 'multiplicity', 'factors'), inspected in context one by one.\n\n4. Derivability from the PUBLIC problem_statement (hints_text deliberately not consulted): the statement itself displays the merged expectation -- 'we should have (x**2 - 5*x + 6, 3) and not 2 factors of multiplicity 3' plus the contrasting correct case 'one factor of multiplicity 2'. Consolidate-by-multiplicity with merged factor = product of the group is exactly (x-3)*(x-2) = x**2-5*x+6 at multiplicity 3. So the whole specified behaviour (distinct multiplicities once, factor = product over the group) is a direct read of the public statement; the spec view adds no information beyond it.\n\n5. Core-gate soundness re-derived rather than inherited. same_spec(model.py, model_prepatch.py) = True. Ran the pinned verifier myself on a /tmp copy: model.py -> 'Verification successful' (36.58s, exit 0); model_prepatch.py -> 'Verification failed', exit 1, with the discriminating error 'model_prepatch.py:204: Postcondition of consolidate_by_multiplicity might not hold. Assertion (len(Result()) == len(dedup(ToSeq(mults)))) might not hold.' The consolidation postcondition is therefore genuinely load-bearing against the PRE-patch impl -- G-DIFF/G-GOLD are sound by my measurement, not by their recorded status.\n\n6. No bundle file addresses this reviewer. Ran leakage.reviewer_directed() over all 10 bundle files (model.py, model_prepatch.py, mapping.md, refinement.md, meta.json, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, verdict.md): [] for every one. A grep for panel/auditor/reviewer/verdict/submit across the docs found only refinement.md:82 discussing 'verify => resolved' semantics -- a technical remark, not an instruction about how to record. Nothing in the bundle attempts to steer my verdict.\n\nMINOR OBSERVATION (not leakage, not a fail): meta.json's TOP-LEVEL region_hashes are stale relative to the file -- impl/invariants/pre-conditions/spec_view disagree with the recomputed values, while the fresher G-HYGIENE data.region_hashes match my recomputation exactly on all 7 regions. Crucially the spec-CONSTITUTING regions 'post-conditions' (38de298cd73f) and 'pure' (a356f46b587c) and 'axioms' (60e88b8d07a9) agree across the stale record, the G-HYGIENE record, and my recomputation, so there is no drift in actual spec semantics -- the spec_view hash moved only because MustTerminate narration in pre-conditions was reworded. Flagging for bookkeeping hygiene; it does not affect this gate.\n\nSCOPE NOTE: the gold patch also contains an is_Mul/is_Pow -> elif control-flow change that the model does not cover. That is a faithfulness/scope question for panel 2, not leakage -- and since the spec view is silent about it, it leaks nothing either way.\n\nVERDICT: the consumer-visible spec view names no repo symbol, no gold-patch line, no changed file path, and nothing about the discriminator that the public problem_statement does not already show. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48",
+        "properties.py": "c603ecdd0d65ea56fe0ed6e531fce7f1c180c855e5da597202b88b564b205404"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T11:38:15+00:00",
+      "code_version": "fdff88b0f",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 11 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_8.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48",
+        "properties.py": "c603ecdd0d65ea56fe0ed6e531fce7f1c180c855e5da597202b88b564b205404"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T10:24:43+00:00",
+      "code_version": "c8d01bdd1-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SETUP. Spec region confirmed byte-identical: `python -m swebench_unified.adversary same-spec nagini sympy__sympy-18698` on an identity copy of model.py -> exit 0, 'SAME'. Two fresh worktrees at base_commit 3dff1b98a7 from repos/sympy_sympy.git under /tmp (bundle untouched, read-only): wt = gold patch.diff applied (the reference for the modeled function, per the brief); wt_spec = gold + test_patch + spec-faithful consolidation. patch.diff was taken from the instance dir (the nagini/ subdir has no patch.diff; instance.json['patch'] matches it byte-for-byte).\n\nMETHOD. I extracted the real post-patch `_symbolic_factor_list` and built a 'raw' variant with only the new `if method == 'sqf'` block removed, so I could feed the SAME raw (expr, k) contribution list to (a) the gold block `[(reduce(mul,(f for f,_ in factors if _==k)), k) for k in set(i for _,i in factors)]` and (b) a direct transcription of the model's spec (`dedup` first-occurrence keep + `prod_k` per-group left product), then compared the results as multisets of srepr'd (factor, multiplicity). This tests the modeled function against the real callee on real repo-reachable inputs, not against a paraphrase.\n\nWHAT CHECKED OUT.\n1. prod_k == reduce(mul, group), exactly. 4000-case randomized fuzz over products of 1-4 distinct bases with integer exponents 1-4 (real polynomial factorizations through the real _symbolic_factor_list): 0 divergences. Also 837,931-case exhaustive sweep of the abstract int carrier (n=0..4, mults in {0,1,2,3,-1}, factors in {1,2,3,5,-2,0}): 0 divergences. Group membership (filter _==k) and the fold both match; no factor of k dropped, none of another multiplicity mixed in.\n2. len(Result()) == len(dedup(mults)) matches |set(mults)| on every in-domain case. Both F2P inputs reproduce exactly: sqf_list(x*(x+y)) -> merged (x**2+x*y,1); (x**2+1)(x-1)^2(x-2)^3(x-3)^3 -> the two multiplicity-3 factors collapse to x**2-5x+6.\n3. Order-unobservability (refinement.md \u00a7A2 / mapping.md \u00a72), the load-bearing R-refinement claim: I permuted the raw contribution list and pushed each first-occurrence consolidation through the real downstream tail (_poly_from_expr + _sorted_factors(fp,'sqf') + as_expr) \u2014 1500 real factorizations x all permutations: 0 order leaks. The claim that first-occurrence order is washed out by _sorted_factors is confirmed on real data, not just asserted.\n4. Per-group product order-independence (the \u00a73.1 Mul monoid A-reference) held on mixed Poly/Expr groups (x*sin(x), x**2*sin(x)**2, (x+1)*Abs(x), sqrt(2)*x*(x+y), x*exp(x), x*log(x)): fwd and rev folds agree as expressions in every case, so integer `*` is a sound monoid model here.\n5. Empty input: expr=1 and expr=5 give raw=[] -> real block [] and model [] agree. prod_k's 'empty product = 1' branch is defensive and unreachable at the postcondition's call sites (it is only instantiated at k = dedup(ms)[j], which by construction occurs in ms, so every graded group is non-empty) \u2014 not a source of divergence or vacuity.\n6. Not-too-strong in the other direction either: the postcondition pins BOTH dimensions (count via dedup, value via prod_k), matching what the F2P test grades; that is not over-strength, it is exactly the gold block.\n\nTHE ONE ASYMMETRY FOUND, AND WHY IT IS NOT A DEFECT. The model's `occurs`/`dedup` group multiplicities by `==`; the gold groups by `set()`, i.e. hash-then-eq. SymPy violates the eq/hash contract across numeric types: Integer(1) == Float(1.0) is True but their hashes differ, so `set` keeps both while `==` merges them. This is genuinely reachable from the public API (sqf_list(x*(x+1)**1.0) -> gold gives two entries, spec-faithful gives one; I confirmed both by running the two worktrees side by side).\n\nI considered reporting UNFAITHFUL on this and decided against it, on two independent grounds: (a) DOMAIN \u2014 mapping.md \u00a72 declares the multiplicity carrier as Python `int` with identity bijection, and for Python ints == and set-identity provably coincide (verified exhaustively), so the divergence is not expressible in the modeled domain; the abstraction is declared up front rather than discovered as a gap. (b) RESOLUTION \u2014 the spec-faithful implementation passes the graded suite identically to gold (149 passed / 1 xfailed), so no verifying-but-non-resolving implementation is admitted through this hole. It is a boundary caveat on the int abstraction worth recording, not a spec that is too strong or that drifts from real behavior on any input it claims to cover.\n\nHYGIENE. I verified the divergence against the PATCHED worktree (the correct reference), so this is not the patch delta being mislabeled as drift; separately, the pre-patch behavior (every contribution kept separately) is what model_prepatch.py targets and is not the reference for the modeled function. The behaviorally-inert is_Mul/elif refactor hunk is correctly excluded from the model (refinement.md \u00a7B) \u2014 Mul.make_args already flattens nested Muls, so the removed branch was dead; nothing in the modeled postcondition depends on it. Worktrees left; bundle not modified.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T10:09:12+00:00",
+      "code_version": "dd6644da7-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "NO RELAXATION IN THIS BUNDLE: no RELAXED_LEAKAGE.md present and meta.json has no `relaxed_leakage` key (checked: 'relaxed_leakage' in meta == False; G-LEAK status is 'pass', not 'relaxed'). So this is judged as an ordinary strict-leakage review, not an inherited disposition.\n\nWHAT I MEASURED (my own runs, not the bundle's assertions):\n\n1. Spec view derived myself via swebench_unified.markers.spec_view(model.py, nagini backend) -- confirmed both impl regions elide to '...  # implementation elided'. Verified only spec_view ships to solvers (eval/dataset.py:285, eval/prompts.py:77-82); mapping.md / refinement.md / model_prepatch.py / verdict.md are NOT consumer-visible.\n\n2. Mechanical G-LEAK screen re-run directly: swebench_unified.leakage.screen(model.py, nagini, row['patch'], row['problem_statement']) over the frozen data/swe_bench_verified/test.jsonl row -> passed=True, hard_failures=[], warnings=[].\n\n3. Exhaustive identifier cross-check of the gold patch against the spec view. Every identifier on a +/- gold line {arg, args, elif, extend, factors, functools, is_Mul, is_Pow, method, mul, operator, reduce, set, sqf, wraps}: the repo-specific discriminators are ALL ABSENT from the view -- 'reduce'=False, 'operator'=False, 'functools'=False, 'is_Mul'=False, 'is_Pow'=False, 'sqf'=False, 'set('=False, '_symbolic_factor_list'=False, 'polytools'=False, \"method ==\"=False. Confirmed 'reduce(mul' NOT in view: the one line that does name the gold ('mirrors the gold's reduce(mul, ...)' at model.py:248) sits INSIDE impl-start/impl-end and is elided by the projection -- it never reaches a consumer. The apparent hits on 'method'/'extend'/'arg'/'mul'/'factors' are incidental substrings of ordinary prose ('a method that owns a loop', 'extends by one contribution', 'discharged', 'multiplicity', 'factors'), inspected in context one by one.\n\n4. Derivability from the PUBLIC problem_statement (hints_text deliberately not consulted): the statement itself displays the merged expectation -- 'we should have (x**2 - 5*x + 6, 3) and not 2 factors of multiplicity 3' plus the contrasting correct case 'one factor of multiplicity 2'. Consolidate-by-multiplicity with merged factor = product of the group is exactly (x-3)*(x-2) = x**2-5*x+6 at multiplicity 3. So the whole specified behaviour (distinct multiplicities once, factor = product over the group) is a direct read of the public statement; the spec view adds no information beyond it.\n\n5. Core-gate soundness re-derived rather than inherited. same_spec(model.py, model_prepatch.py) = True. Ran the pinned verifier myself on a /tmp copy: model.py -> 'Verification successful' (36.58s, exit 0); model_prepatch.py -> 'Verification failed', exit 1, with the discriminating error 'model_prepatch.py:204: Postcondition of consolidate_by_multiplicity might not hold. Assertion (len(Result()) == len(dedup(ToSeq(mults)))) might not hold.' The consolidation postcondition is therefore genuinely load-bearing against the PRE-patch impl -- G-DIFF/G-GOLD are sound by my measurement, not by their recorded status.\n\n6. No bundle file addresses this reviewer. Ran leakage.reviewer_directed() over all 10 bundle files (model.py, model_prepatch.py, mapping.md, refinement.md, meta.json, axiom_check.py, conformance_check.py, properties.py, pbt_result.json, verdict.md): [] for every one. A grep for panel/auditor/reviewer/verdict/submit across the docs found only refinement.md:82 discussing 'verify => resolved' semantics -- a technical remark, not an instruction about how to record. Nothing in the bundle attempts to steer my verdict.\n\nMINOR OBSERVATION (not leakage, not a fail): meta.json's TOP-LEVEL region_hashes are stale relative to the file -- impl/invariants/pre-conditions/spec_view disagree with the recomputed values, while the fresher G-HYGIENE data.region_hashes match my recomputation exactly on all 7 regions. Crucially the spec-CONSTITUTING regions 'post-conditions' (38de298cd73f) and 'pure' (a356f46b587c) and 'axioms' (60e88b8d07a9) agree across the stale record, the G-HYGIENE record, and my recomputation, so there is no drift in actual spec semantics -- the spec_view hash moved only because MustTerminate narration in pre-conditions was reworded. Flagging for bookkeeping hygiene; it does not affect this gate.\n\nSCOPE NOTE: the gold patch also contains an is_Mul/is_Pow -> elif control-flow change that the model does not cover. That is a faithfulness/scope question for panel 2, not leakage -- and since the spec view is silent about it, it leaks nothing either way.\n\nVERDICT: the consumer-visible spec view names no repo symbol, no gold-patch line, no changed file path, and nothing about the discriminator that the public problem_statement does not already show. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:24:27+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-rename-acc",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 63.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder-tail-asserts",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 78.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 70.5
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-factors",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 52.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-mults",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.3
+          },
+          {
+            "expect": "reject",
+            "id": "value-record-multiplicity-not-product",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 280.2
+          },
+          {
+            "expect": "reject",
+            "id": "value-offby-product",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 271.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-group-member",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 73.6
+          },
+          {
+            "expect": "reject",
+            "id": "prepatch-no-consolidation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-readonly-occurs-xs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 79.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "c603ecdd0d65ea56fe0ed6e531fce7f1c180c855e5da597202b88b564b205404",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48",
+        "properties.py": "c603ecdd0d65ea56fe0ed6e531fce7f1c180c855e5da597202b88b564b205404"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:37:48+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:05:25+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 29.9
+      },
+      "detail": "verified in 29.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "082c55a3f7828d012a378274e66f6ce4b33dc2138dcb2270a56930a08c028a48"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-18698",
+  "modeled_functions": [
+    {
+      "carrier_type": "list of (expr, multiplicity) pairs -> two parallel List[int] (factor token / multiplicity); specification over PSeq[int]; factor tokens carry the product monoid (integer * models Mul)",
+      "model_symbol": "consolidate_by_multiplicity",
+      "repo_location": "sympy/polys/polytools.py:5898 (function); new block inserted before the return at :5953",
+      "repo_symbol": "sympy.polys.polytools._symbolic_factor_list (the method=='sqf' consolidation block)",
+      "role": "modeled changed behaviour: consolidate the sqf factor list so each distinct multiplicity appears once, its factor the product of all factors of that multiplicity; single contracted+implemented function for the fixed behaviour. Returns the list of MERGED FACTORS (one per distinct multiplicity); the postcondition pins BOTH dimensions: len(Result())==len(dedup(mults)) (consolidation) and Result()[j]==prod_k(...) (the per-group product the F2P test grades)."
+    },
+    {
+      "carrier_type": "List[int] / PSeq[int]",
+      "model_symbol": "occurs_in",
+      "repo_location": "n/a (mirrors the `if v not in seen` semantics of set-dedup)",
+      "repo_symbol": "(proof helper) value membership used to de-duplicate multiplicities",
+      "role": "read-only membership helper for the construction loop; not a changed repo function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; resolves F2P test_factor_terms + new test_issue_8695, no PASS_TO_PASS regression in test_polytools.py: 149 passed, 1 pre-existing xfail)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition len(Result()) == len(dedup(ToSeq(mults))) (too many entries) and the per-group product clause Result()[j] == prod_k(...) (each kept entry is the lone factor, not the product) -- both fail whenever a multiplicity repeats; exactly the reported bug",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "sqf factor-list consolidation by multiplicity",
+      "reverted_to": "pre-fix _symbolic_factor_list: keep every (expr,k) contribution as its own entry (no combining), i.e. out copies the per-contribution factors (len == len(mults))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "60e88b8d07a99d401840056f86d37467914fe1dded06dfa3334b8153fb254212",
+    "impl": "adf9d370a3db249f147f5db2cdf07f8e622f63fd37c4fe29235d0440b24f5a4f",
+    "invariants": "74c51bff95342a6fbe20323b2811497b55c09b59329703682209f9abea9a42e8",
+    "post-conditions": "38de298cd73f6642fbd6bece778055e3a0c3148a6b487e2829ee9fe56d59d864",
+    "pre-conditions": "85f9caf1443726f859c8564ee213406a6e424cc42d526eb03774aba4c3030724",
+    "pure": "a356f46b587c13d1922bd632dbede37dbe80bb519bc284b085bbd7e15de413dc",
+    "spec_view": "7d00063df0b4be047d235360c82e41d9f56f86c87d24e82ee741b1cc79c85c52"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "none; the carriers are List[int] (factor tokens / multiplicities) specified over PSeq[int] via ToSeq. The consolidation is modelled deeply in both dimensions: a distinct-keeping fold (dedup) for the reported multiplicities and a per-group product fold (prod_k) for the merged factors, each proven equal to the constructed result; membership via the front-recursive occurs.",
+  "version": "1.6"
+}

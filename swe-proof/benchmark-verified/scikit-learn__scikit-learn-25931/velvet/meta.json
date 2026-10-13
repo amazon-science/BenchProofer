@@ -1,0 +1,1088 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "modeled as screenHandle (the input screen, computing no score) + scorePublic (screen, then score what the screen handed back), with the patch's private _score_samples carried by the A-reference value anomalyScores rather than by a method of its own, so the file has exactly one scorer-invoking declaration; value equality + screen counts checked by G-AX; no separate failing prepatch (the split is value-preserving \u2014 the single observable change is fit's offset-path re-screen, exercised by the site-A prepatch)",
+      "repo_symbol": "IsolationForest.score_samples split into score_samples + _score_samples"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "e3d1f9ac39e4bf0f31430e779acc50fb05fe1b64",
+  "changed_files": [
+    "sklearn/ensemble/_iforest.py"
+  ],
+  "conf_skip": false,
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): score_samples(X) == the screen-free scoring of the prepared matrix element-wise, i.e. == scoreValues of what this reference produces; public screens exactly once, the chunked scorer zero",
+      "kind": "A-reference",
+      "models": "-IsolationForest._compute_chunked_score_samples(X) as a function of the PREPARED matrix alone (screening-independent scorer body shared by score_samples and _score_samples; the patch's private _score_samples is modeled by this value alone, not by a method of its own). Its result type is an opaque CARRIER (Scores), so the order statistic cannot be named at a sequence no scorer produced; the numbers are reached through scoreValues",
+      "name": "anomalyScores"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): percentileAt == np.percentile; check_percentile_point_fences for the callee's partiality in the percentile point -- outside the range a percentage occupies it raises ValueError rather than reporting an order statistic, on both sides and just past each endpoint, with the two endpoints and the interior as the control; check_empty_handle_fences for its partiality in the sequence; and check_point_provenance for where the reachable points come from -- the offset a real fit records is bit-identical to the order statistic of that model's own screen-free scores at 100.0 * contamination, and a contamination level whose point would leave the range is refused outright, with the admissible interval as the control; check_offset_arithmetic_fences for the partiality of ARITHMETIC on the value it produces",
+      "kind": "A-reference",
+      "models": "numpy.percentile (sklearn/ensemble/_iforest.py:348), as a function of a PRODUCED score sequence (Scores) and a REQUESTED percentile point (Point) -- both opaque carriers, because the callee is partial in both and only an argument type fences every site a total reference can be named at, and the same correction applies one step further in, to the ELEMENT type of the reading (see Score). Its RESULT type is an opaque carrier as well (Offset): arithmetic on the recorded offset is TOTAL in the reference language and PARTIAL in the repository -- the seventh measured lesson of this bundle, see Offset",
+      "name": "percentileAt"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_screen_refusals and check_label_agreement, with a negative control that the ordinary handle is NOT turned away",
+      "kind": "A-reference",
+      "models": "whether the _validate_data screen raises instead of returning a prepared matrix, as a property of the matrix AS PRESENTED (disagreeing width, no samples, a magnitude the recorded float32 working precision cannot represent, a non-number, a DISAGREEING column labelling)",
+      "name": "screenRefuses"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_label_agreement legs (i)-(iv) and check_handle_properties; leg (iv) measures that the advised handle is still scored, to bit-identical values",
+      "kind": "A-reference",
+      "models": "whether a screen of the matrix AS PRESENTED emits \"X does not have valid feature names, but IsolationForest was fitted with feature names\" (or its mirror image), i.e. _check_feature_names(X, reset=False)",
+      "name": "screenAdvises"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_handle_properties leg (c) -- the dense prepared array of the recorded width is consumed by the screen-free scorer while its csc_matrix form of the same numbers is not and a narrower dense form of them is not either, with the recorded-width array as the control; check_sparse_container_fence -- the public screen ACCEPTS a handle in the newer sparse container and both the scorer and the public entry point then refuse the prepared matrix it hands back, while the dense matrix and the older sparse containers of the same numbers are consumed and served (the control) and fit refuses the newer container outright; check_object_properties leg (c) for the arrangement leg on bit-identical numbers; mapping.md 5 for the faithfulness argument",
+      "kind": "A-reference",
+      "models": "whether the screen-free scoring path can CONSUME the PREPARED matrix with check_input=False exactly as it stands: false of the CSC matrix fit produces at _iforest.py:291, false of a dense matrix narrower than the width the model was fitted on (Tree.apply indexes a feature it does not hold), false of a matrix in the NEWER sparse container even where that one holds its numbers compressed by row (_apply_sparse_csr raises 'X should be in csr_matrix format, got csr_array'), true of the dense / csr_matrix form of the recorded width. A screen's having ACCEPTED a matrix does not settle this, which is why both methods that reach the scorer fence their domain with it",
+      "name": "scorableAsGiven"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_handle_properties leg (b) -- the numbers the screen produces are element-wise the numbers presented to it, so screening is value-neutral and only the layout, the working precision and the labelling change",
+      "kind": "A-reference",
+      "models": "the prepared np.float32 array _validate_data returns for a CALLER'S handle it does not refuse (sklearn/ensemble/_iforest.py:436), indexed by that handle and by nothing else -- there is deliberately no counterpart over a matrix as presented, because a reference a context holding already-prepared data can name carries no call-site obligation and so bypasses the screening restriction (measured; mapping.md section 6)",
+      "name": "preparedOf"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_empty_handle_fences -- the screen-free chunked scorer raises on a prepared matrix with no samples instead of returning an empty score sequence, with the ordinary non-empty matrix as the negative control",
+      "kind": "A-reference",
+      "models": "whether a prepared matrix holds at least one sample (X.shape[0] > 0)",
+      "name": "hasSamples"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_object_properties -- matrices holding bit-identical numbers disagree about the labelling advisory (leg a, with the same-numbers score equality as its companion), about refusal at another width (leg b, the recorded width as negative control) and about readability in another layout (leg c); check_handle_properties for the non-invertibility of presentation",
+      "kind": "A-reference",
+      "models": "the three kinds of matrix OBJECT and the two presentations: CallerHandle (the caller's matrix as it arrives at score_samples, numbers plus labelling, no constructor in the file), Prepared (the bare np.float32 array the screen returns), Presented (a matrix as _validate_data receives it), presentCaller, presentPrepared",
+      "name": "CallerHandle / Prepared / Presented / presentCaller / presentPrepared"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_value_equality (the public entry point's own result is exactly this reading of the screen-free sequence), check_score_sequence_provenance (one real score per sample across sample counts, and the same prepared matrix read twice reads back bit-identically, so the reading is not an action) and check_score_index_fences (READING a produced sequence is partial in the POSITION read -- refused far past the end, at the length itself and at the mirror position before the start, over four sequence lengths, on the screen-free sequence and on the public entry point's own served one, and refused just the same where the value read is cancelled away -- with every position a sequence HAS as the control, all readable and finite, the order statistic of the whole sequence defined, and the served sequence bit-identical to the screen-free reading)",
+      "kind": "A-reference",
+      "models": "the numbers a produced score sequence holds, in order (one per sample): the identity in the repository, where score_samples's own result IS the numbers -_compute_chunked_score_samples(X) holds. ONE WAY ONLY -- there is no List Score -> Scores in the file, so scores can be read off a sequence a scorer produced and no text can present scores of its own as a produced sequence. Its CODOMAIN is List Score over an opaque element carrier rather than List Rat, because reading a produced sequence is itself partial in the POSITION read while a reading into plain numbers admits an UNGUARDED read at any position (such a read needs only a default element to fall back on): an audit refuted the plain-number reading four ways with that one move, all four verifying while their faithful counterparts fail the graded test and 4 of 21 P2P tests (three on the offset tail) or 13 of 21 (the public one). With an opaque element there is no default, so those reads no longer elaborate, while the sequence's LENGTH and the guarded read that reports a position's ABSENCE stay expressible and verify",
+      "name": "scoreValues"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_score_index_fences -- the position partiality (far past the end, at the length, at the mirror position before the start, over four sequence lengths, on the screen-free sequence and on the served one, and with the value read cancelled away), with every position a sequence HAS as the control (all readable and finite), the order statistic of the whole sequence defined, and the served sequence bit-identical to the screen-free reading",
+      "kind": "A-reference",
+      "models": "ONE per-sample anomaly score as a scorer produced it, i.e. one element of the sequence scoreValues reads. An OPAQUE carrier type with no constructor, no arithmetic and no default, for the same measured kind of reason Scores and Point are opaque, one step further in: reading a produced sequence at a position it does not have is refused by the repository, and a total unguarded read of a plain-number sequence expresses exactly that. Nothing in the spec computes with a single score -- the order statistic takes the SEQUENCE and the public entry point's served clause is an equality of sequences -- so the carrier excludes only the divergence",
+      "name": "Score"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_offset_arithmetic_fences -- the arithmetic partiality (a recorded offset divided by a written zero and by its own difference, and the reciprocal of that difference, each deriving no number, plus the quotient cancelled away), with the arithmetic the repository DOES perform on these numbers as the control (negation, division by one and by two, the order statistic taken again, the count of the scores: all finite and warning-free), and with the exactness leg that grounds R-ARITH",
+      "kind": "A-reference",
+      "models": "the threshold offset a fit RECORDS (self.offset_ -- sklearn/ensemble/_iforest.py:348 on the requested-contamination path, :344 on the requestless one). An OPAQUE carrier type with no constructor, no arithmetic and no literal, for the same measured kind of reason Scores, Point and Score are opaque, one step further OUT: rational division is TOTAL in the reference language (x / 0 is the rational 0, (x - x) inverse is 0) while the repository derives NO number for either -- as a plain real it raises ZeroDivisionError and in the working precision the scorer produces it reports a non-finite value with a RuntimeWarning, and cancelling the quotient away recovers no number either, because the divergence happens AT THE ARITHMETIC. An earlier revision typed the offset Rat and an independent audit refuted it with a rival that returned the required order statistic while ALSO forming off / 0 in a DISCARDED position, which no postcondition can see; the counterpart patch was measured in the official image to resolve nothing (the graded test passes, four P2P scoring/prediction tests fail, consistently over three attempts). With the offset opaque the only offsets a text can write are percentileAt (anomalyScores samples) q and defaultOffset. What no spec text reaches -- a number the text derives with arithmetic the repository leaves undefined and then DISCARDS, reachable from written constants, from a screening verdict's Boolean and from the produced sequence's length, in Rat and in Nat alike -- is recorded with the R-ARITH reading rule (mapping.md 2.2) and never claimed as fenced; four routes measured, each elaborating, and the written-constant one measured to elaborate with the carrier and without it",
+      "name": "Offset"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): check_offset_arithmetic_fences leg (a) -- the requestless fit records exactly -0.5 on every model measured, while a fit requesting a contamination level records the order statistic of its own screen-free scores at the point that level determines and never that constant, on the same training data",
+      "kind": "A-reference",
+      "models": "the threshold offset the OTHER fitting path records: self.offset_ = -0.5 (sklearn/ensemble/_iforest.py:344), the branch a fit takes when no contamination level is requested. It is the one offset term in the file that is an order statistic of nothing, and it is measurably never the order statistic a requested contamination level determines, which is what makes it the value the modeled fitting tail must NOT report and the battery's one remaining rival on that clause (fit-forge-offset-value)",
+      "name": "defaultOffset"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T20:41:21+00:00",
+      "code_version": "e06dc0a8e-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: score_samples == screen-free scoring via the unchanged callee -_compute_chunked_score_samples (A-reference) over 10 value-equality + 10 screen-count boundary checks + 60 fuzz models; public screens once / chunked scorer zero; feature-name advisory drawn only on the public path; screenAdvises/screenRefuses grounded over 19 labelling observations on 5 labelled models (an agreeing labelling scores quietly; an unlabelled handle draws the advisory and still scores to bit-identical values, so no labelling conditions a score value; permuted and disjoint labellings are turned away) plus 61 verdict observations on 8 models (disagreeing width, no samples, a magnitude beyond the working precision and a non-number are turned away; the ordinary handle is NOT) and 9 empty-handle fence observations and 70 percentile-point observations (the order statistic refuses a point outside the range a percentage occupies, on both sides and just past each endpoint, while the endpoints themselves and the interior all yield a value) \u2014 that partiality is fenced by the argument TYPE rather than by a precondition, and the two legs that make the type faithful are 13 point-provenance observations (the point a fitting tail requests is 100 * the requested contamination: the offset a real fit records is bit-identical to the order statistic of that model's own screen-free scores at that point, and a contamination whose point would leave the range is refused outright while the admissible interval is accepted) and 25 score-sequence observations (a prepared matrix of n samples produces exactly n real scores and the same matrix read twice reads back bit-identically, so a produced sequence is its numbers and is non-empty wherever the sample fence admits the matrix) and 140 score-position observations (reading a produced sequence at a position it does not have is refused \u2014 far past the end, at the length, at the mirror position before the start, and refused just the same where the value read is cancelled away \u2014 while every position a sequence HAS is readable, the served sequence is bit-identical to that reading, and the order statistic of the whole sequence is defined, so the reading's element type is a carrier for the same measured reason the point is) and 55 recorded-offset observations (a fit requesting a contamination level records the order statistic of its own screen-free scores at the point that level determines, a fit requesting none records the constant -0.5 and never that order statistic, dividing a recorded offset by zero or by its own difference derives NO number \u2014 it refuses outright as a plain real and reports a non-finite value with a runtime warning in the working precision, and cancelling that quotient away recovers no number either \u2014 while negation, division by one and by two, the order statistic taken again and the count of the scores are all finite and warn about nothing, and the repository's arithmetic on these numbers is not the reference language's exact rational arithmetic, which is what the R-ARITH reading rule records); scorableAsGiven is CONSUMABILITY and not arrangement alone, over 2 width observations (a dense handle narrower than the recorded width is refused by the screen-free scorer, the recorded-width one is consumed) and 64 container observations (a handle in the newer sparse container is ACCEPTED by the public screen and the scorer then refuses the prepared matrix it hands back, as does the public entry point itself, while the dense matrix and the older sparse containers of the same numbers are consumed and served \u2014 and fit refuses the newer container outright, so no fitting tail holds one); both screen properties are DECIDED BY INSPECTION of the matrix \u2014 width, sample count, element kind, magnitudes and presented labelling against what the model recorded \u2014 agreeing with the real screen's outcome over 84 observations, with a finiteness inspector and a labelling-blind inspector both measured to disagree; a matrix is an OBJECT and not its numbers, grounded over 30 observations (matrices holding bit-identical numbers disagree about the advisory when their labelling differs, about the refusal when their width differs and about readability when their arrangement differs \u2014 while the first pair still scores to bit-identical values); percentileAt == np.percentile.",
+      "gate": "G-AX",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "axiom_check.py": "71160e0d408ce27c00a4fa348baf8ac80f93b00087d4118b07b1e25655ba42d9"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T20:41:38+00:00",
+      "code_version": "e06dc0a8e-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "G-CONF OK: R/I shadow of fitComputeOffset (screening delta AND scorer multiplicity) agrees with patch.diff behaviour on 1200 real fits (seed=25931, capped at MAX_FITS=1200 of N_FUZZ=100000 requested), 0 disagreements: the patched fit performs no offset-path re-screen, raises no feature-name warning, and invokes the screen-free scorer exactly once when contamination != 'auto' (zero when it is).",
+      "gate": "G-CONF",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "conformance_check.py": "6bdba8dbfdc7fb117b67e8197de1c4829fccf6799b22c189c5d7609d5261ae69"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T20:43:10+00:00",
+      "code_version": "45d1c1f2e-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "Solution_prepatch.lean": "a7f425e4a7fd71386cc344bc4be68ebb6899b5318757869ff4580dfc7313bd4d"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T21:54:08+00:00",
+      "code_version": "ae05f4b16-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 10 | `atk_4_fit_vacuous_scorable_default.lean`, `atk_5_fit_vacuous_scorable_rescreen.lean`, `atk_6_fit_vacuous_hassamples_rescreen.lean`, `atk_7_fit_guarded_silent_rescreen.lean`, `atk_8_public_vacuous_advisory_none.lean`, `atk_9_public_vacuous_scorable_rescreen.lean`, `atk_10_public_double_screen_reachable.lean`, +3 more |\n| does not verify against this specification, so the specification excludes it | 4 | `atk_0_prepatch_unguarded_rescreen.lean`, `atk_1_retained_offset_div_zero.lean`, `atk_2_retained_offset_inv_zero.lean`, `atk_3_fit_value_keyed_on_advisory.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T21:57:36+00:00",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "properties.py": "ae4cf3f74caca2db16bb1b36aad614773c6096eeb69d63f5170d11e4cb441f2a"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T20:43:24+00:00",
+      "code_version": "45d1c1f2e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "Solution_prepatch.lean": "a7f425e4a7fd71386cc344bc4be68ebb6899b5318757869ff4580dfc7313bd4d"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T22:48:31+00:00",
+      "code_version": "1797b54ca-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "522a2600b68dae785d0fdc638071e5f2b0cba0482a4bf6907dcfc5579b29e853",
+          "impl": "ea6cabfbfac393d25b6ae9326b1c4dd75cc61d18b7bef8c08e1d5df225e77db1",
+          "pure": "d01a44bf2dbd3b1c2a544992165732806ddef2e97ba7a9edd7b3789ad3c37080",
+          "spec_view": "89e91b81387633badfbedcac55b742e13f66f11b8cae081274672e9705dc9c5a"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T20:43:25+00:00",
+      "code_version": "45d1c1f2e-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "instance.json": "4a9ff6cd958cad9a293fd675cb4f60dc9e076b0947e6b014fec9775708d2aa3f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T22:48:31+00:00",
+      "code_version": "1797b54ca-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T20:42:54+00:00",
+      "code_version": "45d1c1f2e-dirty",
+      "data": {
+        "judged": 4,
+        "killed": 4,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 4,
+        "unjudged": []
+      },
+      "detail": "killed 4/4 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T20:54:08+00:00",
+      "code_version": "3bf25945a",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ROLE: faithfulness-break attacker (is the spec TOO STRONG / does a modeled function disagree with the real callee on some in-domain input?). VERDICT: FAITHFUL \u2014 no diverging input found after an executable differential search with proven-live negative controls.\n\nREFERENCE DISCIPLINE (delta direction confirmed, so I did not condemn the patch's own fix). Fresh `git worktree --detach e3d1f9ac39e4bf0f31430e779acc50fb05fe1b64` from repos/scikit-learn_scikit-learn.git with the gold patch applied (byte-identical to gp2f_patch_25931.diff and to the dataset's `patch` field for this instance \u2014 diffed, IDENTICAL). Executable probes ran in swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931:latest (/testbed at ccfb450bd, whose parent IS e3d1f9ac3; sklearn 1.3.dev0, scipy 1.13.0, numpy 1.26.4, pandas 2.2.3) with /gold.diff applied so `_score_samples` exists. POSITIVE DELTA CHECK: post-patch `IsolationForest(contamination=0.05).fit(pd.DataFrame({'a':[-1.1,0.3,0.5,100]}))` emits ZERO feature-name warnings, i.e. the bug is fixed; `fitComputeOffset` contains no screen call, so Solution.lean models the POST-patch (no-re-screen) side. I therefore did NOT treat the removed re-screen as a divergence.\n\nPRELIMINARIES. (a) markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('velvet')) == True \u2014 the spec region under review is the one G-DIFF/G-GOLD exercised (the two files differ only inside fitComputeOffset's impl region, where prepatch adds `let _rescreened <- screenHandle (presentPrepared samples)`). (b) `scripts/lean_verify.sh GPF2b_sol_25931.lean 800` -> EXIT=0 (elaborates, no sorry/error).\n\nENSURES CHECKED AGAINST THE REAL POST-PATCH CALLEES. Violations counted ONLY on inputs satisfying every `require`. Instantiation: screenRefuses/screenAdvises = whether `_validate_data(X, accept_sparse='csr', dtype=np.float32, reset=False)` raises / emits a feature-name message (narrowed to the two feature-name prefixes so unrelated pandas/numpy warnings cannot fake an advisory); preparedOf = what it returns; anomalyScores = `-_compute_chunked_score_samples`; scorableAsGiven = whether that scorer consumes the prepared matrix; hasSamples = prep.shape[0] >= 1.\n1. scorePublic (`result = if screenRefuses (presentCaller handle) then none else some (scoreValues (anomalyScores (preparedOf handle)))`): battery A = 312 handles across 10 model configurations (labelled/unlabelled x n 5..40, d 1..5, max_features 1.0/0.6/0.5) -> 145 in-domain, 0 branch and 0 value mismatches (np.array_equal, bit-exact, not allclose). Battery B = 31 adversarial in-domain handles x 2 model labellings incl. pandas Int64/Float64/object/bool/SparseDtype extension frames, duplicate column names, np.ma masked arrays, longdouble, complex, str-dtype, 2**62 int64, 3.5e38, -inf, all-zeros, Fortran order, strided views, 8 sparse container kinds -> 0 violations, with BOTH branches live (11 none / 20 some), so the clause is not vacuously satisfied on one side.\n2. fitComputeOffset (`offset = percentileAt (anomalyScores samples) q`): 400 randomized real fits (contamination in {1e-300, 1e-9, 1e-6, 0.001, 0.01, 0.1, 0.25, 0.3, 0.4999999, 0.5}, n 1..45, d 1..6, max_features 1.0/0.6/0.5/0.34, labelled/unlabelled/csc-sparse) -> 305 in-domain, 0 violations: recorded `clf.offset_` was `==` (bit-identical) to `np.percentile(-_compute_chunked_score_samples(fit's own prepared matrix), 100.0*contamination)` in 305/305. Plus boundary cases: n=1 (sequence length 1) at contamination 1e-6 and 0.5, and an all-identical score sequence \u2014 all match. Zero fit-path feature-name advisories across the run.\n3. screenHandle (`accepted = if screenRefuses then false else true`): consistent across the refusal battery (disagreeing width, 0 samples, 1e300 beyond float32, -inf, complex, mixed-type columns, permuted/renamed labellings all raise; the ordinary handle does not \u2014 negative control present).\n\nNEGATIVE CONTROLS PROVING THE HARNESS HAS TEETH (this is what distinguishes a real clean run from a rubber stamp). I re-ran the identical comparator with deliberately WRONG postconditions; every one fired while the spec as written fired zero: NC1 wrong sign (+chunked) 20/36; NC2 branch flipped 36/36; NC3 screen-never-refuses 16/36; NC4 wrong matrix 20/36; NC5 defaultOffset(-0.5) 113/120; NC6 median instead of q 96/120; NC7 percentile of the un-negated sequence 120/120; NC8 q=contamination not 100*contamination 109/120. So a divergence of the kind I was hunting would have been detected.\n\nOVER-STRENGTH ANGLES I ATTACKED AND WHICH FAILED.\n(i) 'The requires are convenience fences that hide a disagreement.' `require scorableAsGiven (preparedOf handle) = true` excludes exactly {csr_array, csc_array, coo_array, narrower-than-recorded dense, csc fed straight to the scorer} \u2014 I measured that csr_array/csc_array/coo_array ARE accepted by the public screen (refuses=0, advises=0), the scorer then raises 'X should be in csr_matrix format, got csr_array', and `score_samples` raises too, so the excluded region is exactly where the repo has no scores; the consumable containers (dense, csr_matrix, csc_matrix, coo_matrix, bsr, dia, lil of the recorded width) are all live controls INSIDE the fence and all scored to the served values. Not vacuous, not overbroad.\n(ii) 'percentileAt over-promises a total value.' Reachable-point provenance holds: contamination is refused at <=0 and >0.5 (InvalidParameterError at -1e-9, 0.0, 0.5+1e-16, 0.500001, 1.0), so reachable q = 100*contamination lies in (0, 50]; np.percentile refuses q=-1e-9 and q=100+1e-9 but is total at 0/1e-321/50/100 and on the whole in-range interval, and refuses an empty sequence (IndexError) \u2014 which the hasSamples fence excludes (a 0-sample prepared matrix makes the chunked scorer raise gen_batches InvalidParameterError, so it is out of domain twice over).\n(iii) 'An admissible fit could record a non-finite offset the clause claims a value for.' 201 admissible fits at scales 1e-38..3.5e38 -> 0 non-finite offsets.\n(iv) 'R-VALUE (multiple occurrences = one production) is unsound.' anomalyScores is a function of the prepared matrix alone: screening 1x/2x/3x gives bit-identical sequences, and working_memory 1/16/1024 (i.e. different chunking) gives bit-identical sequences. preparedOf is value-neutral (prep == float32 cast of the presented numbers). scoreValues is the identity (length == n_samples, all finite, 0/60 violations).\n(v) 'The advisory conditions a value, so omitting it from the value clause is wrong.' It does not \u2014 screen counts confirm the asymmetry the two-method surface rests on: score_samples performs exactly 1 `_validate_data`, `_score_samples` and `_compute_chunked_score_samples` perform 0.\n(vi) screenRefuses/screenAdvises are decided by INSPECTION and are deterministic: 5 repeated screens of each of bare/df_match/df_perm/narrow/huge gave a single stable (refuses, advises) pair each.\n\nCAVEATS, stated so this verdict is not read as broader than it is. (a) raise <-> `none` is a bundle-wide modeling convention, applied consistently on both branches; I treated it as intended rather than refutable. (b) Probes are single-version (the instance's pinned testbed image); container-kind behavior is scipy-version-sensitive, but that is the version the benchmark pins. (c) Minor PROSE overstatement, NOT an ensures divergence and NOT a finding: the axiom-block/mapping prose says a screen refuses 'a non-number', but a str-dtype array of numeric strings is in fact accepted and scored \u2014 the model and the repo AGREE on that input (both take the `some` branch), so no clause disagrees with the callee; screenRefuses is opaque and nothing is derived from the prose. (d) FAITHFUL is orthogonal to spec-too-weak: meta.json/verdict.md record a G-EQ / G-PANEL-1 failure (a Rat-division attack that verified but did not resolve, since repaired by making Offset a carrier). A too-weak spec and a faithful one are compatible; my verdict does NOT clear those gates and should not be read as doing so.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "ROLE: leakage / gold-reconstruction attacker on scikit-learn__scikit-learn-25931/velvet. VERDICT NO-LEAKAGE. Every number below is my own measurement on the CURRENT bytes, Solution.lean sha256 5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b.\n\nNO RELAXATION IN THIS BUNDLE -- I checked before judging. meta.json has no `relaxed_leakage` key (json 'relaxed_leakage' in m -> False) and `find -iname '*RELAX*'` over the whole instance directory returns nothing. So this is a straight leakage judgement, not a relaxation review, and I inherited no disposition from any file.\n\nSPEC REGION IDENTITY (the thing I was asked to confirm). markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend) = True -- the four spec regions (axioms, pure, pre-conditions, post-conditions) plus all frozen narration are byte-identical across the failing prepatch and the gold-faithful impl; spec_view is 456 lines on both. markers.region_hashes(...)['spec_view'] = 89e91b81387633badfbedcac55b742e13f66f11b8cae081274672e9705dc9c5a, which equals the value G-HYGIENE stamped, so the view I judged is the view the gate stamped. Independent confirmation that the whole spec/prose surface is shared: a unified diff of the two files differs ONLY inside the impl-start/impl-end body of fitComputeOffset (prepatch does `let rescreened <- screenHandle (presentPrepared samples)`, gold does not). Since the two files share the entire spec view byte-for-byte and one resolves while the other does not, the spec view CANNOT be encoding the gold edit -- it is by construction blind to the difference.\n\nLOAD-BEARING TEST I RAN (the usual strip-the-narration control, since narration is where a leak would hide). I mechanically excised the entire `/- THE FITTING TAIL ... -/` docstring from both files and re-verified with scripts/lean_verify.sh: PostStripped.lean VERIFIES clean, PrepatchStripped.lean STILL FAILS at fitComputeOffset with `unsolved goals ... |- screenAdvises (presentPrepared samples) = false`. Same refutation as the unstripped prepatch (Solution_prepatch.lean:476:31). So the discriminator is carried STRUCTURALLY -- by screenHandle's `require screenAdvises presented = false`, which a Prepared-holding context cannot discharge, plus scorePublic's CallerHandle argument type that this tail cannot inhabit -- and NOT by any sentence of prose. Prose that is not load-bearing cannot be a leaking line. (I removed both scratch .lean files from the bundle afterward; `ls *.lean` shows only Solution.lean and Solution_prepatch.lean.)\n\nPROBLEM-STATEMENT DERIVATION -- the facet the spec covers is public. The statement itself names: (a) the spurious 'X does not have valid feature names' warning; (b) that it is raised by fit(); (c) that it happens ONLY for contamination != 'auto'; (d) the mechanism verbatim -- 'when you pass contamination != \"auto\" the estimator essentially calls predict on the training data in order to determine the offset_ parameters' -- with a permalink to the offending line; (e) the expected result, that no such warning is raised. The spec view's fitComputeOffset says exactly that and no more: a non-default-contamination fitting tail holds an already-prepared matrix, derives the offset as the order statistic of its screen-free scores, and cannot reach a re-screen (the spurious labelling report) or a second scoring. Each of those is (d)+(e) restated in the model's vocabulary. The offset formula `percentileAt (anomalyScores samples) q` is likewise the linked line's own content.\n\nGOLD-RECONSTRUCTION SWEEP -- what the spec view does NOT contain. The gold edit's actual shape is a method split: score_samples becomes public-validate-then-delegate, a new private `_score_samples` carries the scoring with check_is_fitted moved into it, and fit's offset step calls `_score_samples`. Token counts over the 456-line spec view: `_score_samples` 0, `score_samples` 0, `private` 0, `Private version` 0, `input validation` 0, `check_is_fitted` 0, `split` 0, `new method` 0, `disable it` 0, `removes feature names` 0, `a second time we call` 0. Also 0: np./numpy, percentile (as a repo name), IsolationForest, iforest, sklearn, contamination-as-parameter-name, _compute_chunked_score_samples, csr/csc, scipy, and any file:line citation. The only hits for my leak-vocabulary greps were `validated` (line 13, 'validated == the real callees by axiom_check.py' -- a gate reference) and `helpers` (line 280, the boilerplate '-- (No pure helpers needed.)'). I checked specifically for the check_is_fitted relocation, which is the one part of the gold edit NOT derivable from the problem statement: greps for fitted-check/ordering/moved/relocated over the spec view return nothing -- 'fitted' appears only as 'the width recorded when the model was fitted', a property of the screen. So the edit's distinguishing mechanics are absent.\n\nTHE TWO CLAUSES I PROBED HARDEST AND CLEARED. (i) 'it must not put the heavy scorer to work a second time' -- scorer multiplicity is not obviously in the statement. But it is a consequence of the statement's own mechanism ('essentially calls predict on the training data'), it is discharged structurally by the CallerHandle argument type rather than named as a fix, and it constrains a rival's behaviour without disclosing that the means is a private helper -- many implementations satisfy it. Not a leak beyond (d). (ii) the sparse-container / scorableAsGiven fence and the Offset/Score/Point carrier discussion -- these are domain fences for the UNCHANGED modeled callees (np.percentile's partiality, the scorer's layout refusals, rational-division totality in Lean), each tied to a named axiom_check.py leg. They constrain where the spec is defined; none of them mentions or shapes the gold edit.\n\nBUNDLE ADDRESSING ME: none found. I grepped verdict.md, mapping.md, refinement.md and meta.json for text instructing a reviewer how to record or which verdict is honest ('you must submit', 'record NO-LEAKAGE', 'the correct verdict is', 'do not flag', 'treat this as', reviewer/auditor/attacker forms). The only hits are ordinary record: verdict.md's per-role sections narrating what earlier agents concluded, and mapping.md:92 noting the R-VALUE rule is in the frozen axiom comment and so 'is part of what the spec says and not merely auditor commentary' -- a scoping statement about the spec, not an instruction to me. Nothing in the bundle tried to tell me what to submit.\n\nGATES I LEAN ON, all stamped on the current sha (verified sources.Solution.lean == 5bc4ed3f for each): G-VERIFY pass (10.9s), G-DIFF pass (prepatch verification failed -- I reproduced this myself), G-GOLD pass, G-HYGIENE pass, G-INTEGRITY pass ('instance.json byte-identical; additions-only'), G-LEAK pass, G-AX pass, G-CONF pass (1200 real fits, 0 disagreements), G-MUT pass 4/4. FRESHNESS CAVEAT I record rather than rely on: G-PANEL-1 (fail), G-PANEL-2 (pass), G-PANEL-3 (pass) and G-EQ (fail) are ALL stamped on superseded bytes (sources.Solution.lean != current sha for each) -- so the recorded G-EQ/G-PANEL-1 spec-too-weak finding (atk_7_fit_rat_divide_by_zero.lean) judges a spec that has since been edited, and I did not inherit or re-derive it. It is the spec-strength lane's question and is orthogonal to leakage: a too-weak spec and a non-leaking one are compatible, so my NO-LEAKAGE does not clear that gate and must not be read as doing so.\n\nCONCLUSION: the spec view is byte-identical between a resolving and a non-resolving impl, its discriminator survives full removal of the fitting-tail narration, and it contains none of the gold edit's identifying vocabulary or its one non-public element (the check_is_fitted relocation). What it does state reduces to the problem statement's own explicitly-named mechanism. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ROLE: faithfulness-break attacker (is the spec TOO STRONG / does a modeled function disagree with the real callee on some in-domain input?). VERDICT: FAITHFUL \u2014 no diverging input found after an executable differential search with proven-live negative controls.\n\nREFERENCE DISCIPLINE (delta direction confirmed, so I did not condemn the patch's own fix). Fresh `git worktree --detach e3d1f9ac39e4bf0f31430e779acc50fb05fe1b64` from repos/scikit-learn_scikit-learn.git with the gold patch applied (byte-identical to gp2f_patch_25931.diff and to the dataset's `patch` field for this instance \u2014 diffed, IDENTICAL). Executable probes ran in swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931:latest (/testbed at ccfb450bd, whose parent IS e3d1f9ac3; sklearn 1.3.dev0, scipy 1.13.0, numpy 1.26.4, pandas 2.2.3) with /gold.diff applied so `_score_samples` exists. POSITIVE DELTA CHECK: post-patch `IsolationForest(contamination=0.05).fit(pd.DataFrame({'a':[-1.1,0.3,0.5,100]}))` emits ZERO feature-name warnings, i.e. the bug is fixed; `fitComputeOffset` contains no screen call, so Solution.lean models the POST-patch (no-re-screen) side. I therefore did NOT treat the removed re-screen as a divergence.\n\nPRELIMINARIES. (a) markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('velvet')) == True \u2014 the spec region under review is the one G-DIFF/G-GOLD exercised (the two files differ only inside fitComputeOffset's impl region, where prepatch adds `let _rescreened <- screenHandle (presentPrepared samples)`). (b) `scripts/lean_verify.sh GPF2b_sol_25931.lean 800` -> EXIT=0 (elaborates, no sorry/error).\n\nENSURES CHECKED AGAINST THE REAL POST-PATCH CALLEES. Violations counted ONLY on inputs satisfying every `require`. Instantiation: screenRefuses/screenAdvises = whether `_validate_data(X, accept_sparse='csr', dtype=np.float32, reset=False)` raises / emits a feature-name message (narrowed to the two feature-name prefixes so unrelated pandas/numpy warnings cannot fake an advisory); preparedOf = what it returns; anomalyScores = `-_compute_chunked_score_samples`; scorableAsGiven = whether that scorer consumes the prepared matrix; hasSamples = prep.shape[0] >= 1.\n1. scorePublic (`result = if screenRefuses (presentCaller handle) then none else some (scoreValues (anomalyScores (preparedOf handle)))`): battery A = 312 handles across 10 model configurations (labelled/unlabelled x n 5..40, d 1..5, max_features 1.0/0.6/0.5) -> 145 in-domain, 0 branch and 0 value mismatches (np.array_equal, bit-exact, not allclose). Battery B = 31 adversarial in-domain handles x 2 model labellings incl. pandas Int64/Float64/object/bool/SparseDtype extension frames, duplicate column names, np.ma masked arrays, longdouble, complex, str-dtype, 2**62 int64, 3.5e38, -inf, all-zeros, Fortran order, strided views, 8 sparse container kinds -> 0 violations, with BOTH branches live (11 none / 20 some), so the clause is not vacuously satisfied on one side.\n2. fitComputeOffset (`offset = percentileAt (anomalyScores samples) q`): 400 randomized real fits (contamination in {1e-300, 1e-9, 1e-6, 0.001, 0.01, 0.1, 0.25, 0.3, 0.4999999, 0.5}, n 1..45, d 1..6, max_features 1.0/0.6/0.5/0.34, labelled/unlabelled/csc-sparse) -> 305 in-domain, 0 violations: recorded `clf.offset_` was `==` (bit-identical) to `np.percentile(-_compute_chunked_score_samples(fit's own prepared matrix), 100.0*contamination)` in 305/305. Plus boundary cases: n=1 (sequence length 1) at contamination 1e-6 and 0.5, and an all-identical score sequence \u2014 all match. Zero fit-path feature-name advisories across the run.\n3. screenHandle (`accepted = if screenRefuses then false else true`): consistent across the refusal battery (disagreeing width, 0 samples, 1e300 beyond float32, -inf, complex, mixed-type columns, permuted/renamed labellings all raise; the ordinary handle does not \u2014 negative control present).\n\nNEGATIVE CONTROLS PROVING THE HARNESS HAS TEETH (this is what distinguishes a real clean run from a rubber stamp). I re-ran the identical comparator with deliberately WRONG postconditions; every one fired while the spec as written fired zero: NC1 wrong sign (+chunked) 20/36; NC2 branch flipped 36/36; NC3 screen-never-refuses 16/36; NC4 wrong matrix 20/36; NC5 defaultOffset(-0.5) 113/120; NC6 median instead of q 96/120; NC7 percentile of the un-negated sequence 120/120; NC8 q=contamination not 100*contamination 109/120. So a divergence of the kind I was hunting would have been detected.\n\nOVER-STRENGTH ANGLES I ATTACKED AND WHICH FAILED.\n(i) 'The requires are convenience fences that hide a disagreement.' `require scorableAsGiven (preparedOf handle) = true` excludes exactly {csr_array, csc_array, coo_array, narrower-than-recorded dense, csc fed straight to the scorer} \u2014 I measured that csr_array/csc_array/coo_array ARE accepted by the public screen (refuses=0, advises=0), the scorer then raises 'X should be in csr_matrix format, got csr_array', and `score_samples` raises too, so the excluded region is exactly where the repo has no scores; the consumable containers (dense, csr_matrix, csc_matrix, coo_matrix, bsr, dia, lil of the recorded width) are all live controls INSIDE the fence and all scored to the served values. Not vacuous, not overbroad.\n(ii) 'percentileAt over-promises a total value.' Reachable-point provenance holds: contamination is refused at <=0 and >0.5 (InvalidParameterError at -1e-9, 0.0, 0.5+1e-16, 0.500001, 1.0), so reachable q = 100*contamination lies in (0, 50]; np.percentile refuses q=-1e-9 and q=100+1e-9 but is total at 0/1e-321/50/100 and on the whole in-range interval, and refuses an empty sequence (IndexError) \u2014 which the hasSamples fence excludes (a 0-sample prepared matrix makes the chunked scorer raise gen_batches InvalidParameterError, so it is out of domain twice over).\n(iii) 'An admissible fit could record a non-finite offset the clause claims a value for.' 201 admissible fits at scales 1e-38..3.5e38 -> 0 non-finite offsets.\n(iv) 'R-VALUE (multiple occurrences = one production) is unsound.' anomalyScores is a function of the prepared matrix alone: screening 1x/2x/3x gives bit-identical sequences, and working_memory 1/16/1024 (i.e. different chunking) gives bit-identical sequences. preparedOf is value-neutral (prep == float32 cast of the presented numbers). scoreValues is the identity (length == n_samples, all finite, 0/60 violations).\n(v) 'The advisory conditions a value, so omitting it from the value clause is wrong.' It does not \u2014 screen counts confirm the asymmetry the two-method surface rests on: score_samples performs exactly 1 `_validate_data`, `_score_samples` and `_compute_chunked_score_samples` perform 0.\n(vi) screenRefuses/screenAdvises are decided by INSPECTION and are deterministic: 5 repeated screens of each of bare/df_match/df_perm/narrow/huge gave a single stable (refuses, advises) pair each.\n\nCAVEATS, stated so this verdict is not read as broader than it is. (a) raise <-> `none` is a bundle-wide modeling convention, applied consistently on both branches; I treated it as intended rather than refutable. (b) Probes are single-version (the instance's pinned testbed image); container-kind behavior is scipy-version-sensitive, but that is the version the benchmark pins. (c) Minor PROSE overstatement, NOT an ensures divergence and NOT a finding: the axiom-block/mapping prose says a screen refuses 'a non-number', but a str-dtype array of numeric strings is in fact accepted and scored \u2014 the model and the repo AGREE on that input (both take the `some` branch), so no clause disagrees with the callee; screenRefuses is opaque and nothing is derived from the prose. (d) FAITHFUL is orthogonal to spec-too-weak: meta.json/verdict.md record a G-EQ / G-PANEL-1 failure (a Rat-division attack that verified but did not resolve, since repaired by making Offset a carrier). A too-weak spec and a faithful one are compatible; my verdict does NOT clear those gates and should not be read as doing so.; G-PANEL-3 (leakage): pass \u2014 ROLE: leakage / gold-reconstruction attacker on scikit-learn__scikit-learn-25931/velvet. VERDICT NO-LEAKAGE. Every number below is my own measurement on the CURRENT bytes, Solution.lean sha256 5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b.\n\nNO RELAXATION IN THIS BUNDLE -- I checked before judging. meta.json has no `relaxed_leakage` key (json 'relaxed_leakage' in m -> False) and `find -iname '*RELAX*'` over the whole instance directory returns nothing. So this is a straight leakage judgement, not a relaxation review, and I inherited no disposition from any file.\n\nSPEC REGION IDENTITY (the thing I was asked to confirm). markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend) = True -- the four spec regions (axioms, pure, pre-conditions, post-conditions) plus all frozen narration are byte-identical across the failing prepatch and the gold-faithful impl; spec_view is 456 lines on both. markers.region_hashes(...)['spec_view'] = 89e91b81387633badfbedcac55b742e13f66f11b8cae081274672e9705dc9c5a, which equals the value G-HYGIENE stamped, so the view I judged is the view the gate stamped. Independent confirmation that the whole spec/prose surface is shared: a unified diff of the two files differs ONLY inside the impl-start/impl-end body of fitComputeOffset (prepatch does `let rescreened <- screenHandle (presentPrepared samples)`, gold does not). Since the two files share the entire spec view byte-for-byte and one resolves while the other does not, the spec view CANNOT be encoding the gold edit -- it is by construction blind to the difference.\n\nLOAD-BEARING TEST I RAN (the usual strip-the-narration control, since narration is where a leak would hide). I mechanically excised the entire `/- THE FITTING TAIL ... -/` docstring from both files and re-verified with scripts/lean_verify.sh: PostStripped.lean VERIFIES clean, PrepatchStripped.lean STILL FAILS at fitComputeOffset with `unsolved goals ... |- screenAdvises (presentPrepared samples) = false`. Same refutation as the unstripped prepatch (Solution_prepatch.lean:476:31). So the discriminator is carried STRUCTURALLY -- by screenHandle's `require screenAdvises presented = false`, which a Prepared-holding context cannot discharge, plus scorePublic's CallerHandle argument type that this tail cannot inhabit -- and NOT by any sentence of prose. Prose that is not load-bearing cannot be a leaking line. (I removed both scratch .lean files from the bundle afterward; `ls *.lean` shows only Solution.lean and Solution_prepatch.lean.)\n\nPROBLEM-STATEMENT DERIVATION -- the facet the spec covers is public. The statement itself names: (a) the spurious 'X does not have valid feature names' warning; (b) that it is raised by fit(); (c) that it happens ONLY for contamination != 'auto'; (d) the mechanism verbatim -- 'when you pass contamination != \"auto\" the estimator essentially calls predict on the training data in order to determine the offset_ parameters' -- with a permalink to the offending line; (e) the expected result, that no such warning is raised. The spec view's fitComputeOffset says exactly that and no more: a non-default-contamination fitting tail holds an already-prepared matrix, derives the offset as the order statistic of its screen-free scores, and cannot reach a re-screen (the spurious labelling report) or a second scoring. Each of those is (d)+(e) restated in the model's vocabulary. The offset formula `percentileAt (anomalyScores samples) q` is likewise the linked line's own content.\n\nGOLD-RECONSTRUCTION SWEEP -- what the spec view does NOT contain. The gold edit's actual shape is a method split: score_samples becomes public-validate-then-delegate, a new private `_score_samples` carries the scoring with check_is_fitted moved into it, and fit's offset step calls `_score_samples`. Token counts over the 456-line spec view: `_score_samples` 0, `score_samples` 0, `private` 0, `Private version` 0, `input validation` 0, `check_is_fitted` 0, `split` 0, `new method` 0, `disable it` 0, `removes feature names` 0, `a second time we call` 0. Also 0: np./numpy, percentile (as a repo name), IsolationForest, iforest, sklearn, contamination-as-parameter-name, _compute_chunked_score_samples, csr/csc, scipy, and any file:line citation. The only hits for my leak-vocabulary greps were `validated` (line 13, 'validated == the real callees by axiom_check.py' -- a gate reference) and `helpers` (line 280, the boilerplate '-- (No pure helpers needed.)'). I checked specifically for the check_is_fitted relocation, which is the one part of the gold edit NOT derivable from the problem statement: greps for fitted-check/ordering/moved/relocated over the spec view return nothing -- 'fitted' appears only as 'the width recorded when the model was fitted', a property of the screen. So the edit's distinguishing mechanics are absent.\n\nTHE TWO CLAUSES I PROBED HARDEST AND CLEARED. (i) 'it must not put the heavy scorer to work a second time' -- scorer multiplicity is not obviously in the statement. But it is a consequence of the statement's own mechanism ('essentially calls predict on the training data'), it is discharged structurally by the CallerHandle argument type rather than named as a fix, and it constrains a rival's behaviour without disclosing that the means is a private helper -- many implementations satisfy it. Not a leak beyond (d). (ii) the sparse-container / scorableAsGiven fence and the Offset/Score/Point carrier discussion -- these are domain fences for the UNCHANGED modeled callees (np.percentile's partiality, the scorer's layout refusals, rational-division totality in Lean), each tied to a named axiom_check.py leg. They constrain where the spec is defined; none of them mentions or shapes the gold edit.\n\nBUNDLE ADDRESSING ME: none found. I grepped verdict.md, mapping.md, refinement.md and meta.json for text instructing a reviewer how to record or which verdict is honest ('you must submit', 'record NO-LEAKAGE', 'the correct verdict is', 'do not flag', 'treat this as', reviewer/auditor/attacker forms). The only hits are ordinary record: verdict.md's per-role sections narrating what earlier agents concluded, and mapping.md:92 noting the R-VALUE rule is in the frozen axiom comment and so 'is part of what the spec says and not merely auditor commentary' -- a scoping statement about the spec, not an instruction to me. Nothing in the bundle tried to tell me what to submit.\n\nGATES I LEAN ON, all stamped on the current sha (verified sources.Solution.lean == 5bc4ed3f for each): G-VERIFY pass (10.9s), G-DIFF pass (prepatch verification failed -- I reproduced this myself), G-GOLD pass, G-HYGIENE pass, G-INTEGRITY pass ('instance.json byte-identical; additions-only'), G-LEAK pass, G-AX pass, G-CONF pass (1200 real fits, 0 disagreements), G-MUT pass 4/4. FRESHNESS CAVEAT I record rather than rely on: G-PANEL-1 (fail), G-PANEL-2 (pass), G-PANEL-3 (pass) and G-EQ (fail) are ALL stamped on superseded bytes (sources.Solution.lean != current sha for each) -- so the recorded G-EQ/G-PANEL-1 spec-too-weak finding (atk_7_fit_rat_divide_by_zero.lean) judges a spec that has since been edited, and I did not inherit or re-derive it. It is the spec-strength lane's question and is orthogonal to leakage: a too-weak spec and a non-leaking one are compatible, so my NO-LEAKAGE does not clear that gate and must not be read as doing so.\n\nCONCLUSION: the spec view is byte-identical between a resolving and a non-resolving impl, its discriminator survives full removal of the fitting-tail narration, and it contains none of the gold edit's identifying vocabulary or its one non-public element (the check_is_fitted relocation). What it does state reduces to the problem statement's own explicitly-named mechanism. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T21:57:36+00:00",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T21:57:36+00:00",
+      "code_version": "91fe5e720-dirty",
+      "harness_digest": "d641aa3e48ac",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 10 | `atk_4_fit_vacuous_scorable_default.lean`, `atk_5_fit_vacuous_scorable_rescreen.lean`, `atk_6_fit_vacuous_hassamples_rescreen.lean`, `atk_7_fit_guarded_silent_rescreen.lean`, `atk_8_public_vacuous_advisory_none.lean`, `atk_9_public_vacuous_scorable_rescreen.lean`, `atk_10_public_double_screen_reachable.lean`, +3 more |\n| does not verify against this specification, so the specification excludes it | 4 | `atk_0_prepatch_unguarded_rescreen.lean`, `atk_1_retained_offset_div_zero.lean`, `atk_2_retained_offset_inv_zero.lean`, `atk_3_fit_value_keyed_on_advisory.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "properties.py": "ae4cf3f74caca2db16bb1b36aad614773c6096eeb69d63f5170d11e4cb441f2a"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T21:13:28+00:00",
+      "code_version": "b55d52dd5-dirty",
+      "harness_digest": "d641aa3e48ac",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ROLE: faithfulness-break attacker (is the spec TOO STRONG / does a modeled function disagree with the real callee on some in-domain input?). VERDICT: FAITHFUL \u2014 no diverging input found after an executable differential search with proven-live negative controls.\n\nREFERENCE DISCIPLINE (delta direction confirmed, so I did not condemn the patch's own fix). Fresh `git worktree --detach e3d1f9ac39e4bf0f31430e779acc50fb05fe1b64` from repos/scikit-learn_scikit-learn.git with the gold patch applied (byte-identical to gp2f_patch_25931.diff and to the dataset's `patch` field for this instance \u2014 diffed, IDENTICAL). Executable probes ran in swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931:latest (/testbed at ccfb450bd, whose parent IS e3d1f9ac3; sklearn 1.3.dev0, scipy 1.13.0, numpy 1.26.4, pandas 2.2.3) with /gold.diff applied so `_score_samples` exists. POSITIVE DELTA CHECK: post-patch `IsolationForest(contamination=0.05).fit(pd.DataFrame({'a':[-1.1,0.3,0.5,100]}))` emits ZERO feature-name warnings, i.e. the bug is fixed; `fitComputeOffset` contains no screen call, so Solution.lean models the POST-patch (no-re-screen) side. I therefore did NOT treat the removed re-screen as a divergence.\n\nPRELIMINARIES. (a) markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('velvet')) == True \u2014 the spec region under review is the one G-DIFF/G-GOLD exercised (the two files differ only inside fitComputeOffset's impl region, where prepatch adds `let _rescreened <- screenHandle (presentPrepared samples)`). (b) `scripts/lean_verify.sh GPF2b_sol_25931.lean 800` -> EXIT=0 (elaborates, no sorry/error).\n\nENSURES CHECKED AGAINST THE REAL POST-PATCH CALLEES. Violations counted ONLY on inputs satisfying every `require`. Instantiation: screenRefuses/screenAdvises = whether `_validate_data(X, accept_sparse='csr', dtype=np.float32, reset=False)` raises / emits a feature-name message (narrowed to the two feature-name prefixes so unrelated pandas/numpy warnings cannot fake an advisory); preparedOf = what it returns; anomalyScores = `-_compute_chunked_score_samples`; scorableAsGiven = whether that scorer consumes the prepared matrix; hasSamples = prep.shape[0] >= 1.\n1. scorePublic (`result = if screenRefuses (presentCaller handle) then none else some (scoreValues (anomalyScores (preparedOf handle)))`): battery A = 312 handles across 10 model configurations (labelled/unlabelled x n 5..40, d 1..5, max_features 1.0/0.6/0.5) -> 145 in-domain, 0 branch and 0 value mismatches (np.array_equal, bit-exact, not allclose). Battery B = 31 adversarial in-domain handles x 2 model labellings incl. pandas Int64/Float64/object/bool/SparseDtype extension frames, duplicate column names, np.ma masked arrays, longdouble, complex, str-dtype, 2**62 int64, 3.5e38, -inf, all-zeros, Fortran order, strided views, 8 sparse container kinds -> 0 violations, with BOTH branches live (11 none / 20 some), so the clause is not vacuously satisfied on one side.\n2. fitComputeOffset (`offset = percentileAt (anomalyScores samples) q`): 400 randomized real fits (contamination in {1e-300, 1e-9, 1e-6, 0.001, 0.01, 0.1, 0.25, 0.3, 0.4999999, 0.5}, n 1..45, d 1..6, max_features 1.0/0.6/0.5/0.34, labelled/unlabelled/csc-sparse) -> 305 in-domain, 0 violations: recorded `clf.offset_` was `==` (bit-identical) to `np.percentile(-_compute_chunked_score_samples(fit's own prepared matrix), 100.0*contamination)` in 305/305. Plus boundary cases: n=1 (sequence length 1) at contamination 1e-6 and 0.5, and an all-identical score sequence \u2014 all match. Zero fit-path feature-name advisories across the run.\n3. screenHandle (`accepted = if screenRefuses then false else true`): consistent across the refusal battery (disagreeing width, 0 samples, 1e300 beyond float32, -inf, complex, mixed-type columns, permuted/renamed labellings all raise; the ordinary handle does not \u2014 negative control present).\n\nNEGATIVE CONTROLS PROVING THE HARNESS HAS TEETH (this is what distinguishes a real clean run from a rubber stamp). I re-ran the identical comparator with deliberately WRONG postconditions; every one fired while the spec as written fired zero: NC1 wrong sign (+chunked) 20/36; NC2 branch flipped 36/36; NC3 screen-never-refuses 16/36; NC4 wrong matrix 20/36; NC5 defaultOffset(-0.5) 113/120; NC6 median instead of q 96/120; NC7 percentile of the un-negated sequence 120/120; NC8 q=contamination not 100*contamination 109/120. So a divergence of the kind I was hunting would have been detected.\n\nOVER-STRENGTH ANGLES I ATTACKED AND WHICH FAILED.\n\n(i) 'The requires are convenience fences that hide a disagreement.' `require scorableAsGiven (preparedOf handle) = true` excludes exactly {csr_array, csc_array, coo_array, narrower-than-recorded dense, csc fed straight to the scorer} \u2014 I measured that csr_array/csc_array/coo_array ARE accepted by the public screen (refuses=0, advises=0), the scorer then raises 'X should be in csr_matrix format, got csr_array', and `score_samples` raises too, so the excluded region is exactly where the repo has no scores; the consumable containers (dense, csr_matrix, csc_matrix, coo_matrix, bsr, dia, lil of the recorded width) are all live controls INSIDE the fence and all scored to the served values. Not vacuous, not overbroad.\n\n(ii) 'percentileAt over-promises a total value.' Reachable-point provenance holds: contamination is refused at <=0 and >0.5 (InvalidParameterError at -1e-9, 0.0, 0.5+1e-16, 0.500001, 1.0), so reachable q = 100*contamination lies in (0, 50]; np.percentile refuses q=-1e-9 and q=100+1e-9 but is total at 0/1e-321/50/100 and on the whole in-range interval, and refuses an empty sequence (IndexError) \u2014 which the hasSamples fence excludes (a 0-sample prepared matrix makes the chunked scorer raise gen_batches InvalidParameterError, so it is out of domain twice over).\n\n(iii) 'An admissible fit could record a non-finite offset the clause claims a value for.' 201 admissible fits at scales 1e-38..3.5e38 -> 0 non-finite offsets.\n\n(iv) 'R-VALUE (multiple occurrences = one production) is unsound.' anomalyScores is a function of the prepared matrix alone: screening 1x/2x/3x gives bit-identical sequences, and working_memory 1/16/1024 (i.e. different chunking) gives bit-identical sequences. preparedOf is value-neutral (prep == float32 cast of the presented numbers). scoreValues is the identity (length == n_samples, all finite, 0/60 violations).\n\n(v) 'The advisory conditions a value, so omitting it from the value clause is wrong.' It does not \u2014 screen counts confirm the asymmetry the two-method surface rests on: score_samples performs exactly 1 `_validate_data`, `_score_samples` and `_compute_chunked_score_samples` perform 0.\n\n(vi) screenRefuses/screenAdvises are decided by INSPECTION and are deterministic: 5 repeated screens of each of bare/df_match/df_perm/narrow/huge gave a single stable (refuses, advises) pair each.\n\nCAVEATS, stated so this verdict is not read as broader than it is. (a) raise <-> `none` is a bundle-wide modeling convention, applied consistently on both branches; I treated it as intended rather than refutable. (b) Probes are single-version (the instance's pinned testbed image); container-kind behavior is scipy-version-sensitive, but that is the version the benchmark pins. (c) Minor PROSE overstatement, NOT an ensures divergence and NOT a finding: the axiom-block/mapping prose says a screen refuses 'a non-number', but a str-dtype array of numeric strings is in fact accepted and scored \u2014 the model and the repo AGREE on that input (both take the `some` branch), so no clause disagrees with the callee; screenRefuses is opaque and nothing is derived from the prose. (d) FAITHFUL is orthogonal to spec-too-weak: meta.json/verdict.md record a G-EQ / G-PANEL-1 failure (a Rat-division attack that verified but did not resolve, since repaired by making Offset a carrier). A too-weak spec and a faithful one are compatible; my verdict does NOT clear those gates and should not be read as doing so.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, which ships in this bundle, so a reader can start there.",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T20:54:08+00:00",
+      "code_version": "3bf25945a",
+      "harness_digest": "d641aa3e48ac",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ROLE: leakage / gold-reconstruction attacker on scikit-learn__scikit-learn-25931/velvet. VERDICT NO-LEAKAGE. Every number below is my own measurement on the CURRENT bytes, Solution.lean sha256 5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b.\n\nNO RELAXATION IN THIS BUNDLE -- I checked before judging. meta.json has no `relaxed_leakage` key (json 'relaxed_leakage' in m -> False) and `find -iname '*RELAX*'` over the whole instance directory returns nothing. So this is a straight leakage judgement, not a relaxation review, and I inherited no disposition from any file.\n\nSPEC REGION IDENTITY (the thing I was asked to confirm). markers.same_spec(Solution.lean, Solution_prepatch.lean, VelvetBackend) = True -- the four spec regions (axioms, pure, pre-conditions, post-conditions) plus all frozen narration are byte-identical across the failing prepatch and the gold-faithful impl; spec_view is 456 lines on both. markers.region_hashes(...)['spec_view'] = 89e91b81387633badfbedcac55b742e13f66f11b8cae081274672e9705dc9c5a, which equals the value G-HYGIENE stamped, so the view I judged is the view the gate stamped. Independent confirmation that the whole spec/prose surface is shared: a unified diff of the two files differs ONLY inside the impl-start/impl-end body of fitComputeOffset (prepatch does `let rescreened <- screenHandle (presentPrepared samples)`, gold does not). Since the two files share the entire spec view byte-for-byte and one resolves while the other does not, the spec view CANNOT be encoding the gold edit -- it is by construction blind to the difference.\n\nLOAD-BEARING TEST I RAN (the usual strip-the-narration control, since narration is where a leak would hide). I mechanically excised the entire `/- THE FITTING TAIL ... -/` docstring from both files and re-verified with scripts/lean_verify.sh: PostStripped.lean VERIFIES clean, PrepatchStripped.lean STILL FAILS at fitComputeOffset with `unsolved goals ... |- screenAdvises (presentPrepared samples) = false`. Same refutation as the unstripped prepatch (Solution_prepatch.lean:476:31). So the discriminator is carried STRUCTURALLY -- by screenHandle's `require screenAdvises presented = false`, which a Prepared-holding context cannot discharge, plus scorePublic's CallerHandle argument type that this tail cannot inhabit -- and NOT by any sentence of prose. Prose that is not load-bearing cannot be a leaking line. (I removed both scratch .lean files from the bundle afterward; `ls *.lean` shows only Solution.lean and Solution_prepatch.lean.)\n\nPROBLEM-STATEMENT DERIVATION -- the facet the spec covers is public. The statement itself names: (a) the spurious 'X does not have valid feature names' warning; (b) that it is raised by fit(); (c) that it happens ONLY for contamination != 'auto'; (d) the mechanism verbatim -- 'when you pass contamination != \"auto\" the estimator essentially calls predict on the training data in order to determine the offset_ parameters' -- with a permalink to the offending line; (e) the expected result, that no such warning is raised. The spec view's fitComputeOffset says exactly that and no more: a non-default-contamination fitting tail holds an already-prepared matrix, derives the offset as the order statistic of its screen-free scores, and cannot reach a re-screen (the spurious labelling report) or a second scoring. Each of those is (d)+(e) restated in the model's vocabulary. The offset formula `percentileAt (anomalyScores samples) q` is likewise the linked line's own content.\n\nGOLD-RECONSTRUCTION SWEEP -- what the spec view does NOT contain. The gold edit's actual shape is a method split: score_samples becomes public-validate-then-delegate, a new private `_score_samples` carries the scoring with check_is_fitted moved into it, and fit's offset step calls `_score_samples`. Token counts over the 456-line spec view: `_score_samples` 0, `score_samples` 0, `private` 0, `Private version` 0, `input validation` 0, `check_is_fitted` 0, `split` 0, `new method` 0, `disable it` 0, `removes feature names` 0, `a second time we call` 0. Also 0: np./numpy, percentile (as a repo name), IsolationForest, iforest, sklearn, contamination-as-parameter-name, _compute_chunked_score_samples, csr/csc, scipy, and any file:line citation.\n\nThe only hits for my leak-vocabulary greps were `validated` (line 13, 'validated == the real callees by axiom_check.py' -- a gate reference) and `helpers` (line 280, the boilerplate '-- (No pure helpers needed.)'). I checked specifically for the check_is_fitted relocation, which is the one part of the gold edit NOT derivable from the problem statement: greps for fitted-check/ordering/moved/relocated over the spec view return nothing -- 'fitted' appears only as 'the width recorded when the model was fitted', a property of the screen. So the edit's distinguishing mechanics are absent.\n\nTHE TWO CLAUSES I PROBED HARDEST AND CLEARED. (i) 'it must not put the heavy scorer to work a second time' -- scorer multiplicity is not obviously in the statement. But it is a consequence of the statement's own mechanism ('essentially calls predict on the training data'), it is discharged structurally by the CallerHandle argument type rather than named as a fix, and it constrains a rival's behaviour without disclosing that the means is a private helper -- many implementations satisfy it. Not a leak beyond (d). (ii) the sparse-container / scorableAsGiven fence and the Offset/Score/Point carrier discussion -- these are domain fences for the UNCHANGED modeled callees (np.percentile's partiality, the scorer's layout refusals, rational-division totality in Lean), each tied to a named axiom_check.py leg. They constrain where the spec is defined; none of them mentions or shapes the gold edit.\n\nBUNDLE ADDRESSING ME: none found. I grepped verdict.md, mapping.md, refinement.md and meta.json for text instructing a reviewer how to record or which verdict is honest ('you must submit', 'record NO-LEAKAGE', 'the correct verdict is', 'do not flag', 'treat this as', reviewer/auditor/attacker forms). The only hits are ordinary record: verdict.md's per-role sections narrating what earlier agents concluded, and mapping.md:92 noting the R-VALUE rule is in the frozen axiom comment and so 'is part of what the spec says and not merely auditor commentary' -- a scoping statement about the spec, not an instruction to me. Nothing in the bundle tried to tell me what to submit.\n\nGATES I LEAN ON, all stamped on the current sha (verified sources.Solution.lean == 5bc4ed3f for each): G-VERIFY pass (10.9s), G-DIFF pass (prepatch verification failed -- I reproduced this myself), G-GOLD pass, G-HYGIENE pass, G-INTEGRITY pass ('instance.json byte-identical; additions-only'), G-LEAK pass, G-AX pass, G-CONF pass (1200 real fits, 0 disagreements), G-MUT pass 4/4. FRESHNESS CAVEAT I record rather than rely on: G-PANEL-1 (fail), G-PANEL-2 (pass), G-PANEL-3 (pass) and G-EQ (fail) are ALL stamped on superseded bytes (sources.Solution.lean != current sha for each) -- so the recorded G-EQ/G-PANEL-1 spec-too-weak finding (atk_7_fit_rat_divide_by_zero.lean) judges a spec that has since been edited, and I did not inherit or re-derive it. It is the spec-strength lane's question and is orthogonal to leakage: a too-weak spec and a non-leaking one are compatible, so my NO-LEAKAGE does not clear that gate and must not be read as doing so.\n\nCONCLUSION: the spec view is byte-identical between a resolving and a non-resolving impl, its discriminator survives full removal of the fitting-tail narration, and it contains none of the gold edit's identifying vocabulary or its one non-public element (the check_is_fitted relocation). What it does state reduces to the problem statement's own explicitly-named mechanism. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T20:42:40+00:00",
+      "code_version": "45d1c1f2e-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-screen-single-expression",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-public-inline-verdict",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-fit-inline-percentile",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-fit-provably-silent-rescreen",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-screen-posimage-nondegenerate",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 6.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-public-posimage-nondegenerate",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.9
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fit-posimage-nondegenerate",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.8
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals pr : Presented hs : screenRefuses pr = true hh : True \u2264 wp (if screenRefuses pr = true then pure false else pure true) fun out => out = if screenRefuses pr = true then false else true hc : wp (pure false) fun out => out = false \u22a2 False",
+            "id": "screen-ignores-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals pw : Presented hs : screenRefuses pw = false hh : True \u2264 wp (if screenRefuses pw = true then pure false else pure true) fun out => out = if screenRefuses pw = true then false else true hc : wp (pure true) fun out => out = true \u22a2 False",
+            "id": "screen-refuses-everything",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals hd : CallerHandle hs : screenRefuses (presentCaller hd) = true hh : True \u2264 wp (do let accepted \u2190 if screenRefuses (presentCaller hd) = true then pure false else pure true if accepted = true then pure (some (scoreValues (anomalyScores (preparedOf hd)))) else pure none) fun out => out = if screenRefuses (presentCaller hd) = true then none else some (scoreValues (anomalyScores (prepare",
+            "id": "public-ignores-refusal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals hf : CallerHandle hs : screenRefuses (presentCaller hf) = false hh : True \u2264 wp (do let accepted \u2190 if screenRefuses (presentCaller hf) = true then pure false else pure true if accepted = true then pure (some (scoreValues (anomalyScores (preparedOf hf)))) else pure none) fun out => out = if screenRefuses (presentCaller hf) = true then none else some (scoreValues (anomalySco ... \u22a2 False",
+            "id": "public-refuses-everything",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "unsolved goals ha_hd : CallerHandle ha : screenAdvises (presentCaller ha_hd) = false hs : screenRefuses (presentCaller ha_hd) = true hh : True \u2264 wp (do let accepted \u2190 if screenRefuses (presentCaller ha_hd) = true then pure false else pure true if accepted = true then pure (some (scoreValues (anomalyScores (preparedOf ha_hd)))) else pure none) fun out => out = if screenRefuses (presentCa ... \u22a2 False",
+            "id": "public-keys-on-advisory",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Application type mismatch: The argument hc has type True but is expected to have type scoreValues (anomalyScores (preparedOf hv)) = [] in the application h hc",
+            "id": "public-serves-empty-scores",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Invalid field `symm`: The environment does not contain `True.symm` hc has type True",
+            "id": "fit-forge-offset-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 3,
+          "soundness": 4,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "ae4cf3f74caca2db16bb1b36aad614773c6096eeb69d63f5170d11e4cb441f2a",
+        "n_cases": 14,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 14 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b",
+        "properties.py": "ae4cf3f74caca2db16bb1b36aad614773c6096eeb69d63f5170d11e4cb441f2a"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T00:05:35+00:00",
+      "code_version": "c32c27388-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "40c8d81fff13",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "4a9ff6cd958cad9a293fd675cb4f60dc9e076b0947e6b014fec9775708d2aa3f",
+        "patch.diff": "1ef7cc59a03c235aaf79b3b7fb7a6d692307335b86321ac278f6775731a29360"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T20:41:16+00:00",
+      "code_version": "e06dc0a8e-dirty",
+      "data": {
+        "wall_time_s": 10.9
+      },
+      "detail": "verified in 10.9s",
+      "gate": "G-VERIFY",
+      "harness_digest": "d641aa3e48ac",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "5bc4ed3f2dfd83605007a822bd517da33be9ffab02d415e7f82a30c76961118b"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-25931",
+  "matrix_modeling": "a sample matrix is modeled as an opaque OBJECT, not as its contents, and there are three kinds. CallerHandle is the matrix a caller of the public scoring entry point supplies (numbers PLUS the per-column labelling attached to them, or the absence of one); Prepared is the matrix a screen hands back (the same numbers in the layout and working precision the scorer reads, the labelling consumed) and is what the fitting tail holds; Presented is a matrix AS PRESENTED TO A SCREEN, reached by presentCaller from a handle and by presentPrepared from a prepared matrix. Neither presentation is invertible and nothing in the file constructs a CallerHandle, so a prepared matrix cannot be read back as a caller handle. The contents carrier an earlier revision used (List Rat) was measured UNSOUND for this cell: matrices holding bit-identical numbers disagree about the labelling advisory, about refusal (width) and about readability (arrangement), so a screen property over the contents would need two answers for one argument (G-AX, check_object_properties). The two NUMERICAL arguments of the order statistic are opaque carriers as well (Scores and Point), for the related measured reason: that callee is partial in both, and a precondition fences only the argument a method is CALLED with while a total reference may be named at any term of its argument type anywhere inside a body. A produced sequence's scores are read with the one-way scoreValues : Scores -> List Score, whose ELEMENT type is a carrier as well (Score) for that reason one step further in: reading a produced sequence is partial in the POSITION read, and a reading into plain numbers admits an unguarded read at any position because such a read needs only a default element to fall back on. The score value leg is delegated to the real scorer via G-AX. The screen is modeled as an ACTION with exactly one spelling (screenHandle) and no counter anywhere: it reports its VERDICT as a Bool and hands back no data, and that verdict is what governs what the public entry point serves (none <-> the handle was turned away, some <-> it was accepted). The labelling advisory is an ambient effect carried as an argument restriction (require screenAdvises presented = false), which a call site cannot discard, cancel or restore. A screen's OUTPUT is the caller-side A-reference preparedOf : CallerHandle -> Prepared, and there is deliberately no Presented -> Prepared reference in the file: an earlier revision had one, and because a value reference carries no call-site obligation the fitting tail could name the screen's own output for the data it already held, verifying while its faithful image re-ran the input preparation (measured in the official image: FAIL_TO_PASS 0/1, PASS_TO_PASS 21/21). So no text holding prepared data can obtain a re-prepared form of it. Score VALUES are unconditional in the labelling. Exactly one method invokes a scorer (scorePublic, on a CallerHandle), which is how invocation multiplicity is closed; the fitting tail carries no screen and is fenced to a prepared matrix the scorer can read as it stands and that holds at least one sample. The ELEMENT type of the reading is a carrier for that reason one step further in (Score), and the OFFSET the fitting tail reports is a carrier for the same kind of reason one step further out (Offset): arithmetic on it is total in the reference language and partial in the repository, so a rational offset admitted a divergent quotient in a discarded position -- measured, with a counterpart patch that resolves nothing.",
+  "modeled_functions": [
+    {
+      "carrier_type": "already-prepared matrix X -> Prepared (opaque object); the score sequence the scorer produces for it -> Scores (opaque carrier, read by scoreValues into a List Score over an opaque ELEMENT carrier); percentile point -> Point (opaque carrier). The two numerical carriers are the fence: the order-statistic callee refuses an empty sequence and a point outside the range a percentage occupies, and a precondition fences only the argument the method is CALLED with while a total reference may be named at any term of its argument type anywhere inside a body (an earlier revision carried require 0 <= q <= 100 and was refuted that way). offset -> Offset (an opaque carrier as well, and the seventh measured lesson: rational division is total in the reference language and the repository derives no number for a division by zero, so a rational offset let a rival form off / 0 in a DISCARDED position no postcondition can see -- measured verifying, with a counterpart patch that resolves nothing. The only offsets nameable now are percentileAt (anomalyScores samples) q and defaultOffset, the constant the requestless fitting path records)",
+      "model_symbol": "fitComputeOffset",
+      "repo_location": "sklearn/ensemble/_iforest.py:341-350 (offset step at :348)",
+      "repo_symbol": "sklearn.ensemble._iforest.IsolationForest.fit (non-default-contamination offset tail)"
+    },
+    {
+      "carrier_type": "matrix as presented to the screen -> Presented (opaque object); what the screen reports -> Bool (false <-> it turned the matrix away, true <-> it accepted it). The method hands back NO data: the prepared matrix is the caller-side value preparedOf handle, nameable only where a caller's handle is in scope",
+      "model_symbol": "screenHandle",
+      "repo_location": "sklearn/ensemble/_iforest.py:436 (the _validate_data(X, accept_sparse=\"csr\", dtype=np.float32, reset=False) screen score_samples performs)",
+      "repo_symbol": "sklearn.ensemble._iforest.IsolationForest.score_samples's input screen (sklearn.base.BaseEstimator._validate_data)"
+    },
+    {
+      "carrier_type": "caller's matrix object -> CallerHandle (opaque; numbers plus the labelling attached to them, no constructor in the file); presented to the screen as presentCaller handle; what the caller gets -> Option (List Score) (none <-> the screen turned the handle away, some (scoreValues (anomalyScores (preparedOf handle))) otherwise; the element type is an opaque carrier because reading a produced sequence at a position it does not have is refused by the repository -- see Score in deep_model_references). Its domain is fenced twice: the handle must be one the screen has nothing to advise about, and the prepared matrix that screen hands back for it must be one the scorer can consume as it stands (require scorableAsGiven (preparedOf handle) = true) -- acceptance by the screen does not imply consumability, measured on the newer sparse containers, which the screen accepts and the scorer refuses",
+      "model_symbol": "scorePublic",
+      "repo_location": "sklearn/ensemble/_iforest.py:407",
+      "repo_symbol": "sklearn.ensemble._iforest.IsolationForest.score_samples (post-patch)"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "ATK_D1_throwaway_public",
+        "kind": "D/spec-too-weak",
+        "outcome": "HOLE REPRODUCED -- VERIFIES against the frozen spec, exit 0. Fires the redundant screening through scorePublic, DISCARDS that call's tally, returns the clean tally from scorePrepared. variant_problems=[], so it is an admissible rival. This confirms the spec hole the previous audit recorded; I independently re-measured it rather than trusting the record. Escalated in spec_holes, NOT patched away."
+      },
+      {
+        "id": "ATK_D1b_prepared_throwaway",
+        "kind": "D/spec-too-weak",
+        "outcome": "INCONCLUSIVE -- exit 1, but on a TOOLING error, not a refutation: `error: Failed to parse an assertion without names: WPGen (sorry checksOld samples)`. The discarded-call trick inside scorePrepared's own region leaves the file uncompilable rather than rejected, so this variant says nothing about the spec either way. Reported as observed; the D1 form above is the one that establishes the hole."
+      },
+      {
+        "id": "ATK_D2_wrong_q",
+        "kind": "D/spec-too-weak",
+        "outcome": "rejected, exit 1 on `unsolved goals` -- the spec correctly pins the percentile point. No hole, but it revealed that NO shipped rival attacked `q`, so I promoted it into the battery as fit-ignores-requested-point (with a witness whose gold/rival type-reveal pair discriminates)."
+      },
+      {
+        "id": "ATK_D3_tally_literal_zero",
+        "kind": "D/spec-too-weak",
+        "outcome": "rejected, exit 1 `unsolved goals` -- clobbering the prepared path's tally to a literal 0 is caught by `ensures checks = checksOld` (which pins it to the pre-state value, not to zero). No hole."
+      },
+      {
+        "id": "ATK_D4_public_double_screen",
+        "kind": "D/spec-too-weak",
+        "outcome": "rejected, exit 1 `unsolved goals` -- a public path screening TWICE (checks + 2) violates `checks = checksOld + 1`. The tally clause pins the exact count, not merely 'at least one'. No hole."
+      },
+      {
+        "id": "ATK_E1_public_delegates",
+        "kind": "E/spec-too-strong",
+        "outcome": "no hole -- VERIFIES, exit 0. The faithful post-fix shape of the public entry point (screen once, then delegate to the prepared path) is accepted, so the spec is not too strong on delegation."
+      },
+      {
+        "id": "ATK_E2_fit_inline",
+        "kind": "E/spec-too-strong",
+        "outcome": "no hole -- VERIFIES, exit 0. fitComputeOffset computing `percentileAt (anomalyScores samples) q` inline, bypassing the callee entirely, is accepted."
+      },
+      {
+        "id": "ATK_E3_fit_mixed",
+        "kind": "E/spec-too-strong",
+        "outcome": "no hole -- VERIFIES, exit 0. A mixed shape (bind the scores via the prepared path for the tally, then state the return over `anomalyScores samples` directly) is accepted. Three independent correct reshapes all verify, so no soundness hole found in the spec."
+      },
+      {
+        "id": "ATK_Fp_diverge_all_regions",
+        "kind": "F-prime/divergence",
+        "outcome": "REJECTED, exit 1: `error: Decreasing annotations are required in total correctness semantics`. The corpus divergence probe (while True prefix in every impl region, proofs reduced to bare loom_solve) is refused. This is the OPPOSITE of what the battery's docstring claimed -- see notes."
+      },
+      {
+        "id": "ATK_Fp_diverge_fit_only",
+        "kind": "F-prime/divergence",
+        "outcome": "REJECTED, exit 1, same `Decreasing annotations are required` error, with the prefix in fitComputeOffset's region alone. I rebuilt this probe and three SHARPER shapes against the frozen file as it now stands, each spliced into fitComputeOffset's impl region with nothing else touched (scripts/lean_verify.sh): (i) the annotation-free `while True do pure ()` prefix, exit 1 on `error: Decreasing annotations are required in total correctness semantics`; (ii) a loop carrying a CONSTANT measure (`let mut k : Nat := 1; while k > 0 / invariant 0 \u2264 k / done_with k = 0 / decreasing k do k := k`), exit 1 whose ONLY residual goal is `\u22a2 k < k` under `case \u00abdecreasing_1: k\u00bb`; (iii) the same loop stepping the measure UPWARD (`k := k + 1`), exit 1 on `\u22a2 k + 1 < k` in that same case; (iv) `done_with False` over a genuinely descending `k := k - 1`, exit 1 on `\u22a2 False` under `case \u00abdone_1: False\u00bb`. Shapes (ii) and (iii) are the isolating control the class needs: every annotation is PRESENT, so the missing-annotation linter has nothing to say, and what refuses is the measure's own descent obligation -- `decreasing` is load-bearing on this carrier, not decoration. The same shape spelled with the loop binder named `q` (shadowing the Rat parameter) is refused identically, `\u22a2 q_1 < q_1` under `case \u00abdecreasing_1: q\u00bb`, which is the spelling properties.py records."
+      },
+      {
+        "id": "ATK_Fp_selfrec",
+        "kind": "F-prime/divergence",
+        "outcome": "REJECTED, exit 1: `error: fail to show termination for`. A self-recursive rival (fitComputeOffset calling itself) is also refused, so the rejection is not specific to the `while True` form."
+      },
+      {
+        "id": "ATK_Fp_diverge_witness_landability",
+        "kind": "F-prime/divergence",
+        "outcome": "NOT LANDABLE as a manifest case, and this is a carrier fact about the WITNESS PROTOCOL. I built the witness file from the diverging rival (proofs stripped, as the gate does) and the RIVAL side fails, exit 1, on `Decreasing annotations are required` inside the method itself -- before the witness's own `example` is reached. The gate reads a failing rival build as `witness-unproven`, so no diverging reject case can pass here even though the verifier does reject every diverging impl. Documented in properties.py as a demonstrated protocol limit, not as a spec hole."
+      },
+      {
+        "id": "ADM_false_assert",
+        "kind": "liveness-probe",
+        "outcome": "The shipped admissibility assert IS live: flipping `checks != checks + 1` to `=` gives exit 1, `unsolved goals`."
+      },
+      {
+        "id": "ADM_trivial_assert",
+        "kind": "liveness-probe/decoration",
+        "outcome": "DEFECT FOUND -- replacing the shipped assert with the trivially true `checks = checks` STILL VERIFIES (exit 0). So the assert's content was not load-bearing on the case's outcome: it was live but decorative with respect to the obligation, and its rationale over-claimed. Drove the admiss repair."
+      },
+      {
+        "id": "ADMv2_posimage_at_F2P_input",
+        "kind": "admissibility-repair",
+        "outcome": "LANDED, exit 0. The replacement discharges fitComputeOffset's BOTH frozen clauses conjoined at a concrete F2P-shaped input (checksOld=1, samples=[1,2], q=1) by evaluation, then closes the frozen obligation verbatim. Unlike the old assert this cannot be satisfied by generic Nat arithmetic -- it names this obligation's own clauses."
+      },
+      {
+        "id": "FORGE_flip_tally_x3",
+        "kind": "B-prime/witness-forgery",
+        "outcome": "All three tally witnesses pass the flip test: the flipped claim (out.2 = 5) elaborates against gold at exit 0 while the real witness fails at exit 1, on all of fit-rescreen-via-public-path, prepared-rescreens and public-skips-screen. Gold's exit code carries information about the claim in every case."
+      },
+      {
+        "id": "FORGE_reveal_value_x4",
+        "kind": "B-prime/witness-forgery",
+        "outcome": "All four (now five, incl. the new case) value-leg witnesses pass the type-reveal test: gold prints `has type True` (simp proved the clause) and the rival prints its concrete false equation. This is the pair the corpus uses to establish the `Invalid field symm ... True.symm` signature class as real rather than hollow, and it holds here."
+      },
+      {
+        "id": "FORGE_opposite_polarity_value",
+        "kind": "B-prime/witness-forgery",
+        "outcome": "forgery CAUGHT on the rival side -- asserting the rival is CORRECT at an agreement point (out.1 = [1, 2]) breaks the RIVAL build, exit 1, so the gate would record witness-unproven rather than a refutation."
+      },
+      {
+        "id": "ATK_A_statement_integrity",
+        "kind": "A/statement-integrity",
+        "outcome": "clean on all 12 cases. I extracted every set_option, axiom declaration, method signature, ensures clause and prove_correct header from each variant and diffed against the frozen file: byte-identical in every case. No case reformats or weakens a statement. variant_problems=[] for all 12."
+      }
+    ],
+    "audited_at": "u4",
+    "cases": [
+      {
+        "evidence": "Attack A: spec surface (set_options, both axiom decls, all 3 method signatures, all 6 ensures, all 3 prove_correct headers) extracted and diffed against frozen Solution.lean -- byte-identical. variant_problems=[]. Collapses `let s := anomalyScores samples; return s` into `return anomalyScores samples`: a real binding-shape reshape, not a copy of gold's text. Rebuilt standalone: exit 0. Frozen loom_solve retained.",
+        "id": "pos-prepared-direct-return",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean (surface byte-identical). Scores first, advances the tally second -- a genuine statement-order permutation across the mut binder, so it is not a no-op reformat. Rebuilt standalone: exit 0. Confirms the spec is not tuned to statement order.",
+        "id": "pos-public-order-swap",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Inlines the order-statistic step into the return, dropping the intermediate `let off`. Rebuilt standalone: exit 0.",
+        "id": "pos-fit-inline-percentile",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "DEFECT (attack: rationale claims what the manifest never demonstrates). As shipped the case discharged an in-region `assert (checks != checks + 1)`. It was LIVE -- I confirmed the flip to `=` fails (ADM__false exit 1, `unsolved goals`) -- but it is a fact about Nat successor arithmetic that would discharge in ANY bundle carrying a Nat binder, regardless of what fitComputeOffset's clauses say. It therefore demonstrated nothing about THIS obligation, while its rationale claimed non-degeneracy of the post-image at the F2P-discriminating point. Proof it was decoration: I built the assert as the trivially true `checks = checks` and the variant STILL verified (ADM__trivial exit 0), so the assert's content was not load-bearing on the case's outcome. REPAIRED to the shape the task lane names for a total carrier: a `have` claiming the frozen obligation's BOTH clauses conjoined (`out.2 = 1 AND out.1 = percentileAt (anomalyScores [1,2]) 1`) at a concrete F2P-shaped input (checksOld=1, two-row matrix [1,2], non-default point q=1), discharged BY EVALUATION via `simp only [triple, fitComputeOffset, scorePrepared]; intro _; simp [wp_pure]`, before the untouched frozen `loom_solve` closes the obligation verbatim. Impl region now byte-identical to frozen (the shipped version had also inserted an assert into the impl region). Built standalone: exit 0 (NEW__ADMv2). Gate after edit: verified.",
+        "id": "admiss-tally-nondegenerate",
+        "verdict": "repaired"
+      },
+      {
+        "evidence": "THE PRE-PATCH BUG case. Attack A clean. Rebuilt all builds myself: rival exit 0, gold exit 1. Gold error is semantic: `unsolved goals / hh : True <= wp (do let __discr <- pure (anomalyScores [], 0); pure (percentileAt __discr.1 0, __discr.2)) fun out => out.2 = 0 / hc : True / |- False` -- the tally reduced to gold's CORRECT 0, so False is genuinely unprovable. Attack B' FORGERY (mandatory, signature is not a plain evaluation): flipped the claim to `out.2 = 5` (a value gold does not produce) and the gold build ELABORATED, exit 0, no error -- so gold's exit code TRACKS THE CLAIM and carries real information. Attack C: rival is observably wrong, not merely reshaped -- it routes through scorePublic so checks = checksOld+1 != checksOld, and unlike the D1 hole it does NOT discard the tally. The prior audit's `unfold` defect is genuinely fixed: the shipped witness peels with `simp only`, which tolerates a rule absent from the goal, so both sides ask the same question.",
+        "id": "fit-rescreen-via-public-path",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Rebuilt: rival exit 0, gold exit 1, consistency probe exit 1 (hypotheses satisfiable). Gold signature `Invalid field symm: ... True.symm` is not a plain evaluation, so attack B' was mandatory; I ran the TYPE-REVEALING form (`exact (hc : Nat)`) on both sides rather than judging the text. Gold: `hc has type True` -- simp PROVED the equation because gold satisfies it, leaving the conditioning hypothesis nothing to contradict. Rival: `hc has type percentileAt [1] 1 = percentileAt (anomalyScores [1]) 1` -- the concrete false equation. That pair is a genuine refutation. Also checked non-forgeable in the other direction (see prepared-wrong-value). Rival observably differs: percentileAt samples q vs percentileAt (anomalyScores samples) q.",
+        "id": "fit-forge-offset-value",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Rebuilt: rival exit 0, gold exit 1, probe exit 1. Attack B' type-reveal: gold `hc has type True`; rival `hc has type percentileAt (anomalyScores []) 0 = percentileAt (anomalyScores [1]) 0`. Genuine refutation. Attack C: keeps the tally AND the applied functions correct, differing only in the MATRIX argument, so it is a real argument-provenance attack and not a second copy of the value lane. I independently re-derived nagini case 7 as expressible, agreeing with the prior audit that added it.",
+        "id": "fit-scores-foreign-matrix",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "NEW rival I added to close a real coverage gap found by attack D. The three existing fit value-leg rivals attack the FUNCTION applied (fit-forge-offset-value) and the MATRIX argument (fit-scores-foreign-matrix); NONE touched `q`. `q` was the only method parameter appearing in no rival's attacked position, so a spec that ignored the requested percentile point would not have been falsified by this battery. Rival takes `percentileAt scores 0` instead of `percentileAt scores q`. Variant alone: exit 1 (rejected on the offset clause, `unsolved goals`). Witness builds I ran: rival exit 0, gold exit 1, probe exit 1. Attack B' type-reveal: gold `hc has type True`, rival `hc has type percentileAt (anomalyScores [1,2]) 0 = percentileAt (anomalyScores [1,2]) 1`. Gate: rejected (witness refutes the rival). Coverage reporter moved from pts=2-3 to pts=2-4.",
+        "id": "fit-ignores-requested-point",
+        "verdict": "added-by-audit"
+      },
+      {
+        "evidence": "Attack A clean. Rebuilt: rival exit 0, gold exit 1 (no probe -- witness binds nothing). Gold error semantic: `unsolved goals / hh : True <= wp (pure (anomalyScores [1], 0)) fun out => out.2 = 0 / hc : True / |- False`. Attack B' FLIP: claim changed to `out.2 = 5` ELABORATES against gold (exit 0), so the exit code tracks the claim. Rival observably wrong: advances the tally where clause (C1) pins it unchanged.",
+        "id": "prepared-rescreens",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Rebuilt: rival exit 0, gold exit 1, probe exit 1. Attack B' type-reveal: gold `hc has type True`, rival `hc has type [1, 2] = anomalyScores [1, 2]`. I additionally ran the OPPOSITE-POLARITY forgery on this exact shape -- asserting the rival is CORRECT at an agreement point (`out.1 = [1, 2]`) -- and it breaks the RIVAL build (exit 1, `Invalid field symm ... hc has type True`), i.e. the gate would record witness-unproven. So the value-leg shape is not forgeable in either direction.",
+        "id": "prepared-wrong-value",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Rebuilt: rival exit 0, gold exit 1. Gold error semantic: `unsolved goals / hh : True <= wp (pure (anomalyScores [1], 0 + 1)) fun out => out.2 = 1 / |- False` -- reduced to gold's correct 0+1. Attack B' FLIP to `out.2 = 5`: gold ELABORATES (exit 0), so the exit code is informative. Opposite polarity from the prepared-path rivals (a MISSING mandatory screen vs an EXTRA redundant one), which pins the tally clause in both directions rather than restating a sibling.",
+        "id": "public-skips-screen",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Rebuilt: rival exit 0, gold exit 1, probe exit 1. Attack B' type-reveal: gold `hc has type True`, rival `hc has type [1, 2] = anomalyScores [1, 2]`. Attacks scorePublic's value leg while (C1) still holds, at a distinct point (checksOld=5, samples=[1,2]).",
+        "id": "public-wrong-value",
+        "verdict": "earned"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "SPEC-DEFECT",
+        "attacks_tried": [
+          {
+            "id": "ATK_D1_throwaway_public",
+            "kind": "D/spec-too-weak",
+            "outcome": "HOLE FOUND \u2014 VERIFIES against the frozen spec (exit 0). Performs the redundant screening through scorePublic, DISCARDS that call's tally, and returns the clean tally from scorePrepared: `let (scoresJunk, checksJunk) \u2190 scorePublic checks samples; let (scores, checks') \u2190 scorePrepared checks samples; checks := checks'; return percentileAt scores q`. variant_problems=[] so it is an admissible rival. Escalated as a spec_holes entry, NOT patched away."
+          },
+          {
+            "id": "ATK_D1b_minimal_throwaway",
+            "kind": "D/spec-too-weak",
+            "outcome": "HOLE CONFIRMED minimally \u2014 exit 0. Gold's body verbatim plus ONE discarded scorePublic call, isolating the discarded-tally trick as the sole cause."
+          },
+          {
+            "id": "ATK_D2_fabricated_matrix",
+            "kind": "D/spec-too-weak",
+            "outcome": "rejected (exit 1) on the `ensures offset = percentileAt (anomalyScores samples) q` goal \u2014 spec correctly pins the argument. No hole, but it exposed an UNATTACKED clause, so I promoted it into the battery as fit-scores-foreign-matrix."
+          },
+          {
+            "id": "ATK_E1_public_delegates",
+            "kind": "E/spec-too-strong",
+            "outcome": "no hole \u2014 VERIFIES (exit 0). The faithful post-fix shape of the public entry point (screen once, then delegate to the prepared path) is accepted, so the spec is not too strong on delegation."
+          },
+          {
+            "id": "ATK_E2_fit_inline_scores",
+            "kind": "E/spec-too-strong",
+            "outcome": "no hole \u2014 VERIFIES (exit 0). fitComputeOffset computing `percentileAt (anomalyScores samples) q` inline, bypassing the callee entirely, is accepted."
+          },
+          {
+            "id": "FORGE_fit_rescreen_out2eq5",
+            "kind": "B/witness-forgery",
+            "outcome": "FORGERY SUCCEEDED under the shipped witness shape \u2014 a claim violated by gold AND by the rival, naming no spec clause, cleared both halves (rival 0, gold 1) and would have been recorded as a refutation. This is the machine-checked proof that the shipped fit-rescreen witness discriminated nothing. After the `simp only` repair the same forgery elaborates against gold (exit 0) \u21d2 gate records witness-vacuous."
+          },
+          {
+            "id": "FV_forge_val_clause_true_of_rival",
+            "kind": "B/witness-forgery",
+            "outcome": "forgery CAUGHT \u2014 attacking `out.2 = 3` (true of the rival too) breaks the RIVAL build (exit 1 \u21d2 witness-unproven). The value-leg shape is not forgeable this way."
+          },
+          {
+            "id": "FV_forge_opp_agreement_point",
+            "kind": "B/witness-forgery",
+            "outcome": "forgery CAUGHT \u2014 the opposite-polarity claim `out.1 = [1,2]` (asserting the rival is correct) breaks the rival build (exit 1)."
+          },
+          {
+            "id": "P1_tally_informative_on_gold",
+            "kind": "B/gold-side-informativeness",
+            "outcome": "PROVED on gold (exit 0) \u2014 the tally witness shape can establish a genuinely-true refutation about the frozen impl, so its failures on gold are verdicts and not an unconditionally-stuck tactic."
+          },
+          {
+            "id": "P2_value_informative_on_gold",
+            "kind": "B/gold-side-informativeness",
+            "outcome": "PROVED on gold (exit 0) \u2014 same for the conditioned value-leg shape."
+          },
+          {
+            "id": "P3b_fit_repair_informative_on_gold",
+            "kind": "B/gold-side-informativeness",
+            "outcome": "PROVED on gold (exit 0) \u2014 the repaired simp-only fit shape reduces and decides against gold, so its failure on the real witness is a refutation."
+          },
+          {
+            "id": "ADM_false_assert",
+            "kind": "liveness-probe",
+            "outcome": "rejected (exit 1) \u2014 flipping the admissibility assert to a FALSE claim leaves an unsolved goal, so the assert is a live obligation and not decoration."
+          }
+        ],
+        "audited_at": "a6",
+        "cases": [
+          {
+            "evidence": "scorePrepared collapses `let s := anomalyScores samples; return s` into `return anomalyScores samples`. Not definitionally trivial-identical to gold in surface form but observably equal; it is a genuine binding-shape reshape, so it tests that the spec is not tuned to the let-binding. Re-ran via the real gate: verified (27.5s). variant_problems=[] and spec_view byte-identical to frozen (checked mechanically).",
+            "id": "pos-prepared-direct-return",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "scorePublic scores first then advances the tally. This is a real statement-order permutation across the mut binder (not a no-op reformat) and both clauses still hold. Gate: verified (51.7s).",
+            "id": "pos-public-order-swap",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "fitComputeOffset inlines the order-statistic step into the return. Genuine reshape of the data flow surface. Gate: verified (83.0s).",
+            "id": "pos-fit-inline-percentile",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "As shipped the in-region assert was `(0:Nat)=0 \u2227 (0+1:Nat)\u2260(0:Nat)` \u2014 LIVE (I confirmed: flipping \u2260 to = gives exit 1, /tmp .../ADM_false.lean) but a fact about numerals, not about the obligation's binder, so it did not demonstrate the sub-domain claim its rationale made. Strengthened to `assert (checks \u2260 checks + 1)` over the method's own live mut binder (universally quantified over the pre-state tally), proof tail `loom_solve <;> first | omega | simp_all`. Built standalone: exit 0 (P6_admiss_binder). Gate after edit: verified (55.0s).",
+            "id": "admiss-tally-nondegenerate",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "DEFECT (attack B): the rival discriminated but the gold-side failure was SYNTACTIC, not a refutation. Shipped witness used `unfold fitComputeOffset scorePublic`; gold does not call scorePublic, so gold failed with `error: Tactic unfold failed to unfold scorePublic in \u00ac{True}...`. Rebuilt myself: rival exit 0, gold exit 1 \u2014 but for a missing occurrence. Proved it was a non-discriminator by FORGERY: a witness asserting `out.2 = 5` (violated by gold AND by the rival, referencing no spec clause) cleared BOTH halves under the shipped shape (FORGE__rival exit 0, FORGE__gold exit 1, same unfold error) and would have been recorded as a refutation. Repaired `_triple_witness` to peel with `simp only [triple, <rules>]` (tolerates a rule absent from the goal) instead of `unfold`, and made the rewrite set the union of gold's and the rival's call paths (`fitComputeOffset scorePublic scorePrepared`). Gold-side failure is now semantic: `error: unsolved goals / hh : True \u2264 wp (do let __discr \u2190 pure (anomalyScores [], 0); ...) fun out => out.2 = 0 / \u22a2 False`. The same forgery now ELABORATES against gold (FIXFORGE__gold exit 0) \u21d2 the gate records witness-vacuous and rejects it. Rival is genuinely wrong (attack C): it is the literal pre-patch shape and does NOT discard the tally, so `checks = checksOld+1 \u2260 checksOld`. Gate after edit: rejected, witness refutes the rival (50.4s).",
+            "id": "fit-rescreen-via-public-path",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "Rebuilt all three builds: rival 0, gold 1, consistency probe 1. Gold-side failure is semantic (the conditioning hypothesis `h` left undischarged: `Invalid field symm: ... hc has type True`, i.e. simp reduced the clause to True because gold satisfies it, so nothing remained to contradict h). Verified the shape is INFORMATIVE on gold rather than unconditionally failing: P2_value_informative__gold \u2014 the same value-leg shape stating a genuinely-true refutation about gold \u2014 PROVED at exit 0. Forgery-resistance checked two ways: attacking a clause true of the rival too (`out.2 = 3`) breaks the RIVAL build (exit 1 \u21d2 witness-unproven), and the opposite-polarity claim (`out.1 = [1,2]`) also breaks the rival (exit 1). Rival observably differs from gold (percentileAt samples q vs percentileAt (anomalyScores samples) q).",
+            "id": "fit-forge-offset-value",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "NEW rival I added to close a real gap found by attack D: every shipped value-leg rival swaps the FUNCTION applied to the right argument; none attacked the ARGUMENT. This one keeps the tally correct and the functions/order correct but scores a fixed foreign matrix (`scorePrepared checks []`) instead of the method's own `samples`. Also re-derives nagini case 7 (fabricated-matrix), which the port had recorded SUBSUMED \u2014 attack F verdict: expressible. Variant alone: exit 1 (rejected, on the `ensures offset = ...` goal). Witness builds I ran: rival 0, gold 1, probe 1. Gate: rejected, witness refutes the rival (143.1s).",
+            "id": "fit-scores-foreign-matrix",
+            "verdict": "added-by-audit"
+          },
+          {
+            "evidence": "Rebuilt: rival 0, gold 1, no probe (no binders). Gold-side failure is semantic \u2014 `error: unsolved goals / hh : True \u2264 wp (pure (anomalyScores [1], 0)) fun out => out.2 = 0 / hc : True / \u22a2 False`, i.e. the tally reduced to gold's correct 0 so `\u22a2 False` is genuinely unprovable. Confirmed the tally shape is informative on gold: P1_tally_informative__gold (same shape, a true refutation about gold) PROVED at exit 0. Rival observably wrong: advances the tally where the clause pins it unchanged.",
+            "id": "prepared-rescreens",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival 0, gold 1, probe 1. Gold-side failure semantic (clause reduced to True, h undischarged). Same value-shape informativeness evidence as fit-forge-offset-value (P2 exit 0). Both forgeries against this exact case's shape were caught on the rival side (FV_forge_val exit 1, FV_forge_opp exit 1). Rival returns `samples` where the clause pins `anomalyScores samples` \u2014 observably different on the conditioned sub-domain.",
+            "id": "prepared-wrong-value",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival 0, gold 1. Gold-side failure semantic: `unsolved goals / hh : True \u2264 wp (pure (anomalyScores [1], 0 + 1)) fun out => out.2 = 1 / \u22a2 False` \u2014 the tally reduced to gold's correct 0+1. Opposite polarity from the prepared-path rivals (a MISSING mandatory screen vs an EXTRA one), so it pins the tally clause in the other direction rather than restating a sibling.",
+            "id": "public-skips-screen",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Rebuilt: rival 0, gold 1, probe 1. Gold-side failure semantic (h undischarged). Attacks scorePublic's value leg while (C1) still holds, at a distinct point (checksOld=5, samples=[1,2]). Rival observably differs from gold on the conditioned sub-domain.",
+            "id": "public-wrong-value",
+            "verdict": "earned"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "VERDICT REASONING. I set SPEC-DEFECT rather than REPAIRED because attack D found a real hole in the FROZEN spec (spec_holes[0], machine-confirmed at exit 0 twice, including a minimal form). Both outcomes are true of this cell: I also found and fixed battery defects and the gate re-ran green, so read this as SPEC-DEFECT + REPAIRED. The battery now earns its SOUND; the spec does not fully earn `verify \u21d2 resolve`.\n\nTHE HOLLOW SOUND I FOUND. The recorded SOUND was partly hollow in exactly the way the witness requirement exists to prevent. fit-rescreen-via-public-path \u2014 the case carrying THE PRE-PATCH BUG, the most load-bearing case in the battery \u2014 had a witness whose gold-side failure was `Tactic unfold failed to unfold scorePublic`, a missing occurrence rather than a refutation. Because `unfold` errors on a callee absent from the goal, and because which callee is invoked is precisely what a control-flow rival changes, that witness could not distinguish a wrong rival from anything else. I proved it rather than argued it: a forged witness asserting `out.2 = 5` \u2014 false of gold AND of the rival, naming no spec clause \u2014 cleared both halves under the shipped shape and would have been recorded as a refutation. The repair (peel with `simp only`, which tolerates an unused rule, over the union of both call paths) makes both builds ask the same question; the forgery is now caught as witness-vacuous. This defect class is generalizable and worth a port-lane rule: on velvet, a reject witness must never name a method in `unfold` that only one side calls.\n\nWHAT I DID NOT CHANGE. The `Invalid field symm: ... True.symm` gold-side failure on the four conditioned value-leg witnesses looks syntactic at first read but is semantic: `simp [wp_pure]` reduced gold's clause to `True` precisely BECAUSE gold satisfies it, leaving the conditioning hypothesis with nothing to contradict. I confirmed the shape is informative on gold rather than unconditionally stuck by proving a genuinely-true refutation about gold in the same shape (exit 0), and I confirmed it is not forgeable in two directions. So I left those four alone rather than churn them.\n\nPROSE CORRECTED. The docstring claimed the divergence lane was vacuous because 'a diverging implementation cannot be written in the fragment'. That reason is false \u2014 this bundle is `partial`, and the corpus-wide termination-semantics finding records this exact instance as `partial/VERIFIES` in experiments/pbt_port/logs/divprobe.velvet.json. Per the task instruction I did not re-measure it or file it as a new spec_holes entry; I corrected the reason in place and cited the open finding, keeping the disposition (nothing to ship). I also corrected the nagini-accounting table (case 7 SUBSUMED -> PORTED) and the binder-coverage claim (checksOld now spans {0,2,3,4,5}).\n\nSCOPE DISCIPLINE. Solution.lean, meta.json (beyond the gate's own stamp) and instance.json were not edited \u2014 confirmed with `git diff --quiet HEAD`: Solution.lean UNCHANGED, instance.json UNCHANGED. All scratch (25 case files + ~30 probe/rival/witness modules and logs) lived under a private /tmp dir; nothing was written into the bundle or the repo root. Coverage reporter after the edit: obl=3 cases=11 (+4/-7) binders=7 pts=2-3, 0 findings \u2014 and I checked the binder variation is meaningful rather than two spellings of one point (each reject case sits at a distinct (checksOld, samples, q) triple and the tally lane is attacked in BOTH polarities).",
+        "omissions_reviewed": [
+          {
+            "evidence": "Demonstrated, not assumed: the nagini rejection came from the permission system (writing X_raw.has_labels needs full permission where only Acc(...,1/2) is held). Velvet has no heap, no aliasing and no fractional permission. I checked the frozen signatures: the only `mut` binder across all three methods is `checks : Nat`, a value-typed tally that is legitimately advanced by scorePublic; `samples : List Rat` and `q : Rat` are immutable value parameters. There is no read-only input a rival could overwrite, so the discriminator the nagini case turns on has no counterpart term here. Carrier genuinely collapses the distinction.",
+            "nagini_case": "1. frame-mutation-write-readonly-input",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The nagini rejection came from `Ensures(offset_set == calibration_requested)`, a biconditional over a calibration-request flag. The velvet carrier has no calibration_requested binder and no offset_set flag: mapping.md \u00a71 binds fitComputeOffset to the non-default-contamination tail, i.e. the fit tail is entered ALREADY on the calibration path, so the guard whose removal the case attacks does not exist in the modeled surface. Its discriminating content (which scoring entry point is reached) is carried by fit-rescreen-via-public-path.",
+            "nagini_case": "2. control-flow-unconditional-scorer",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Turns on `offset_set` staying False, a separate estimator-state flag. The velvet methods return the offset as a VALUE (`return (offset : Rat)`) with no set/unset flag \u2014 there is no total-function way to 'not produce' an offset, so the clause the case violates has no counterpart. The nearest expressible defect (producing the WRONG offset) is carried by fit-forge-offset-value and the newly added fit-scores-foreign-matrix.",
+            "nagini_case": "4. skip-scorer-no-offset",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The nagini rejection came from an unforgeable @Predicate token grantable only by the scorer callee. Velvet has no abstract predicates / permission tokens, so provenance cannot be modeled as an ungrantable token. The port re-aimed it to fit-forge-offset-value (offset derived from the wrong quantity), which I confirmed is a real, witness-discriminating rival. Legitimate re-aim.",
+            "nagini_case": "5. forge-offset-token",
+            "verdict": "inexpressible (re-aimed, correctly)"
+          },
+          {
+            "evidence": "The nagini rejection came from the callee PRECONDITION `Requires(X.has_labels == False)`. No method in the frozen velvet spec carries a `require` clause at all (the pre-conditions regions are empty \u2014 I checked Solution.lean), and the carrier abstracts the matrix to `List Rat` with no has_labels field, so there is no domain restriction to violate. Genuine carrier narrowing.",
+            "nagini_case": "6. raw-matrix-out-of-domain",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The port recorded this SUBSUMED under fit-forge-offset-value. I disagree and proved it: fit-forge-offset-value swaps the FUNCTION applied to the right argument (percentileAt samples q), which is a different defect from passing the WRONG ARGUMENT to the right function, and no shipped rival attacked the argument. What lands it: keep the tally and the function order correct and score a fixed foreign matrix \u2014 `let (scores, checks') \u2190 scorePrepared checks []`. Variant alone exit 1 (rejected on the offset clause); witness rival 0 / gold 1 / probe 1. Added as fit-scores-foreign-matrix; the re-run gate records it rejected with the witness refuting the rival.",
+            "nagini_case": "7. fabricated-matrix-wrong-data",
+            "verdict": "expressible \u2014 FINDING, now landed"
+          },
+          {
+            "evidence": "Turns on `fitted_with_labels == Old(X_raw.has_labels)`, a fit-time label-recording field on estimator state. The velvet bundle models only the offset-derivation tail and the two scoring entry points (mapping.md \u00a71); there is no labels-recorded observable in any signature or ensures clause, so no counterpart clause exists to attack. Additionally, Old-style pre-state comparison of a recorded field is the primitive spec_guide \u00a70.9 notes velvet lacks. Genuine carrier narrowing, not a hard-proof dodge.",
+            "nagini_case": "8. skip-record-fit-labels",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Not an omission: ported as fit-rescreen-via-public-path. Listed here for completeness of the 10-case accounting. I audited it as a case and found (and fixed) its witness defect \u2014 see the cases entry.",
+            "nagini_case": "3. validating-path-prepatch-bug",
+            "verdict": "inexpressible (n/a \u2014 ported, not dropped)"
+          },
+          {
+            "evidence": "Not an omission: ported as pos-fit-inline-percentile. The specific reshape (record labels last) is unavailable because the labels field is unmodeled, but the positive-control ROLE is filled by a genuine reshape that verifies.",
+            "nagini_case": "9. pos-control-record-labels-last",
+            "verdict": "inexpressible (n/a \u2014 ported, not dropped)"
+          },
+          {
+            "evidence": "Not an omission: re-aimed to admiss-tally-nondegenerate. The nagini case establishes a callee's Requires for an F2P-shaped input; no velvet method here carries a `require` clause, so there is no precondition to admit. The re-aim (post-image non-degeneracy at the discriminating point) is the right residual check; I strengthened its assert to range over the live `checks` binder.",
+            "nagini_case": "10. admissibility-public-scorer-normal-input",
+            "verdict": "inexpressible (n/a \u2014 re-aimed, not dropped)"
+          }
+        ],
+        "spec_holes": [
+          {
+            "clause": "fitComputeOffset `ensures checks = checksOld` (and symmetrically scorePrepared's own `ensures checks = checksOld`)",
+            "input": "fitComputeOffset checks samples q, with the impl `let (scoresJunk, checksJunk) \u2190 scorePublic checks samples; let (scores, checks') \u2190 scorePrepared checks samples; checks := checks'; let off := percentileAt scores q; return off` \u2014 verified at exit 0 by scripts/lean_verify.sh; minimal form (gold's body verbatim + one discarded scorePublic call) also exit 0",
+            "why": "The screening tally is a FREELY-WRITTEN output, so the clause pins the tally's FINAL VALUE, not whether the screening occurred. A rival can perform the redundant screening through the public entry point, discard that call's returned tally, and return the clean tally from the prepared path: the modeled observable ends at checksOld while the redundant screen genuinely happened. Its faithful counterpart re-screens the already-prepared matrix and so raises the spurious feature-name UserWarning the F2P test forbids \u21d2 verifies but does NOT resolve. This is exactly the shape prompts/velvet/spec_guide.md \u00a70.9 names (directive-4/9 hole: 'a wrong impl fires the effect in a throwaway local and returns the clean value'): Velvet's final-state WP has no pre-state Old / framed-effect primitive, so a modeled counter cannot force the effect through the channel. Escalation, not a battery repair \u2014 closing it means changing the frozen Solution.lean (a genuine effect-tracking primitive, or an ensures that cannot be satisfied by a discarded tally), which must re-clear G-EQ, G-DIFF, G-CONF and G-PANEL outside this lane. Note the shipped fit-rescreen-via-public-path rival remains meaningful: the pre-patch shape does NOT discard the tally."
+          }
+        ],
+        "witness_evidence": [
+          {
+            "gold_exit": 1,
+            "id": "fit-rescreen-via-public-path",
+            "note": "AS SHIPPED: gold_exit 1 but from `unfold failed to unfold scorePublic` (syntactic, non-discriminating). AFTER REPAIR: rival 0, gold 1 with semantic `unsolved goals ... \u22a2 False`. No probe (witness binds nothing).",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "fit-forge-offset-value",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "fit-scores-foreign-matrix",
+            "note": "case added by this audit",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "prepared-rescreens",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "prepared-wrong-value",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "public-skips-screen",
+            "probe_exit": null,
+            "rival_exit": 0
+          },
+          {
+            "gold_exit": 1,
+            "id": "public-wrong-value",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 7
+      }
+    ],
+    "notes": "VERDICT REASONING. REPAIRED, not SHIP: I found and fixed three real battery defects and the gate re-ran green with 12 cases. I did NOT set SPEC-DEFECT even though spec_holes has an entry, because that hole was already found, machine-confirmed and escalated by the previous audit pass AND is independently recorded as a G-EQ / G-PANEL-1 failure in this bundle's own meta.json ('BROKEN (verify does not imply correct): atk_1.lean verifies but its patch does not resolve'). I re-measured it rather than trusting it (ATK_D1, exit 0) and it is real, but it is a standing open escalation on this cell, not a new discovery of this audit. If the grading lane wants the spec status foregrounded, read this as REPAIRED + the pre-existing SPEC-DEFECT still open.\n\nTHE LARGEST FINDING: THE DIVERGENCE LANE IS DOCUMENTED AGAINST THE WRONG SEMANTICS. The frozen Solution.lean now reads `set_option loom.semantics.termination \"total\"`, but the shipped properties.py docstring asserted at length that the bundle is `partial` and cited the corpus-wide termination-semantics finding and divprobe.velvet.json (which records this instance as `partial/VERIFIES`) to conclude a diverging rival VERIFIES vacuously. That is exactly the inversion the task's attack F' warns about, and it was load-bearing prose: under `partial` the class is a known spec hole, under `total` it is a shippable rejection. I measured the actual artifact with three real builds instead of reading the record: the corpus divergence probe is REJECTED (exit 1, `Decreasing annotations are required in total correctness semantics`), the same prefix in fitComputeOffset alone is rejected identically, and a self-recursive rival is rejected with `fail to show termination for`. So the frozen file genuinely discharges a termination obligation and the cited finding no longer describes this cell. NOTE BEYOND THIS BUNDLE: the `total` reading is the COMMITTED state of both Solution.lean and Solution_prepatch.lean here, and re-counted over the corpus the velvet side now reads 500 `total` / 0 `partial`, while divprobe.velvet.json still summarises 401 `partial/VERIFIES` / 99 `total/rejected`. The flip is settled corpus-wide rather than in flight. That means (a) the corpus-wide termination-semantics finding and the divprobe log are stale for the whole velvet side, and (b) any battery whose prose reasons from `partial` -- there will be many, this one did -- is now misdocumented. Worth a corpus-wide re-measure; it is outside this cell's scope.\n\nWHY I STILL SHIPPED NO DIVERGENCE CASE. Not vacuity and not a spec hole: a protocol limit I demonstrated. A reject case needs a witness that ELABORATES against the rival, but the diverging rival's own module does not elaborate -- the termination obligation fails inside the method, so the witness file dies on `Decreasing annotations are required` before its `example` is reached (measured: rival-side exit 1, which the gate reads as `witness-unproven`). The rejection is real and the verifier already delivers it for every diverging impl; there is simply no manifest case that can carry it. I wrote that into the docstring with the error text rather than leaving the false `partial` claim or silently deleting it.\n\nTHE ADMISSIBILITY CASE WAS DECORATIVE AND I CAUGHT IT WITH A BUILD, NOT AN ARGUMENT. The shipped case discharged `assert (checks != checks + 1)`. The previous audit had checked it was LIVE (flip to `=` fails) and concluded it was therefore meaningful. Liveness is the wrong test: the claim is generic Nat successor arithmetic that would discharge in any bundle with a Nat binder, and it says nothing about fitComputeOffset's clauses, while the rationale claimed it demonstrated post-image non-degeneracy at the F2P-discriminating point. I proved it decorative by building the assert as the trivially true `checks = checks` -- the variant STILL VERIFIED (exit 0), so the assert's content had no bearing on the outcome. The replacement states the obligation's OWN two clauses conjoined at a concrete F2P-shaped input and discharges them by evaluating the triple (`simp only [triple, fitComputeOffset, scorePrepared]; intro _; simp [wp_pure]`) before the untouched frozen `loom_solve` closes the obligation verbatim; the case entry records that build.\n\nRE-MEASURED AGAINST THE FROZEN FILE, AND THE REJECTION ACCOUNT STANDS. Every divergence rival recorded above was rebuilt on Solution.lean as it now stands, together with three sharper annotated shapes, and all of them are refused, exit 1; the self-recursive rival is refused with `error: fail to show termination for fitComputeOffset` / `no parameters suitable for structural recursion`. The goal names and residual goals are in the attacks entry for the fitComputeOffset-only probe. Nothing in this class is accepted here, so the only escalation this record carries is the unrelated discarded-tally one, which I also rebuilt and it stands.",
+    "omissions_reviewed": [
+      {
+        "evidence": "Demonstrated, not assumed. The nagini rejection came from the permission system (writing X_raw.has_labels needs full permission where only Acc(...,1/2) is held). Velvet is referentially transparent: no heap, no aliasing, no fractional permission. I checked the frozen signatures directly: the only `mut` binder across all three methods is `checks : Nat`, a value-typed tally legitimately advanced by scorePublic; `samples : List Rat` and `q : Rat` are immutable value parameters. There is no read-only input a rival could overwrite, so the discriminator the nagini case turns on has no counterpart term. Carrier genuinely collapses the distinction.",
+        "nagini_case": "1. frame-mutation-write-readonly-input",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "The nagini rejection came from `Ensures(offset_set == calibration_requested)`, a biconditional over a calibration-request flag. The velvet carrier has no calibration_requested binder and no offset_set flag: mapping.md section 1 binds fitComputeOffset to the non-default-contamination tail, i.e. the fit tail is entered ALREADY on the calibration path, so the guard whose removal the case attacks does not exist in the modeled surface. Its discriminating content (which scoring entry point is reached) is carried by fit-rescreen-via-public-path, whose witness I verified discriminates.",
+        "nagini_case": "2. control-flow-unconditional-scorer",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "n/a -- NOT an omission: ported as fit-rescreen-via-public-path. Listed for completeness of the 10-case accounting. I audited it as a case (attack A clean, rival 0 / gold 1, flip-forgery gold exit 0 proving the exit code tracks the claim) and it is earned.",
+        "nagini_case": "3. validating-path-prepatch-bug",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Turns on `offset_set` staying False, a separate estimator-state flag. The velvet methods return the offset as a VALUE (`return (offset : Rat)`) with no set/unset flag, and on a total carrier there is no way to 'not produce' a Rat, so the clause the case violates has no counterpart. The nearest expressible defect (producing the WRONG offset) is carried by fit-forge-offset-value, fit-scores-foreign-matrix and the newly added fit-ignores-requested-point.",
+        "nagini_case": "4. skip-scorer-no-offset",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "The nagini rejection came from an unforgeable @Predicate token grantable only by the scorer callee. Velvet has no abstract predicates or permission tokens, so provenance cannot be modeled as an ungrantable token. Re-aimed to fit-forge-offset-value (offset derived from the wrong quantity), which I confirmed is a real witness-discriminating rival via the type-reveal pair. Legitimate re-aim.",
+        "nagini_case": "5. forge-offset-token",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "The nagini rejection came from the callee PRECONDITION `Requires(X.has_labels == False)`. No method in the frozen velvet spec carries a `require` clause at all -- I confirmed the pre-conditions region of Solution.lean is empty -- and the carrier abstracts the matrix to `List Rat` with no has_labels field, so there is no domain restriction to violate. Genuine carrier narrowing.",
+        "nagini_case": "6. raw-matrix-out-of-domain",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "FINDING, already landed by the previous audit pass as fit-scores-foreign-matrix; I independently re-derived and confirmed it. fit-forge-offset-value swaps the FUNCTION applied to the right argument, which is a different defect from passing the WRONG ARGUMENT to the right function. I re-ran its builds: variant alone exit 1 on the offset clause; witness rival 0 / gold 1 / probe 1, with the type-reveal pair (gold `True`, rival `percentileAt (anomalyScores []) 0 = percentileAt (anomalyScores [1]) 0`) confirming genuine discrimination. Correctly carried.",
+        "nagini_case": "7. fabricated-matrix-wrong-data",
+        "verdict": "expressible"
+      },
+      {
+        "evidence": "Turns on `fitted_with_labels == Old(X_raw.has_labels)`, a fit-time label-recording field on estimator state. The velvet bundle models only the offset-derivation tail and the two scoring entry points (mapping.md section 1); there is no labels-recorded observable in any signature or ensures clause, so no counterpart clause exists to attack. Additionally, Old-style pre-state comparison of a recorded field is precisely the primitive spec_guide section 0.9 notes velvet lacks. Genuine carrier narrowing, not a hard-proof dodge.",
+        "nagini_case": "8. skip-record-fit-labels",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "n/a -- NOT an omission: the positive-control ROLE is filled by pos-fit-inline-percentile (rebuilt, exit 0). The specific reshape (record labels last) is unavailable because the labels field is unmodeled, but the role is genuinely filled and this bundle carries three positives rather than nagini's one.",
+        "nagini_case": "9. pos-control-record-labels-last",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "n/a -- re-aimed to admiss-tally-nondegenerate, which I REPAIRED. The nagini case establishes a callee's Requires for an F2P-shaped input; no velvet method here carries a `require` clause, so there is no precondition to admit. The correct residual check on a total carrier is that the obligation is not unsatisfiable at an F2P-shaped input, and the shipped version did not test that (it discharged generic Nat arithmetic -- I proved it decorative by showing a trivially-true assert still verifies). Now re-aimed properly: the case discharges both frozen clauses conjoined at checksOld=1, samples=[1,2], q=1 by evaluation before closing the frozen obligation. The admissibility lane is present and non-vacuous.",
+        "nagini_case": "10. admissibility-public-scorer-normal-input",
+        "verdict": "inexpressible"
+      }
+    ],
+    "spec_holes": [
+      {
+        "clause": "fitComputeOffset `ensures checks = checksOld` (and symmetrically scorePrepared's own `ensures checks = checksOld`)",
+        "input": "fitComputeOffset checks samples q, with the impl `let (scoresJunk, checksJunk) <- scorePublic checks samples; let (scores, checks') <- scorePrepared checks samples; checks := checks'; let off := percentileAt scores q; return off` -- I rebuilt this myself and it VERIFIES at exit 0 against the frozen spec (scripts/lean_verify.sh; variant_problems=[], so it is an admissible same-spec rival)",
+        "why": "The screening tally is a FREELY-WRITTEN output, so the clause pins the tally's FINAL VALUE, not whether the screening occurred. A rival can perform the redundant screening through the public entry point, discard that call's returned tally, and return the clean tally from the prepared path: the modeled observable ends at checksOld while the redundant screen genuinely happened. Its faithful counterpart re-screens the already-prepared matrix and so raises the spurious feature-name UserWarning the F2P test forbids under simplefilter('error') => verifies but does NOT resolve. This is exactly the shape prompts/velvet/spec_guide.md section 0.9 names (the directive-4/9 hole: a wrong impl fires the effect in a throwaway local and returns the clean value): Velvet's final-state WP has no pre-state Old or framed-effect primitive, so a modeled counter cannot force the effect through the channel. Independently re-measured by this audit rather than carried over on trust. Escalation, not a battery repair -- closing it means changing the frozen Solution.lean (a genuine effect-tracking primitive, or an ensures that a discarded tally cannot satisfy), which must re-clear G-EQ, G-DIFF, G-CONF and G-PANEL outside this lane. Note the shipped fit-rescreen-via-public-path rival remains meaningful: the pre-patch shape does NOT discard the tally. Note also this bundle's G-EQ and G-PANEL-1 are ALREADY recorded `fail` with 'BROKEN (verify does not imply correct): atk_1.lean verifies but its patch does not resolve', which is consistent with this hole being real and independently found by the panel."
+      }
+    ],
+    "witness_evidence": [
+      {
+        "forgery_error": "<none> -- the flipped-claim build (out.2 = 5 instead of out.2 = 0) ELABORATED against the frozen solution with no error, exit 0, where the real witness fails exit 1. Gold's exit code therefore tracks the claim: this is a real refutation, not a tactic mismatch.",
+        "forgery_exit": 0,
+        "gold_exit": 1,
+        "id": "fit-rescreen-via-public-path",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "type-revealing probe (exact (hc : Nat)): GOLD prints `error: Type mismatch / hc / has type / True` (simp PROVED the equation for gold); RIVAL prints `error: Type mismatch / hc / has type / percentileAt [1] 1 = percentileAt (anomalyScores [1]) 1` (a concrete false equation). Both exit 1; the differing hypothesis TYPE is the evidence.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "fit-forge-offset-value",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "type-revealing probe: GOLD `hc has type True`; RIVAL `hc has type percentileAt (anomalyScores []) 0 = percentileAt (anomalyScores [1]) 0`. Genuine refutation.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "fit-scores-foreign-matrix",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "type-revealing probe: GOLD `hc has type True`; RIVAL `hc has type percentileAt (anomalyScores [1, 2]) 0 = percentileAt (anomalyScores [1, 2]) 1`. Case added by this audit.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "fit-ignores-requested-point",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "<none> -- flipped claim (out.2 = 5) ELABORATED against gold, exit 0. Exit code tracks the claim.",
+        "forgery_exit": 0,
+        "gold_exit": 1,
+        "id": "prepared-rescreens",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "type-revealing probe: GOLD `hc has type True`; RIVAL `hc has type [1, 2] = anomalyScores [1, 2]`. Additionally the opposite-polarity forgery (out.1 = [1, 2], asserting the rival is correct) breaks the RIVAL build: exit 1, `Invalid field symm: ... hc has type True` => gate records witness-unproven.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "prepared-wrong-value",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "<none> -- flipped claim (out.2 = 5) ELABORATED against gold, exit 0. Exit code tracks the claim.",
+        "forgery_exit": 0,
+        "gold_exit": 1,
+        "id": "public-skips-screen",
+        "probe_exit": null,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "type-revealing probe: GOLD `hc has type True`; RIVAL `hc has type [1, 2] = anomalyScores [1, 2]`.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "public-wrong-value",
+        "probe_exit": 1,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 8
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "version": "1.3"
+}

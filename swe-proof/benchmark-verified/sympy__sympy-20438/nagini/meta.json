@@ -1,0 +1,485 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "behavioral no-op (duplicate dispatch) / import prerequisite; shipped in patch.diff verbatim",
+      "repo_location": "sympy/sets/handlers/comparison.py:14-16 (one of two identical 'return False' rules removed); sympy/sets/handlers/issubset.py:4 (import)",
+      "repo_symbol": "duplicate @dispatch(FiniteSet, Interval) rule removed; ProductSet added to issubset.py imports"
+    }
+  ],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real FiniteSet.contains is deterministic and returns a definite bool (S.true/S.false, never None) on concrete element handles; never asserts an exact value (matching the empty value-contract)",
+      "encoded_property": "WEAKEST sufficient contract: @Pure @ContractOnly with NO value Ensures -- only purity (determinism) + totality are relied upon; the impl loop reads the same membership fact the spec fold reads",
+      "models": "FiniteSet.contains / FiniteSet._contains",
+      "name": "member",
+      "provenance": "sympy/sets/sets.py:293-337 (Set.contains) and :1846-1873 (FiniteSet._contains)",
+      "purity": "@Pure @ContractOnly (used inside Ensures via all_in)"
+    }
+  ],
+  "base_commit": "33b47e4bd60e2302e42616141e76285038b724d6",
+  "changed_files": [
+    "sympy/core/relational.py",
+    "sympy/sets/handlers/comparison.py",
+    "sympy/sets/handlers/issubset.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts ProductSet.is_subset(FiniteSet) == all(x in finite for x in product) directly on enumerated elements (no double-mask), on F2P witnesses + ~4000 fuzz products",
+      "encoded_property": "result True iff every enumerated product element is a member of the finite set; over fully-decidable concrete products fuzzy_and is boolean conjunction",
+      "kind": "A-reference",
+      "models": "is_subset_sets(ProductSet, FiniteSet) i.e. ProductSet.is_subset(FiniteSet): fuzzy_and(b_fs.contains(x) for x in a_ps)",
+      "name": "all_in (in product_subset_of_finite)",
+      "provenance": "sympy/sets/handlers/issubset.py new rule; ProductSet.__iter__=iproduct sympy/sets/sets.py:838-844; tfn sympy/sets/sets.py:31-35; fuzzy_and sympy/core/logic.py:115",
+      "role": "deep model (pure all_in fold + verified loop) of the changed subset decision; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts Eq(A,B).simplify() is S.true iff (A subset B and B subset A), S.false otherwise",
+      "encoded_property": "two finite sets equal iff each is a subset of the other (mutual containment)",
+      "kind": "A-reference",
+      "models": "_eval_is_eq(Set, Set): tfn[fuzzy_and(a.is_subset(b) for a,b in [(lhs,rhs),(rhs,lhs)])]",
+      "name": "finite_sets_equal (mutual-subset fold)",
+      "provenance": "sympy/sets/handlers/comparison.py:57-59",
+      "role": "deep model of the changed equality decision; calls product_subset_of_finite under spec"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX, check_route): asserts real Eq(A,B).simplify() on collection operands does NOT raise and reaches a defined collection decision, that both_arith matches isinstance(lhs,Expr) and isinstance(rhs,Expr), and that arithmetic operands take the arithmetic path; pre-patch raises the exact AttributeError on the collection case, confirming it discriminates",
+      "encoded_property": "for collection (non-Expr) operands the arithmetic-reduction path is NOT taken (no AttributeError) and the equality is decided by the collection rule; for arithmetic (Expr) operands the arithmetic path is taken; the result on the collection branch is the mutual-subset value and never the arithmetic-path token",
+      "kind": "A-reference",
+      "models": "the isinstance(_, Expr) guard of Relational/Equality._eval_simplify: a non-Expr (collection) equality returns the relation unchanged instead of attempting lhs - rhs / .equals(0)",
+      "name": "simplify_equality_route (operand-kind routing guard)",
+      "provenance": "sympy/core/relational.py:303 and :558 (gold hunks 1 & 2)",
+      "role": "deep model of the changed routing; calls finite_sets_equal under spec (not an axiom)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:26:53+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "AXIOM CHECK OK: member sound (deterministic+total definite bool); ProductSet.is_subset(FiniteSet) == all_in fold; Eq(A,B).simplify() == mutual-subset; equality-routing guard defers collection operands to the collection rule without raising; all F2P witnesses pass.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "d2bff70357ed5af86a3b9a5501117110638fc3053848ab5352eaa8af45eeb48f",
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:27:56+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100034,
+          "disagreements": 0,
+          "seed": 204380,
+          "shadow": "direct (contract-stripped impl regions; member bridges to the real repo callee)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100034, \"disagreements\": 0, \"seed\": 204380, \"shadow\": \"direct (contract-stripped impl regions; member bridges to the real repo callee)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "7c1f96bc7333052224513f10c25df0020f596aee2c53835034e463c2a3d63c49",
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:24:46+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed",
+          "model_prepatch_3.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed; model_prepatch_3.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b",
+        "model_prepatch.py": "dff603dc6ceb6ff751b9ce20d8441116f181dac42f06670d53e398eb09e77970",
+        "model_prepatch_2.py": "50e8fd63bad2afe701a5fd646c50c4e5010b212c5aef27b68f360a3e3e332bcc",
+        "model_prepatch_3.py": "d037836e0d8c6af464c7de7d7844f490661b83256ff1507cfec298dfd6e7ee24"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T22:39:44+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:26:15+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b",
+        "model_prepatch.py": "dff603dc6ceb6ff751b9ce20d8441116f181dac42f06670d53e398eb09e77970",
+        "model_prepatch_2.py": "50e8fd63bad2afe701a5fd646c50c4e5010b212c5aef27b68f360a3e3e332bcc",
+        "model_prepatch_3.py": "d037836e0d8c6af464c7de7d7844f490661b83256ff1507cfec298dfd6e7ee24"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:26:42+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "3a3cd1c0efc1828d76f18620b60ce75ea17bff5659aeaafa9585d2af8fccbaf4",
+          "impl": "96dfc38877a43d67dda4ac16f3d0d75d22af4a54a1646d46992e719f38fd783e",
+          "invariants": "c3578fe689955f70310f79810154fb8e16d18861abbccea9460210c668ccd8e7",
+          "post-conditions": "77e9b370a549bf37293458a40e36ca9439e1deb0816eb4be24f2ad5a820f976a",
+          "pre-conditions": "26021b807e4ec973cc2052b82f41fc7b98614bfe5e795f2796bc7b9da05c2d3e",
+          "pure": "733fb350c4e68beab4bec9dbc90854d4b1ea46f07a05ee9d3edd47a637b73616",
+          "spec_view": "444ddaf9e307f301cc66d5cf600b61c5c0ec7309dee728c2eaeb92a43fad689a"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:26:42+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "2e152c9a175464631940c9ccd9b2f5be5d62dfaa8cfffd689c139172b739d4b8",
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:26:43+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:43:18+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "judged": 13,
+        "killed": 13,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 13,
+        "unjudged": []
+      },
+      "detail": "killed 13/13 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T22:39:46+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Set up patched testbed: git worktree at base_commit 33b47e4bd60e2302e42616141e76285038b724d6 + gold patch applied ($SCRATCH). Validated the spec against the REAL patched callees on all three modeled behaviors: (1) product_subset_of_finite == ProductSet.is_subset(FiniteSet), (2) finite_sets_equal == Eq(A,B).simplify() mutual-subset value, (3) simplify_equality_route == the isinstance(_,Expr) routing guard.\n\nEvidence: identity same-spec check exit 0 (markers intact); nagini_verify.sh SUCCEEDS in 11.6s (spec real & non-vacuous); axiom_check.py (G-AX) passes against real repo; conformance_check.py (G-CONF) reports 0 disagreements over 100,034 concrete inputs; my independent 60k-round fuzz over random concrete FiniteSet/ProductSet/Interval collections found 0 non-definite results and 0 raises \u2014 the real Eq(...).simplify() is always definite (S.true/S.false) on the concrete domain, exactly matching collection_outcome (token 1/2, never ARITH_PATH).\n\nThe only divergence (non-definite result) requires SYMBOLIC elements, which make `member` non-definite and are excluded from the modeled domain per mapping.md \u00a72/\u00a73.1 and the conformance BridgeError. This domain restriction is documented honestly (not a hidden over-claim). Within its declared concrete domain, the modeled functions agree with the real callees on every input tested. The spec is neither too strong nor drifting: FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (no diff markers, no patched file/module paths, no changed-symbol collisions, no bug/fix narration; changed repo symbols is_subset_sets/_eval_is_eq/equals/binary_symbols absent from the spec view). Semantic gold-reconstruction check: the spec view describes three behaviors, all grounded in the UNUSUALLY EXPLICIT public problem_statement plus standard mathematical definitions, adding no localization beyond it:\n\n(1) ProductSet \u2286 FiniteSet iff every enumerated element is a member. The failing operation `b.is_subset(c)` (ProductSet.is_subset(FiniteSet)) is named verbatim in the problem_statement repro. 'subset iff all elements are members' is the textbook definition of subset, not a distinctive edit.\n\n(2) Set equality iff mutual containment. `Eq(b,c).simplify()` failure is shown in the problem_statement. 'two sets equal iff each is a subset of the other' is the universal definition of set equality \u2014 not gold-specific.\n\n(3) Routing guarded on operand kind: do NOT attempt the arithmetic difference (`lhs - rhs`)/zero-comparison (`.equals(0)`) reduction for collection operands. This mirrors the PUBLIC traceback in the problem_statement, which shows exactly `dif = r.lhs - r.rhs` and `elif dif.equals(0)` at relational.py:308 raising `AttributeError: 'Complement' object has no attribute 'equals'`. Guarding the arithmetic path away from non-arithmetic operands is the direct, obvious fix implied by the public crash; the spec uses neutral 'arithmetic (number-like)' phrasing and never names the `isinstance(_, Expr)` mechanism or Expr type.\n\nAbstraction names (product_subset_of_finite, finite_sets_equal, simplify_equality_route, member, all_in, ARITH_PATH, collection_outcome) are behavioral and do not echo any patched repo symbol. No diff line, edit mechanism, or repo-internal path is disclosed. The spec is a faithful behavioral model reconstructible from the public problem_statement alone; it does not leak the gold edit beyond it.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Set up patched testbed: git worktree at base_commit 33b47e4bd60e2302e42616141e76285038b724d6 + gold patch applied ($SCRATCH). Validated the spec against the REAL patched callees on all three modeled behaviors: (1) product_subset_of_finite == ProductSet.is_subset(FiniteSet), (2) finite_sets_equal == Eq(A,B).simplify() mutual-subset value, (3) simplify_equality_route == the isinstance(_,Expr) routing guard.\n\nEvidence: identity same-spec check exit 0 (markers intact); nagini_verify.sh SUCCEEDS in 11.6s (spec real & non-vacuous); axiom_check.py (G-AX) passes against real repo; conformance_check.py (G-CONF) reports 0 disagreements over 100,034 concrete inputs; my independent 60k-round fuzz over random concrete FiniteSet/ProductSet/Interval collections found 0 non-definite results and 0 raises \u2014 the real Eq(...).simplify() is always definite (S.true/S.false) on the concrete domain, exactly matching collection_outcome (token 1/2, never ARITH_PATH).\n\nThe only divergence (non-definite result) requires SYMBOLIC elements, which make `member` non-definite and are excluded from the modeled domain per mapping.md \u00a72/\u00a73.1 and the conformance BridgeError. This domain restriction is documented honestly (not a hidden over-claim). Within its declared concrete domain, the modeled functions agree with the real callees on every input tested. The spec is neither too strong nor drifting: FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (no diff markers, no patched file/module paths, no changed-symbol collisions, no bug/fix narration; changed repo symbols is_subset_sets/_eval_is_eq/equals/binary_symbols absent from the spec view). Semantic gold-reconstruction check: the spec view describes three behaviors, all grounded in the UNUSUALLY EXPLICIT public problem_statement plus standard mathematical definitions, adding no localization beyond it:\n\n(1) ProductSet \u2286 FiniteSet iff every enumerated element is a member. The failing operation `b.is_subset(c)` (ProductSet.is_subset(FiniteSet)) is named verbatim in the problem_statement repro. 'subset iff all elements are members' is the textbook definition of subset, not a distinctive edit.\n\n(2) Set equality iff mutual containment. `Eq(b,c).simplify()` failure is shown in the problem_statement. 'two sets equal iff each is a subset of the other' is the universal definition of set equality \u2014 not gold-specific.\n\n(3) Routing guarded on operand kind: do NOT attempt the arithmetic difference (`lhs - rhs`)/zero-comparison (`.equals(0)`) reduction for collection operands. This mirrors the PUBLIC traceback in the problem_statement, which shows exactly `dif = r.lhs - r.rhs` and `elif dif.equals(0)` at relational.py:308 raising `AttributeError: 'Complement' object has no attribute 'equals'`. Guarding the arithmetic path away from non-arithmetic operands is the direct, obvious fix implied by the public crash; the spec uses neutral 'arithmetic (number-like)' phrasing and never names the `isinstance(_, Expr)` mechanism or Expr type.\n\nAbstraction names (product_subset_of_finite, finite_sets_equal, simplify_equality_route, member, all_in, ARITH_PATH, collection_outcome) are behavioral and do not echo any patched repo symbol. No diff line, edit mechanism, or repo-internal path is disclosed. The spec is a faithful behavioral model reconstructible from the public problem_statement alone; it does not leak the gold edit beyond it.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Set up patched testbed: git worktree at base_commit 33b47e4bd60e2302e42616141e76285038b724d6 + gold patch applied ($SCRATCH). Validated the spec against the REAL patched callees on all three modeled behaviors: (1) product_subset_of_finite == ProductSet.is_subset(FiniteSet), (2) finite_sets_equal == Eq(A,B).simplify() mutual-subset value, (3) simplify_equality_route == the isinstance(_,Expr) routing guard.\n\nEvidence: identity same-spec check exit 0 (markers intact); nagini_verify.sh SUCCEEDS in 11.6s (spec real & non-vacuous); axiom_check.py (G-AX) passes against real repo; conformance_check.py (G-CONF) reports 0 disagreements over 100,034 concrete inputs; my independent 60k-round fuzz over random concrete FiniteSet/ProductSet/Interval collections found 0 non-definite results and 0 raises \u2014 the real Eq(...).simplify() is always definite (S.true/S.false) on the concrete domain, exactly matching collection_outcome (token 1/2, never ARITH_PATH).\n\nThe only divergence (non-definite result) requires SYMBOLIC elements, which make `member` non-definite and are excluded from the modeled domain per mapping.md \u00a72/\u00a73.1 and the conformance BridgeError. This domain restriction is documented honestly (not a hidden over-claim). Within its declared concrete domain, the modeled functions agree with the real callees on every input tested. The spec is neither too strong nor drifting: FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (no diff markers, no patched file/module paths, no changed-symbol collisions, no bug/fix narration; changed repo symbols is_subset_sets/_eval_is_eq/equals/binary_symbols absent from the spec view). Semantic gold-reconstruction check: the spec view describes three behaviors, all grounded in the UNUSUALLY EXPLICIT public problem_statement plus standard mathematical definitions, adding no localization beyond it:\n\n(1) ProductSet \u2286 FiniteSet iff every enumerated element is a member. The failing operation `b.is_subset(c)` (ProductSet.is_subset(FiniteSet)) is named verbatim in the problem_statement repro. 'subset iff all elements are members' is the textbook definition of subset, not a distinctive edit.\n\n(2) Set equality iff mutual containment. `Eq(b,c).simplify()` failure is shown in the problem_statement. 'two sets equal iff each is a subset of the other' is the universal definition of set equality \u2014 not gold-specific.\n\n(3) Routing guarded on operand kind: do NOT attempt the arithmetic difference (`lhs - rhs`)/zero-comparison (`.equals(0)`) reduction for collection operands. This mirrors the PUBLIC traceback in the problem_statement, which shows exactly `dif = r.lhs - r.rhs` and `elif dif.equals(0)` at relational.py:308 raising `AttributeError: 'Complement' object has no attribute 'equals'`. Guarding the arithmetic path away from non-arithmetic operands is the direct, obvious fix implied by the public crash; the spec uses neutral 'arithmetic (number-like)' phrasing and never names the `isinstance(_, Expr)` mechanism or Expr type.\n\nAbstraction names (product_subset_of_finite, finite_sets_equal, simplify_equality_route, member, all_in, ARITH_PATH, collection_outcome) are behavioral and do not echo any patched repo symbol. No diff line, edit mechanism, or repo-internal path is disclosed. The spec is a faithful behavioral model reconstructible from the public problem_statement alone; it does not leak the gold edit beyond it.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:57:15+00:00",
+      "code_version": "70785cfb4-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mut-psof",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-fse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.7
+          },
+          {
+            "expect": "reject",
+            "id": "partial-first-psof",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.2
+          },
+          {
+            "expect": "reject",
+            "id": "empty-cheapest-psof",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 15.1
+          },
+          {
+            "expect": "reject",
+            "id": "one-direction-fse",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reshape-psof",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fse-selfcall",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 16.6
+          },
+          {
+            "expect": "reject",
+            "id": "no-guard-route",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.3
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-outcome-route",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-route-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 18.8
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "0dc1adca8f48ab88cf90cddba1b2f5ed1c993c3b48198697eff6dc2f35aa06f2",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b",
+        "properties.py": "0dc1adca8f48ab88cf90cddba1b2f5ed1c993c3b48198697eff6dc2f35aa06f2"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:47:19+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:05:13+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 14.1
+      },
+      "detail": "verified in 14.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "979c93d0ff2621a3dfcbd121479dacfe6dff8c2e31851fcd74f1a9b3c974dc5b"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-20438",
+  "modeled_functions": [
+    {
+      "carrier_type": "Cartesian-product element (tuple) -> int handle; FiniteSet -> int collection id; decision over PSeq[int] via the all_in fold",
+      "model_symbol": "product_subset_of_finite",
+      "repo_location": "sympy/sets/handlers/issubset.py (new rule, gold hunk 4); dispatcher sympy/sets/sets.py:386-389; Set.is_subset sympy/sets/sets.py:349",
+      "repo_symbol": "is_subset_sets (new @dispatch(ProductSet, FiniteSet) rule), reached via Set.is_subset -> is_subset_sets",
+      "role": "modeled changed function (ProductSet-subset-of-FiniteSet decision)"
+    },
+    {
+      "carrier_type": "two FiniteSets -> two element-handle List[int] + two collection ids",
+      "model_symbol": "finite_sets_equal",
+      "repo_location": "sympy/sets/handlers/comparison.py:57-59 (gold hunk 3)",
+      "repo_symbol": "_eval_is_eq (new (Set, Set) rule body), reached via set-equality simplification",
+      "role": "modeled changed function (set equality via mutual subset); calls product_subset_of_finite under spec (not an axiom)"
+    },
+    {
+      "carrier_type": "both-operands-are-Expr -> bool flag both_arith; outcome -> int token (ARITH_PATH for the unchanged arithmetic path, collection_outcome(equal) != ARITH_PATH for the collection decision)",
+      "model_symbol": "simplify_equality_route",
+      "repo_location": "sympy/core/relational.py:303 (gold hunk 1) and :558 (gold hunk 2): 'if not isinstance(r.lhs, Expr) or not isinstance(r.rhs, Expr): return r'",
+      "repo_symbol": "the isinstance(_, Expr) operand-kind guard added to Relational._eval_simplify and Equality._eval_simplify",
+      "role": "modeled changed function (operand-kind routing of equality simplification): a collection (non-Expr) equality is NOT routed through the arithmetic reduction (lhs - rhs / .equals(0), which raised AttributeError) but defers to the collection-equality rule; calls finite_sets_equal under spec (not an axiom)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == all_in(ToSeq(elems), finite_id) (b subset c witness, true answer True)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "ProductSet-subset-of-FiniteSet decision (no rule existed; dispatcher returned None)",
+      "reverted_to": "containment fact never computed (returns len(elems)==0, independent of member)"
+    },
+    {
+      "fails_on": "postcondition Result() == (all_in(a,id_b) and all_in(b,id_a)) (Eq(c,b) is S.true witness, true answer True)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "set equality via mutual subset ((Set,Set) returned None)",
+      "reverted_to": "equality not reduced to mutual subset (returns False, independent of member)"
+    },
+    {
+      "fails_on": "postcondition Implies(not both_arith, Result() != ARITH_PATH()) (a collection operand routed into the arithmetic path)",
+      "file": "model_prepatch_3.py",
+      "fixed_behavior": "operand-kind routing guard of equality simplification (a collection equality must NOT take the arithmetic-reduction path)",
+      "reverted_to": "no guard: the arithmetic-reduction path is taken unconditionally (returns ARITH_PATH() even for collection operands), so the collection case is never deferred to the collection-equality rule (pre-patch raised AttributeError on lhs - rhs / .equals(0))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3a3cd1c0efc1828d76f18620b60ce75ea17bff5659aeaafa9585d2af8fccbaf4",
+    "impl": "4352d43549e6337d3e9dbf316eb7fa5205eae14c0e0b3df8c9298185b8717fd0",
+    "invariants": "768b4044c0e769167bf44aca29b65c7120e1a320cc652ac9e73bec36bb82aca0",
+    "post-conditions": "77e9b370a549bf37293458a40e36ca9439e1deb0816eb4be24f2ad5a820f976a",
+    "pre-conditions": "4707d04e3c4dec66b4e3ece975cb8b3abdc02d9a15e59379109da3667d005d5f",
+    "pure": "733fb350c4e68beab4bec9dbc90854d4b1ea46f07a05ee9d3edd47a637b73616",
+    "spec_view": "75b7055c3bdf8eb2dbe8ecb1a3baae736cd14a2fcd351d4d1c73c3412f1342c0"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "n/a (set elements modeled as opaque int handles; membership via the member oracle keyed by collection id; decisions carried by PSeq[int] via ToSeq with the front-recursive all_in boolean fold; the equality-routing guard carried by a bool operand-kind flag + int outcome tokens)",
+  "version": "1.8"
+}

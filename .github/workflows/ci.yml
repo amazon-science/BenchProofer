@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  # One command, the same one a contributor runs: format, lint, types, tests, and the
+  # offline smoke suite. It runs on the interpreter constraints/ is locked for, so the
+  # formatter and the type checker that decide here are the versions the lock records.
+  check:
+    name: check (locked, python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            constraints/*.txt
+
+      - name: Install
+        run: bash scripts/setup.sh --no-doctor
+
+      - name: Report what this machine can do
+        run: python -m benchproofer doctor
+
+      - name: Check
+        run: bash scripts/check.sh
+
+      - name: Upload the smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-locked-py311
+          path: smoke-out/
+          if-no-files-found: ignore
+
+  # The interpreters and platforms the package claims to support, with dependencies
+  # resolved freely, so an upstream release that breaks the project shows up here and
+  # not in someone's checkout. Linting is not repeated: it is a property of the source,
+  # it already ran above, and running it against four tool versions produces noise
+  # rather than signal.
+  test:
+    name: test (${{ matrix.os }}, python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.12" }
+          # The newest interpreter the classifiers claim. CrossHair has no wheel for it
+          # yet and its dependency marker leaves it out, so the smoke suite here skips
+          # that one backend with a reason rather than failing.
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: macos-latest, python: "3.12" }
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: bash scripts/setup.sh --no-doctor
+
+      - name: Report what this machine can do
+        run: python -m benchproofer doctor
+
+      - name: Tests
+        run: make test
+
+      - name: Smoke
+        run: bash scripts/smoke.sh offline
+
+      - name: Upload the smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ matrix.os }}-py${{ matrix.python }}
+          path: smoke-out/
+          if-no-files-found: ignore
+
+  # The setup the README documents, followed by the same offline suite with every
+  # pinned prover installed and a skipped case counted as a failure. The two belong in
+  # one job because conda is what the README installs the interpreter and system tools
+  # with and what the Nagini toolchain is built from, so this answers both questions at
+  # once: does the documented setup still solve, and was the suite covered rather than
+  # merely sound. Without it, a machine missing the provers reports a green run over
+  # half the backends.
+  strict:
+    name: documented setup, strict smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          environment-file: environment.yml
+          activate-environment: benchproofer
+
+      - name: Install
+        run: bash scripts/setup.sh --no-doctor
+
+      # Installed from scratch on every run on purpose. A moved release, a changed
+      # archive, or a pinned version that no longer resolves is a reproducibility
+      # failure worth hearing about, and a cache would hide it. Dafny is a 60 MB
+      # archive, Lean unpacks to about 2 GB, and Nagini brings an interpreter and a JVM.
+      - name: Install the pinned verifier toolchains
+        run: make toolchains
+
+      - name: Report what this machine can do
+        run: python -m benchproofer doctor --strict
+
+      - name: Smoke, where a skipped case is a failure
+        run: bash scripts/smoke.sh ci
+
+      - name: Upload the smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-strict
+          path: smoke-out/
+          if-no-files-found: ignore
+
+  # What someone who never clones this repository gets. A wheel is built, installed into
+  # an empty environment, and run from outside the checkout, so a data file the build
+  # forgets to carry -- a prompt template, a fixture bundle -- fails here rather than on
+  # a user's machine.
+  package:
+    name: wheel install
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            constraints/*.txt
+
+      - name: Build the wheel, install it on its own, and run the offline suite
+        run: bash scripts/package.sh
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            constraints/*.txt
+
+      - name: Install
+        run: bash scripts/setup.sh --extras docs --no-doctor
+
+      # --strict fails on a broken internal link or a page that is not in the
+      # navigation, so the documentation cannot drift out of the site unnoticed.
+      - name: Build the documentation
+        run: python -m mkdocs build --strict

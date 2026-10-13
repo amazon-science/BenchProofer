@@ -1,0 +1,1 @@
+Your task: edit the code in {workdir} so the issue described below is resolved. A separate grader will apply your patch and run the project's hidden test suite; you pass iff those tests pass. Work with `bash` to inspect and edit the repository, then call `submit` when your solution is ready.

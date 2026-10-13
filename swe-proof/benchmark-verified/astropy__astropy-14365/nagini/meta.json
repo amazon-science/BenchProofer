@@ -1,0 +1,503 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "7269fa3e33e8d02485a647da91a5a2a60a06af61",
+  "changed_files": [
+    "astropy/io/ascii/qdp.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts upseq == str.upper over boundary (incl. long-s) + 20000 fuzz strings",
+      "encoded_property": "upseq(s): per-code-point upper fold (ASCII a-z -> A-Z; long-s 383 -> S 83); equal in length to s",
+      "kind": "A-reference",
+      "models": "str.upper (CPython) on the ASCII QDP token domain; introduced by the patch as v.upper() and as the letter-folding effect of re.IGNORECASE",
+      "name": "up / upseq",
+      "provenance": "astropy/io/ascii/qdp.py:309 (v.upper()) and :71 (re.IGNORECASE); fold: a-z (97-122) -> subtract 32, 383 (long-s) -> 83, else identity (383 is the one non-ASCII code point str.upper/re.IGNORECASE identify with a keyword letter, S)",
+      "role": "deep model (pure region) of the changed case-fold operation; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): verdict-level decision-equivalence model_is_masked_field(field) == (field.upper()=='NO') over 17 boundary + 20000 fuzz fields (no double-mask)",
+      "encoded_property": "a field is masked iff its case fold equals the reserved word NO",
+      "kind": "A-reference",
+      "models": "the patched missing-value test v.upper() == \"NO\"",
+      "name": "is_masked_field",
+      "provenance": "astropy/io/ascii/qdp.py:309 (gold hunk 2)",
+      "role": "deep model of the changed masking decision; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): verdict-level decision-equivalence is_command_tokens == real _line_type command verdict over all keyword-case combinations + 5000 fuzz lines (no double-mask); prefers in-container repo module (post-patch guard) else gold-patched source verbatim",
+      "encoded_property": "a line is a command iff (case folded) its first word is READ, its second is SERR/TERR, and >=1 column number follows",
+      "kind": "A-reference",
+      "models": "the patched _line_type command verdict (regex READ [TS]ERR(\\s+[0-9]+)+ compiled with re.IGNORECASE)",
+      "name": "is_command_tokens",
+      "provenance": "astropy/io/ascii/qdp.py:63,70,71 (gold hunk 1); problem statement: QDP is not case sensitive",
+      "role": "deep model of the changed command-recognition decision; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): verdict-level decision-equivalence is_reserved_data_token == (i) patched regex (NO|[-+]?nan) re.IGNORECASE fullmatch over all fields, and (ii) real _line_type data/new verdict on the letter-bearing field sub-domain + new-branch fuzz (no double-mask: the sub-domain filter is an input property, not the predicate under test)",
+      "encoded_property": "a field is a reserved data token iff (case folded) it is NO, NAN, or a signed NAN; ordinary decimal numbers are out of scope (case-irrelevant unchanged machinery)",
+      "kind": "A-reference",
+      "models": "the patched _line_type data/new branch reserved-token recognition (regex alternative (NO|[-+]?nan) and _new_re NO(sep NO)+ compiled with re.IGNORECASE)",
+      "name": "is_reserved_data_token",
+      "provenance": "astropy/io/ascii/qdp.py:63,64,71 (gold hunk 1, same edit as command); F2P input depends on the lower-case 'no' data field being recognised at line-classification",
+      "role": "deep model of the changed data/new-branch reserved-token recognition decision; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T04:22:26+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: case fold (upseq == str.upper) + masking (== v.upper()=='NO') + command recognition (== patched _line_type) + reserved-data-token recognition (== patched (NO|[-+]?nan) + real _line_type data/new verdict) sound on 199 boundary + 73000 fuzz observations",
+      "gate": "G-AX",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "e55481a6fe1dc6b67cb7b3d70d2f5ac6cf45e27bf21d86a6a7453f0f74b78f96",
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T04:22:30+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "direct"
+      },
+      "detail": "G-CONF OK: model.py impl shadow (masked_field, reserved_data_token, command_line) agrees with the real patched recognition behaviour on 117970 comparisons (seed=14365), 0 disagreements.",
+      "gate": "G-CONF",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "5f29a73a554b8fda1e284298ebd040b11ba47a091ea47b39a567018adb20a2a4",
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:25:13+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_2.py": "verification failed",
+          "model_prepatch_3.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_2.py: verification failed; model_prepatch_3.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b",
+        "model_prepatch.py": "db8235852e326affa444b0fe033b16855052564207ba69d9290e3b3eadfbd759",
+        "model_prepatch_2.py": "0f7e8cc6db93bbc6ddc0628546d08e442da6debaf3bfc190d53e14069a87d9d5",
+        "model_prepatch_3.py": "e3eccce1064239b906045a49dcb57bef915714bf7bbae586e181a6e80c58d548"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T05:37:53+00:00",
+      "code_version": "dc63dfaac-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_1.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:28:02+00:00",
+      "code_version": "6799070f4-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b",
+        "model_prepatch.py": "db8235852e326affa444b0fe033b16855052564207ba69d9290e3b3eadfbd759",
+        "model_prepatch_2.py": "0f7e8cc6db93bbc6ddc0628546d08e442da6debaf3bfc190d53e14069a87d9d5",
+        "model_prepatch_3.py": "e3eccce1064239b906045a49dcb57bef915714bf7bbae586e181a6e80c58d548"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T04:22:13+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "c44027da971b57dd3ea4964d421479e342e7d4d69137f075d40bcc8f6772e891",
+          "impl": "b87921bf303f8d980d640a0b915d32fc78212bcce830966f624e11f32d024d10",
+          "invariants": "2fd7cfdd1e310393adbbe705c4b74e0b29929641c1bbdccdd371ef90bb4739b1",
+          "post-conditions": "21f4fecde72632c7e418d6986a861624c6a1a49802c287d222fc700c8c2f0ed6",
+          "pre-conditions": "39c0fecc99c3f3cb6954e439d4ab2c189a297202cb43b06dbb07493bb8ae9f07",
+          "pure": "b2171ce60b661a73ae8da82e202b3d1fb49aafec874d78ee66fec1e5bbb3f14a",
+          "spec_view": "df7bbaf75e78f2a013fd36aed105616186cc9ff6408a4afab8eacb063775bcbe"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T04:22:14+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "d09dadbe2ce417a2b7019178b1f87ef02c12262648cea3c7290b9805b639318a",
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T04:22:15+00:00",
+      "code_version": "2aa60cb1f-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T04:59:01+00:00",
+      "code_version": "9bf42293e-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T05:37:56+00:00",
+      "code_version": "dc63dfaac-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Re-audited the CURRENT model.py (mtime Aug 13 03:46, NEWER than the recorded verdict.md at Aug 13 00:00). The recorded G-PANEL-2=fail/UNFAITHFUL verdict cited 'READ \u017fERR 1' (long-s U+017F=383 in the SERR keyword): the real patched _line_type uses re.IGNORECASE, and re.fullmatch('S','\u017f',re.IGNORECASE)==True and '\u017f'.upper()=='S', so the real callee accepts it while the old model (ASCII-only fold) rejected it \u2014 a genuine spec-too-strong drift. The model has since been REPAIRED: up(c) now explicitly maps 383->83 (\u017f->S), covering exactly that code point.\n\nRe-verification against the current model, all against the byte-faithful gold-patched callees (regex 'READ [TS]ERR(\\s+[0-9]+)+', '(NO|[-+]?nan)' compiled re.IGNORECASE; masking str.upper()=='NO'):\n(1) Exhaustive single-code-point scan over 0..0x10FFFF: every char whose str.upper() is a single reserved letter {N,O,S,T,R,E,A,D} is folded correctly by the model \u2014 0 mismatches. The complete set of code points Python's re.IGNORECASE/str.upper identifies with a reserved letter is exactly the ASCII case pairs plus \u017f(383)->S; all captured.\n(2) Per-position full-range (0..0x10FFFF) substitution scans on all three predicates (command tok0=READ/tok1=[TS]ERR; masking NO; reserved-token NO|[-+]?nan with sign positions): 0 divergences from the real callee.\n(3) Multi-char case-fold expansions (\u00df->SS, \ufb05/\ufb06->ST) are NOT matched by Python re.IGNORECASE (confirmed empirically), so they present no leak.\n(4) The prior counterexample 'READ \u017fERR 1' now: model=True, real=True.\n(5) 300k full-Unicode random fuzz across all three sites: 0 divergences.\n(6) model.py still verifies under the pinned Nagini verifier (Verification successful, 15.6s).\n\nSpec region is a faithfulness/drift concern (not same-spec) and the modeled functions now agree with the real patched repo callees on every well-typed, precondition-satisfying input I could construct or enumerate. No diverging input exists. The old UNFAITHFUL verdict is stale; the repaired model is FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view (model.py with impl/proof elided) checked against the public problem_statement only (NOT hints_text). Mechanical G-LEAK screen passes (0 hard failures, 0 warnings). Gold edit is two hunks in astropy/io/ascii/qdp.py: (1) re.compile(_type_re) -> re.compile(_type_re, re.IGNORECASE); (2) `if v == \"NO\":` -> `if v.upper() == \"NO\":`. The spec view leaks none of the edit's localization or mechanism: it does not name the patched file (qdp.py), the patched symbols (_line_type, _get_tables_from_qdp_file, _type_re), the flag re.IGNORECASE, or str.upper()/`v == \"NO\"`; no diff markers, no reproduced diff line, no bug/fix narration. Spec identifiers (up, upseq, masked_field, command_line, reserved_data_token) echo no underscore-stripped patched repo symbol. The case-insensitive framing ('QDP reserved words are case-insensitive; read serr 1 2 == READ SERR 1 2') is a direct abstract restatement of what the public problem_statement ALREADY states ('QDP itself is not case sensitive', lowercase `read serr 1 2` should parse instead of raising ValueError). The NO/nan masked/reserved-token behavior is additional required black-box behavior needed for the F2P roundtrip, described at the behavioral level (the legitimate role of a spec) without localizing or narrating the specific gold edit. The long-s (383)->S detail is a soundness artifact of the deep case-fold model, not part of the gold edit. Stated as desired behaviour, not as an edit \u2014 no leakage beyond the problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Re-audited the CURRENT model.py (mtime Aug 13 03:46, NEWER than the recorded verdict.md at Aug 13 00:00). The recorded G-PANEL-2=fail/UNFAITHFUL verdict cited 'READ \u017fERR 1' (long-s U+017F=383 in the SERR keyword): the real patched _line_type uses re.IGNORECASE, and re.fullmatch('S','\u017f',re.IGNORECASE)==True and '\u017f'.upper()=='S', so the real callee accepts it while the old model (ASCII-only fold) rejected it \u2014 a genuine spec-too-strong drift. The model has since been REPAIRED: up(c) now explicitly maps 383->83 (\u017f->S), covering exactly that code point.\n\nRe-verification against the current model, all against the byte-faithful gold-patched callees (regex 'READ [TS]ERR(\\s+[0-9]+)+', '(NO|[-+]?nan)' compiled re.IGNORECASE; masking str.upper()=='NO'):\n(1) Exhaustive single-code-point scan over 0..0x10FFFF: every char whose str.upper() is a single reserved letter {N,O,S,T,R,E,A,D} is folded correctly by the model \u2014 0 mismatches. The complete set of code points Python's re.IGNORECASE/str.upper identifies with a reserved letter is exactly the ASCII case pairs plus \u017f(383)->S; all captured.\n(2) Per-position full-range (0..0x10FFFF) substitution scans on all three predicates (command tok0=READ/tok1=[TS]ERR; masking NO; reserved-token NO|[-+]?nan with sign positions): 0 divergences from the real callee.\n(3) Multi-char case-fold expansions (\u00df->SS, \ufb05/\ufb06->ST) are NOT matched by Python re.IGNORECASE (confirmed empirically), so they present no leak.\n(4) The prior counterexample 'READ \u017fERR 1' now: model=True, real=True.\n(5) 300k full-Unicode random fuzz across all three sites: 0 divergences.\n(6) model.py still verifies under the pinned Nagini verifier (Verification successful, 15.6s).\n\nSpec region is a faithfulness/drift concern (not same-spec) and the modeled functions now agree with the real patched repo callees on every well-typed, precondition-satisfying input I could construct or enumerate. No diverging input exists. The old UNFAITHFUL verdict is stale; the repaired model is FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view (model.py with impl/proof elided) checked against the public problem_statement only (NOT hints_text). Mechanical G-LEAK screen passes (0 hard failures, 0 warnings). Gold edit is two hunks in astropy/io/ascii/qdp.py: (1) re.compile(_type_re) -> re.compile(_type_re, re.IGNORECASE); (2) `if v == \"NO\":` -> `if v.upper() == \"NO\":`. The spec view leaks none of the edit's localization or mechanism: it does not name the patched file (qdp.py), the patched symbols (_line_type, _get_tables_from_qdp_file, _type_re), the flag re.IGNORECASE, or str.upper()/`v == \"NO\"`; no diff markers, no reproduced diff line, no bug/fix narration. Spec identifiers (up, upseq, masked_field, command_line, reserved_data_token) echo no underscore-stripped patched repo symbol. The case-insensitive framing ('QDP reserved words are case-insensitive; read serr 1 2 == READ SERR 1 2') is a direct abstract restatement of what the public problem_statement ALREADY states ('QDP itself is not case sensitive', lowercase `read serr 1 2` should parse instead of raising ValueError). The NO/nan masked/reserved-token behavior is additional required black-box behavior needed for the F2P roundtrip, described at the behavioral level (the legitimate role of a spec) without localizing or narrating the specific gold edit. The long-s (383)->S detail is a soundness artifact of the deep case-fold model, not part of the gold edit. Stated as desired behaviour, not as an edit \u2014 no leakage beyond the problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_1.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Re-audited the CURRENT model.py (mtime Aug 13 03:46, NEWER than the recorded verdict.md at Aug 13 00:00). The recorded G-PANEL-2=fail/UNFAITHFUL verdict cited 'READ \u017fERR 1' (long-s U+017F=383 in the SERR keyword): the real patched _line_type uses re.IGNORECASE, and re.fullmatch('S','\u017f',re.IGNORECASE)==True and '\u017f'.upper()=='S', so the real callee accepts it while the old model (ASCII-only fold) rejected it \u2014 a genuine spec-too-strong drift. The model has since been REPAIRED: up(c) now explicitly maps 383->83 (\u017f->S), covering exactly that code point.\n\nRe-verification against the current model, all against the byte-faithful gold-patched callees (regex 'READ [TS]ERR(\\s+[0-9]+)+', '(NO|[-+]?nan)' compiled re.IGNORECASE; masking str.upper()=='NO'):\n(1) Exhaustive single-code-point scan over 0..0x10FFFF: every char whose str.upper() is a single reserved letter {N,O,S,T,R,E,A,D} is folded correctly by the model \u2014 0 mismatches. The complete set of code points Python's re.IGNORECASE/str.upper identifies with a reserved letter is exactly the ASCII case pairs plus \u017f(383)->S; all captured.\n(2) Per-position full-range (0..0x10FFFF) substitution scans on all three predicates (command tok0=READ/tok1=[TS]ERR; masking NO; reserved-token NO|[-+]?nan with sign positions): 0 divergences from the real callee.\n(3) Multi-char case-fold expansions (\u00df->SS, \ufb05/\ufb06->ST) are NOT matched by Python re.IGNORECASE (confirmed empirically), so they present no leak.\n(4) The prior counterexample 'READ \u017fERR 1' now: model=True, real=True.\n(5) 300k full-Unicode random fuzz across all three sites: 0 divergences.\n(6) model.py still verifies under the pinned Nagini verifier (Verification successful, 15.6s).\n\nSpec region is a faithfulness/drift concern (not same-spec) and the modeled functions now agree with the real patched repo callees on every well-typed, precondition-satisfying input I could construct or enumerate. No diverging input exists. The old UNFAITHFUL verdict is stale; the repaired model is FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec view (model.py with impl/proof elided) checked against the public problem_statement only (NOT hints_text). Mechanical G-LEAK screen passes (0 hard failures, 0 warnings). Gold edit is two hunks in astropy/io/ascii/qdp.py:\n\n(1) re.compile(_type_re) -> re.compile(_type_re, re.IGNORECASE);\n\n(2) `if v == \"NO\":` -> `if v.upper() == \"NO\":`. The spec view leaks none of the edit's localization or mechanism: it does not name the patched file (qdp.py), the patched symbols (_line_type, _get_tables_from_qdp_file, _type_re), the flag re.IGNORECASE, or str.upper()/`v == \"NO\"`; no diff markers, no reproduced diff line, no bug/fix narration. Spec identifiers (up, upseq, masked_field, command_line, reserved_data_token) echo no underscore-stripped patched repo symbol. The case-insensitive framing ('QDP reserved words are case-insensitive; read serr 1 2 == READ SERR 1 2') is a direct abstract restatement of what the public problem_statement ALREADY states ('QDP itself is not case sensitive', lowercase `read serr 1 2` should parse instead of raising ValueError). The NO/nan masked/reserved-token behavior is additional required black-box behavior needed for the F2P roundtrip, described at the behavioral level (the legitimate role of a spec) without localizing or narrating the specific gold edit. The long-s (383)->S detail is a soundness artifact of the deep case-fold model, not part of the gold edit. Stated as desired behaviour, not as an edit \u2014 no leakage beyond the problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:16:22+00:00",
+      "code_version": "e4976de62-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-masked-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 43.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-command-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 44.2
+          },
+          {
+            "expect": "verify",
+            "id": "pos-masked-grounded-echo",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 47.9
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reserved-grounded-echo",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 40.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-command-grounded-echo",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 43.2
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reserved-gold",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 43.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-masked",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-command",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-reserved",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-masked-uppercase-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-masked-no-and-NO-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.8
+          },
+          {
+            "expect": "reject",
+            "id": "partial-command-uppercase-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-reserved-exact-spelling",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-reserved-drop-signed-nan",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 5,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "e3013722e551cd5b9c2f5299382315746393063cbc362422d7da7716935601cb",
+        "n_cases": 14,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 14 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b",
+        "properties.py": "e3013722e551cd5b9c2f5299382315746393063cbc362422d7da7716935601cb"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T07:44:21+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T04:35:58+00:00",
+      "code_version": "4df3c4e74-dirty",
+      "data": {
+        "wall_time_s": 35.8
+      },
+      "detail": "verified in 35.8s",
+      "gate": "G-VERIFY",
+      "harness_digest": "b2861d5ca6c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "17013db3ac12efef296add30f885d85b513f11c642d596b5509476264c95598b"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "astropy__astropy-14365",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "command_line",
+      "repo_location": "astropy/io/ascii/qdp.py:20 (regex line 63, compiled line 71)",
+      "repo_symbol": "astropy.io.ascii.qdp._line_type (command branch)",
+      "role": "modeled changed function #1: case-insensitive recognition of a READ [ST]ERR <cols> command line"
+    },
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "masked_field",
+      "repo_location": "astropy/io/ascii/qdp.py:308-310",
+      "repo_symbol": "astropy.io.ascii.qdp._get_tables_from_qdp_file (missing-value test)",
+      "role": "modeled changed function #2: case-insensitive recognition of the masked sentinel NO"
+    },
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "reserved_data_token",
+      "repo_location": "astropy/io/ascii/qdp.py:20 (regex _data_re line 64 / _new_re line 63, compiled line 71)",
+      "repo_symbol": "astropy.io.ascii.qdp._line_type (data/new branch reserved-token recognition)",
+      "role": "modeled changed function #3: case-insensitive recognition of a reserved-word data token (NO/nan), the same re.IGNORECASE edit's effect on the data/new branches; the F2P data line 'no ... no' depends on it"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == is_masked_field(ToSeq(field)) (lower-case 'no' not recognised as masked)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "missing-value recognition (v.upper() == \"NO\")",
+      "reverted_to": "case-sensitive raw v == \"NO\" (pre-patch qdp.py:309)"
+    },
+    {
+      "fails_on": "postcondition Result() == is_command_tokens(ToSeq(tok0), ToSeq(tok1), ncols) (lower-case 'read serr 1 2' not recognised as command)",
+      "file": "model_prepatch_2.py",
+      "fixed_behavior": "command recognition (re.IGNORECASE, command branch)",
+      "reverted_to": "case-sensitive raw word comparison (pre-patch re.compile(_type_re) with no flag, qdp.py:71)"
+    },
+    {
+      "fails_on": "postcondition Result() == is_reserved_data_token(ToSeq(field)) (lower-case 'no' data token not recognised; whole data line would raise ValueError at line-classification). This is the G-EQ adversarial counterexample (partial patch fixing only command+masking still crashes on the F2P data line).",
+      "file": "model_prepatch_3.py",
+      "fixed_behavior": "reserved-data-token recognition (re.IGNORECASE, data/new branch)",
+      "reverted_to": "case-sensitive exact-source-spelling recognition (pre-patch re.compile(_type_re) with no flag, qdp.py:71): NO upper-case, nan lower-case-only"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "470059c810a7164a24e3bab5089305b855e800aa4066605bc356b330ec892c67",
+    "impl": "54055f8153681b03cba34bd4c6ffaafb5cd5eede7097f4ac6ea04e9c77270c12",
+    "invariants": "30905016faf282365b59bd90df95d6d36d657f7912c12928a87bc935bee6bf17",
+    "post-conditions": "21f4fecde72632c7e418d6986a861624c6a1a49802c287d222fc700c8c2f0ed6",
+    "pre-conditions": "136ebbc981349a534245642f59207ebfbe127378f962d0a1d4abcd3aa994a832",
+    "pure": "c277ed53cadfcf1620c89d84562c3ba823879577c5c14fe8ac4e3410735fdfea",
+    "spec_view": "954d28c943d45a2b0675ce66d1b49af4aadf9baa38dd42738598e6dc2c7fa363"
+  },
+  "repo": "astropy/astropy",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; case fold proven by a backward per-code-point upper fold (front-recursive upseq gives a single unfold per step); concrete keyword witnesses discharged by explicit front-recursion unfold lemmas; signed-NAN handled via the upseq-commutes-with-drop(1) unfold lemma",
+  "version": "5.1"
+}

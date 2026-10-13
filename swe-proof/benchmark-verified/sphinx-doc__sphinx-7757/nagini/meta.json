@@ -1,0 +1,475 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): off-domain expressions (IfExp/Compare/JoinedStr/Slice/{**w}/ListComp/Yield) confirmed to raise NotImplementedError in the real callee, so renderable is non-vacuous; on-domain expressions confirmed to return.",
+      "encoded_property": "abstract predicate (@Pure @ContractOnly bool, no Ensures) used only to RESTRICT render's domain; guards every render call and the function-under-spec's supplied-default precondition so the render contract is never asserted off-domain.",
+      "models": "the DOMAIN OF DEFINEDNESS of sphinx.pycode.ast.unparse (the node kinds _UnparseVisitor implements; sphinx/pycode/ast.py visit_* methods)",
+      "name": "renderable",
+      "provenance": "sphinx/pycode/ast.py (_UnparseVisitor): the renderer is PARTIAL and raises NotImplementedError on unsupported grammar-valid default nodes (empirically at base_commit sphinx 3.1.0: IfExp, Compare, JoinedStr, Slice, dict-unpack {**w}, ListComp, Yield). renderable names exactly the inputs on which it returns.",
+      "purity": "@Pure @ContractOnly (used inside Requires/Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real ast.unparse on renderable default expressions returns a non-empty source string (never Parameter.empty) and is deterministic; real ast.unparse on unsupported expressions RAISES NotImplementedError (validates the partiality the domain restriction relies on); plus per-position default presence over 3900 signatures via the real post-patch signature_from_str. Confirmed RC=0 in the pinned eval container (gold applied, sphinx 3.1.0, py3.9).",
+      "encoded_property": "DOMAIN-RESTRICTED: Requires(renderable(value_code)); Ensures(render(value_code) != EMPTY()) -- on its domain a rendered default source string is never the Parameter.empty sentinel -- plus referential transparency (@Pure). Weakest sufficient contract; says nothing about the concrete rendered string and NEVER claims a return value off its domain (avoids the directive-7 totality/no-raise over-claim).",
+      "models": "sphinx.pycode.ast.unparse (imported as ast_unparse) -- a PARTIAL callee",
+      "name": "render",
+      "provenance": "sphinx/pycode/ast.py:61 (_UnparseVisitor); called as ast_unparse(args.defaults[...]) at sphinx/util/inspect.py:531 (pre) / on padded defaults (post). Unchanged by the patch. PARTIAL: raises NotImplementedError outside its supported node kinds.",
+      "purity": "@Pure @ContractOnly (used inside Ensures; argument satisfies renderable at every call site)"
+    }
+  ],
+  "base_commit": "212fd67b9f0b4fae6a7c3501fdf1a9a5b2801329",
+  "changed_files": [
+    "sphinx/util/inspect.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts the real Signature.default presence/absence per position == the deep model on 3900 signatures (exhaustive small enumeration + 4000 fuzz + the (a, b=0, /, c=1) F2P case)",
+      "encoded_property": "positional parameter at index p (0-based over posonlyargs ++ args) carries Parameter.empty iff p < positionals - len(defaults), else ast_unparse(defaults[p]); the positional-only prefix is NOT exempt",
+      "kind": "A-reference",
+      "models": "sphinx.util.inspect.signature_from_str positional-default alignment (post-patch)",
+      "name": "resolved_default / resolve_positional_defaults alignment",
+      "provenance": "sphinx/util/inspect.py:519-537 (post-patch): defaults = list(args.defaults); left-pad with Parameter.empty to positionals; both the posonlyargs loop and the args.args loop read defaults by absolute position",
+      "role": "deep model (impl + resolved_default spec) of the changed alignment operation; validated == the real post-patch signature_from_str position-by-position by axiom_check.py (G-AX)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T03:09:46+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: alignment deep model (== real signature_from_str) sound on 3900 signatures; domain-restricted render axiom (== real partial ast.unparse: non-sentinel string on `renderable` codes, raises NotImplementedError off-domain) validated (py38=True)",
+      "gate": "G-AX",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "23fabbd51d25372dba90becd0ad387c09e79bf96588ec8a039a7bb16398f58b9",
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T03:09:44+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 103696,
+          "disagreements": 0,
+          "seed": 775701,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 103696, \"disagreements\": 0, \"seed\": 775701, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "b752d887a18aa2faeab20a87e28e4994965435b7fda3c32da583812731af9d40",
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:05:23+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7",
+        "model_prepatch.py": "923afc4cde2ff676b50d4809fcc9044e760675f8a29bd8e035dabefb5aaf6043"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T09:54:29+00:00",
+      "code_version": "e60da79f6-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_2.py` |\n\n**Non-vacuity.** The positive control `ctrl_gold.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7",
+        "properties.py": "acb8abf534f0ec70b649900acd4c7b971df5a298c20c27838fe3ea0bfe3b1e07"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:06:55+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7",
+        "model_prepatch.py": "923afc4cde2ff676b50d4809fcc9044e760675f8a29bd8e035dabefb5aaf6043"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T03:07:21+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "96799eddbef83489cedeea096b52a271942ceecc2fadcd4f414358b665fd5c56",
+          "impl": "f2276501d0707e8236aa659920744fe9afbc32ddb60fc25ded71f9c65f2d3572",
+          "invariants": "000115acd0847e9c3991ed1e739c56c00c18ca90dfd98be3cbfa5806337d7950",
+          "post-conditions": "1a581789b352165ad350bb5e00f60bf1670cc81b6622d99c3c3b4cd3f46547d7",
+          "pre-conditions": "a39fc5dd9b105151160062607e90ecc7e8646bb21b4779bd5586e7bd7c857671",
+          "pure": "bb890e61ecb989ffff26a8c1978ce594c51ca6cda0c8eaf16991cf354cb241f0",
+          "spec_view": "62e0f5783c8994196464c6c3ea38732801207c9c53b3557e20a4eee2ac8409c4"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T03:07:21+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "c053555b5e99ea484467e12b51acac26d0013fc389124e1d6bb577bca970f67c",
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T03:07:21+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:45:19+00:00",
+      "code_version": "8452d15b9-dirty",
+      "data": {
+        "judged": 11,
+        "killed": 11,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 13,
+        "unjudged": [
+          "line 203: '+' -> '-'",
+          "line 210: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 11/11 (100%); no verdict on 2: [\"line 203: '+' -> '-'\", \"line 210: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T09:54:30+00:00",
+      "code_version": "e60da79f6-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK GOAL: find an input where the modelled function (resolve_positional_defaults, spec region byte-identical) disagrees with the REAL post-patch callee. I found none. Verdict FAITHFUL.\n\nSETUP (all in /tmp; bundle unmodified). Two git worktrees off repos/sphinx-doc_sphinx.git at base_commit 212fd67b9f0b4fae6a7c3501fdf1a9a5b2801329:  with the gold patch applied via `git apply` (= the modelled function's reference, per instructions) and  left at base (prepatch control). Gold patch extracted from data/swe_bench_verified/test.jsonl. Imports needed docutils -> built; ran under PYTHONPATH=<worktree>, py3.12 (posonlyargs present).\n\nIDENTITY / SANITY CONTROLS (all pass):\n- `same-spec nagini sphinx-doc__sphinx-7757 atk.py` (PYTHONPATH=src) -> exit 0, \"SAME - attack shares the bundle's exact specification\": the spec region I audited is byte-identical to the bundle's.\n- `scripts/nagini_verify.sh` on the frozen model.py -> \"Verification successful\" (35.3s).\n- Bundle's own axiom_check.py against the PATCHED worktree -> RC=0 (3900 signatures + 4000 fuzz + render partiality both directions).\n- Same axiom_check.py against the PREPATCH worktree -> AssertionError at `sig.parameters[\"b\"].default == \"0\"`. G-AX is not rubber-stamping; it discriminates.\n\nDIFFERENTIAL TESTING (the actual attack). I refined model.py's resolved_default into executable Python (pad = n-m; EMPTY for p<pad, else ast_unparse(defaults[p-pad])) and compared it position-by-position against the real patched signature_from_str's Parameter.default vector, skipping only inputs the precondition excludes (a non-renderable supplied default, detected by actually calling the real ast_unparse and catching):\n- Run 1 (atk2_diff.py): 24,237 signatures - k posonly x r regular 0..4, every contiguous trailing default block, 36 renderable default-expression kinds, plus *args/**kwargs/kwonly tails, plus 20k fuzz. MISMATCH count = 0. (63 'REAL-RAISED' entries were MY harness bug emitting bare `*` with no kwonly arg = a Python SyntaxError, not a repo defect; grep -c MISMATCH = 0.)\n- Run 2 (atk2_diff2.py): 31,640 signatures adding ANNOTATIONS on parameters (8 annotation forms, incl. annotated-with-default `p: int = 0` spacing), 10 tail shapes, and large arities n = 8/12/20/33/64 with k and nd at 0/1/n-2/n-1/n. fails = 0, including a dedicated check of the positional-only-not-exempt clause (no p<posonly inside the trailing block ever came back EMPTY).\n- Run 3 (atk2_hard.py): 60,973 signatures with an adversarial default pool chosen to stress the sentinel/rendering boundary - '' , ' ', 'None', 'Parameter.empty' as STRING literals, -0, 0j, 1_000, 1e400, b'\\x00', (), (1,), [[]], {1:{2:3}}, nested f(g(1),k=h(2)), lambda x,y=1: x, ~0, -(-1), T[int,str]. 0 mismatches, 0 unexpected raises.\nTotal: >116,000 signatures, ZERO disagreement on the modelled default vector.\n\nPRE/POST CONTRAST (proves the harness has teeth and the spec senses the bug): the identical harness against the PREPATCH worktree yields 9,781 MISMATCHes, e.g. '(p0=0, /)' -> model ['0'] vs real [None], and the headline '(a, b=0, /, c=1)'. So my oracle does detect wrong alignment; it simply finds none post-patch.\n\nSPEC-STRENGTH PROBES (is the spec stronger than reality?):\n- render axiom's Ensures(Result() != EMPTY()): probed the real ast.unparse on every default node kind - it never returned None, '' or Parameter.empty on its domain, and was deterministic across repeated calls. Not an over-claim.\n- Precondition len(provided) <= positionals and 'no None in defaults': confirmed structurally over all shapes incl. *args/kwonly/**kwargs - ast.arguments.defaults never contains None and never exceeds the positional count (kw_defaults is a separate list). The precondition is a true invariant of the parser, not an artificial narrowing.\n- VACUITY CONTROL (the key over-strength test): a spec can be 'too strong' by being unsatisfiable on the interesting case. I injected `if positionals==3 and posonly==2 and len(provided)==2: Assert(False)` into the impl region (the exact defaulted-positional-only shape of the headline bug). Nagini REJECTS it: 'Assert might fail. Assertion False might not hold.' So the precondition genuinely admits the discriminating input; the postconditions are proved of a reachable state, not vacuously.\n\nRESIDUAL OBSERVATION I DELIBERATELY DO NOT COUNT AS A DEFECT. A signature whose supplied defaults are all renderable but whose ANNOTATION is not - e.g. '(a: x == y, b=0, /, c=1)', or IfExp/JoinedStr/Slice/ListComp/dict-unpack annotations - makes the real function raise NotImplementedError, whereas the spec declares no Exsures and (with MustTerminate) promises a Result. I judged this a boundary of the abstraction rather than an unfaithful over-claim, on three measured grounds: (1) the raise originates in `ast_unparse(arg.annotation)`, a DIFFERENT call site from the modelled default slot - mapping.md sec.1 binds the modelled function to the loops computing each parameter's `default`, and refinement.md A6 explicitly omits annotations; (2) I verified the raise is PATCH-INVARIANT - byte-for-byte the same six NotImplementedErrors on the prepatch worktree as on the patched one - so it is not behaviour the patch resolves and cannot be a drift introduced by modelling the fixed behaviour; (3) it is unreachable-by-construction from the modelled carrier, which abstracts the parameter lists to two integer counts with no annotation component at all, so no admissible model input encodes it. Decisively, on every signature the real function RETURNS from, the modelled default vector matched exactly in all >116k trials - there is no returning-but-divergent input, which is what an UNFAITHFUL verdict would require.\n\nCONCLUSION: no diverging input exists on the modelled slot. The spec is not too strong: its preconditions are real parser invariants, the one consumed axiom is correctly domain-restricted to the partial renderer rather than over-claimed total, the discriminating case is provably reachable, and the frozen model verifies. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE. No relaxation in this bundle: meta.json has no `relaxed_leakage` key (keys: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version) and `find -iname '*RELAX*'` over benchmark-verified/sphinx-doc__sphinx-7757/ returns nothing. So this is a plain leakage judgement, not a relaxation to re-derive. leakage.reviewer_directed() run over every bundle doc (model.py, model_prepatch.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py) returns [] for all seven; I grepped the bundle for attacker/panel/judge/verdict-string/NO-LEAKAGE language and the only hits are in verdict.md's record of PRIOR panel runs (transcripts of past reviews), not text addressing me. Nothing in the bundle tried to tell me what to submit.\n\n(1) ARTIFACT IDENTITY. Regenerated the consumer projection myself: markers.spec_view(model.py, NaginiBackend.language) -> 176 lines, impl region collapsed to `...  # implementation elided -- supplied by the consumer` (confirmed 'Invariant' absent from the view, so the nested invariants collapse with it). Recomputed region_hashes(model.py)['spec_view'] = 62e0f5783c8994196464c6c3ea38732801207c9c53b3557e20a4eee2ac8409c4, byte-identical to the hash recorded in gates['G-HYGIENE'].data.region_hashes. model.py sha256 = 69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7 = the source digest in G-LEAK/G-AX/G-CONF/G-DIFF/G-GOLD/G-HYGIENE/G-INTEGRITY/G-PANEL-*. (Note for the record, not a finding at this gate: meta.json's TOP-LEVEL region_hashes block is stale w.r.t. the current model.py -- pre-conditions/invariants/impl/spec_view differ -- while the G-HYGIENE-recorded block matches exactly. I judged the recomputed view, and the gate-recorded block, so my verdict does not ride on the stale copy.) `adversary same-spec nagini sphinx-doc__sphinx-7757 <copy of model.py>` -> exit 0 (SAME), confirming the spec region I judged is the bundle's.\n\n(2) MECHANICAL SCREEN, RE-RUN FRESH. leakage.screen(model.py, nagini, instance['patch'], instance['problem_statement'], instance['test_patch']) -> passed=True, hard_failures=[], warnings=[]. Judged against problem_statement only; hints_text here is the empty string (len 0), so the never-screen-against-hints rule is moot.\n\n(3) SWEEPS BEYOND THE GATE THRESHOLDS (so the pass is not riding on a cutoff).\n  - Gold changed lines: dropped the threshold from the gate's normalized len>=8 to len>=4 and swept every added/removed line of instance['patch'] against the whitespace-normalized view: 0 hits.\n  - test_patch (which the python flavor's screen ignores): same sweep at len>=6: 0 hits. The headline F2P assertion `sig = inspect.signature_from_str('(a, b=0, /, c=1)')` does not appear.\n  - Path/symbol needles absent from the view: 'signature_from_str', 'sphinx/util/inspect', 'inspect.py', 'posonlyargs', 'ast_unparse', 'Parameter.empty', 'POSITIONAL_ONLY', 'POSITIONAL_OR_KEYWORD', 'args.defaults', 'insert(', 'hasattr', 'enumerate', 'unparse', 'annotation' -- all False. The single 'sphinx' occurrence is line 1's `Twin-artifact model for sphinx-doc__sphinx-7757.` -- the instance id, which is the task's own name and shared boilerplate across every nagini bundle in the suite, so it localizes nothing.\n  - Patch changed symbols = {'signature_from_str'} (not in problem_statement); confirmed no spec-view identifier embeds it. Spec-view identifiers are all model-domain or Nagini vocabulary (resolve_positional_defaults, resolved_default, first_default_pos, render, renderable, EMPTY, positionals, posonly, provided, Requires/Ensures/Forall/ToSeq/PSeq/...).\n  - Token intersection between the patch's changed lines and the whole view: {default, defaults, empty, for, if, is, len, list, positionals}. Every one is either Python/English generic or the public vocabulary of the problem_statement ('The default value for positional only argument has vanished'). 'positionals' is a count name the model needs to state its own arity; it names no repo symbol.\n  - Narration: _NARRATION_RE over the view -> []. My own wider sweep for vanish/no-longer/used-to/failed/omit/forgot/revert/gold/instead found only benign uses: 'exempt' (L19, L165), 'change(s)' (L27, in 'never changes WHICH positions receive a default'), 'edit' (L3, the shared boilerplate 'stated as desired behaviour, not as an edit'), 'before' (L104/L142, positional/temporal). None narrates a prior state of the code.\n  - Implementation strategy: the view contains no 'pad', 'left-pad', 'insert', 'combined list', or 'two loops' -- i.e. it does NOT hand over the gold patch's specific mechanism (build one combined defaults list, left-pad with Parameter.empty, index both loops by absolute position). The view states only the desired input/output relation.\n\n(4) IS THE DISCRIMINATOR DERIVABLE FROM problem_statement ALONE? Yes, and that is the crux. The public statement gives the exact failing case `.. py:function:: foo(a, b=0, /, c=1)` plus 'The default value is shown' as expected behaviour. From that alone a solver knows: a defaulted positional-only parameter must keep its default. The remaining content of the spec view -- that defaults right-align across the WHOLE positional list -- is not bundle knowledge but public Python grammar, which I verified directly: `ast.parse('def foo(a, b=0, /, c=1)')` gives posonlyargs=[a,b], args=[c], defaults=[0,1], i.e. 2 defaults right-aligned over 3 positional parameters. Any solver reading the AST sees this. So the view's two load-bearing clauses -- the alignment postcondition `ToSeq(Result())[p] == resolved_default(p, ...)` and the not-exempt clause `p < posonly and p >= positionals - len(provided) ==> ToSeq(Result())[p] != EMPTY()` -- restate the publicly-stated expected behaviour in the model's carrier. They tell the solver WHAT must hold, not WHERE to edit or HOW; the file, the function, the padded-list mechanism, and the pre-patch mis-indexing all stay in refinement.md/mapping.md, which are audit-side and (per eval/dataset.py) not part of task.spec_view.\n\n(5) CORE GATES I LEANED ON, RE-MEASURED MYSELF (all in /tmp, bundle untouched). `bash scripts/nagini_verify.sh model.py` -> 'Verification successful', 33.62s, exit 0 (G-VERIFY/G-GOLD live). `bash scripts/nagini_verify.sh model_prepatch.py` -> 'Verification failed', 41.51s, and the single error is exactly the alignment postcondition -- 'Postcondition of resolve_positional_defaults might not hold. Assertion Forall(int, (lambda p: (Implies(((0 <= p) and (p < positionals)), (ToSeq(Result())[p] == resolved_default(...))' -- i.e. G-DIFF senses the BUG and not the MustTerminate annotation, matching the recorded G-DIFF and refinement.md C6's claim. Recorded gates re-read: G-LEAK pass (failures=[]), G-HYGIENE pass, G-AX pass (3900 signatures, domain-restricted render axiom validated both on- and off-domain), G-CONF pass (103696 checked, 0 disagreements), G-PBT pass (10 cases SOUND), G-RESOLVE pass (flaky: resolved on attempt 2/3 -- flagged as a durability note, not a leakage finding, since it bears on the oracle's stability rather than on the spec view).\n\nCONCLUSION. Every clause of the spec view is either (a) the model's own carrier/contract vocabulary, (b) a restatement of behaviour the public problem_statement already specifies, or (c) public Python-grammar semantics a solver can read off `ast.parse`. Nothing in the view names the patched file, the patched function, the AST field names, the sentinel's real identity, the renderer's real name, or the gold mechanism, and nothing narrates the pre-patch state. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK GOAL: find an input where the modelled function (resolve_positional_defaults, spec region byte-identical) disagrees with the REAL post-patch callee. I found none. Verdict FAITHFUL.\n\nSETUP (all in /tmp; bundle unmodified). Two git worktrees off repos/sphinx-doc_sphinx.git at base_commit 212fd67b9f0b4fae6a7c3501fdf1a9a5b2801329:  with the gold patch applied via `git apply` (= the modelled function's reference, per instructions) and  left at base (prepatch control). Gold patch extracted from data/swe_bench_verified/test.jsonl. Imports needed docutils -> built; ran under PYTHONPATH=<worktree>, py3.12 (posonlyargs present).\n\nIDENTITY / SANITY CONTROLS (all pass):\n- `same-spec nagini sphinx-doc__sphinx-7757 atk.py` (PYTHONPATH=src) -> exit 0, \"SAME - attack shares the bundle's exact specification\": the spec region I audited is byte-identical to the bundle's.\n- `scripts/nagini_verify.sh` on the frozen model.py -> \"Verification successful\" (35.3s).\n- Bundle's own axiom_check.py against the PATCHED worktree -> RC=0 (3900 signatures + 4000 fuzz + render partiality both directions).\n- Same axiom_check.py against the PREPATCH worktree -> AssertionError at `sig.parameters[\"b\"].default == \"0\"`. G-AX is not rubber-stamping; it discriminates.\n\nDIFFERENTIAL TESTING (the actual attack). I refined model.py's resolved_default into executable Python (pad = n-m; EMPTY for p<pad, else ast_unparse(defaults[p-pad])) and compared it position-by-position against the real patched signature_from_str's Parameter.default vector, skipping only inputs the precondition excludes (a non-renderable supplied default, detected by actually calling the real ast_unparse and catching):\n- Run 1 (atk2_diff.py): 24,237 signatures - k posonly x r regular 0..4, every contiguous trailing default block, 36 renderable default-expression kinds, plus *args/**kwargs/kwonly tails, plus 20k fuzz. MISMATCH count = 0. (63 'REAL-RAISED' entries were MY harness bug emitting bare `*` with no kwonly arg = a Python SyntaxError, not a repo defect; grep -c MISMATCH = 0.)\n- Run 2 (atk2_diff2.py): 31,640 signatures adding ANNOTATIONS on parameters (8 annotation forms, incl. annotated-with-default `p: int = 0` spacing), 10 tail shapes, and large arities n = 8/12/20/33/64 with k and nd at 0/1/n-2/n-1/n. fails = 0, including a dedicated check of the positional-only-not-exempt clause (no p<posonly inside the trailing block ever came back EMPTY).\n- Run 3 (atk2_hard.py): 60,973 signatures with an adversarial default pool chosen to stress the sentinel/rendering boundary - '' , ' ', 'None', 'Parameter.empty' as STRING literals, -0, 0j, 1_000, 1e400, b'\\x00', (), (1,), [[]], {1:{2:3}}, nested f(g(1),k=h(2)), lambda x,y=1: x, ~0, -(-1), T[int,str]. 0 mismatches, 0 unexpected raises.\nTotal: >116,000 signatures, ZERO disagreement on the modelled default vector.\n\nPRE/POST CONTRAST (proves the harness has teeth and the spec senses the bug): the identical harness against the PREPATCH worktree yields 9,781 MISMATCHes, e.g. '(p0=0, /)' -> model ['0'] vs real [None], and the headline '(a, b=0, /, c=1)'. So my oracle does detect wrong alignment; it simply finds none post-patch.\n\nSPEC-STRENGTH PROBES (is the spec stronger than reality?):\n- render axiom's Ensures(Result() != EMPTY()): probed the real ast.unparse on every default node kind - it never returned None, '' or Parameter.empty on its domain, and was deterministic across repeated calls. Not an over-claim.\n- Precondition len(provided) <= positionals and 'no None in defaults': confirmed structurally over all shapes incl. *args/kwonly/**kwargs - ast.arguments.defaults never contains None and never exceeds the positional count (kw_defaults is a separate list). The precondition is a true invariant of the parser, not an artificial narrowing.\n- VACUITY CONTROL (the key over-strength test): a spec can be 'too strong' by being unsatisfiable on the interesting case. I injected `if positionals==3 and posonly==2 and len(provided)==2: Assert(False)` into the impl region (the exact defaulted-positional-only shape of the headline bug). Nagini REJECTS it: 'Assert might fail. Assertion False might not hold.' So the precondition genuinely admits the discriminating input; the postconditions are proved of a reachable state, not vacuously.\n\nRESIDUAL OBSERVATION I DELIBERATELY DO NOT COUNT AS A DEFECT. A signature whose supplied defaults are all renderable but whose ANNOTATION is not - e.g. '(a: x == y, b=0, /, c=1)', or IfExp/JoinedStr/Slice/ListComp/dict-unpack annotations - makes the real function raise NotImplementedError, whereas the spec declares no Exsures and (with MustTerminate) promises a Result. I judged this a boundary of the abstraction rather than an unfaithful over-claim, on three measured grounds: (1) the raise originates in `ast_unparse(arg.annotation)`, a DIFFERENT call site from the modelled default slot - mapping.md sec.1 binds the modelled function to the loops computing each parameter's `default`, and refinement.md A6 explicitly omits annotations; (2) I verified the raise is PATCH-INVARIANT - byte-for-byte the same six NotImplementedErrors on the prepatch worktree as on the patched one - so it is not behaviour the patch resolves and cannot be a drift introduced by modelling the fixed behaviour; (3) it is unreachable-by-construction from the modelled carrier, which abstracts the parameter lists to two integer counts with no annotation component at all, so no admissible model input encodes it. Decisively, on every signature the real function RETURNS from, the modelled default vector matched exactly in all >116k trials - there is no returning-but-divergent input, which is what an UNFAITHFUL verdict would require.\n\nCONCLUSION: no diverging input exists on the modelled slot. The spec is not too strong: its preconditions are real parser invariants, the one consumed axiom is correctly domain-restricted to the partial renderer rather than over-claimed total, the discriminating case is provably reachable, and the frozen model verifies. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 SCOPE. No relaxation in this bundle: meta.json has no `relaxed_leakage` key (keys: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version) and `find -iname '*RELAX*'` over benchmark-verified/sphinx-doc__sphinx-7757/ returns nothing. So this is a plain leakage judgement, not a relaxation to re-derive. leakage.reviewer_directed() run over every bundle doc (model.py, model_prepatch.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py) returns [] for all seven; I grepped the bundle for attacker/panel/judge/verdict-string/NO-LEAKAGE language and the only hits are in verdict.md's record of PRIOR panel runs (transcripts of past reviews), not text addressing me. Nothing in the bundle tried to tell me what to submit.\n\n(1) ARTIFACT IDENTITY. Regenerated the consumer projection myself: markers.spec_view(model.py, NaginiBackend.language) -> 176 lines, impl region collapsed to `...  # implementation elided -- supplied by the consumer` (confirmed 'Invariant' absent from the view, so the nested invariants collapse with it). Recomputed region_hashes(model.py)['spec_view'] = 62e0f5783c8994196464c6c3ea38732801207c9c53b3557e20a4eee2ac8409c4, byte-identical to the hash recorded in gates['G-HYGIENE'].data.region_hashes. model.py sha256 = 69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7 = the source digest in G-LEAK/G-AX/G-CONF/G-DIFF/G-GOLD/G-HYGIENE/G-INTEGRITY/G-PANEL-*. (Note for the record, not a finding at this gate: meta.json's TOP-LEVEL region_hashes block is stale w.r.t. the current model.py -- pre-conditions/invariants/impl/spec_view differ -- while the G-HYGIENE-recorded block matches exactly. I judged the recomputed view, and the gate-recorded block, so my verdict does not ride on the stale copy.) `adversary same-spec nagini sphinx-doc__sphinx-7757 <copy of model.py>` -> exit 0 (SAME), confirming the spec region I judged is the bundle's.\n\n(2) MECHANICAL SCREEN, RE-RUN FRESH. leakage.screen(model.py, nagini, instance['patch'], instance['problem_statement'], instance['test_patch']) -> passed=True, hard_failures=[], warnings=[]. Judged against problem_statement only; hints_text here is the empty string (len 0), so the never-screen-against-hints rule is moot.\n\n(3) SWEEPS BEYOND THE GATE THRESHOLDS (so the pass is not riding on a cutoff).\n  - Gold changed lines: dropped the threshold from the gate's normalized len>=8 to len>=4 and swept every added/removed line of instance['patch'] against the whitespace-normalized view: 0 hits.\n  - test_patch (which the python flavor's screen ignores): same sweep at len>=6: 0 hits. The headline F2P assertion `sig = inspect.signature_from_str('(a, b=0, /, c=1)')` does not appear.\n  - Path/symbol needles absent from the view: 'signature_from_str', 'sphinx/util/inspect', 'inspect.py', 'posonlyargs', 'ast_unparse', 'Parameter.empty', 'POSITIONAL_ONLY', 'POSITIONAL_OR_KEYWORD', 'args.defaults', 'insert(', 'hasattr', 'enumerate', 'unparse', 'annotation' -- all False. The single 'sphinx' occurrence is line 1's `Twin-artifact model for sphinx-doc__sphinx-7757.` -- the instance id, which is the task's own name and shared boilerplate across every nagini bundle in the suite, so it localizes nothing.\n  - Patch changed symbols = {'signature_from_str'} (not in problem_statement); confirmed no spec-view identifier embeds it. Spec-view identifiers are all model-domain or Nagini vocabulary (resolve_positional_defaults, resolved_default, first_default_pos, render, renderable, EMPTY, positionals, posonly, provided, Requires/Ensures/Forall/ToSeq/PSeq/...).\n  - Token intersection between the patch's changed lines and the whole view: {default, defaults, empty, for, if, is, len, list, positionals}. Every one is either Python/English generic or the public vocabulary of the problem_statement ('The default value for positional only argument has vanished'). 'positionals' is a count name the model needs to state its own arity; it names no repo symbol.\n  - Narration: _NARRATION_RE over the view -> []. My own wider sweep for vanish/no-longer/used-to/failed/omit/forgot/revert/gold/instead found only benign uses: 'exempt' (L19, L165), 'change(s)' (L27, in 'never changes WHICH positions receive a default'), 'edit' (L3, the shared boilerplate 'stated as desired behaviour, not as an edit'), 'before' (L104/L142, positional/temporal). None narrates a prior state of the code.\n  - Implementation strategy: the view contains no 'pad', 'left-pad', 'insert', 'combined list', or 'two loops' -- i.e. it does NOT hand over the gold patch's specific mechanism (build one combined defaults list, left-pad with Parameter.empty, index both loops by absolute position). The view states only the desired input/output relation.\n\n(4) IS THE DISCRIMINATOR DERIVABLE FROM problem_statement ALONE? Yes, and that is the crux. The public statement gives the exact failing case `.. py:function:: foo(a, b=0, /, c=1)` plus 'The default value is shown' as expected behaviour. From that alone a solver knows: a defaulted positional-only parameter must keep its default. The remaining content of the spec view -- that defaults right-align across the WHOLE positional list -- is not bundle knowledge but public Python grammar, which I verified directly: `ast.parse('def foo(a, b=0, /, c=1)')` gives posonlyargs=[a,b], args=[c], defaults=[0,1], i.e. 2 defaults right-aligned over 3 positional parameters. Any solver reading the AST sees this. So the view's two load-bearing clauses -- the alignment postcondition `ToSeq(Result())[p] == resolved_default(p, ...)` and the not-exempt clause `p < posonly and p >= positionals - len(provided) ==> ToSeq(Result())[p] != EMPTY()` -- restate the publicly-stated expected behaviour in the model's carrier. They tell the solver WHAT must hold, not WHERE to edit or HOW; the file, the function, the padded-list mechanism, and the pre-patch mis-indexing all stay in refinement.md/mapping.md, which are audit-side and (per eval/dataset.py) not part of task.spec_view.\n\n(5) CORE GATES I LEANED ON, RE-MEASURED MYSELF (all in /tmp, bundle untouched). `bash scripts/nagini_verify.sh model.py` -> 'Verification successful', 33.62s, exit 0 (G-VERIFY/G-GOLD live). `bash scripts/nagini_verify.sh model_prepatch.py` -> 'Verification failed', 41.51s, and the single error is exactly the alignment postcondition -- 'Postcondition of resolve_positional_defaults might not hold. Assertion Forall(int, (lambda p: (Implies(((0 <= p) and (p < positionals)), (ToSeq(Result())[p] == resolved_default(...))' -- i.e. G-DIFF senses the BUG and not the MustTerminate annotation, matching the recorded G-DIFF and refinement.md C6's claim. Recorded gates re-read: G-LEAK pass (failures=[]), G-HYGIENE pass, G-AX pass (3900 signatures, domain-restricted render axiom validated both on- and off-domain), G-CONF pass (103696 checked, 0 disagreements), G-PBT pass (10 cases SOUND), G-RESOLVE pass (flaky: resolved on attempt 2/3 -- flagged as a durability note, not a leakage finding, since it bears on the oracle's stability rather than on the spec view).\n\nCONCLUSION. Every clause of the spec view is either (a) the model's own carrier/contract vocabulary, (b) a restatement of behaviour the public problem_statement already specifies, or (c) public Python-grammar semantics a solver can read off `ast.parse`. Nothing in the view names the patched file, the patched function, the AST field names, the sentinel's real identity, the renderer's real name, or the gold mechanism, and nothing narrates the pre-patch state. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7",
+        "properties.py": "acb8abf534f0ec70b649900acd4c7b971df5a298c20c27838fe3ea0bfe3b1e07"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T09:54:29+00:00",
+      "code_version": "e60da79f6-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 15 admissible attacks re-run of 15 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 15 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py`, `atk_8.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_13.py`, `atk_14.py`, `atk_15.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_2.py` |\n\n**Non-vacuity.** The positive control `ctrl_gold.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7",
+        "properties.py": "acb8abf534f0ec70b649900acd4c7b971df5a298c20c27838fe3ea0bfe3b1e07"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T07:14:39+00:00",
+      "code_version": "960544428-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK GOAL: find an input where the modelled function (resolve_positional_defaults, spec region byte-identical) disagrees with the REAL post-patch callee. I found none. Verdict FAITHFUL.\n\nSETUP (all in /tmp; bundle unmodified). Two git worktrees off repos/sphinx-doc_sphinx.git at base_commit 212fd67b9f0b4fae6a7c3501fdf1a9a5b2801329:  with the gold patch applied via `git apply` (= the modelled function's reference, per instructions) and  left at base (prepatch control). Gold patch extracted from data/swe_bench_verified/test.jsonl. Imports needed docutils -> built; ran under PYTHONPATH=<worktree>, py3.12 (posonlyargs present).\n\nIDENTITY / SANITY CONTROLS (all pass):\n- `same-spec nagini sphinx-doc__sphinx-7757 atk.py` (PYTHONPATH=src) -> exit 0, \"SAME - attack shares the bundle's exact specification\": the spec region I audited is byte-identical to the bundle's.\n- `scripts/nagini_verify.sh` on the frozen model.py -> \"Verification successful\" (35.3s).\n- Bundle's own axiom_check.py against the PATCHED worktree -> RC=0 (3900 signatures + 4000 fuzz + render partiality both directions).\n- Same axiom_check.py against the PREPATCH worktree -> AssertionError at `sig.parameters[\"b\"].default == \"0\"`. G-AX is not rubber-stamping; it discriminates.\n\nDIFFERENTIAL TESTING (the actual attack). I refined model.py's resolved_default into executable Python (pad = n-m; EMPTY for p<pad, else ast_unparse(defaults[p-pad])) and compared it position-by-position against the real patched signature_from_str's Parameter.default vector, skipping only inputs the precondition excludes (a non-renderable supplied default, detected by actually calling the real ast_unparse and catching):\n- Run 1 (atk2_diff.py): 24,237 signatures - k posonly x r regular 0..4, every contiguous trailing default block, 36 renderable default-expression kinds, plus *args/**kwargs/kwonly tails, plus 20k fuzz. MISMATCH count = 0. (63 'REAL-RAISED' entries were MY harness bug emitting bare `*` with no kwonly arg = a Python SyntaxError, not a repo defect; grep -c MISMATCH = 0.)\n- Run 2 (atk2_diff2.py): 31,640 signatures adding ANNOTATIONS on parameters (8 annotation forms, incl. annotated-with-default `p: int = 0` spacing), 10 tail shapes, and large arities n = 8/12/20/33/64 with k and nd at 0/1/n-2/n-1/n. fails = 0, including a dedicated check of the positional-only-not-exempt clause (no p<posonly inside the trailing block ever came back EMPTY).\n- Run 3 (atk2_hard.py): 60,973 signatures with an adversarial default pool chosen to stress the sentinel/rendering boundary - '' , ' ', 'None', 'Parameter.empty' as STRING literals, -0, 0j, 1_000, 1e400, b'\\x00', (), (1,), [[]], {1:{2:3}}, nested f(g(1),k=h(2)), lambda x,y=1: x, ~0, -(-1), T[int,str]. 0 mismatches, 0 unexpected raises.\nTotal: >116,000 signatures, ZERO disagreement on the modelled default vector.\n\nPRE/POST CONTRAST (proves the harness has teeth and the spec senses the bug): the identical harness against the PREPATCH worktree yields 9,781 MISMATCHes, e.g. '(p0=0, /)' -> model ['0'] vs real [None], and the headline '(a, b=0, /, c=1)'. So my oracle does detect wrong alignment; it simply finds none post-patch.\n\nSPEC-STRENGTH PROBES (is the spec stronger than reality?):\n- render axiom's Ensures(Result() != EMPTY()): probed the real ast.unparse on every default node kind - it never returned None, '' or Parameter.empty on its domain, and was deterministic across repeated calls. Not an over-claim.\n- Precondition len(provided) <= positionals and 'no None in defaults': confirmed structurally over all shapes incl. *args/kwonly/**kwargs - ast.arguments.defaults never contains None and never exceeds the positional count (kw_defaults is a separate list). The precondition is a true invariant of the parser, not an artificial narrowing.\n- VACUITY CONTROL (the key over-strength test): a spec can be 'too strong' by being unsatisfiable on the interesting case. I injected `if positionals==3 and posonly==2 and len(provided)==2: Assert(False)` into the impl region (the exact defaulted-positional-only shape of the headline bug). Nagini REJECTS it: 'Assert might fail. Assertion False might not hold.' So the precondition genuinely admits the discriminating input; the postconditions are proved of a reachable state, not vacuously.\n\nRESIDUAL OBSERVATION I DELIBERATELY DO NOT COUNT AS A DEFECT. A signature whose supplied defaults are all renderable but whose ANNOTATION is not - e.g. '(a: x == y, b=0, /, c=1)', or IfExp/JoinedStr/Slice/ListComp/dict-unpack annotations - makes the real function raise NotImplementedError, whereas the spec declares no Exsures and (with MustTerminate) promises a Result. I judged this a boundary of the abstraction rather than an unfaithful over-claim, on three measured grounds:\n\n(1) the raise originates in `ast_unparse(arg.annotation)`, a DIFFERENT call site from the modelled default slot - mapping.md sec.1 binds the modelled function to the loops computing each parameter's `default`, and refinement.md A6 explicitly omits annotations;\n\n(2) I verified the raise is PATCH-INVARIANT - byte-for-byte the same six NotImplementedErrors on the prepatch worktree as on the patched one - so it is not behaviour the patch resolves and cannot be a drift introduced by modelling the fixed behaviour;\n\n(3) it is unreachable-by-construction from the modelled carrier, which abstracts the parameter lists to two integer counts with no annotation component at all, so no admissible model input encodes it. Decisively, on every signature the real function RETURNS from, the modelled default vector matched exactly in all >116k trials - there is no returning-but-divergent input, which is what an UNFAITHFUL verdict would require.\n\nCONCLUSION: no diverging input exists on the modelled slot. The spec is not too strong: its preconditions are real parser invariants, the one consumed axiom is correctly domain-restricted to the partial renderer rather than over-claimed total, the discriminating case is provably reachable, and the frozen model verifies. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T07:12:45+00:00",
+      "code_version": "ea89a7fb4-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE. No relaxation in this bundle: meta.json has no `relaxed_leakage` key (keys: additional_change_sites, ax_apply_gold, ax_apply_gold_note, axioms, base_commit, changed_files, deep_model_references, float_encoding, gates, instance_id, modeled_functions, patch_diff, prepatch_models, region_hashes, repo, schema_version, string_modeling, version) and `find -iname '*RELAX*'` over benchmark-verified/sphinx-doc__sphinx-7757/ returns nothing. So this is a plain leakage judgement, not a relaxation to re-derive. leakage.reviewer_directed() run over every bundle doc (model.py, model_prepatch.py, refinement.md, mapping.md, axiom_check.py, conformance_check.py, properties.py) returns [] for all seven; I grepped the bundle for attacker/panel/judge/verdict-string/NO-LEAKAGE language and the only hits are in verdict.md's record of PRIOR panel runs (transcripts of past reviews), not text addressing me. Nothing in the bundle tried to tell me what to submit.\n\n(1) ARTIFACT IDENTITY. Regenerated the consumer projection myself: markers.spec_view(model.py, NaginiBackend.language) -> 176 lines, impl region collapsed to `...  # implementation elided -- supplied by the consumer` (confirmed 'Invariant' absent from the view, so the nested invariants collapse with it). Recomputed region_hashes(model.py)['spec_view'] = 62e0f5783c8994196464c6c3ea38732801207c9c53b3557e20a4eee2ac8409c4, byte-identical to the hash recorded in gates['G-HYGIENE'].data.region_hashes. model.py sha256 = 69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7 = the source digest in G-LEAK/G-AX/G-CONF/G-DIFF/G-GOLD/G-HYGIENE/G-INTEGRITY/G-PANEL-*. (Note for the record, not a finding at this gate: meta.json's TOP-LEVEL region_hashes block is stale w.r.t. the current model.py -- pre-conditions/invariants/impl/spec_view differ -- while the G-HYGIENE-recorded block matches exactly. I judged the recomputed view, and the gate-recorded block, so my verdict does not ride on the stale copy.) `adversary same-spec nagini sphinx-doc__sphinx-7757 <copy of model.py>` -> exit 0 (SAME), confirming the spec region I judged is the bundle's.\n\n(2) MECHANICAL SCREEN, RE-RUN FRESH. leakage.screen(model.py, nagini, instance['patch'], instance['problem_statement'], instance['test_patch']) -> passed=True, hard_failures=[], warnings=[]. Judged against problem_statement only; hints_text here is the empty string (len 0), so the never-screen-against-hints rule is moot.\n\n(3) SWEEPS BEYOND THE GATE THRESHOLDS (so the pass is not riding on a cutoff).\n  - Gold changed lines: dropped the threshold from the gate's normalized len>=8 to len>=4 and swept every added/removed line of instance['patch'] against the whitespace-normalized view: 0 hits.\n  - test_patch (which the python flavor's screen ignores): same sweep at len>=6: 0 hits. The headline F2P assertion `sig = inspect.signature_from_str('(a, b=0, /, c=1)')` does not appear.\n  - Path/symbol needles absent from the view: 'signature_from_str', 'sphinx/util/inspect', 'inspect.py', 'posonlyargs', 'ast_unparse', 'Parameter.empty', 'POSITIONAL_ONLY', 'POSITIONAL_OR_KEYWORD', 'args.defaults', 'insert(', 'hasattr', 'enumerate', 'unparse', 'annotation' -- all False. The single 'sphinx' occurrence is line 1's `Twin-artifact model for sphinx-doc__sphinx-7757.` -- the instance id, which is the task's own name and shared boilerplate across every nagini bundle in the suite, so it localizes nothing.\n  - Patch changed symbols = {'signature_from_str'} (not in problem_statement); confirmed no spec-view identifier embeds it. Spec-view identifiers are all model-domain or Nagini vocabulary (resolve_positional_defaults, resolved_default, first_default_pos, render, renderable, EMPTY, positionals, posonly, provided, Requires/Ensures/Forall/ToSeq/PSeq/...).\n  - Token intersection between the patch's changed lines and the whole view: {default, defaults, empty, for, if, is, len, list, positionals}. Every one is either Python/English generic or the public vocabulary of the problem_statement ('The default value for positional only argument has vanished'). 'positionals' is a count name the model needs to state its own arity; it names no repo symbol.\n  - Narration: _NARRATION_RE over the view -> []. My own wider sweep for vanish/no-longer/used-to/failed/omit/forgot/revert/gold/instead found only benign uses: 'exempt' (L19, L165), 'change(s)' (L27, in 'never changes WHICH positions receive a default'), 'edit' (L3, the shared boilerplate 'stated as desired behaviour, not as an edit'), 'before' (L104/L142, positional/temporal). None narrates a prior state of the code.\n  - Implementation strategy: the view contains no 'pad', 'left-pad', 'insert', 'combined list', or 'two loops' -- i.e. it does NOT hand over the gold patch's specific mechanism (build one combined defaults list, left-pad with Parameter.empty, index both loops by absolute position). The view states only the desired input/output relation.\n\n(4) IS THE DISCRIMINATOR DERIVABLE FROM problem_statement ALONE? Yes, and that is the crux. The public statement gives the exact failing case `.. py:function:: foo(a, b=0, /, c=1)` plus 'The default value is shown' as expected behaviour. From that alone a solver knows: a defaulted positional-only parameter must keep its default. The remaining content of the spec view -- that defaults right-align across the WHOLE positional list -- is not bundle knowledge but public Python grammar, which I verified directly: `ast.parse('def foo(a, b=0, /, c=1)')` gives posonlyargs=[a,b], args=[c], defaults=[0,1], i.e. 2 defaults right-aligned over 3 positional parameters. Any solver reading the AST sees this.\n\nSo the view's two load-bearing clauses -- the alignment postcondition `ToSeq(Result())[p] == resolved_default(p, ...)` and the not-exempt clause `p < posonly and p >= positionals - len(provided) ==> ToSeq(Result())[p] != EMPTY()` -- restate the publicly-stated expected behaviour in the model's carrier. They tell the solver WHAT must hold, not WHERE to edit or HOW; the file, the function, the padded-list mechanism, and the pre-patch mis-indexing all stay in refinement.md/mapping.md, which are audit-side and (per eval/dataset.py) not part of task.spec_view.\n\n(5) CORE GATES I LEANED ON, RE-MEASURED MYSELF (all in /tmp, bundle untouched). `bash scripts/nagini_verify.sh model.py` -> 'Verification successful', 33.62s, exit 0 (G-VERIFY/G-GOLD live). `bash scripts/nagini_verify.sh model_prepatch.py` -> 'Verification failed', 41.51s, and the single error is exactly the alignment postcondition -- 'Postcondition of resolve_positional_defaults might not hold. Assertion Forall(int, (lambda p: (Implies(((0 <= p) and (p < positionals)), (ToSeq(Result())[p] == resolved_default(...))' -- i.e. G-DIFF senses the BUG and not the MustTerminate annotation, matching the recorded G-DIFF and refinement.md C6's claim. Recorded gates re-read: G-LEAK pass (failures=[]), G-HYGIENE pass, G-AX pass (3900 signatures, domain-restricted render axiom validated both on- and off-domain), G-CONF pass (103696 checked, 0 disagreements), G-PBT pass (10 cases SOUND), G-RESOLVE pass (flaky: resolved on attempt 2/3 -- flagged as a durability note, not a leakage finding, since it bears on the oracle's stability rather than on the spec view).\n\nCONCLUSION. Every clause of the spec view is either (a) the model's own carrier/contract vocabulary, (b) a restatement of behaviour the public problem_statement already specifies, or (c) public Python-grammar semantics a solver can read off `ast.parse`. Nothing in the view names the patched file, the patched function, the AST field names, the sentinel's real identity, the renderer's real name, or the gold mechanism, and nothing narrates the pre-patch state. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:08:56+00:00",
+      "code_version": "94314cde7-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 33.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 152.7
+          },
+          {
+            "expect": "reject",
+            "id": "r1-posonly-exempt",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.4
+          },
+          {
+            "expect": "reject",
+            "id": "r2-offby-posonly",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 26.8
+          },
+          {
+            "expect": "reject",
+            "id": "r3-all-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 69.2
+          },
+          {
+            "expect": "reject",
+            "id": "r4-frame-mutation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.4
+          },
+          {
+            "expect": "reject",
+            "id": "r5-short-result",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 82.6
+          },
+          {
+            "expect": "reject",
+            "id": "r6-self-delegation",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.5
+          },
+          {
+            "expect": "reject",
+            "id": "r7-decorative-measure",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.5
+          },
+          {
+            "expect": "reject",
+            "id": "r8-raise-exit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 102.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "acb8abf534f0ec70b649900acd4c7b971df5a298c20c27838fe3ea0bfe3b1e07",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7",
+        "properties.py": "acb8abf534f0ec70b649900acd4c7b971df5a298c20c27838fe3ea0bfe3b1e07"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T03:09:37+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "c053555b5e99ea484467e12b51acac26d0013fc389124e1d6bb577bca970f67c",
+        "patch.diff": "0b8d90b18ac2c259604830c6eea2f581084bfad368b88f0c7bb1a56c7cecfd78"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T02:59:09+00:00",
+      "code_version": "3271fbae5-dirty",
+      "data": {
+        "wall_time_s": 74.7
+      },
+      "detail": "verified in 74.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "69f7fb0eb8d6658853a140ae649dc6ccd06cbf71d949a802710fff5ab5729bf7"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sphinx-doc__sphinx-7757",
+  "modeled_functions": [
+    {
+      "carrier_type": "ast positional-parameter lists -> (positionals:int, posonly:int) counts; args.defaults -> provided: List[int] of value codes; specification over PSeq[int]",
+      "model_symbol": "resolve_positional_defaults",
+      "repo_location": "sphinx/util/inspect.py:514 (body lines 519-537: posonlyargs loop + args.args loop)",
+      "repo_symbol": "sphinx.util.inspect.signature_from_str",
+      "role": "modeled changed function (alignment of supplied defaults across the positional parameter list); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (git apply --check clean at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result())[p] == resolved_default(p, positionals, len(provided), ToSeq(provided)) (and the positional-only-not-exempt clause), e.g. (a, b=0, /, c=1): position 1 (posonly b) comes out EMPTY but the spec requires the rendered default",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "positional-only default alignment in signature_from_str",
+      "reverted_to": "pre-patch skeleton: positional-only prefix gets NO default (always EMPTY), ordinary parameters align over the ordinary-parameter count alone (provided[m - regular + i])"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "96799eddbef83489cedeea096b52a271942ceecc2fadcd4f414358b665fd5c56",
+    "impl": "b3a28a7722e178a30c5c71fe9e5cf22b1210c32e889125fa44bf799dd57f83c4",
+    "invariants": "03c98a94e3339e73f7c0e87b9043c47d9f104d34d462b5ef999988e58cb3dc87",
+    "post-conditions": "1a581789b352165ad350bb5e00f60bf1670cc81b6622d99c3c3b4cd3f46547d7",
+    "pre-conditions": "7178728b55c243cf503a0304c0bc57ddf07590061e765379d6b235e6f5d9a28f",
+    "pure": "bb890e61ecb989ffff26a8c1978ce594c51ca6cda0c8eaf16991cf354cb241f0",
+    "spec_view": "6d674ef7adb6d03fe315dd4b6b9e6ccaa430c7f0facb85176b2fec33f1b73132"
+  },
+  "repo": "sphinx-doc/sphinx",
+  "schema_version": 1,
+  "string_modeling": "no strings; the AST positional-parameter lists are abstracted to two integer counts (positionals, posonly) and the combined args.defaults list to a List[int] of value codes (sentinel EMPTY = -1 for Parameter.empty); specification carried by PSeq[int] via ToSeq; the alignment proven by a forward per-position loop with an element-wise invariant over ToSeq(result). The per-default renderer (sphinx.pycode.ast.unparse) is a PARTIAL callee, modelled by the domain-restricted axiom render guarded by the renderable domain predicate (every supplied default value code is required renderable; render is never applied off-domain).",
+  "version": "3.1"
+}

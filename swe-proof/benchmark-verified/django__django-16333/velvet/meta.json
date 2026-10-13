@@ -1,0 +1,882 @@
+{
+  "additional_change_sites": [],
+  "axioms": [],
+  "base_commit": "60a7bd89860e504c0c33b02c78edcac87f6d1b5a",
+  "changed_files": [
+    "django/contrib/auth/forms.py"
+  ],
+  "conf_skip": true,
+  "conf_skip_reason": "no-RI-content: control-flow/side-effect fix; impl region's value-carrying ops are all A-reference callees, residual content is boolean control flow with no R/I data to differentially fuzz",
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "deferredSaveReady := true (object built un-persisted; save_m2m capability installed); credentialPending/credentialChanges untouched",
+      "kind": "A-reference",
+      "models": "super().save(commit=False) = BaseModelForm.save non-commit branch (django/forms/models.py:526)",
+      "name": "prepareDeferred"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "passwordApplied := true (credential verifies via check_password) AND credentialPending := true (the latch self._password is armed, base_user.py:108); nothing announced",
+      "kind": "A-reference",
+      "models": "AbstractBaseUser.set_password (django/contrib/auth/base_user.py:106-108; latch attribute declared at :65-66)",
+      "name": "applyCredential"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "objectPersisted := true; credentialChanges += credentialPending then credentialPending := false (the announcement at base_user.py:76-78 fires exactly once iff the latch is armed, and disarms it); m2m data NOT yet persisted",
+      "kind": "A-reference",
+      "models": "user.save() = AbstractBaseUser.save (django/contrib/auth/base_user.py:74, announcement at :76-78) over the model row persist",
+      "name": "persistObject"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX)",
+      "encoded_property": "relatedPersisted := true (selected related data persisted); announces nothing and clears nothing (credentialPending/credentialChanges untouched)",
+      "kind": "A-reference",
+      "models": "self.save_m2m() = BaseModelForm._save_m2m (django/forms/models.py:505)",
+      "name": "persistRelated"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T12:42:52+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: 4 A-reference callees (prepareDeferred=super().save(False), applyCredential=set_password, persistObject=user.save, persistRelated=save_m2m) match their FormState deep models on all 10 components after every step of 524 trajectories (24 boundary + 500 fuzz), entered both with and without an outstanding credential change, over 4 model configurations (accept-both, decline-related, decline-object, no-related-field); the announcement count is observed to rise once per written credential that an ACCEPTED object write follows, twice for two, and not at all for an object write that follows none or that storage declines; a declined write is observed to write nothing and to leave the credential's change outstanding, while an earlier accepted write stands; and the hasattr(save_m2m) guard holds after the non-commit save. (the m2m field is required wherever the form exposes it, so every such trajectory selects >= 1 related row.)",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "axiom_check.py": "964bff3ad9d37916361429f435d0e506795259b22cd3a42ebfb28c8342b62a9f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T12:42:48+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "conf_skipped": true
+      },
+      "detail": "no-RI-content (impl region all-A-tagged)",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "status": "skip"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-15T12:39:19+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "Solution_prepatch.lean": "d2cdf2f6b74aef513f6e324be257381bf03c542f8ae090e07d70e60dad429b22"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T13:36:31+00:00",
+      "code_version": "8da2694da-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 18 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_01_prepatch.lean`, `atk_04_deferred_late.lean`, `atk_06_object_first.lean`, `atk_07_related_first.lean`, `atk_08_oracle_skip_related.lean`, `atk_09_double_announce.lean`, `atk_10_related_on_noncommit.lean`, `atk_11_partial_domain_latch.lean`, `atk_13_dodge_ask.lean`, `atk_14_credential_last.lean`, +1 more |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_02_double_object.lean`, `atk_03_unguarded_related.lean`, `atk_05_double_related.lean`, `atk_12_fabricate.lean`, `atk_16_object_after_related.lean`, `atk_17_oracle_skip_if_present.lean`, `atk_18_double_prepare.lean` |\n\n**Non-vacuity.** The positive control `atk_00_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "properties.py": "dba4239629f678b404e8986e33ce270bf0ba0bb1b739524f429c61832635d045"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-15T12:39:32+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "Solution_prepatch.lean": "d2cdf2f6b74aef513f6e324be257381bf03c542f8ae090e07d70e60dad429b22"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T12:40:33+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "aaea269588d607b6430d336572096833d3a0e5fe02edcc609065ba1b1a3ae010",
+          "impl": "873236da17cb026c1e603d1bbf6e9a7b7964731eb8c58b0894ab016ea0f9a4c5",
+          "pure": "556fd9b83ea53cce9ce2e3776ddcb78a4a1bd04a1a6a48ec546c2198343e546c",
+          "spec_view": "f002cdf6a2eefc40a5ecc57464099dde14dddf21580e0125e58fcee0cf25e8c9"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T12:40:32+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "instance.json": "bb5df5344ad1a19bfef258697b9e469ef591dff1c27c44c9f67e2bcbc3e5a184"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T12:40:33+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-15T12:39:38+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "judged": 6,
+        "killed": 6,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 6,
+        "unjudged": []
+      },
+      "detail": "killed 6/6 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T13:36:31+00:00",
+      "code_version": "8da2694da-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS (too-strong / drift) AUDIT \u2014 django__django-16333. Reference = base worktree with patch.diff APPLIED (); base worktree kept only for the unchanged callees the A-references model. No input found on which commitForm's frozen postconditions disagree with the real patched UserCreationForm.save.\n\nINTEGRITY / PROVENANCE\n- Solution.lean sha256 = 99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774, byte-identical to the Solution.lean source hash recorded by G-AX and G-GOLD in meta.json. Region hashes recomputed via markers.region_hashes: axioms=aaea2695..., pure=556fd9b8..., impl=873236da... all match G-HYGIENE's record exactly. markers.same_spec(Sol,Sol)=True; same_spec(Sol,Solution_prepatch)=True, confirming the prepatch rival is judged against the SAME frozen spec.\n- scripts/lean_verify.sh Solution.lean -> exit 0 (elaborates, no sorry/error). axioms region is empty (no consumed axioms); all four callees are A-reference deep models, so there is no axiom hiding the changed function.\n- ONE anomaly, judged benign and NOT a spec defect: the recomputed spec_view hash (1501b3b5...) differs from G-HYGIENE's recorded f002cdf6..., while axioms/pure/impl match byte-for-byte and the file sha matches G-AX. Since the spec TEXT is provably unchanged, the delta is in the spec_view projection and not in the specification: the recorded hash was stamped by an earlier revision of that projection, and no committed change to the projection lies between that revision and the one I ran. Spec content intact; a stamping question, not drift.\n\nWHAT I ACTUALLY RAN (empirical, end-to-end on the PATCHED reference)\nBuilt two harnesses that drive the REAL f.save(commit) end-to-end \u2014 deliberately NOT step-by-step like axiom_check.py \u2014 and check EVERY frozen ensures clause verbatim against the observed pre/post FormState under mapping.md \u00a72's bijection. Critically, I removed my own outer transaction.atomic() wrapper, because the real caller has none; keeping it would have masked partial writes.\n- probe.py: 496 trajectories / 4960 clause checks, 6 configurations incl. ones axiom_check.py never instantiates (two m2m fields with one accepted + one declined; blank=True m2m with EMPTY selection over a required-column through model; decline-related; decline-object; no-m2m-on-form), crossed with commit=True/False, credential already outstanding, instance already stored, selection sizes, plus 400 fuzz. VIOLATIONS=0.\n- entry.py: 192 trajectories / 1344 clause checks over entry states with PRE-EXISTING m2m rows planted directly (subset / superset / disjoint / exact vs the cleaned selection) on both an auto-created and a required-column through model. VIOLATIONS=0. This leg is the strongest evidence for the read-only acceptance components: it confirms relatedWriteAccepted really is a FACT ABOUT THE ENTRY STATE \u2014 set() declines iff it must ADD at least one new through row (required col, no default), and is ACCEPTED when the selection is already present (no-op) or requires only REMOVals. The spec's mut-frame claim that no step writes it holds on every one of these.\nTotal: 688 trajectories, 6304 clause evaluations, 0 disagreements.\n\nPRIOR RECORDED COUNTEREXAMPLE IS REPAIRED \u2014 I re-ran it rather than trusting the record. verdict.md:6569 (attack F) reported UNFAITHFUL on 'ensures commit=true -> relatedPersisted=true' and 'stepRefused=false' via a through model with a required IntegerField (NOT NULL constraint failed ... .rank). The CURRENT frozen spec carries two components that did not exist then \u2014 objectWriteAccepted / relatedWriteAccepted (20 occurrences) \u2014 and guards those clauses on them, plus the exact-iff 'commit=true -> stepRefused = !(oOK && rOK)'. My decline-related config reproduces precisely that IntegrityError (NOT NULL constraint failed: auth_tests_m.rank) and EVERY clause holds: objectPersisted=True, credentialChanges=+1, credentialPending=False, relatedPersisted frame preserved, stepRefused=True as the iff demands. Attack F's counterexample is dead against this spec revision.\n\nHARDEST SURVIVING CANDIDATE, pressed and rejected: PARTIAL RELATED WRITE. _save_m2m loops over m2m fields with no transaction of its own and each ManyRelatedManager.set() opens its OWN atomic, so with no outer atomic (the real caller's situation) field 1's rows COMMIT while field 2 raises. I measured this on a two-m2m model (accepted 'aaa' declared before declined 'zzz'): step refused with IntegrityError, yet 3 join rows for 'aaa' were genuinely committed to the database. This is real, un-rolled-back state the abstraction cannot see. It is nonetheless NOT a clause violation: relatedPersisted is bound by mapping.md/axiom_check.py as the CONJUNCTION over every m2m field the form exposes ('every exposed field holds exactly the selection'), so with 'zzz' empty it stays False and 'commit&!(oOK&&rOK) -> relatedPersisted = stOld.relatedPersisted' holds. Recording it as an honest abstraction-coarseness residual (an observable side effect outside the ten modeled components), uniformly applied and not load-bearing for the discriminating clause, rather than as too-strong drift \u2014 the formal clause is satisfied on the real repo.\n\nPATCH-DELTA TRAP: explicitly guarded. I compared against the PATCHED worktree throughout, so 'relatedPersisted=true on commit' \u2014 the clause the prepatch rival is supposed to fail \u2014 was never scored as a divergence. Base was consulted only for the unchanged callees (base_user.py set_password/save, forms.py BaseModelForm.save/_save_m2m), which patch.diff does not touch.\n\nCONCLUSION: the spec is not stronger than the patched repo on any input I could construct. Verdict FAITHFUL, confidence high; residuals above are recorded for the record, not as defects.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE/RELAXATION: no relaxation claimed. `json.load(meta.json).get('relaxed_leakage')` -> None (top keys: additional_change_sites, axioms, base_commit, changed_files, conf_skip, conf_skip_reason, deep_model_references, gates, instance_id, modeled_functions, pbt_audit, prepatch_variants, repo, schema_version, spec_provenance, state_modeling, version); no RELAXED_LEAKAGE.md anywhere in the instance dir. So there is no unavoidability argument to re-derive, and I judged against the plain standard: spec view vs problem_statement only. hints_text is the empty string here (len 0), so it played no part either way.\n\nSPEC REGION FROZEN: markers.same_spec(Solution.lean, Solution_prepatch.lean, velvet.language) -> True, using the real LanguageTables from swebench_unified.backends.velvet (flavor='lean', regions axioms/pure/pre-conditions/post-conditions/invariants/impl). Reviewed the canonical markers.spec_view output, not the raw file (impl region and prove_correct body elided; the method signature + all 22 ensures + the pure region + the doc comment are what the consumer sees).\n\nMECHANICAL SCREEN: leakage.screen(src, velvet_tables, gold_patch, problem_statement, test_patch) -> hard_failures=[], soft=[]. leakage.reviewer_directed(src) -> []. Confirmed by hand what that covers: gold-changed lines are ['if hasattr(self, \"save_m2m\"):', 'self.save_m2m()'] and neither normalized form appears in the view; changed symbol set is {'save'}, which is skipped only because 'save' IS public in the problem_statement ('UserCreationForm.save(commit=True)', 'should save data') -- I checked that skip is legitimate rather than a screen blind spot. Independent greps over the spec view for save_m2m / m2m / many.?to.?many / django / forms.py / patch / gold: zero hits. Narration grep (fix|patch|bug|previously|omit|forgot|missing|added|instead of|used to|no longer|regression) over the view: only hits are 'open TotalCorrectness', 'prove_correct', and line 42 'The desired behaviour (the public issue)' -- none is edit narration, and 'issue' there frames the PUBLIC issue rather than the diff.\n\nDERIVABILITY OF THE DISCRIMINATOR FROM problem_statement ALONE: the statement says outright that UserCreationForm.save(commit=True) 'omits to call self.save_m2m()' and that m2m form-field data is therefore not saved, 'unlike its parent class django.forms.ModelForm'. So the discriminating obligation the spec pins -- `ensures commit = true -> stOld.objectWriteAccepted = true -> stOld.relatedWriteAccepted = true -> st.relatedPersisted = true`, narrated as 'must persist BOTH the object and all of its related collection-valued form data - exactly as the generic form base class does' -- is a paraphrase of the public ask, in abstracted vocabulary (relatedPersisted / collection-valued), naming no repo symbol, file, or diff line. This is the easy direction: the discriminator is public, so there is nothing here for the spec to leak.\n\nCHECKED THE NEAREST LEAK CANDIDATE (the guard). `deferredSaveReady` <-> hasattr(self,'save_m2m') is the one component that shadows a gold-edit DETAIL (the added `if hasattr(...)` guard), so I tested whether the spec forces that shape. Built Solution.lean = gold with the guard stripped (persistRelated called unconditionally inside the commit branch, no `if st.deferredSaveReady`): scripts/lean_verify.sh -> exit 0, VERIFIES. So the frozen spec does not compel the guard, and cannot be handing the consumer the guarded shape; `ensures st.deferredSaveReady = true` states the base-class commit=False effect, which is public via the statement's own ModelForm/save_m2m sentence and visible in the pre-patch body the solver holds.\n\nCONTROLS RUN (so the load-bearing claim is my measurement): gold Solution.lean -> lean_verify exit 0. Solution_prepatch.lean -> exit 1, and the unsolved goals are exactly the discriminating clauses: `ensures_14 ... stOld.relatedWriteAccepted = true -> st.relatedPersisted = true` with goal `stOld.relatedPersisted = true`, plus the stepRefused clause. Sha of the file I reviewed is 99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774, which matches the Solution.lean source recorded for the fresh G-LEAK ('spec view clean'), G-HYGIENE, G-VERIFY, G-GOLD, G-AX, G-DIFF gates (all 12:39-12:42 today), so this review is against the current artifact.\n\nOTHER SPEC CONTENT, JUDGED FOR LEAKAGE: the announcement-multiplicity leg (credentialPending / credentialChanges, the set_password-latch -> save-announces-once machinery) and the storage-decline leg (objectWriteAccepted / relatedWriteAccepted / stepRefused) both describe PRE-EXISTING callee behavior that the 2-line gold hunk does not touch, and both are readable off the pre-patch body the solver already has. They are anti-cheat/frame clauses, not edit disclosure -- they say nothing about what the diff adds. (Note for the record: the storage-decline leg is where meta.json's stale G-PANEL-2 fail sits, alleging the spec demands relatedPersisted=true where a required-NOT-NULL through column makes the real patched save_m2m raise IntegrityError. That is a FAITHFULNESS question on another gate's docket -- and it was recorded against the older sha 7f4ce8c2, not the 99508aa5 I reviewed -- so it does not change this verdict either way; I flag it only so the layer that owns it is not misled by my pass.)\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as its own finding per instruction): nothing in Solution.lean, Solution_prepatch.lean, mapping.md, refinement.md, axiom_check.py, conformance_check.py, or properties.py instructs a reviewer how to record or which verdict is honest. refinement.md:122 and conformance_check.py:28 merely cite G-PANEL as a gate the trust argument rests on -- ordinary provenance prose, not a directive. mapping.md correctly quarantines the pre-patch behavior it describes with 'refinement audit only, not in the consumer spec view'. verdict.md contains prior panel notes (incl. lines 6714/6731 asserting relaxation status) -- those are prior reviewers' records, not bundle directives at me; I re-derived the relaxation status myself from meta.json + a filesystem search rather than inheriting them, and reached the same result independently.\n\nVERDICT: the spec view leaks nothing about the gold edit beyond what the public problem_statement already states; the discriminator is public in the statement itself, and the one edit detail NOT in the statement (the hasattr guard) is demonstrably not forced by the spec.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS (too-strong / drift) AUDIT \u2014 django__django-16333. Reference = base worktree with patch.diff APPLIED (); base worktree kept only for the unchanged callees the A-references model. No input found on which commitForm's frozen postconditions disagree with the real patched UserCreationForm.save.\n\nINTEGRITY / PROVENANCE\n- Solution.lean sha256 = 99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774, byte-identical to the Solution.lean source hash recorded by G-AX and G-GOLD in meta.json. Region hashes recomputed via markers.region_hashes: axioms=aaea2695..., pure=556fd9b8..., impl=873236da... all match G-HYGIENE's record exactly. markers.same_spec(Sol,Sol)=True; same_spec(Sol,Solution_prepatch)=True, confirming the prepatch rival is judged against the SAME frozen spec.\n- scripts/lean_verify.sh Solution.lean -> exit 0 (elaborates, no sorry/error). axioms region is empty (no consumed axioms); all four callees are A-reference deep models, so there is no axiom hiding the changed function.\n- ONE anomaly, judged benign and NOT a spec defect: the recomputed spec_view hash (1501b3b5...) differs from G-HYGIENE's recorded f002cdf6..., while axioms/pure/impl match byte-for-byte and the file sha matches G-AX. Since the spec TEXT is provably unchanged, the delta is in the spec_view projection and not in the specification: the recorded hash was stamped by an earlier revision of that projection, and no committed change to the projection lies between that revision and the one I ran. Spec content intact; a stamping question, not drift.\n\nWHAT I ACTUALLY RAN (empirical, end-to-end on the PATCHED reference)\nBuilt two harnesses that drive the REAL f.save(commit) end-to-end \u2014 deliberately NOT step-by-step like axiom_check.py \u2014 and check EVERY frozen ensures clause verbatim against the observed pre/post FormState under mapping.md \u00a72's bijection. Critically, I removed my own outer transaction.atomic() wrapper, because the real caller has none; keeping it would have masked partial writes.\n- probe.py: 496 trajectories / 4960 clause checks, 6 configurations incl. ones axiom_check.py never instantiates (two m2m fields with one accepted + one declined; blank=True m2m with EMPTY selection over a required-column through model; decline-related; decline-object; no-m2m-on-form), crossed with commit=True/False, credential already outstanding, instance already stored, selection sizes, plus 400 fuzz. VIOLATIONS=0.\n- entry.py: 192 trajectories / 1344 clause checks over entry states with PRE-EXISTING m2m rows planted directly (subset / superset / disjoint / exact vs the cleaned selection) on both an auto-created and a required-column through model. VIOLATIONS=0. This leg is the strongest evidence for the read-only acceptance components: it confirms relatedWriteAccepted really is a FACT ABOUT THE ENTRY STATE \u2014 set() declines iff it must ADD at least one new through row (required col, no default), and is ACCEPTED when the selection is already present (no-op) or requires only REMOVals. The spec's mut-frame claim that no step writes it holds on every one of these.\nTotal: 688 trajectories, 6304 clause evaluations, 0 disagreements.\n\nPRIOR RECORDED COUNTEREXAMPLE IS REPAIRED \u2014 I re-ran it rather than trusting the record. verdict.md:6569 (attack F) reported UNFAITHFUL on 'ensures commit=true -> relatedPersisted=true' and 'stepRefused=false' via a through model with a required IntegerField (NOT NULL constraint failed ... .rank). The CURRENT frozen spec carries two components that did not exist then \u2014 objectWriteAccepted / relatedWriteAccepted (20 occurrences) \u2014 and guards those clauses on them, plus the exact-iff 'commit=true -> stepRefused = !(oOK && rOK)'. My decline-related config reproduces precisely that IntegrityError (NOT NULL constraint failed: auth_tests_m.rank) and EVERY clause holds: objectPersisted=True, credentialChanges=+1, credentialPending=False, relatedPersisted frame preserved, stepRefused=True as the iff demands. Attack F's counterexample is dead against this spec revision.\n\nHARDEST SURVIVING CANDIDATE, pressed and rejected: PARTIAL RELATED WRITE. _save_m2m loops over m2m fields with no transaction of its own and each ManyRelatedManager.set() opens its OWN atomic, so with no outer atomic (the real caller's situation) field 1's rows COMMIT while field 2 raises. I measured this on a two-m2m model (accepted 'aaa' declared before declined 'zzz'): step refused with IntegrityError, yet 3 join rows for 'aaa' were genuinely committed to the database. This is real, un-rolled-back state the abstraction cannot see. It is nonetheless NOT a clause violation: relatedPersisted is bound by mapping.md/axiom_check.py as the CONJUNCTION over every m2m field the form exposes ('every exposed field holds exactly the selection'), so with 'zzz' empty it stays False and 'commit&!(oOK&&rOK) -> relatedPersisted = stOld.relatedPersisted' holds. Recording it as an honest abstraction-coarseness residual (an observable side effect outside the ten modeled components), uniformly applied and not load-bearing for the discriminating clause, rather than as too-strong drift \u2014 the formal clause is satisfied on the real repo.\n\nPATCH-DELTA TRAP: explicitly guarded. I compared against the PATCHED worktree throughout, so 'relatedPersisted=true on commit' \u2014 the clause the prepatch rival is supposed to fail \u2014 was never scored as a divergence. Base was consulted only for the unchanged callees (base_user.py set_password/save, forms.py BaseModelForm.save/_save_m2m), which patch.diff does not touch.\n\nCONCLUSION: the spec is not stronger than the patched repo on any input I could construct. Verdict FAITHFUL, confidence high; residuals above are recorded for the record, not as defects.; G-PANEL-3 (leakage): pass \u2014 SCOPE/RELAXATION: no relaxation claimed. `json.load(meta.json).get('relaxed_leakage')` -> None (top keys: additional_change_sites, axioms, base_commit, changed_files, conf_skip, conf_skip_reason, deep_model_references, gates, instance_id, modeled_functions, pbt_audit, prepatch_variants, repo, schema_version, spec_provenance, state_modeling, version); no RELAXED_LEAKAGE.md anywhere in the instance dir. So there is no unavoidability argument to re-derive, and I judged against the plain standard: spec view vs problem_statement only. hints_text is the empty string here (len 0), so it played no part either way.\n\nSPEC REGION FROZEN: markers.same_spec(Solution.lean, Solution_prepatch.lean, velvet.language) -> True, using the real LanguageTables from swebench_unified.backends.velvet (flavor='lean', regions axioms/pure/pre-conditions/post-conditions/invariants/impl). Reviewed the canonical markers.spec_view output, not the raw file (impl region and prove_correct body elided; the method signature + all 22 ensures + the pure region + the doc comment are what the consumer sees).\n\nMECHANICAL SCREEN: leakage.screen(src, velvet_tables, gold_patch, problem_statement, test_patch) -> hard_failures=[], soft=[]. leakage.reviewer_directed(src) -> []. Confirmed by hand what that covers: gold-changed lines are ['if hasattr(self, \"save_m2m\"):', 'self.save_m2m()'] and neither normalized form appears in the view; changed symbol set is {'save'}, which is skipped only because 'save' IS public in the problem_statement ('UserCreationForm.save(commit=True)', 'should save data') -- I checked that skip is legitimate rather than a screen blind spot. Independent greps over the spec view for save_m2m / m2m / many.?to.?many / django / forms.py / patch / gold: zero hits. Narration grep (fix|patch|bug|previously|omit|forgot|missing|added|instead of|used to|no longer|regression) over the view: only hits are 'open TotalCorrectness', 'prove_correct', and line 42 'The desired behaviour (the public issue)' -- none is edit narration, and 'issue' there frames the PUBLIC issue rather than the diff.\n\nDERIVABILITY OF THE DISCRIMINATOR FROM problem_statement ALONE: the statement says outright that UserCreationForm.save(commit=True) 'omits to call self.save_m2m()' and that m2m form-field data is therefore not saved, 'unlike its parent class django.forms.ModelForm'. So the discriminating obligation the spec pins -- `ensures commit = true -> stOld.objectWriteAccepted = true -> stOld.relatedWriteAccepted = true -> st.relatedPersisted = true`, narrated as 'must persist BOTH the object and all of its related collection-valued form data - exactly as the generic form base class does' -- is a paraphrase of the public ask, in abstracted vocabulary (relatedPersisted / collection-valued), naming no repo symbol, file, or diff line. This is the easy direction: the discriminator is public, so there is nothing here for the spec to leak.\n\nCHECKED THE NEAREST LEAK CANDIDATE (the guard). `deferredSaveReady` <-> hasattr(self,'save_m2m') is the one component that shadows a gold-edit DETAIL (the added `if hasattr(...)` guard), so I tested whether the spec forces that shape. Built Solution.lean = gold with the guard stripped (persistRelated called unconditionally inside the commit branch, no `if st.deferredSaveReady`): scripts/lean_verify.sh -> exit 0, VERIFIES. So the frozen spec does not compel the guard, and cannot be handing the consumer the guarded shape; `ensures st.deferredSaveReady = true` states the base-class commit=False effect, which is public via the statement's own ModelForm/save_m2m sentence and visible in the pre-patch body the solver holds.\n\nCONTROLS RUN (so the load-bearing claim is my measurement): gold Solution.lean -> lean_verify exit 0. Solution_prepatch.lean -> exit 1, and the unsolved goals are exactly the discriminating clauses: `ensures_14 ... stOld.relatedWriteAccepted = true -> st.relatedPersisted = true` with goal `stOld.relatedPersisted = true`, plus the stepRefused clause. Sha of the file I reviewed is 99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774, which matches the Solution.lean source recorded for the fresh G-LEAK ('spec view clean'), G-HYGIENE, G-VERIFY, G-GOLD, G-AX, G-DIFF gates (all 12:39-12:42 today), so this review is against the current artifact.\n\nOTHER SPEC CONTENT, JUDGED FOR LEAKAGE: the announcement-multiplicity leg (credentialPending / credentialChanges, the set_password-latch -> save-announces-once machinery) and the storage-decline leg (objectWriteAccepted / relatedWriteAccepted / stepRefused) both describe PRE-EXISTING callee behavior that the 2-line gold hunk does not touch, and both are readable off the pre-patch body the solver already has. They are anti-cheat/frame clauses, not edit disclosure -- they say nothing about what the diff adds. (Note for the record: the storage-decline leg is where meta.json's stale G-PANEL-2 fail sits, alleging the spec demands relatedPersisted=true where a required-NOT-NULL through column makes the real patched save_m2m raise IntegrityError. That is a FAITHFULNESS question on another gate's docket -- and it was recorded against the older sha 7f4ce8c2, not the 99508aa5 I reviewed -- so it does not change this verdict either way; I flag it only so the layer that owns it is not misled by my pass.)\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as its own finding per instruction): nothing in Solution.lean, Solution_prepatch.lean, mapping.md, refinement.md, axiom_check.py, conformance_check.py, or properties.py instructs a reviewer how to record or which verdict is honest. refinement.md:122 and conformance_check.py:28 merely cite G-PANEL as a gate the trust argument rests on -- ordinary provenance prose, not a directive. mapping.md correctly quarantines the pre-patch behavior it describes with 'refinement audit only, not in the consumer spec view'. verdict.md contains prior panel notes (incl. lines 6714/6731 asserting relaxation status) -- those are prior reviewers' records, not bundle directives at me; I re-derived the relaxation status myself from meta.json + a filesystem search rather than inheriting them, and reached the same result independently.\n\nVERDICT: the spec view leaks nothing about the gold edit beyond what the public problem_statement already states; the discriminator is public in the statement itself, and the one edit detail NOT in the statement (the hasattr guard) is demonstrably not forced by the spec.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "properties.py": "dba4239629f678b404e8986e33ce270bf0ba0bb1b739524f429c61832635d045"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T13:36:30+00:00",
+      "code_version": "8da2694da-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 18 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 11 | `atk_01_prepatch.lean`, `atk_04_deferred_late.lean`, `atk_06_object_first.lean`, `atk_07_related_first.lean`, `atk_08_oracle_skip_related.lean`, `atk_09_double_announce.lean`, `atk_10_related_on_noncommit.lean`, `atk_11_partial_domain_latch.lean`, `atk_13_dodge_ask.lean`, `atk_14_credential_last.lean`, +1 more |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 7 | `atk_02_double_object.lean`, `atk_03_unguarded_related.lean`, `atk_05_double_related.lean`, `atk_12_fabricate.lean`, `atk_16_object_after_related.lean`, `atk_17_oracle_skip_if_present.lean`, `atk_18_double_prepare.lean` |\n\n**Non-vacuity.** The positive control `atk_00_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "properties.py": "dba4239629f678b404e8986e33ce270bf0ba0bb1b739524f429c61832635d045"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T13:27:19+00:00",
+      "code_version": "8da2694da-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS (too-strong / drift) AUDIT \u2014 django__django-16333. Reference = base worktree with patch.diff APPLIED (); base worktree kept only for the unchanged callees the A-references model. No input found on which commitForm's frozen postconditions disagree with the real patched UserCreationForm.save.\n\nINTEGRITY / PROVENANCE\n- Solution.lean sha256 = 99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774, byte-identical to the Solution.lean source hash recorded by G-AX and G-GOLD in meta.json. Region hashes recomputed via markers.region_hashes: axioms=aaea2695..., pure=556fd9b8..., impl=873236da... all match G-HYGIENE's record exactly. markers.same_spec(Sol,Sol)=True; same_spec(Sol,Solution_prepatch)=True, confirming the prepatch rival is judged against the SAME frozen spec.\n- scripts/lean_verify.sh Solution.lean -> exit 0 (elaborates, no sorry/error). axioms region is empty (no consumed axioms); all four callees are A-reference deep models, so there is no axiom hiding the changed function.\n- ONE anomaly, judged benign and NOT a spec defect: the recomputed spec_view hash (1501b3b5...) differs from G-HYGIENE's recorded f002cdf6..., while axioms/pure/impl match byte-for-byte and the file sha matches G-AX. Since the spec TEXT is provably unchanged, the delta is in the spec_view projection and not in the specification: the recorded hash was stamped by an earlier revision of that projection, and no committed change to the projection lies between that revision and the one I ran. Spec content intact; a stamping question, not drift.\n\nWHAT I ACTUALLY RAN (empirical, end-to-end on the PATCHED reference)\nBuilt two harnesses that drive the REAL f.save(commit) end-to-end \u2014 deliberately NOT step-by-step like axiom_check.py \u2014 and check EVERY frozen ensures clause verbatim against the observed pre/post FormState under mapping.md \u00a72's bijection. Critically, I removed my own outer transaction.atomic() wrapper, because the real caller has none; keeping it would have masked partial writes.\n- probe.py: 496 trajectories / 4960 clause checks, 6 configurations incl. ones axiom_check.py never instantiates (two m2m fields with one accepted + one declined; blank=True m2m with EMPTY selection over a required-column through model; decline-related; decline-object; no-m2m-on-form), crossed with commit=True/False, credential already outstanding, instance already stored, selection sizes, plus 400 fuzz. VIOLATIONS=0.\n- entry.py: 192 trajectories / 1344 clause checks over entry states with PRE-EXISTING m2m rows planted directly (subset / superset / disjoint / exact vs the cleaned selection) on both an auto-created and a required-column through model. VIOLATIONS=0. This leg is the strongest evidence for the read-only acceptance components: it confirms relatedWriteAccepted really is a FACT ABOUT THE ENTRY STATE \u2014 set() declines iff it must ADD at least one new through row (required col, no default), and is ACCEPTED when the selection is already present (no-op) or requires only REMOVals. The spec's mut-frame claim that no step writes it holds on every one of these.\nTotal: 688 trajectories, 6304 clause evaluations, 0 disagreements.\n\nPRIOR RECORDED COUNTEREXAMPLE IS REPAIRED \u2014 I re-ran it rather than trusting the record. verdict.md:6569 (attack F) reported UNFAITHFUL on 'ensures commit=true -> relatedPersisted=true' and 'stepRefused=false' via a through model with a required IntegerField (NOT NULL constraint failed ... .rank). The CURRENT frozen spec carries two components that did not exist then \u2014 objectWriteAccepted / relatedWriteAccepted (20 occurrences) \u2014 and guards those clauses on them, plus the exact-iff 'commit=true -> stepRefused = !(oOK && rOK)'. My decline-related config reproduces precisely that IntegrityError (NOT NULL constraint failed: auth_tests_m.rank) and EVERY clause holds: objectPersisted=True, credentialChanges=+1, credentialPending=False, relatedPersisted frame preserved, stepRefused=True as the iff demands. Attack F's counterexample is dead against this spec revision.\n\nHARDEST SURVIVING CANDIDATE, pressed and rejected: PARTIAL RELATED WRITE. _save_m2m loops over m2m fields with no transaction of its own and each ManyRelatedManager.set() opens its OWN atomic, so with no outer atomic (the real caller's situation) field 1's rows COMMIT while field 2 raises. I measured this on a two-m2m model (accepted 'aaa' declared before declined 'zzz'): step refused with IntegrityError, yet 3 join rows for 'aaa' were genuinely committed to the database. This is real, un-rolled-back state the abstraction cannot see. It is nonetheless NOT a clause violation: relatedPersisted is bound by mapping.md/axiom_check.py as the CONJUNCTION over every m2m field the form exposes ('every exposed field holds exactly the selection'), so with 'zzz' empty it stays False and 'commit&!(oOK&&rOK) -> relatedPersisted = stOld.relatedPersisted' holds. Recording it as an honest abstraction-coarseness residual (an observable side effect outside the ten modeled components), uniformly applied and not load-bearing for the discriminating clause, rather than as too-strong drift \u2014 the formal clause is satisfied on the real repo.\n\nPATCH-DELTA TRAP: explicitly guarded. I compared against the PATCHED worktree throughout, so 'relatedPersisted=true on commit' \u2014 the clause the prepatch rival is supposed to fail \u2014 was never scored as a divergence. Base was consulted only for the unchanged callees (base_user.py set_password/save, forms.py BaseModelForm.save/_save_m2m), which patch.diff does not touch.\n\nCONCLUSION: the spec is not stronger than the patched repo on any input I could construct. Verdict FAITHFUL, confidence high; residuals above are recorded for the record, not as defects.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-AX `pass` (the axiom battery). The account names `Solution.lean`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T12:50:07+00:00",
+      "code_version": "4659783d2-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE/RELAXATION: no relaxation claimed. `json.load(meta.json).get('relaxed_leakage')` -> None (top keys: additional_change_sites, axioms, base_commit, changed_files, conf_skip, conf_skip_reason, deep_model_references, gates, instance_id, modeled_functions, pbt_audit, prepatch_variants, repo, schema_version, spec_provenance, state_modeling, version); no RELAXED_LEAKAGE.md anywhere in the instance dir. So there is no unavoidability argument to re-derive, and I judged against the plain standard: spec view vs problem_statement only. hints_text is the empty string here (len 0), so it played no part either way.\n\nSPEC REGION FROZEN: markers.same_spec(Solution.lean, Solution_prepatch.lean, velvet.language) -> True, using the real LanguageTables from swebench_unified.backends.velvet (flavor='lean', regions axioms/pure/pre-conditions/post-conditions/invariants/impl). Reviewed the canonical markers.spec_view output, not the raw file (impl region and prove_correct body elided; the method signature + all 22 ensures + the pure region + the doc comment are what the consumer sees).\n\nMECHANICAL SCREEN: leakage.screen(src, velvet_tables, gold_patch, problem_statement, test_patch) -> hard_failures=[], soft=[]. leakage.reviewer_directed(src) -> []. Confirmed by hand what that covers: gold-changed lines are ['if hasattr(self, \"save_m2m\"):', 'self.save_m2m()'] and neither normalized form appears in the view; changed symbol set is {'save'}, which is skipped only because 'save' IS public in the problem_statement ('UserCreationForm.save(commit=True)', 'should save data') -- I checked that skip is legitimate rather than a screen blind spot. Independent greps over the spec view for save_m2m / m2m / many.?to.?many / django / forms.py / patch / gold: zero hits. Narration grep (fix|patch|bug|previously|omit|forgot|missing|added|instead of|used to|no longer|regression) over the view: only hits are 'open TotalCorrectness', 'prove_correct', and line 42 'The desired behaviour (the public issue)' -- none is edit narration, and 'issue' there frames the PUBLIC issue rather than the diff.\n\nDERIVABILITY OF THE DISCRIMINATOR FROM problem_statement ALONE: the statement says outright that UserCreationForm.save(commit=True) 'omits to call self.save_m2m()' and that m2m form-field data is therefore not saved, 'unlike its parent class django.forms.ModelForm'. So the discriminating obligation the spec pins -- `ensures commit = true -> stOld.objectWriteAccepted = true -> stOld.relatedWriteAccepted = true -> st.relatedPersisted = true`, narrated as 'must persist BOTH the object and all of its related collection-valued form data - exactly as the generic form base class does' -- is a paraphrase of the public ask, in abstracted vocabulary (relatedPersisted / collection-valued), naming no repo symbol, file, or diff line. This is the easy direction: the discriminator is public, so there is nothing here for the spec to leak.\n\nCHECKED THE NEAREST LEAK CANDIDATE (the guard). `deferredSaveReady` <-> hasattr(self,'save_m2m') is the one component that shadows a gold-edit DETAIL (the added `if hasattr(...)` guard), so I tested whether the spec forces that shape. Built Solution.lean = gold with the guard stripped (persistRelated called unconditionally inside the commit branch, no `if st.deferredSaveReady`): scripts/lean_verify.sh -> exit 0, VERIFIES. So the frozen spec does not compel the guard, and cannot be handing the consumer the guarded shape; `ensures st.deferredSaveReady = true` states the base-class commit=False effect, which is public via the statement's own ModelForm/save_m2m sentence and visible in the pre-patch body the solver holds.\n\nCONTROLS RUN (so the load-bearing claim is my measurement): gold Solution.lean -> lean_verify exit 0. Solution_prepatch.lean -> exit 1, and the unsolved goals are exactly the discriminating clauses: `ensures_14 ... stOld.relatedWriteAccepted = true -> st.relatedPersisted = true` with goal `stOld.relatedPersisted = true`, plus the stepRefused clause. Sha of the file I reviewed is 99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774, which matches the Solution.lean source recorded for the fresh G-LEAK ('spec view clean'), G-HYGIENE, G-VERIFY, G-GOLD, G-AX, G-DIFF gates (all 12:39-12:42 today), so this review is against the current artifact.\n\nOTHER SPEC CONTENT, JUDGED FOR LEAKAGE: the announcement-multiplicity leg (credentialPending / credentialChanges, the set_password-latch -> save-announces-once machinery) and the storage-decline leg (objectWriteAccepted / relatedWriteAccepted / stepRefused) both describe PRE-EXISTING callee behavior that the 2-line gold hunk does not touch, and both are readable off the pre-patch body the solver already has. They are anti-cheat/frame clauses, not edit disclosure -- they say nothing about what the diff adds. (Note for the record: the storage-decline leg is where meta.json's stale G-PANEL-2 fail sits, alleging the spec demands relatedPersisted=true where a required-NOT-NULL through column makes the real patched save_m2m raise IntegrityError. That is a FAITHFULNESS question on another gate's docket -- and it was recorded against the older sha 7f4ce8c2, not the 99508aa5 I reviewed -- so it does not change this verdict either way; I flag it only so the layer that owns it is not misled by my pass.)\n\nBUNDLE-ADDRESSES-REVIEWER CHECK (reported as its own finding per instruction): nothing in Solution.lean, Solution_prepatch.lean, mapping.md, refinement.md, axiom_check.py, conformance_check.py, or properties.py instructs a reviewer how to record or which verdict is honest. refinement.md:122 and conformance_check.py:28 merely cite G-PANEL as a gate the trust argument rests on -- ordinary provenance prose, not a directive. mapping.md correctly quarantines the pre-patch behavior it describes with 'refinement audit only, not in the consumer spec view'. verdict.md contains prior panel notes (incl. lines 6714/6731 asserting relaxation status) -- those are prior reviewers' records, not bundle directives at me; I re-derived the relaxation status myself from meta.json + a filesystem search rather than inheriting them, and reached the same result independently.\n\nVERDICT: the spec view leaks nothing about the gold edit beyond what the public problem_statement already states; the discriminator is public in the statement itself, and the one edit detail NOT in the statement (the hasattr guard) is demonstrably not forced by the spec.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-15T12:40:30+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-guard-dropped",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 7.8
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-record-literal",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-setter-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 9.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-double-store-single-announce",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 14.1
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-gold-total",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 10.0
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-prepatch-no-related",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 7.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := true, relatedPersisted := false, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-dead-guard-skips-related",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 9.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := false, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-drop-object",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 10.0,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := true, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-drop-credential",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 7.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := false, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } false = false is false",
+            "id": "weak-drop-deferred-prep",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 7.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := true, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-guard-before-prepare",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 7.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := false, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-scratch-state-transfer",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.1,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := true, relatedPersisted := true, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } false = false is false",
+            "id": "weak-clear-on-noncommit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := true, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } false = false is false",
+            "id": "weak-unconditional-object",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := true, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } false = false is false",
+            "id": "weak-unconditional-related",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 7.0,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := false, relatedPersisted := false, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-related-before-object",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 15.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := false, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } false = false is false",
+            "id": "weak-refused-step-noncommit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := true, relatedPersisted := true, deferredSaveReady := false, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-clear-validation-flag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.6,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := false, deferredSaveReady := false, credentialPending := true, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-resave-after-credential",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 5.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 3, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-credential-after-object",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := false, relatedPersisted := true, deferredSaveReady := true, credentialPending := false, credentialChanges := 1, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-double-announce",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := true, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 2, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-skip-object-when-already-persisted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 12.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := true, objectPersisted := true, relatedPersisted := true, deferredSaveReady := true, credentialPending := false, credentialChanges := 0, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } false = false is false",
+            "id": "weak-announce-on-noncommit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 10.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := false, deferredSaveReady := false, credentialPending := false, credentialChanges := 2, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-count-pinned-to-one",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 11.0,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `decide` proved that the proposition commitFormTester { dataValidated := true, passwordApplied := false, objectPersisted := false, relatedPersisted := true, deferredSaveReady := false, credentialPending := true, credentialChanges := 4, objectWriteAccepted := true, relatedWriteAccepted := true, stepRefused := false } true = false is false",
+            "id": "weak-leave-pending-on-commit",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 10.8,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 4,
+          "uniqueness": 20
+        },
+        "manifest_sha256": "dba4239629f678b404e8986e33ce270bf0ba0bb1b739524f429c61832635d045",
+        "n_cases": 25,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 25 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774",
+        "properties.py": "dba4239629f678b404e8986e33ce270bf0ba0bb1b739524f429c61832635d045"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T12:42:48+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bb5df5344ad1a19bfef258697b9e469ef591dff1c27c44c9f67e2bcbc3e5a184",
+        "patch.diff": "c4b7770ef756f3a5ab62b68afe57275f518feaff4299c95dd4844be7586d1199"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T12:39:13+00:00",
+      "code_version": "4659783d2-dirty",
+      "data": {
+        "wall_time_s": 7.0
+      },
+      "detail": "verified in 7.0s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "99508aa5f655eb0dfbaaac17d1634653b70b3c4ccdfe766e5c0d0235ec7e3774"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-16333",
+  "modeled_functions": [
+    {
+      "carrier_type": "form + target-object observable state -> FormState (seven Bool: dataValidated/passwordApplied/objectPersisted/relatedPersisted/deferredSaveReady/credentialPending/stepRefused, plus credentialChanges : Nat = how many times the credential change was announced); commit: bool -> Bool",
+      "model_symbol": "commitForm",
+      "repo_location": "django/contrib/auth/forms.py:139",
+      "repo_symbol": "django.contrib.auth.forms.UserCreationForm.save"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "SPEC-DEFECT",
+    "attacks_tried": [
+      {
+        "id": "D1_ordering_related_first",
+        "kind": "D (tuned wrong impl / SPEC-TOO-WEAK probe)",
+        "outcome": "VERIFIES -- exit 0, empty error log. This is the spec hole (see spec_holes). Stores the related data before the object on the commit arm; every clause discharges because the six clauses pin only each component's FINAL value and persistRelated has no `require` tying it to objectPersisted. Reported as a SPEC finding, not patched away."
+      },
+      {
+        "id": "D4_fiat_poke_fields",
+        "kind": "D (fiat / permission-mutation analogue)",
+        "outcome": "VERIFIES -- exit 0 (only unreachable-tactic linter warnings). NOT a hole: writes all four components directly without calling any state transformer, but on this carrier the observable fields ARE the specified state, so poking them to the RIGHT values is a genuinely correct impl. This disproves the port's claim that the fiat family 'collapses onto C4'; I corrected that prose instead of shipping a bogus rival."
+      },
+      {
+        "id": "E4_record_literal",
+        "kind": "E (correct reshape / SPEC-TOO-STRONG probe)",
+        "outcome": "VERIFIES -- exit 0. No soundness hole. Promoted into the battery as pos-control-record-literal because rfl does NOT equate it to gold, unlike both pre-existing positives."
+      },
+      {
+        "id": "E2_composed_calls",
+        "kind": "E (correct reshape)",
+        "outcome": "VERIFIES -- exit 0. Setters composed inside single assignments (applyCredential (prepareDeferred st) / persistRelated (persistObject st)). No hole; not shipped (defeq-adjacent, adds nothing over the positives already present)."
+      },
+      {
+        "id": "E3_negated_guard",
+        "kind": "E (correct reshape)",
+        "outcome": "VERIFIES -- exit 0. Negated guard with swapped arms plus an idempotent double prepare. Also proved defeq to gold (`rfl` closed negatedGuardStep = goldStep), so not shipped."
+      },
+      {
+        "id": "D3_guard_before_prepare",
+        "kind": "D (tuned wrong impl)",
+        "outcome": "REJECTED semantically -- exit 1 with `unsolved goals ... if_neg: stOld.deferredSaveReady = false |- stOld.relatedPersisted = true`. A real gap in the battery's C4 coverage; SHIPPED as weak-guard-before-prepare with a discriminating witness."
+      },
+      {
+        "id": "D6_clear_on_noncommit",
+        "kind": "D (tuned wrong impl, frame in the true->false direction)",
+        "outcome": "REJECTED semantically -- exit 1, both frame goals unsolved. A real gap (no existing witness could see a clear); SHIPPED as weak-clear-on-noncommit."
+      },
+      {
+        "id": "D5_fiat_related_only",
+        "kind": "D (partial fiat)",
+        "outcome": "REJECTED -- exit 1. Pokes only relatedPersisted and omits the object write; already covered by weak-drop-object's clause (C3), so not shipped as a duplicate."
+      },
+      {
+        "id": "D7_swap_flags",
+        "kind": "D (tuned wrong impl)",
+        "outcome": "REJECTED semantically -- exit 1 with `unsolved goals, case ensures_4: commit = true -> st.objectPersisted = true |- stOld.objectPersisted = true`. Duplicates weak-drop-object's clause; not shipped."
+      },
+      {
+        "id": "F1_scratch_transfer",
+        "kind": "F (re-derivation of an omission the port called inexpressible)",
+        "outcome": "EXPRESSIBLE and REJECTED semantically -- exit 1, `unsolved goals ... |- stOld.relatedPersisted = true`. The port's 'no term denotes a scratch instance' reason was false. SHIPPED as weak-scratch-state-transfer."
+      },
+      {
+        "id": "F2_selfcall",
+        "kind": "F (re-derivation of the self-echo omission)",
+        "outcome": "INEXPRESSIBLE, confirmed by build rather than assumed -- exit 1, but the error is at DEFINITION time: `fail to show termination for commitForm ... no parameters suitable for structural recursion; well-founded recursion cannot be used`, plus a follow-on unfold failure. The fragment refuses the term as a definition, so there is no rival to attach a witness to. Port's disposition upheld, reason sharpened."
+      },
+      {
+        "id": "defeq_probe",
+        "kind": "A/E (statement + reshape integrity, definitional-equality audit)",
+        "outcome": "Decisive: rfl CLOSED for guardDroppedStep, reorderStep and negatedGuardStep vs goldStep, and FAILED for recordLiteralStep (single error in the file). This is the evidence that both original positives were defeq collapses and that my added positive is not."
+      },
+      {
+        "id": "attack_A_statement_integrity",
+        "kind": "A (statement integrity)",
+        "outcome": "CLEAN. I extracted the spec view (everything outside the impl region) of all cases and compared it byte-for-byte against the frozen file rather than trusting same_spec; identical for every case, and variant_problems empty for all. No reformatted/weakened hypothesis anywhere. Also checked witness_scope_problems (no witness references a variant-only name) and consistency_probe (all witnesses bind nothing, so no forged-hypothesis risk)."
+      }
+    ],
+    "audited_at": "a6",
+    "cases": [
+      {
+        "evidence": "Spec view byte-identical to frozen (diffed programmatically, not just same_spec). Verifies: gate re-run exit 0 / 73.4s. BUT I proved it is DEFINITIONALLY EQUAL to the frozen impl: in a standalone probe I wrote both bodies as pure FormState transformers and `example : guardDroppedStep = goldStep := rfl` CLOSED (the probe file's only error was on my recordLiteralStep line, so the three defeq lines all elaborated). The dropped guard reduces because the preceding setter pins deferredSaveReady:=true. So its verifying tests nothing that survives defeq -- an honest pass, but a weak control. Did not drop it (setter/guard over-fitting is a real failure mode and the probe is cheap); corrected the rationale to state the scope of its evidence, and added pos-control-record-literal as the load-bearing positive.",
+        "id": "pos-control-guard-dropped",
+        "verdict": "weak-but-honest (rationale corrected)"
+      },
+      {
+        "evidence": "Spec view byte-identical. Verifies: gate re-run exit 0 / 43.2s. Also DEFINITIONALLY EQUAL to frozen: `example : reorderStep = goldStep := rfl` closed in the same probe (two record updates on disjoint fields commute by reduction). Same disposition and same rationale correction as pos-control-guard-dropped. Before my repair the battery's ONLY two soundness controls were both defeq collapses, i.e. it had no positive capable of detecting over-fitting.",
+        "id": "pos-control-setter-reorder",
+        "verdict": "weak-but-honest (rationale corrected)"
+      },
+      {
+        "evidence": "New non-defeq positive I added to fix the defeq-only-positives gap. Branch pushed inside a single record literal as if-expressions on `commit`, so the statement sequence is branch-free and the obligation needs real case analysis on `commit` instead of setter reduction. `example : recordLiteralStep = goldStep := rfl` FAILED (Type mismatch: rfl has type ?m = ?m but is expected to have type recordLiteralStep = goldStep) -- confirming it is NOT defeq to gold. Verifies as a variant: my own build exit 0 (atk_E4_record_literal), and gate re-run exit 0 / 39.3s.",
+        "id": "pos-control-record-literal",
+        "verdict": "earned (ADDED by audit)"
+      },
+      {
+        "evidence": "module is _BASE verbatim, so same_spec trivially; verifies (gate exit 0 / 55.7s). There is no `require` clause in the frozen contract, so the usual 'a normal input satisfies the precondition' probe genuinely has no content here and the re-aim to joint satisfiability of the six-clause post-image is the right move -- the rationale says exactly this rather than overclaiming. Weak by necessity, not by neglect.",
+        "id": "admiss-gold-total",
+        "verdict": "earned (near-trivial by construction, correctly declared)"
+      },
+      {
+        "evidence": "Rival is observably wrong on C4 (not a reshape): commit arm never sets relatedPersisted. Witness rebuilt by me: rival exit 0, gold exit 1. Gold-side failure read in full: `Tactic decide proved that the proposition commitFormTester {pw:=false,obj:=false,rel:=false,df:=false} true = false is false` -- a semantic refutation naming the exact starting state, not a stuck reduction / unknown name / type error / timeout. Refinement claim (verbatim pre-change body; faithful counterpart drops related data on commit) matches the recorded prepatch and G-DIFF=pass.",
+        "id": "weak-prepatch-no-related",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Distinct shape from prepatch (guard present but provably false after the object write), distinct point. Witness rebuilt: rival exit 0, gold exit 1 with `decide proved ... {pw:=true,obj:=true,rel:=false,df:=true} true = false is false` -- semantic. Rationale's claim that the guard is dead after the object write is correct on this carrier.",
+        "id": "weak-dead-guard-skips-related",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Isolates C3 (object write omitted, related write kept). Witness rebuilt: rival exit 0, gold exit 1 with `decide proved ... {pw:=false,obj:=false,rel:=false,df:=true} true = false is false` -- semantic refutation at a point distinct from the C4 rivals.",
+        "id": "weak-drop-object",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Isolates C1. Witness rebuilt: rival exit 0, gold exit 1 with `decide proved ... {pw:=false,obj:=false,rel:=true,df:=false} true = false is false`. Rationale's binder claim is true: this is the only commit=true rival starting relatedPersisted TRUE.",
+        "id": "weak-drop-credential",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Isolates C2, and is the only case refuting a both-modes clause on the commit=FALSE arm. Witness rebuilt: rival exit 0, gold exit 1 with `decide proved ... {pw:=true,obj:=false,rel:=false,df:=false} false = false is false` -- semantic.",
+        "id": "weak-drop-deferred-prep",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Isolates C5 (object mut-frame) in the false->true direction. Witness rebuilt: rival exit 0, gold exit 1 with `decide proved ... {pw:=false,obj:=false,rel:=true,df:=true} false = false is false` -- semantic.",
+        "id": "weak-unconditional-object",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Isolates C6 (related mut-frame) in the false->true direction. Witness rebuilt: rival exit 0, gold exit 1 with `decide proved ... {pw:=false,obj:=true,rel:=false,df:=false} false = false is false` -- semantic.",
+        "id": "weak-unconditional-related",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "New C4 rival attacking the one C4 failure mode the battery left unprobed: guard present and LIVE, but evaluated before the capability component is set, so it reads the pre-state. Rival build fails semantically, not by tactic breakage: `unsolved goals, case ensures_3: commit = true -> st.relatedPersisted = true, if_pos: commit = true, if_neg: stOld.deferredSaveReady = false |- stOld.relatedPersisted = true`. Witness: rival exit 0, gold exit 1 with `decide proved ... {pw:=true,obj:=true,rel:=false,df:=false} true = false is false`. Gate re-run: rejected (witness refutes the rival) / 14.6s. Needs stOld.deferredSaveReady=false to bite, so its point is not a respelling of any existing one.",
+        "id": "weak-guard-before-prepare",
+        "verdict": "earned (ADDED by audit)"
+      },
+      {
+        "evidence": "Recovers nagini weak-cross-instance-transfer, which the port recorded as inexpressible ('no term denotes a scratch instance'). That was wrong: FormState is an ordinary value and the impl region admits `let scratch := ...`, so the rival does the real persistence work on a throwaway state and copies back only the object component. Rival build fails semantically: `unsolved goals, case ensures_3 ... |- stOld.relatedPersisted = true`. Witness: rival exit 0, gold exit 1 with `decide proved ... {pw:=true,obj:=false,rel:=false,df:=false} true = false is false`. Gate re-run: rejected / 14.5s. Distinct from every other C4 rival in that the persistence call IS executed -- just against the wrong target.",
+        "id": "weak-scratch-state-transfer",
+        "verdict": "earned (ADDED by audit; recovers a dropped nagini case)"
+      },
+      {
+        "evidence": "C5/C6 are EQUALITIES, so violable in two directions; the ported unconditional rivals only ever drive a component false->true. This drives both true->false on the non-commit arm -- a direction no existing witness could reach, since every ported commit=false witness starts the component it checks at false, where a clear leaves no trace. Rival build fails semantically on BOTH frame goals (`|- stOld.relatedPersisted = false` and `|- stOld.objectPersisted = false`). Witness: rival exit 0, gold exit 1 with `decide proved ... {pw:=false,obj:=true,rel:=true,df:=true} false = false is false`. Gate re-run: rejected / 9.9s.",
+        "id": "weak-clear-on-noncommit",
+        "verdict": "earned (ADDED by audit)"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "notes": "VERDICT RATIONALE. SPEC-DEFECT, not REPAIRED, and the distinction is the point: I found and fixed real battery defects (so the repair work is done and the gate re-ran clean at 14/14 SOUND), but attack D also exposed a hole in the FROZEN spec that properties.py cannot close. Per the brief, a spec hole is escalated, never patched, so the cell needs a decision outside this lane before release.\n\nWAS THE ORIGINAL SOUND EARNED? Partly. All 7 original reject cases were genuinely discriminating -- I rebuilt all 14 witness builds myself and every gold-side failure is `Tactic decide proved that the proposition ... is false`, a semantic refutation naming the concrete starting state, with no stuck reductions, unknown identifiers, type errors or timeouts. The rivals are observably wrong, not merely reshaped. So the reject lane was honest. The defects were elsewhere: (1) BOTH soundness positives were definitionally equal to the frozen impl (rfl closes the transformer equation), so the battery had no positive able to detect over-fitting -- it was passing a soundness lane that tested nothing surviving defeq; (2) three prose claims in the accounting footer were false and machine-refutable -- the cross-instance rival was called inexpressible when it is expressible and wrong, the fiat family was called 'collapses onto C4' when the full field-poke actually verifies as a correct impl, and the ordering rival was filed as a benign carrier collapse when it is a spec hole; (3) C4 had no rival probing a live-but-false guard hypothesis, and C5/C6 (equalities) had no rival in the true->false direction, since every ported commit=false witness starts the checked component at false where a clear leaves no trace.\n\nREPAIRS (properties.py only). Added 4 cases: pos-control-record-literal (the only non-defeq positive), weak-guard-before-prepare (C4 at a false guard hypothesis), weak-scratch-state-transfer (recovered from the nagini case the port wrongly called inexpressible), weak-clear-on-noncommit (frame, true->false). Dropped nothing -- the two defeq positives are cheap and their failure mode is real, so I annotated their evidence scope instead. Corrected the two positives' rationales, the fiat/ordering/self-echo/transfer accounting entries, the nagini->velvet map, the clause/binder coverage table, and the witness-mechanics note (which said 'all seven' and did not record that the gold-side errors were read for semantic content). Added an explicit ordering-blindness warning to the module docstring so the limitation is visible at the top of the file, not buried in the footer.\n\nEVIDENCE DISCIPLINE. 34 real builds via scripts/lean_verify.sh at a 900s cap (host was saturated: load ~373 on the available cores, so I batched and raised the gate timeout to 1800s to avoid a TIMED-OUT verdict that would say nothing about the battery). Every exit code above was observed, none inferred. The one claim I want flagged as inference rather than measurement: the ordering hole's real-world consequence (the reordered patch raises rather than persisting, so F2P fails) rests on the nagini sibling's recorded pre-pk negative observation and mapping.md's callee provenance, not on my own container run -- I did not have the Docker lane. The Lean-side fact that the rival VERIFIES is measured, and that plus the sibling's rejection of the same rival is what makes it a hole.\n\nFROZEN ARTIFACT UNTOUCHED. Solution.lean, Solution_prepatch.lean, instance.json, mapping.md, refinement.md all unmodified (git diff confirms only properties.py changed by me; meta.json changed solely by the gate's own stamp -- checked_at, code_version, wall times, and the 4 new case records). No scratch file was ever written inside the repo; all work in $SCRATCH, removed on completion. Note for the concurrent runs: two unrelated hygiene issues on this host, neither mine and neither touched -- a concurrent process's shared /tmp pointer file collided with mine mid-run, and the repo root currently holds untracked files under a literal `",
+    "omissions_reviewed": [
+      {
+        "evidence": "Nagini's rival forges a body-less @ContractOnly capability predicate via Fold(relations_done(self)), rejected at translation by the abstract-predicate system. This carrier has no body-less capability and no permission wall -- relatedPersisted is a plain Bool field -- so 'conjure the capability without doing the work' has no distinct spelling; it degenerates to 'commit without setting relatedPersisted', already shipped as weak-prepatch-no-related / weak-dead-guard-skips-related. Port's disposition upheld.",
+        "nagini_case": "weak-fiat-fold",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "The port said this 'collapses onto C4'. I built the full field-poke (all four components written directly, no state transformer called) and it VERIFIES (exit 0) -- so it does not collapse onto a reject case, it is a genuinely CORRECT impl, because on this carrier the observable fields ARE the specified state. No reject case is possible or desirable for it. Still inexpressible as a rival, so nothing to ship, but I rewrote the accounting note: the family SPLITS (right values -> correct impl; wrong values -> already covered by C1-C6).",
+        "nagini_case": "weak-unfold-poke-fields",
+        "verdict": "inexpressible (but the port's REASON was wrong; corrected in properties.py)"
+      },
+      {
+        "evidence": "The port recorded this as VACUOUS on the grounds that 'no term denotes a scratch instance' and 'no discriminating witness exists'. Both are false. FormState is an ordinary value type and the impl region admits `let scratch := persistRelated (persistObject st)`, so the persistence work can be done on a throwaway state with only the object component copied back -- the nagini attack's exact shape. Rival build exit 1 with a SEMANTIC failure (`unsolved goals ... |- stOld.relatedPersisted = true`), witness rival exit 0 / gold exit 1 (`decide proved ... is false`). Shipped as weak-scratch-state-transfer; gate re-ran it as rejected (witness refutes the rival) / 14.5s. This is exactly the 'the carrier is opaque / no witness can be built' failure mode the brief warned about, and it was wrong again here.",
+        "nagini_case": "weak-cross-instance-transfer",
+        "verdict": "expressible -- FINDING, and I landed it"
+      },
+      {
+        "evidence": "Verified by build rather than accepted on the port's word. A body calling commitForm itself does not elaborate: `fail to show termination for commitForm ... failed to infer structural recursion ... no parameters suitable for structural recursion; well-founded recursion cannot be used`, plus a follow-on `unfold` failure. The rejection is the fragment refusing the DEFINITION, not the spec refusing a wrong impl, so there is no rival for a witness to attach to. Port's disposition upheld; I sharpened its stated reason from 'no self-call available' to the measured elaboration failure. (Note the related-but-distinct divergence lane is settled in the corpus-wide termination-semantics finding and deliberately not re-measured or re-reported.)",
+        "nagini_case": "weak-self-echo-recursion",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Fully expressible and I built it: it VERIFIES (exit 0). The port's DISPOSITION (ship nothing) is unavoidable -- a reject case needs a witness, and no witness can refute an impl the spec satisfies -- but its REASON was wrong and I retracted it in properties.py. The port called the rival 'NOT wrong on this backend's carrier', i.e. a benign abstraction collapse; in fact its faithful counterpart does not resolve, so this is a verify-does-not-imply-resolve hole in the FROZEN spec. See spec_holes for the input, clause and candidate fixes. This is the sole reason the verdict is SPEC-DEFECT rather than REPAIRED.",
+        "nagini_case": "weak-deferred-before-record",
+        "verdict": "expressible -- FINDING (escalated as a SPEC hole, not shippable as a case)"
+      },
+      {
+        "evidence": "Nagini's case established a read-only precondition on the F2P-shaped input via Requires(get_record() is False)/Requires(get_ready() is False)/MustTerminate. The frozen velvet contract has NO `require` clause at all and no heap permission, so the precondition half has no counterpart and could not be restated without inventing a hypothesis the spec does not have. The re-aim to post-image joint satisfiability (admiss-gold-total) is the honest residual, and its rationale says so rather than claiming a precondition probe it did not perform. Upheld.",
+        "nagini_case": "admiss-commit-true (re-aimed, not dropped)",
+        "verdict": "inexpressible (as stated on nagini)"
+      },
+      {
+        "evidence": "Both probes drive the REAL Django callees in a live in-memory project and belong to G-AX (axiom_check.py, recorded pass: 4 A-reference callees validated on 3 boundary configs + 2000 fuzz trajectories). The G-PBT gate ignores AXIOM_TESTS on every backend (confirmed in gates/pbt.py's docstring and code), so porting them would be dead weight. AXIOM_TESTS = [] is correct.",
+        "nagini_case": "AXIOM_TESTS (ax-soundness-callees, ax-containment-deferred)",
+        "verdict": "inexpressible (out of lane, correctly dropped)"
+      }
+    ],
+    "spec_holes": [
+      {
+        "clause": "The conjunction of the four commit=true / mut-frame clauses -- `ensures commit = true -> st.objectPersisted = true` and `ensures commit = true -> st.relatedPersisted = true` in particular. Each pins only the FINAL value of one Bool component, and the pure model `persistRelated : FormState -> FormState` carries no `require` relating it to `objectPersisted`, so no clause in the contract can observe the ORDER of the two persistence writes.",
+        "input": "Any commit=true call, at every starting state -- e.g. st = {passwordApplied:=false, objectPersisted:=false, relatedPersisted:=false, deferredSaveReady:=false}, commit=true. The admitted impl: on the commit arm run the guarded related-data write FIRST and the object write SECOND (`if commit then (if st.deferredSaveReady then st := persistRelated st else st := st); st := persistObject st`).",
+        "why": "Measured with a real build: this impl VERIFIES against the frozen spec (scripts/lean_verify.sh exit 0, empty error output). Its faithful repository counterpart drives the related-data write before the target object exists, which raises rather than persisting, so the F2P test does not pass. That is a direct `verify` does-not-imply `resolve` break. The nagini sibling REJECTS the same rival (weak-deferred-before-record) because its callee contract carries the ordering precondition; this carrier dropped it. Independently corroborated by this bundle's own recorded G-EQ / G-PANEL-1 failure, whose attack atk1_reorder_related_first is the same impl -- so two lanes have now found it. NOT the known divergence hole (the corpus-wide termination-semantics finding) and not a benign carrier collapse: the port had filed it as 'NOT-WRONG on the carrier', which I retracted in properties.py. Candidate fixes, all requiring a FROZEN-artifact edit and therefore outside this lane (they must re-clear the equivalence and leakage gates): give `persistRelated` a `require st.objectPersisted = true`, or model the ordering in the carrier (e.g. a related-write-observed-object-state component). I did not make either change."
+      }
+    ],
+    "witness_evidence": [
+      {
+        "gold_exit": 1,
+        "id": "weak-prepatch-no-related",
+        "probe_exit": "n/a (witness binds nothing; consistency_probe returns None)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-dead-guard-skips-related",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-drop-object",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-drop-credential",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-drop-deferred-prep",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-unconditional-object",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-unconditional-related",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-guard-before-prepare",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-scratch-state-transfer",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      },
+      {
+        "gold_exit": 1,
+        "id": "weak-clear-on-noncommit",
+        "probe_exit": "n/a (binds nothing)",
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 10
+  },
+  "prepatch_variants": [
+    {
+      "fails_clause": "ensures commit = true -> st.relatedPersisted = true",
+      "file": "Solution_prepatch.lean",
+      "fixed_behavior": "commit=True must persist related m2m data"
+    }
+  ],
+  "repo": "django/django",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "state_modeling": "FormState (dataValidated/passwordApplied/objectPersisted/relatedPersisted/deferredSaveReady/credentialPending/stepRefused : Bool, credentialChanges : Nat); commit step modeled as a mut-state method. The added guarded save_m2m() call is the I+A-reference step A6 of refinement.md. credentialPending mirrors the AbstractBaseUser._password latch (base_user.py:65-66, armed at :108) and credentialChanges counts the password_validation.password_changed announcements (base_user.py:76-78), so the postconditions pin the announcement's MULTIPLICITY (exactly one per committing step, none on a non-committing one) and thereby the order of the credential write against the single object write that consumes it -- refinement.md section A-prime.",
+  "version": "4.2"
+}

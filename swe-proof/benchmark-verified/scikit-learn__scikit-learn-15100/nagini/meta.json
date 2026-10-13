@@ -1,0 +1,431 @@
+{
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real normalize('NFKD',.) identity on full ASCII range + words + empty",
+      "consumed_by": "the ASCII fast-path proof (nfkd(s)==s when all_ascii(s))",
+      "encoded_property": "Implies(all_ascii(s), Result() == s) -- NFKD is the identity on pure-7-bit sequences (weakest sufficient contract; no value claimed for non-ASCII)",
+      "models": "unicodedata.normalize('NFKD', s) (CPython stdlib)",
+      "name": "nfkd",
+      "provenance": "Lib/unicodedata; docs.python.org/3/library/unicodedata.html#unicodedata.normalize",
+      "purity": "nfkd: @Pure @ContractOnly (used inside Ensures); decompose: @ContractOnly runtime carrier (ToSeq(Result()) == nfkd(ToSeq(s)))",
+      "runtime_carrier": "decompose"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real combining over all 128 ASCII code points -> class 0",
+      "consumed_by": "lemma_ascii_is_fixed_point (ASCII sequence is a fixed point of strip_combining)",
+      "encoded_property": "Implies(c < 128, not Result()) -- ASCII code points are never combining marks (weakest sufficient contract; no value claimed for non-ASCII)",
+      "models": "unicodedata.combining(c) != 0 (CPython stdlib)",
+      "name": "is_combining",
+      "provenance": "Lib/unicodedata; docs.python.org/3/library/unicodedata.html#unicodedata.combining",
+      "purity": "@Pure @ContractOnly (used inside strip_combining / Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real encode success <=> all(ord(ch)<128) over boundary + fuzz",
+      "consumed_by": "the fast-path branch condition of strip_marks",
+      "encoded_property": "Result() == all_ascii(ToSeq(s)) -- success iff every code point < 128",
+      "models": "s.encode('ASCII', errors='strict') try/except UnicodeEncodeError (post-patch guard, sklearn/feature_extraction/text.py:137)",
+      "name": "is_fixed_form_guard",
+      "provenance": "CPython str.encode strict codec; raises iff a code point >= 128",
+      "purity": "@ContractOnly runtime guard (returns bool)"
+    }
+  ],
+  "base_commit": "af8a6e592a1a15d92d77011856d5aa0ec4db4c6c",
+  "changed_files": [
+    "sklearn/feature_extraction/text.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts strip_combining(nfkd(s)) == the real post-patch transform on 25 boundary + 40000 fuzz inputs (incl. already-decomposed F2P discriminators)",
+      "encoded_property": "strip_combining(s): order-preserving sub-sequence of s with every combining mark (is_combining true) removed; front-recursive so a single unfold per code point",
+      "kind": "A-reference",
+      "models": "the list comprehension ''.join([c for c in normalized if not unicodedata.combining(c)]) (sklearn/feature_extraction/text.py:136 pre / 141 post)",
+      "name": "strip_combining",
+      "provenance": "the UNCHANGED mark-dropping selection; combining classifier unicodedata.combining (stdlib)",
+      "role": "deep model (pure region) of the unchanged selection; NOT a consumed axiom about the function under change"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:44:14+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: is_combining (A-consumed, ASCII-non-combining, 128 codepoints + 0x2000 sweep), nfkd identity-on-ASCII (A-consumed), is_ascii guard, and deep model strip_combining(nfkd(.)) == real transform sound on 25 boundary + 40000 fuzz inputs",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "752ff0b519422bc2f511215ef859161d5d1ae163bad72615067e62816ba2984c",
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:44:26+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 107653,
+          "disagreements": 0,
+          "seed": 15100,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 107653, \"disagreements\": 0, \"seed\": 15100, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "189ba526f395d3a2afff6a56680dd83b073a2d1dd194443cad722dda13895c04",
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:46:27+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01",
+        "model_prepatch.py": "2f54b3750fb08f8e590be98793e747bba89d26a60d987a2fef645f41751b5a38"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T06:13:38+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `model_ref.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:47:15+00:00",
+      "code_version": "02fc83f3b-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01",
+        "model_prepatch.py": "2f54b3750fb08f8e590be98793e747bba89d26a60d987a2fef645f41751b5a38"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:43:58+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "a76edf7595d69b2f6cdc37c9d3b4d168663b87f6a1ac0b74a42a7d300be4cb09",
+          "impl": "b5d93c7fe7aa2f9313135c24476ef40bcbd60d2254a7d660227ccaad145c40e3",
+          "invariants": "0d3dbf6114c6f9a1f32ae9146f0573de606b5fc79c02b096880b4c70a6e8bf41",
+          "post-conditions": "50e65c13943bbb5c12f8c1d16413f8ac98ff3cc0c3e6bb321f1e27fd02bdd10f",
+          "pre-conditions": "39d6fd1db0f8eded756494f9e05c86c391396ac992cf49e1ab53641b0cedd3eb",
+          "pure": "0487fc6988da40bdc7619cd24f4222b61cbb7bd939c186d806caab2eba7d5245",
+          "spec_view": "3add8dae422e218032ed64186fa13b32bf51e394d5d6ada7dbbb16c76302aa7d"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:43:59+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "319d354756a8f7936ea92d8141c0477a2a34943e4bedc3039878298e5e91e184",
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:44:00+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T15:05:04+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "judged": 17,
+        "killed": 17,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 19,
+        "unjudged": [
+          "line 151: '+' -> '-'",
+          "line 173: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 17/17 (100%); no verdict on 2: [\"line 151: '+' -> '-'\", \"line 173: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T06:13:40+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness/drift check for the modeled strip_marks vs the real repo callee strip_accents_unicode (sklearn/feature_extraction/text.py, post-patch gold).\n\nSpec region: byte-identical (same-spec toolkit returns SAME, exit 0). Model verifies under pinned Nagini (Verification successful, 14.14s).\n\nThe spec postcondition is `ToSeq(Result()) == strip_combining(nfkd(ToSeq(s)))`, i.e. Result = NFKD-decompose then drop every combining mark, UNCONDITIONALLY (independent of arrival form). I compared this modeled function against the real gold callee\n\n  def strip_accents_unicode(s):\n      try:\n          s.encode('ASCII', errors='strict'); return s\n      except UnicodeEncodeError:\n          normalized = unicodedata.normalize('NFKD', s)\n          return ''.join([c for c in normalized if not unicodedata.combining(c)])\n\nover: (a) EVERY single code point chr(c) for c in 0..0x11000, and (b) 300,000 random fuzz strings drawn from an alphabet rich in combining marks (0x300-0x370), Latin-1/Greek/Cyrillic precomposed accents (0x80-0x600), and Latin-extended-additional (0x1E00+). Result: 0 mismatches.\n\nThe key point: on the gold's ASCII fast-path (`return s`) the input is pure-ASCII => NFKD is identity and there are no combining marks => strip_combining(nfkd(s)) == s, so the spec agrees. On non-ASCII the gold takes the except branch which is literally strip_combining(nfkd(s)). Thus spec == gold on all inputs; the spec does NOT over-strengthen or drift. It correctly captures the already-decomposed-with-combining-marks case (e.g. chr(110)+chr(771)) which the prepatch guard got wrong \u2014 that is a genuine behavior the gold fixes, not spec drift.\n\nThe axioms consumed are the weakest sufficient contracts (nfkd identity on ASCII; is_combining false below 128; encode-guard == all_ascii), all G-AX-checked against real stdlib. No input found where the modeled function disagrees with the real callee.\n\nVerdict: FAITHFUL \u2014 no diverging input exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Scope: G-LEAK/G-PANEL-3 is judged over the screened SPEC VIEW of model.py (mapping.md and refinement.md are auditor docs, not part of the consumer view). Ran leakage.screen(model.py spec_view, nagini, gold_patch, problem_statement): PASSED with zero hard failures. No relaxed_leakage flag / RELAXED_LEAKAGE.md; spec region is byte-identical with model_prepatch.py (same_spec=True), so the guard change is not encoded in the frozen spec.\n\nGold edit: the early-return guard in strip_accents_unicode changes from `if normalized == s: return s` (NFKD-equality) to a strict-ASCII encodability test (`try: s.encode('ASCII', errors='strict'); return s / except UnicodeEncodeError: normalize+strip`). Distinctive gold content = 'use strict-ASCII encodability as the fast-path guard'.\n\nPublic problem_statement already discloses: the bug, the desired output (s1=chr(241) and s2=chr(110)+chr(771) both -> 'n'), the exact F2P discriminator s2=chr(110)+chr(771), and the words 'combining'/'nfkd'/'normalize'. It does NOT contain 'ascii', 'encode', '128', or 'below' (verified).\n\nSemantic check of what the spec view adds beyond the problem statement:\n- The constraining spec is the behavioral postcondition ToSeq(Result()) == strip_combining(nfkd(ToSeq(s))) \u2014 desired behaviour, form-independent, not the edit. Any impl (e.g. plain decompose+strip with no fast path) verifies against it; the ASCII fast path is OPTIONAL and the impl region is fully elided, so the spec does not compel gold reconstruction.\n- The one item beyond the problem statement is the modeled guard axiom is_fixed_form_guard -> Result()==all_ascii(ToSeq(s)) (all_ascii = code point < 128). This reveals that the AVAILABLE guard is ASCII-based \u2014 a concept absent from the problem statement. However: (a) it is an abstractly-contracted modeled callee (docstrings say 'provably already in its final form / canonically stable', behavioural not editorial), (b) modeling a guard-change bug inherently requires modeling the guard \u2014 this is the unavoidable twin-artifact artifact, not a reproduction/narration of the gold, (c) it is offered as an optional fast path, not forced by the postcondition. This does not rise to leakage of the gold edit.\n\nLexical checks all clean: no verbatim gold line, no diff markers, no patched file/module path, no spec-view identifier echoing a patched repo symbol (the changed symbol strip_accents_unicode is not echoed; model uses strip_marks), no bug/fix narration in comments. Verdict: NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness/drift check for the modeled strip_marks vs the real repo callee strip_accents_unicode (sklearn/feature_extraction/text.py, post-patch gold).\n\nSpec region: byte-identical (same-spec toolkit returns SAME, exit 0). Model verifies under pinned Nagini (Verification successful, 14.14s).\n\nThe spec postcondition is `ToSeq(Result()) == strip_combining(nfkd(ToSeq(s)))`, i.e. Result = NFKD-decompose then drop every combining mark, UNCONDITIONALLY (independent of arrival form). I compared this modeled function against the real gold callee\n\n  def strip_accents_unicode(s):\n      try:\n          s.encode('ASCII', errors='strict'); return s\n      except UnicodeEncodeError:\n          normalized = unicodedata.normalize('NFKD', s)\n          return ''.join([c for c in normalized if not unicodedata.combining(c)])\n\nover: (a) EVERY single code point chr(c) for c in 0..0x11000, and (b) 300,000 random fuzz strings drawn from an alphabet rich in combining marks (0x300-0x370), Latin-1/Greek/Cyrillic precomposed accents (0x80-0x600), and Latin-extended-additional (0x1E00+). Result: 0 mismatches.\n\nThe key point: on the gold's ASCII fast-path (`return s`) the input is pure-ASCII => NFKD is identity and there are no combining marks => strip_combining(nfkd(s)) == s, so the spec agrees. On non-ASCII the gold takes the except branch which is literally strip_combining(nfkd(s)). Thus spec == gold on all inputs; the spec does NOT over-strengthen or drift. It correctly captures the already-decomposed-with-combining-marks case (e.g. chr(110)+chr(771)) which the prepatch guard got wrong \u2014 that is a genuine behavior the gold fixes, not spec drift.\n\nThe axioms consumed are the weakest sufficient contracts (nfkd identity on ASCII; is_combining false below 128; encode-guard == all_ascii), all G-AX-checked against real stdlib. No input found where the modeled function disagrees with the real callee.\n\nVerdict: FAITHFUL \u2014 no diverging input exists.; G-PANEL-3 (leakage): pass \u2014 Scope: G-LEAK/G-PANEL-3 is judged over the screened SPEC VIEW of model.py (mapping.md and refinement.md are auditor docs, not part of the consumer view). Ran leakage.screen(model.py spec_view, nagini, gold_patch, problem_statement): PASSED with zero hard failures. No relaxed_leakage flag / RELAXED_LEAKAGE.md; spec region is byte-identical with model_prepatch.py (same_spec=True), so the guard change is not encoded in the frozen spec.\n\nGold edit: the early-return guard in strip_accents_unicode changes from `if normalized == s: return s` (NFKD-equality) to a strict-ASCII encodability test (`try: s.encode('ASCII', errors='strict'); return s / except UnicodeEncodeError: normalize+strip`). Distinctive gold content = 'use strict-ASCII encodability as the fast-path guard'.\n\nPublic problem_statement already discloses: the bug, the desired output (s1=chr(241) and s2=chr(110)+chr(771) both -> 'n'), the exact F2P discriminator s2=chr(110)+chr(771), and the words 'combining'/'nfkd'/'normalize'. It does NOT contain 'ascii', 'encode', '128', or 'below' (verified).\n\nSemantic check of what the spec view adds beyond the problem statement:\n- The constraining spec is the behavioral postcondition ToSeq(Result()) == strip_combining(nfkd(ToSeq(s))) \u2014 desired behaviour, form-independent, not the edit. Any impl (e.g. plain decompose+strip with no fast path) verifies against it; the ASCII fast path is OPTIONAL and the impl region is fully elided, so the spec does not compel gold reconstruction.\n- The one item beyond the problem statement is the modeled guard axiom is_fixed_form_guard -> Result()==all_ascii(ToSeq(s)) (all_ascii = code point < 128). This reveals that the AVAILABLE guard is ASCII-based \u2014 a concept absent from the problem statement. However: (a) it is an abstractly-contracted modeled callee (docstrings say 'provably already in its final form / canonically stable', behavioural not editorial), (b) modeling a guard-change bug inherently requires modeling the guard \u2014 this is the unavoidable twin-artifact artifact, not a reproduction/narration of the gold, (c) it is offered as an optional fast path, not forced by the postcondition. This does not rise to leakage of the gold edit.\n\nLexical checks all clean: no verbatim gold line, no diff markers, no patched file/module path, no spec-view identifier echoing a patched repo symbol (the changed symbol strip_accents_unicode is not echoed; model uses strip_marks), no bug/fix narration in comments. Verdict: NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_6.py`, `atk_7.py` |\n\n**Non-vacuity.** The positive control `model_ref.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness/drift check for the modeled strip_marks vs the real repo callee strip_accents_unicode (sklearn/feature_extraction/text.py, post-patch gold).\n\nSpec region: byte-identical (same-spec toolkit returns SAME, exit 0). Model verifies under pinned Nagini (Verification successful, 14.14s).\n\nThe spec postcondition is `ToSeq(Result()) == strip_combining(nfkd(ToSeq(s)))`, i.e. Result = NFKD-decompose then drop every combining mark, UNCONDITIONALLY (independent of arrival form). I compared this modeled function against the real gold callee\n\n  def strip_accents_unicode(s):\n      try:\n          s.encode('ASCII', errors='strict'); return s\n      except UnicodeEncodeError:\n          normalized = unicodedata.normalize('NFKD', s)\n          return ''.join([c for c in normalized if not unicodedata.combining(c)])\n\nover: (a) EVERY single code point chr(c) for c in 0..0x11000, and (b) 300,000 random fuzz strings drawn from an alphabet rich in combining marks (0x300-0x370), Latin-1/Greek/Cyrillic precomposed accents (0x80-0x600), and Latin-extended-additional (0x1E00+). Result: 0 mismatches.\n\nThe key point: on the gold's ASCII fast-path (`return s`) the input is pure-ASCII => NFKD is identity and there are no combining marks => strip_combining(nfkd(s)) == s, so the spec agrees. On non-ASCII the gold takes the except branch which is literally strip_combining(nfkd(s)). Thus spec == gold on all inputs; the spec does NOT over-strengthen or drift. It correctly captures the already-decomposed-with-combining-marks case (e.g. chr(110)+chr(771)) which the prepatch guard got wrong \u2014 that is a genuine behavior the gold fixes, not spec drift.\n\nThe axioms consumed are the weakest sufficient contracts (nfkd identity on ASCII; is_combining false below 128; encode-guard == all_ascii), all G-AX-checked against real stdlib. No input found where the modeled function disagrees with the real callee.\n\nVerdict: FAITHFUL \u2014 no diverging input exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Scope: G-LEAK/G-PANEL-3 is judged over the screened SPEC VIEW of model.py (mapping.md and refinement.md are auditor docs, not part of the consumer view). Ran leakage.screen(model.py spec_view, nagini, gold_patch, problem_statement): PASSED with zero hard failures. No relaxed_leakage flag / RELAXED_LEAKAGE.md; spec region is byte-identical with model_prepatch.py (same_spec=True), so the guard change is not encoded in the frozen spec.\n\nGold edit: the early-return guard in strip_accents_unicode changes from `if normalized == s: return s` (NFKD-equality) to a strict-ASCII encodability test (`try: s.encode('ASCII', errors='strict'); return s / except UnicodeEncodeError: normalize+strip`). Distinctive gold content = 'use strict-ASCII encodability as the fast-path guard'.\n\nPublic problem_statement already discloses: the bug, the desired output (s1=chr(241) and s2=chr(110)+chr(771) both -> 'n'), the exact F2P discriminator s2=chr(110)+chr(771), and the words 'combining'/'nfkd'/'normalize'. It does NOT contain 'ascii', 'encode', '128', or 'below' (verified).\n\nSemantic check of what the spec view adds beyond the problem statement:\n- The constraining spec is the behavioral postcondition ToSeq(Result()) == strip_combining(nfkd(ToSeq(s))) \u2014 desired behaviour, form-independent, not the edit. Any impl (e.g. plain decompose+strip with no fast path) verifies against it; the ASCII fast path is OPTIONAL and the impl region is fully elided, so the spec does not compel gold reconstruction.\n- The one item beyond the problem statement is the modeled guard axiom is_fixed_form_guard -> Result()==all_ascii(ToSeq(s)) (all_ascii = code point < 128). This reveals that the AVAILABLE guard is ASCII-based \u2014 a concept absent from the problem statement. However: (a) it is an abstractly-contracted modeled callee (docstrings say 'provably already in its final form / canonically stable', behavioural not editorial), (b) modeling a guard-change bug inherently requires modeling the guard \u2014 this is the unavoidable twin-artifact artifact, not a reproduction/narration of the gold, (c) it is offered as an optional fast path, not forced by the postcondition. This does not rise to leakage of the gold edit.\n\nLexical checks all clean: no verbatim gold line, no diff markers, no patched file/module path, no spec-view identifier echoing a patched repo symbol (the changed symbol strip_accents_unicode is not echoed; model uses strip_marks), no bug/fix narration in comments. Verdict: NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:48:57+00:00",
+      "code_version": "8817c2a0d-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "reject",
+            "id": "frame-mut-store",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-append",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 17.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-no-filter",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-inverted-filter",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-skip-decompose",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.5
+          },
+          {
+            "expect": "reject",
+            "id": "cf-always-return-input",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.1
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 35.2
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "6b711b760a457f57492ce23d870f862cd9771325aa2a299d0e355f950075b44c",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01",
+        "properties.py": "6b711b760a457f57492ce23d870f862cd9771325aa2a299d0e355f950075b44c"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T17:26:29+00:00",
+      "code_version": "a597a04f6-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T13:34:22+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "wall_time_s": 66.7
+      },
+      "detail": "verified in 66.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "bf1dea824891d060b16465465dc5bbc1fcf224d9493e68460c777c425d446e01"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "scikit-learn__scikit-learn-15100",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "strip_marks",
+      "repo_location": "sklearn/feature_extraction/text.py:114 (body 132-136)",
+      "repo_symbol": "sklearn.feature_extraction.text.strip_accents_unicode",
+      "role": "modeled changed function (unicode accent stripper); single contracted+implemented function"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; checked with git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result()) == strip_combining(nfkd(ToSeq(s))) (early-return branch: an already-decomposed input with combining marks is returned with marks intact)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "strip_accents_unicode early-return guard (already-decomposed inputs)",
+      "reverted_to": "pre-patch guard 'if normalize(NFKD,s) == s: return s' (ToSeq(normalized)==ToSeq(s))"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "a76edf7595d69b2f6cdc37c9d3b4d168663b87f6a1ac0b74a42a7d300be4cb09",
+    "impl": "b5d93c7fe7aa2f9313135c24476ef40bcbd60d2254a7d660227ccaad145c40e3",
+    "invariants": "0d3dbf6114c6f9a1f32ae9146f0573de606b5fc79c02b096880b4c70a6e8bf41",
+    "post-conditions": "50e65c13943bbb5c12f8c1d16413f8ac98ff3cc0c3e6bb321f1e27fd02bdd10f",
+    "pre-conditions": "39d6fd1db0f8eded756494f9e05c86c391396ac992cf49e1ab53641b0cedd3eb",
+    "pure": "0487fc6988da40bdc7619cd24f4222b61cbb7bd939c186d806caab2eba7d5245",
+    "spec_view": "3add8dae422e218032ed64186fa13b32bf51e394d5d6ada7dbbb16c76302aa7d"
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; the mark-dropping selection proven by a backward per-code-point filter loop (front-recursive strip_combining gives a single unfold per step); ASCII fast path proven behaviour-preserving via lemma_ascii_is_fixed_point",
+  "version": "0.22"
+}

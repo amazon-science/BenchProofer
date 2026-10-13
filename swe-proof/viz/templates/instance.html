@@ -1,0 +1,245 @@
+{# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+   SPDX-License-Identifier: CC-BY-NC-4.0 -#}
+{% extends "base.html" %}
+{% import "_macros.html" as m %}
+{% block title %}{{ iid }} · review{% endblock %}
+{% set toggle_iid = iid %}{% block content %}
+<div class="wrap wide">
+
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px">
+    <h1 style="margin:0;font-size:1.05rem;word-break:break-all">{{ iid }}</h1>
+    <span class="muted mono">{{ row.repo }} @ {{ row.base_commit | sha }}</span>
+    {% if gates.get('G-LEAK',{}).get('status')=='relaxed' %}<span class="pill warn">relaxed-leakage</span>{% endif %}
+    {% if green %}<span class="pill ok">fully-green</span>
+    {% elif failing %}<span class="pill bad" title="{{ failing|join(', ') }}">failing: {{ failing|join(', ') }}</span>
+    {% elif result.final_status == 'ok' %}<span class="pill neutral" title="constructed; gate/audit verdicts incomplete">pending</span>
+    {% elif result.final_status == 'timeout' %}<span class="pill warn">timeout</span>
+    {% elif result.final_status %}<span class="pill bad">{{ result.final_status }}</span>{% endif %}
+    {% if meta.float_encoding %}<span class="pill violet">float: {{ meta.float_encoding }}</span>{% endif %}
+    <a class="btn sm" href="/{{ bm }}/{{ bk }}/" style="margin-left:auto">← all instances</a>
+  </div>
+  {{ m.gate_badges(gates, gate_order, gate_defs) }}
+  <div class="faint" style="font-size:.74rem;margin-top:5px">hover (or focus) a gate for its definition + this instance's note</div>
+
+  <div class="split" style="margin-top:18px">
+    <!-- ============ MAIN COLUMN ============ -->
+    <div>
+      <!-- Issue -->
+      <div class="card">
+        <h2>Issue / problem statement</h2>
+        {% if row.upstream %}
+        <div class="body faint">Withheld: {{ row.repo }} is licensed {{ row.upstream.license }}, so the
+          release ships no issue text, fix patch or test patch for this instance. It is
+          {{ row.upstream.dataset }} instance <span class="mono">{{ row.instance_id }}</span>, and
+          <span class="mono">scripts/restore_upstream.py</span> writes the row back from that dataset.</div>
+        {% else %}
+        <div class="body md">{{ row.problem_statement | md | safe }}</div>{% endif %}
+        {% if row.hints_text %}
+        <details class="collapse" style="margin:0 16px 14px">
+          <summary>hints_text <span class="faint">(NOT solver-visible: for reviewers)</span></summary>
+          <div class="inner md">{{ row.hints_text | md | safe }}</div>
+        </details>{% endif %}
+      </div>
+
+      <!-- Gold patch with context -->
+      <div class="card">
+        <h2>Equivalent real patch (gold)
+          <span class="muted" style="font-weight:400;font-size:.82rem">
+            +{{ patch_stats.added }} −{{ patch_stats.removed }} · {{ patch_stats.files }} file(s)</span>
+        </h2>
+        <div class="body">
+          {% for f in patch_files %}
+            {{ m.diff_file(f) }}
+            <div class="row" style="margin:-4px 0 14px">
+              <button class="btn sm" hx-get="/{{ bm }}/{{ bk }}/i/{{ iid }}/file?path={{ (f.new_path or f.old_path)|urlencode }}"
+                      hx-target="#file-{{ loop.index }}" hx-swap="innerHTML">⤢ expand full file</button>
+              <span class="faint mono" style="font-size:.78rem">{{ f.new_path or f.old_path }}</span>
+            </div>
+            <div id="file-{{ loop.index }}"></div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Browse repo at base_commit -->
+      <div class="card">
+        <h2>Browse repository <span class="muted" style="font-weight:400;font-size:.82rem">at base_commit (read-only)</span></h2>
+        <div class="body">
+          <div class="hint">Explore any file in the project at this commit, useful for tracing callees, tests, and surrounding context.</div>
+          <div hx-get="/{{ bm }}/{{ bk }}/i/{{ iid }}/tree" hx-trigger="load" hx-swap="innerHTML">
+            <span class="faint">loading tree…</span>
+          </div>
+          <div id="browse-file" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- Formal model (before/after) -->
+      <div class="card">
+        <h2>{{ backend_labels.get(bk, bk) }} model &amp; equivalence</h2>
+        <div class="body">
+          <div class="hint"><b>{{ model_file }}</b> verifies (post-patch behaviour); the <b>prepatch twin(s)</b> fail on the bug (same spec, buggy impl). The refinement map shows the patch ↔ model correspondence.</div>
+          {% if prepatch_diffs %}
+          <details class="collapse" open>
+            <summary>prepatch → model diff <span class="faint" style="font-weight:400">(the impl change that fixes the bug; spec is identical)</span></summary>
+            <div class="inner">
+              {% for d in prepatch_diffs %}{{ m.model_diff(d) }}{% endfor %}
+            </div>
+          </details>
+          {% endif %}
+          {% for c in code_blocks %}{{ m.codeblock(c.name, c.label, c.lang, c.src) }}{% endfor %}
+          {% for b in md_blocks %}
+          <details class="collapse">
+            <summary>{{ b.label }} <span class="faint mono" style="font-weight:400">{{ b.name }}</span></summary>
+            <div class="inner md">{{ b.src | md | safe }}</div>
+          </details>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Property-based falsification (G-PBT) -->
+      {% if pbt %}
+      <div class="card">
+        <h2>Property-based falsification <span class="muted" style="font-weight:400;font-size:.82rem">G-PBT · adversarial battery</span>
+          <span class="pill {{ 'ok' if pbt.verdict=='SOUND' else 'warn' }}" style="margin-left:auto">{{ pbt.verdict }}</span>
+        </h2>
+        <div class="body">
+          <div class="hint">Adversarial cases that try to <b>falsify</b> the spec/axioms. Spec-lane cases are same-spec impl variants re-run through the verifier (a rival that should be <b>rejected</b> verifying ⇒ spec too weak; a correct variant failing ⇒ too strong). Axiom-lane probes run the <b>real callee</b> in the instance's Docker image.</div>
+          {% set spec_cases = pbt.spec_cases or [] %}
+          {% set axiom_cases = pbt.axiom_cases or [] %}
+          {{ m.pbt_cases("Spec lane", spec_cases) }}
+          {{ m.pbt_cases("Axiom lane (real callee, Docker)", axiom_cases) }}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Audit verdicts (from meta.json) -->
+      <div class="card">
+        <h2>Audit verdicts <span class="muted" style="font-weight:400;font-size:.82rem">G-EQ + panel roles, recorded in meta.json</span></h2>
+        <div class="body">
+          {% if not audit_notes %}<span class="faint">no agentic audit recorded for this bundle.</span>{% endif %}
+          {% for a in audit_notes %}
+          <details class="collapse" {{ 'open' if a.status not in ('pass','skip') }}>
+            <summary>{{ a.gate }} <span class="pill {{ 'ok' if a.status in ('pass','skip') else 'bad' }}">{{ a.status }}</span>
+              {% if a.verdict %}<span class="faint mono" style="font-weight:400">{{ a.verdict }}</span>{% endif %}
+              {% if a.model %}<span class="faint" style="font-weight:400;font-size:.72rem">· {{ a.model }}</span>{% endif %}
+            </summary>
+            {# The tail of a long note is folded, but only for a role that is
+               already collapsed above: a role whose status is not pass/skip
+               auto-opens because a reader must see it, and half of it behind a
+               second click would take that back. #}
+            <div class="inner md">{{ a.note | md(fold_prose=a.status in ('pass','skip')) | safe }}</div>
+          </details>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Full per-role audit prose (verdict.md) -->
+      <div class="card">
+        <h2>Audit verdict <span class="muted" style="font-weight:400;font-size:.82rem">per-role logs + attacks re-run · G-EQ &amp; panel roles (advisory; meta.json is the source of truth)</span></h2>
+        <div class="body md">
+          {% if verdict %}{{ verdict | md(fold_prose=True) | safe }}{% else %}<span class="faint">no standalone verdict.md for this bundle.</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SIDEBAR ============ -->
+    <div>
+      <div class="sticky">
+        <!-- Ask-an-agent (multi-turn) -->
+        {% if agent_enabled %}
+        <div class="card">
+          <h3>Ask an agent <span class="faint" style="font-weight:400;font-size:.78rem">read-only · multi-turn</span></h3>
+          <div class="body">
+            <!-- #answer holds the seed form first, then the running conversation -->
+            <div id="answer">
+              <form hx-post="/{{ bm }}/{{ bk }}/i/{{ iid }}/ask" hx-target="#answer" hx-swap="innerHTML"
+                    hx-indicator="#ask-spin" class="cmt-form">
+                <textarea name="question" placeholder="e.g. Is this spec too weak? Explain the axiom soundness." required></textarea>
+                <div class="row">
+                  <button class="btn primary sm" type="submit">ask</button>
+                  <span id="ask-spin" class="spin faint">thinking… (the agent may read the bundle &amp; repo)</span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Metadata -->
+        <div class="card">
+          <h3>Metadata</h3>
+          <div class="body">
+            <dl class="kv">
+              <dt>repo</dt><dd>{{ row.repo }}</dd>
+              <dt>version</dt><dd>{{ row.version }}</dd>
+              {% if row.difficulty %}<dt>difficulty</dt><dd>{{ row.difficulty }}</dd>{% endif %}
+              {% if result.final_status %}<dt>construction</dt><dd>{{ result.final_status }}</dd>{% endif %}
+              <dt>base</dt><dd class="mono">{{ row.base_commit | sha(12) }}</dd>
+              <dt>modeled fns</dt><dd>{{ meta.modeled_functions|as_list|length }}</dd>
+              <dt>axioms</dt><dd>{{ meta.axioms|as_list|length }}</dd>
+              <dt>deep refs</dt><dd>{{ meta.deep_model_references|as_list|length }}</dd>
+              <dt>prepatch</dt><dd>{{ prepatch_models|length }}</dd>
+              <dt>F2P / P2P</dt><dd>{{ n_f2p }} / {{ n_p2p }}</dd>
+            </dl>
+            <details class="collapse" style="margin-top:10px">
+              <summary>modeled functions</summary>
+              <div class="inner">
+                {% for f in meta.modeled_functions|as_list %}
+                  <div style="font-size:.82rem;margin-bottom:8px">
+                    {# Two conventions are in the corpus: a {model_symbol,
+                       repo_symbol} record, and a bare model-side symbol name. A
+                       bare name rendered as an empty row with an arrow, since
+                       Jinja reads `.model_symbol` off a string as Undefined. #}
+                    {% if f is string %}<code>{{ f }}</code>
+                    {% else %}<code>{{ f.model_symbol }}</code> ↔ <span class="muted">{{ f.repo_symbol }}</span>
+                    {% if f.repo_location %}<div class="faint mono" style="font-size:.74rem">{{ f.repo_location }}</div>{% endif %}
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </details>
+            <details class="collapse">
+              <summary>raw meta.json</summary>
+              <div class="inner"><pre class="code" style="font-size:.74rem">{{ meta | tojson(indent=2) }}</pre></div>
+            </details>
+          </div>
+        </div>
+
+        <!-- Comments anchor (opt-in: the only writable surface on the site) -->
+        {% if comments_enabled %}
+        <div class="card" id="comments">
+          <h3>Comments &amp; flags
+            <a href="/comments" class="faint" style="font-weight:400;font-size:.76rem;margin-left:auto">all →</a>
+          </h3>
+          <div class="body">
+            {% include "_threads.html" %}
+            <hr style="border:none;border-top:1px solid var(--line2);margin:14px 0">
+            <form method="post" action="/{{ bm }}/{{ bk }}/i/{{ iid }}/comment" class="cmt-form">
+              <input type="text" name="author" placeholder="your name" class="author-field" required>
+              <textarea name="body" placeholder="comment (Markdown ok): flag a weak spec, imprecise axiom, etc." required></textarea>
+              <div class="row">
+                <select name="flag">
+                  <option value="">no flag</option>
+                  {% for fl in flags %}<option value="{{ fl }}">{{ fl }}</option>{% endfor %}
+                </select>
+                <button class="btn primary sm" type="submit">post</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+
+        {# The off-state of "ask an agent" is a footnote, not a card: it exists to
+           tell a self-hoster how to switch the feature on, so it belongs after
+           the bundle's own artifacts rather than above them. #}
+        {% if not agent_enabled %}
+        <p class="sidenote"><b>Ask an agent</b> is off. It is the one feature that
+          calls a model provider, on the reader's own credentials, so it is opt-in:
+          set <code>VIZ_AGENT_ENABLED=1</code> (with <code>VIZ_BEDROCK_MODEL</code>
+          and <code>VIZ_BEDROCK_REGION</code>) and restart the server for read-only
+          agent questions about this bundle.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,458 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [],
+  "base_commit": "179ee13eb37348cd87169a198aec18fedccc8668",
+  "changed_files": [
+    "django/contrib/staticfiles/storage.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): loads the REAL post_process AND the REAL _post_process out of storage.py (only per-file storage I/O and url_converter are stubbed, so the depth-sorted traversal and the real `except ValueError as exc` arm are exercised, not replaced), drives them over boundary + exhaustive(files<=5, all adjustable-subsets x each single failing file) + 20000 fuzz MIXED-DEPTH collections WITH and WITHOUT failing files, and asserts (1) yielded names == reported(ids,adj,err), (2) len == len(ids) + failing_adj_count(ids,adj,err), (3) per-file multiplicity 1 -- 2 exactly for a file whose examination really fails -- with the failure report PRECEDING that file's settled report, and (4) insensitivity to the unreachable plain-and-flagged binding. check_failure_arm_in_domain additionally asserts the caller-visible consequence: a collect()-faithful consumer re-raises NAMING the failing file and never records it, and does not raise at all when nothing fails. Two vacuity guards: _assert_suite_exercises_depth_sort (some collection must be genuinely reordered by the sort) and _assert_suite_exercises_failures (some case must really reach the ValueError site). The one remaining out-of-domain arm (forced non-convergence -> ('All', None, RuntimeError)) is exercised and pinned as UNTOUCHED CONTEXT: the sentinel is emitted, it sits exactly between the two modelled segments (each of which the arm leaves equal to first_pass_ids / adj_ids, so the arm is purely additive on the modelled part of the stream), and a collect()-faithful consumer aborts on it naming 'All' -- the three facts the PASS_TO_PASS test test_import_loop reads. Discriminating: RC=0 against the post-patch source, RC=1 against the pre-patch source (correctly fails: ['a.css','a.css'] vs ['a.css'])",
+      "domain_scope": "convergent: the substitution loop settles within max_post_process_passes. Failing examinations are INSIDE the domain -- `err` is their carrier, and the postcondition places a failing file's report in the first-pass segment at its enumeration position. The only excluded arm is non-convergence, whose report ('All') carries no file identity. That arm IS caller-observable (the PASS_TO_PASS test test_import_loop asserts collect() raises RuntimeError('Max post-process passes exceeded') and writes \"Post-processing 'All' failed!\"), so the justification is not 'unobservable therefore free': it is that the gold patch does not touch the arm -- it is unchanged context in patch.diff and no refinement step in refinement.md ranges over it -- so every refinement of the map carries it through untouched, and axiom_check.py asserts executably that the arm is purely additive on the modelled part of the stream. This is NOT a projection-away of `processed`/exceptions: the earlier revision's exception-arm exclusion covered only the F2P observable and left the failure hand-off unconstrained",
+      "encoded_property": "reported(ids,adj,err) = first_pass_ids(ids,adj,err) ++ adj_ids(ids,adj): the first-pass segment is every plain file plus every file whose examination fails, once each in enumeration order; then every adjustable file once with its settled outcome. len == #files + failing_adj_count (no file reported twice for a settled outcome; every failure is a report of its own rather than a substitute for one)",
+      "kind": "A-reference",
+      "models": "HashedFilesMixin.post_process (the function under spec itself; NOT an unchanged callee)",
+      "name": "reported (with first_pass_ids / adj_ids / failing_adj_count)",
+      "provenance": "django/contrib/staticfiles/storage.py:203-260 (post-patch): the first pass yields a file when `name not in adjustable_paths or isinstance(processed, Exception)` (236-237) and otherwise collects it into processed_adjustable_paths (239); repeat passes overwrite without yielding (246-247); `yield from processed_adjustable_paths.values()` at the end (259-260). A failing adjustable file is reported twice because _post_process emits both the exception quadruple (300-301) and the terminal quadruple (332) for it in one pass",
+      "role": "deep model (pure region) of the changed reporting behaviour; NOT a consumed axiom -- there is no @ContractOnly in this bundle"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T18:11:55+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model `reported(ids, adj, err)` (first-pass segment ++ settled segment) == real HashedFilesMixin.post_process yielded names on 10 boundary + exhaustive(files<=5, all adjustable-subsets x each single failure) + 20000 fuzz collections, with length == len(ids) + failing_adj_count(ids, adj, err), per-file multiplicity 1 (2 for a file that really fails) and the failure report preceding that file's settled report; 4307 fuzz collections carry a real failure. The failure arm is IN domain: on 8+2000 failure cases collect() re-raises naming the failing file and never records it, and with nothing failing it does not raise at all. The one out-of-domain arm (non-convergence 'All') is pinned as UNTOUCHED CONTEXT on 3+2000 cases: it inserts the sentinel exactly between the two modelled segments (both of which it leaves equal to the model), and collect() aborts on it naming 'All' -- which is what the PASS_TO_PASS test test_import_loop reads.",
+      "gate": "G-AX",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "518fcee62cecef89f71b2e0841713112a49fd5b5d94b34de788ca5e6c8c9a1d1",
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T18:11:52+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100035,
+          "depth_reordered_cases": 81513,
+          "disagreements": 0,
+          "failing_cases": 55405,
+          "seed": 14053,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100035, \"disagreements\": 0, \"seed\": 14053, \"shadow\": \"direct (contract-stripped impl region)\", \"depth_reordered_cases\": 81513, \"failing_cases\": 55405}",
+      "gate": "G-CONF",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "0429a8f1ccea8a6e99e4f076c71bbf0ff060cdaaeace3d40a775b045e7f64ef2",
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:04:00+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d",
+        "model_prepatch.py": "ded8ee56ea0bee005ef3d6fe14399a3f2ea31612fa5febcc8eec88b1834d86c3"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T03:08:56+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 11 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_0_prepatch.py`, `atk_1_drop_err.py`, `atk_3_partial_domain.py`, `atk_4_boundary.py`, `atk_5_control_flow.py`, `atk_6_vacuity_echo.py`, `atk_7_swap_segments.py`, `atk_8_dup_settled.py`, `atk_9_reverse_settled.py`, `atk_10_late_failure.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_2_two_traversals.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d",
+        "properties.py": "d9c98b3bbd8294cda5cfb0e10c51a839d3e4440a41148be2b67d8acd9eec40ed"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:05:04+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d",
+        "model_prepatch.py": "ded8ee56ea0bee005ef3d6fe14399a3f2ea31612fa5febcc8eec88b1834d86c3"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T20:36:20+00:00",
+      "code_version": "82c73c1be",
+      "data": {
+        "region_hashes": {
+          "axioms": "cc651f446f04efae8fc5760afc42d25e7bf291a6d8f5db5ee391cb1896528fee",
+          "impl": "a6297a0b07ec49fa9c821fb713b9e2e8747c235454367f608e1c175f41ea618b",
+          "invariants": "7f15d4bd1f9dc60cc5559ce633266cef2ac559076325a0bf5ebfd473c48cc108",
+          "post-conditions": "3e533d37e8151bc7d10d1980e3bb3542dbfbe8ca83ee5148015c23f082d2c42f",
+          "pre-conditions": "e8fb893ba923ef47775c7cac2d6e4cb5a079f7bf781e5e0a22a6bb144bfc6b71",
+          "pure": "85a6233b37e7de900b6bfdecbf73ed6272ee5758b8ee342f3323b6baf128129a",
+          "spec_view": "960b1b1d41ddfc66ff13f5050cacc6d64bfb139975b93a07ac87168bd99bfa42"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T20:36:20+00:00",
+      "code_version": "82c73c1be",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bc6b828482ec789a2b88f74f82bbb73ae40b1a74b1fde63f417cfcaae04b94ef",
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T20:36:20+00:00",
+      "code_version": "82c73c1be",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T20:35:48+00:00",
+      "code_version": "82c73c1be",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T03:08:56+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "ATTACK: faithfulness-break on django__django-14053 (nagini). Verdict FAITHFUL \u2014 no undisclosed divergence found between the modelled function and the real patched callee.\n\nSETUP (all work in /tmp; bundle untouched). Fresh worktree at base_commit 179ee13eb37348cd87169a198aec18fedccc8668 with the gold patch (from data/swe_bench_verified/test.jsonl, byte-identical to meta.json's patch_diff intent) APPLIED \u2014 the correct reference tree per the brief. Second worktree left at base_commit for the direction check only.\n\nSPEC-REGION INTEGRITY: `adversary same-spec nagini django__django-14053 <copy of model.py>` -> exit 0, \"SAME \u2014 attack shares the bundle's exact specification\". `scripts/nagini_verify.sh model.py` -> exit 0 (\"Verification successful\", 17.3s), so the spec region is the frozen one and it really does verify.\n\nINDEPENDENT ORACLE (my own, NOT the bundle's stub). I wrote harness.py: real `django.contrib.staticfiles.storage.HashedFilesMixin` over a real `FileSystemStorage` on a real temp filesystem, real `_patterns` (the shipped *.css url(...)/@import patterns), real `hashed_name`/`file_hash`/`url_converter`/`_post_process`. NOTHING stubbed \u2014 failures are produced by genuinely missing referenced files (real ValueError from `hashed_name`), and multi-pass substitution is driven by genuinely nested @import chains. This is a strictly harder oracle than axiom_check.py/conformance_check.py, which stub storage I/O and url_converter.\n\nRESULTS.\n(1) fuzz.py \u2014 400 real-filesystem collections (0..9 files, mixed depths 1..4, random adjustable/failing subsets, keep_intermediate_files toggled), one failing rewrite pattern per file (mapping.md \u00a72's stated binding): seq_mismatch=0, len_mismatch=0, observable_prefix_mismatch=0, with 203 runs carrying a REAL failure and 288 genuinely reordered by the depth sort. So postcondition (1) ToSeq(Result())==reported(...) and (2) len==len(ids)+failing_adj_count(...) both hold exactly on the real callee.\n(2) Real multi-pass convergence: a 4-deep nested @import chain (css/a->b->c->d) plus a plain png reports each file exactly once, matching `reported` \u2014 confirms mapping.md's \"pass count drops out\" claim against real substitution, not a settling stub.\n(3) Enumeration-order binding probed directly: `paths` order ['d/z.css','d/a.css','d/m.png','q.css'] -> real output ['d/m.png','d/z.css','d/a.css','q.css'] == model under the depth-sort binding. mapping.md \u00a72 explicitly documents this binding (and records the corrected 19252/30000 failure of the older \"paths iteration order\" reading), so it is disclosed, not smuggled.\n(4) THE REAL P2P FIXTURE: tests/staticfiles_tests/project/faulty/faulty.css is `@import url(\"missing.css\");`. I feared this string matches BOTH shipped css patterns and would yield 3 reports vs the model's 2. It does not \u2014 real output is exactly ['faulty.css','faulty.css'] (one ValueError report, then the settled report), i.e. len 2 == len(ids)+failing_adj_count = 1+1. The specific input the failure-path PASS_TO_PASS test drives matches the spec EXACTLY. This was my strongest candidate counterexample and it is refuted.\n\nTHE ONE MEASURED DIVERGENCE IS DISCLOSED AND SOUND-AT-THE-OBSERVABLE. fuzz2.py (500 runs) deliberately fed files failing under TWO distinct patterns (e.g. `@import \"gone_a.css\"; body{background:url(\"gone_b.png\")}`). Raw-sequence mismatch 271/500 \u2014 and exactly 271 runs were the multi-pattern ones (multi=271), i.e. the divergence is 1:1 with per-file failure multiplicity and nothing else. Real output for such a file is [f, f, f] (two exception reports at the same enumeration position, then the settled report); the model says [f, f]. This is NOT an undisclosed break:\n  (a) It is explicitly declared in BOTH docs before I looked: refinement.md \"Scope actually claimed\" bullet 1 (\"Per-file failure multiplicity ... one report per failure, at the same enumeration position. The model abstracts that to one\") and mapping.md \u00a72 \"Per-file failure multiplicity (scope, stated)\", both citing storage.py:294-301.\n  (b) It is unobservable to the caller, and I verified that mechanically rather than taking the prose: collect() (collectstatic.py:129-134) `raise processed` on the FIRST Exception report, so reports after it are never consumed. In fuzz2.py, on all 500 runs including the 271 divergent ones: observable_prefix_mismatch=0 (the stream up to and including the first Exception is identical to the model's), abort_bad=0 (collect() aborts on exactly the file the model's first_pass_ids names first), nonrecorded_bad=0 (with nothing failing, the recorded set is exactly the file set). The extra reports fall strictly AFTER the abort point.\n  (c) The abstraction is conservative in the safe direction \u2014 it under-counts duplicate FAILURE reports; it never under-counts settled reports, which is where the F2P property lives.\n\nSPEC-TOO-STRONG CHECKS (the drift direction I was asked to press). Preconditions are Acc(list_pred,1/2)x3 + len(ids)==len(adj)==len(err) + MustTerminate(2) \u2014 no hidden carve-out excluding the awkward inputs. Empty collection: model gives [], real gives [] (covered in fuzz, n=0 drawn). The admitted-but-unreachable adj[k]==0 & err[k]!=0 binding: mapping.md \u00a72 states it and claims model-insensitivity; I confirmed against the real callee that url_converter is only reached inside `if name in adjustable_paths:` (storage.py:291), so a plain file's `processed` is never an Exception, and axiom_check.py line ~425 asserts m_reported(ids,adj,raw_err)==expected. The spec claims nothing about a state the callee cannot occupy. Two out-of-carrier arms I probed and found correctly scoped: dry_run=True (real yields [], no file identity, and the model's domain is the reporting body) and non-convergence ('All', None, RuntimeError) \u2014 the latter is unchanged context in patch.diff, is caller-observable via test_import_loop, and axiom_check.py pins it executably as purely additive (sentinel exactly between the two modelled segments). I separately note max_post_process_passes=0 raises UnboundLocalError on `substitutions` in the real code \u2014 a genuine pre-existing repo bug, present identically at base_commit, untouched by the patch and outside any step A1-A6, so not a spec-faithfulness defect.\n\nDIRECTION CHECK (guards against rubber-stamping a vacuous spec). Against the BASE tree the same axiom_check.py FAILS with a real counterexample: files=['a.css'] adjustable=['a.css'] -> real pre-patch yields ['a.css','a.css'], model `reported` says ['a.css']. So the spec genuinely senses the patch's delta and is not trivially satisfiable. refinement.md's model_prepatch.py claim (fails postconditions 1 and 2) is consistent with that.\n\nBUNDLE GATES REPRODUCED ON MY PATCHED WORKTREE: axiom_check.py exit 0 (20000 fuzz + exhaustive files<=5 x all adjustable-subsets x each single failure; 4307 fuzz cases with a real failure; both anti-vacuity guards _assert_suite_exercises_depth_sort and _assert_suite_exercises_failures active). conformance_check.py exit 0, 100035 inputs, 0 disagreements, 81513 depth-reordered, 55405 with a real failure. Full staticfiles_tests.test_storage suite: 32 tests, OK \u2014 including the F2P assertCountEqual and test_post_processing_failure and test_import_loop.\n\nCONCLUSION: no diverging input exists on the modelled convergent domain under the documented bindings. Every divergence I could manufacture (multi-pattern per-file failure) is pre-disclosed in refinement.md and mapping.md, is invisible to the only caller (collect() aborts first \u2014 measured, prefix/abort/record mismatches all 0), and errs conservatively. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "SCOPE / RELAXATION. No relaxation is claimed or present: meta.json has no `relaxed_leakage` key (grepped the whole JSON), gates.G-LEAK.status = \"pass\" (mode strict), and RELAXED_LEAKAGE.md does not exist in the bundle. So this is an ordinary strict leakage judgement, not an inherited disposition. I also scanned every bundle file for text addressing a reviewer (G-PANEL / attacker / 'the honest verdict' / 'record NO-LEAKAGE' / submit directives): the only hits are properties.py:41,49, which say the PBT author does 'NOT submit' a certain property as a spec break -- author-facing scoping of properties.py, not an instruction to this panel. verdict.md contains prior panel notes including a previous NO-LEAKAGE writeup; I did not rely on it (see STALENESS below) and treated it only as a claim to re-derive. Nothing in the bundle tries to direct my verdict.\n\nSPEC VIEW MEASURED, NOT ASSUMED. spec_view(model.py, NaginiBackend) = docstring + axioms + pure + signature + pre/post-conditions; impl and invariants elided (EvalAdapter.spec_view hard-guards the impl elision before exposure). model.py sha256 78241d0cc46e...; spec_view sha256 960b1b1d41dd... == meta.json region_hashes.spec_view AND == gates.G-LEAK.sources['model.py'] digest of the live bytes, so the recorded leak stamp is on exactly the bytes I screened.\n\nMECHANICAL SCREEN (re-run, not read off). leakage.screen(model.py, nagini language, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Independently re-derived the sub-checks against the spec view: (a) ZERO gold changed lines reproduced at >=8 normalized chars; (b) _NARRATION_RE findall = [] (no bug/fix/patch/previously/incorrectly narration); (c) patched path 'django/contrib/staticfiles/storage.py' and dotted 'staticfiles.storage' both ABSENT; (d) _patch_changed_symbols(gold) = {'post_process'}, and 'post_process' does not occur anywhere in the spec view -- and it is public regardless, appearing verbatim in problem_statement line 1 ('post_process() yields multiple times for the same file'). Repo-vocabulary sweep of the spec view: post_process 0, storage 0, staticfiles 0, collectstatic 0, adjustable_paths 0, isinstance 0, Exception 0, hash 0, dict 0, buffer 0, overwrite 0, substitutions 0, max_post_process 0. The gold's mechanism nouns -- dict keyed by name, per-pass overwrite, terminal `yield from` -- appear NOWHERE in the consumer view. The genuinely mechanism-narrating prose ('collected, keyed by file, so each is held only once', 'result = first + collected') lives in the impl region and I confirmed it is elided.\n\nTHE ONE CLAUSE WORTH ATTACKING, AND WHY IT SURVIVES. The spec view says more than problem_statement in exactly one place: the failure hand-off (the `err` stream, first_pass_ids' `err[0] != 0` disjunct, failing_adj_count, and the docstring paragraph 'a failure outcome may never be deferred to the end of the run'). problem_statement contains ZERO occurrences of fail/error/exception/raise/except (measured). So I tested whether that clause reconstructs the gold edit, using the load-bearing test.\n  (1) LOAD-BEARING, not decorative. I built atk_defer.py -- the atk_7 shape: satisfies multiplicity (each file once for its settled outcome) but DROPS the `fe != 0` disjunct, holding failing files back to the settled segment. `adversary same-spec` -> exit 0 (SAME spec, impl-only change). nagini_verify -> Verification FAILED: 'Postcondition of collect_reports might not hold ... ToSeq(Result()) == reported(...)'. So the clause is what rejects the known verify-but-not-resolve implementation (meta.json records G-EQ/G-PANEL-1 failing on exactly that atk_7, PASS_TO_PASS 'post_processing indicates the origin of the error when it fails'). Stripping the clause weakens the spec; it is not gratuitous.\n  (2) IT DESCRIBES PRE-PATCH BEHAVIOUR, so it cannot reveal the edit. This is the decisive measurement. I materialized base_commit 179ee13eb37  and the gold-applied tree, then drove the REAL post_process on both (failpos.py, 4 collections with reachable ValueError failures). Result: 'failure report is the FIRST report for that file' holds ok=4 bad=0 on BOTH trees. The failure hand-off at first-pass position is UNCHANGED CONTEXT -- true before the patch and after it. A clause that both pre- and post-patch code satisfy carries zero information about the delta, so it cannot be gold reconstruction. Its public source is the repo itself at base_commit (`except ValueError as exc: yield name, None, exc, False` at storage.py:300, and the PRE-EXISTING test test_post_processing_failure asserting \"Post-processing 'faulty.css' failed!\", both present at base_commit -- confirmed by git log). It is repo-visible to any solver, not hints_text-only. I checked hints_text (493 chars, about max_post_process_passes looping) -- the failure clause is NOT drawn from it, so the 'echoes hints-only vocabulary' failure mode does not apply.\n  (3) The gold DELTA itself is what the spec pins behaviourally, which is attacker-1 territory, not leakage: G-DIFF requires model_prepatch.py to fail, so the spec must pin the reported sequence, and any total order it pins necessarily coincides with gold's.\n\nSTRUCTURE IS NOT PINNED (no gold reconstruction). I built atk_twoloop.py: same spec, but a materially different shape -- two INDEPENDENT re-enumerations of the streams with no shared buffer accumulated alongside the first segment, i.e. not the gold's single-pass-collect-into-a-dict-then-flush structure. same-spec -> exit 0; nagini_verify -> 'Verification successful' (24.0s). So the spec admits implementations structurally unlike the gold: it constrains the observable reported sequence, not the gold's mechanism. A solver reading the spec view still has to invent the restructuring of post_process (buffer keyed by name, suppress the per-pass yield, flush at the end) themselves. That is directive 6's sanctioned behavioural-contract form.\n\nCORE GATES I LEANED ON, CONFIRMED FIRST-HAND (not read off meta.json). G-AX: ran axiom_check.py against BOTH trees -- REPO_ROOT=wt_post exits 0 with the recorded detail (20000 fuzz + exhaustive, 4307 carrying a real failure); REPO_ROOT=wt (pre-patch) correctly FAILS with 'deep model unsound: real post_process yielded [a.css, a.css] vs model [a.css]'. So the A-reference deep model is genuinely discriminating and axiom_check is not a null check. G-VERIFY/G-MUT are stamped on the live model.py digest (verified match). Gold patch applies cleanly at base_commit.\n\nSTALENESS FLAGGED (an integrity item, NOT a leakage defect, and it is why I re-derived rather than inherited). G-EQ / G-PANEL / G-PANEL-1/2/3 are all stamped against model.py 74b116b55ec0..., which is NOT the live model.py (78241d0cc46e...). The prior NO-LEAKAGE record therefore judged OLDER bytes. Per git (a19a2008b -> HEAD), the drift is exactly the addition of the third `err` stream and the failure-hand-off clause -- i.e. the one clause a leakage reviewer must weigh was added AFTER the last leakage stamp. I screened the live bytes: clean on the mechanical screen and clean on my own load-bearing/pre-patch analysis above. Operator item: G-EQ/G-PANEL-1 are recorded 'fail' on stale bytes against atk_7, which the current spec now rejects (measured in (1)) -- those need re-running, and green_check.classify remains the only authority for green. My leakage verdict is unaffected either way.\n\nVERDICT: NO-LEAKAGE. No diff marker, no gold line, no patched path/symbol, no fix narration; the only super-problem_statement clause is unchanged pre-patch repo behaviour that is load-bearing for spec strength, and the spec demonstrably does not pin the gold's structure. Bundle worked on read-only; all artifacts  and *.py.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 ATTACK: faithfulness-break on django__django-14053 (nagini). Verdict FAITHFUL \u2014 no undisclosed divergence found between the modelled function and the real patched callee.\n\nSETUP (all work in /tmp; bundle untouched). Fresh worktree at base_commit 179ee13eb37348cd87169a198aec18fedccc8668 with the gold patch (from data/swe_bench_verified/test.jsonl, byte-identical to meta.json's patch_diff intent) APPLIED \u2014 the correct reference tree per the brief. Second worktree left at base_commit for the direction check only.\n\nSPEC-REGION INTEGRITY: `adversary same-spec nagini django__django-14053 <copy of model.py>` -> exit 0, \"SAME \u2014 attack shares the bundle's exact specification\". `scripts/nagini_verify.sh model.py` -> exit 0 (\"Verification successful\", 17.3s), so the spec region is the frozen one and it really does verify.\n\nINDEPENDENT ORACLE (my own, NOT the bundle's stub). I wrote harness.py: real `django.contrib.staticfiles.storage.HashedFilesMixin` over a real `FileSystemStorage` on a real temp filesystem, real `_patterns` (the shipped *.css url(...)/@import patterns), real `hashed_name`/`file_hash`/`url_converter`/`_post_process`. NOTHING stubbed \u2014 failures are produced by genuinely missing referenced files (real ValueError from `hashed_name`), and multi-pass substitution is driven by genuinely nested @import chains. This is a strictly harder oracle than axiom_check.py/conformance_check.py, which stub storage I/O and url_converter.\n\nRESULTS.\n(1) fuzz.py \u2014 400 real-filesystem collections (0..9 files, mixed depths 1..4, random adjustable/failing subsets, keep_intermediate_files toggled), one failing rewrite pattern per file (mapping.md \u00a72's stated binding): seq_mismatch=0, len_mismatch=0, observable_prefix_mismatch=0, with 203 runs carrying a REAL failure and 288 genuinely reordered by the depth sort. So postcondition (1) ToSeq(Result())==reported(...) and (2) len==len(ids)+failing_adj_count(...) both hold exactly on the real callee.\n(2) Real multi-pass convergence: a 4-deep nested @import chain (css/a->b->c->d) plus a plain png reports each file exactly once, matching `reported` \u2014 confirms mapping.md's \"pass count drops out\" claim against real substitution, not a settling stub.\n(3) Enumeration-order binding probed directly: `paths` order ['d/z.css','d/a.css','d/m.png','q.css'] -> real output ['d/m.png','d/z.css','d/a.css','q.css'] == model under the depth-sort binding. mapping.md \u00a72 explicitly documents this binding (and records the corrected 19252/30000 failure of the older \"paths iteration order\" reading), so it is disclosed, not smuggled.\n(4) THE REAL P2P FIXTURE: tests/staticfiles_tests/project/faulty/faulty.css is `@import url(\"missing.css\");`. I feared this string matches BOTH shipped css patterns and would yield 3 reports vs the model's 2. It does not \u2014 real output is exactly ['faulty.css','faulty.css'] (one ValueError report, then the settled report), i.e. len 2 == len(ids)+failing_adj_count = 1+1. The specific input the failure-path PASS_TO_PASS test drives matches the spec EXACTLY. This was my strongest candidate counterexample and it is refuted.\n\nTHE ONE MEASURED DIVERGENCE IS DISCLOSED AND SOUND-AT-THE-OBSERVABLE. fuzz2.py (500 runs) deliberately fed files failing under TWO distinct patterns (e.g. `@import \"gone_a.css\"; body{background:url(\"gone_b.png\")}`). Raw-sequence mismatch 271/500 \u2014 and exactly 271 runs were the multi-pattern ones (multi=271), i.e. the divergence is 1:1 with per-file failure multiplicity and nothing else. Real output for such a file is [f, f, f] (two exception reports at the same enumeration position, then the settled report); the model says [f, f]. This is NOT an undisclosed break:\n  (a) It is explicitly declared in BOTH docs before I looked: refinement.md \"Scope actually claimed\" bullet 1 (\"Per-file failure multiplicity ... one report per failure, at the same enumeration position. The model abstracts that to one\") and mapping.md \u00a72 \"Per-file failure multiplicity (scope, stated)\", both citing storage.py:294-301.\n  (b) It is unobservable to the caller, and I verified that mechanically rather than taking the prose: collect() (collectstatic.py:129-134) `raise processed` on the FIRST Exception report, so reports after it are never consumed. In fuzz2.py, on all 500 runs including the 271 divergent ones: observable_prefix_mismatch=0 (the stream up to and including the first Exception is identical to the model's), abort_bad=0 (collect() aborts on exactly the file the model's first_pass_ids names first), nonrecorded_bad=0 (with nothing failing, the recorded set is exactly the file set). The extra reports fall strictly AFTER the abort point.\n  (c) The abstraction is conservative in the safe direction \u2014 it under-counts duplicate FAILURE reports; it never under-counts settled reports, which is where the F2P property lives.\n\nSPEC-TOO-STRONG CHECKS (the drift direction I was asked to press). Preconditions are Acc(list_pred,1/2)x3 + len(ids)==len(adj)==len(err) + MustTerminate(2) \u2014 no hidden carve-out excluding the awkward inputs. Empty collection: model gives [], real gives [] (covered in fuzz, n=0 drawn). The admitted-but-unreachable adj[k]==0 & err[k]!=0 binding: mapping.md \u00a72 states it and claims model-insensitivity; I confirmed against the real callee that url_converter is only reached inside `if name in adjustable_paths:` (storage.py:291), so a plain file's `processed` is never an Exception, and axiom_check.py line ~425 asserts m_reported(ids,adj,raw_err)==expected. The spec claims nothing about a state the callee cannot occupy. Two out-of-carrier arms I probed and found correctly scoped: dry_run=True (real yields [], no file identity, and the model's domain is the reporting body) and non-convergence ('All', None, RuntimeError) \u2014 the latter is unchanged context in patch.diff, is caller-observable via test_import_loop, and axiom_check.py pins it executably as purely additive (sentinel exactly between the two modelled segments). I separately note max_post_process_passes=0 raises UnboundLocalError on `substitutions` in the real code \u2014 a genuine pre-existing repo bug, present identically at base_commit, untouched by the patch and outside any step A1-A6, so not a spec-faithfulness defect.\n\nDIRECTION CHECK (guards against rubber-stamping a vacuous spec). Against the BASE tree the same axiom_check.py FAILS with a real counterexample: files=['a.css'] adjustable=['a.css'] -> real pre-patch yields ['a.css','a.css'], model `reported` says ['a.css']. So the spec genuinely senses the patch's delta and is not trivially satisfiable. refinement.md's model_prepatch.py claim (fails postconditions 1 and 2) is consistent with that.\n\nBUNDLE GATES REPRODUCED ON MY PATCHED WORKTREE: axiom_check.py exit 0 (20000 fuzz + exhaustive files<=5 x all adjustable-subsets x each single failure; 4307 fuzz cases with a real failure; both anti-vacuity guards _assert_suite_exercises_depth_sort and _assert_suite_exercises_failures active). conformance_check.py exit 0, 100035 inputs, 0 disagreements, 81513 depth-reordered, 55405 with a real failure. Full staticfiles_tests.test_storage suite: 32 tests, OK \u2014 including the F2P assertCountEqual and test_post_processing_failure and test_import_loop.\n\nCONCLUSION: no diverging input exists on the modelled convergent domain under the documented bindings. Every divergence I could manufacture (multi-pattern per-file failure) is pre-disclosed in refinement.md and mapping.md, is invisible to the only caller (collect() aborts first \u2014 measured, prefix/abort/record mismatches all 0), and errs conservatively. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 SCOPE / RELAXATION. No relaxation is claimed or present: meta.json has no `relaxed_leakage` key (grepped the whole JSON), gates.G-LEAK.status = \"pass\" (mode strict), and RELAXED_LEAKAGE.md does not exist in the bundle. So this is an ordinary strict leakage judgement, not an inherited disposition. I also scanned every bundle file for text addressing a reviewer (G-PANEL / attacker / 'the honest verdict' / 'record NO-LEAKAGE' / submit directives): the only hits are properties.py:41,49, which say the PBT author does 'NOT submit' a certain property as a spec break -- author-facing scoping of properties.py, not an instruction to this panel. verdict.md contains prior panel notes including a previous NO-LEAKAGE writeup; I did not rely on it (see STALENESS below) and treated it only as a claim to re-derive. Nothing in the bundle tries to direct my verdict.\n\nSPEC VIEW MEASURED, NOT ASSUMED. spec_view(model.py, NaginiBackend) = docstring + axioms + pure + signature + pre/post-conditions; impl and invariants elided (EvalAdapter.spec_view hard-guards the impl elision before exposure). model.py sha256 78241d0cc46e...; spec_view sha256 960b1b1d41dd... == meta.json region_hashes.spec_view AND == gates.G-LEAK.sources['model.py'] digest of the live bytes, so the recorded leak stamp is on exactly the bytes I screened.\n\nMECHANICAL SCREEN (re-run, not read off). leakage.screen(model.py, nagini language, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Independently re-derived the sub-checks against the spec view: (a) ZERO gold changed lines reproduced at >=8 normalized chars; (b) _NARRATION_RE findall = [] (no bug/fix/patch/previously/incorrectly narration); (c) patched path 'django/contrib/staticfiles/storage.py' and dotted 'staticfiles.storage' both ABSENT; (d) _patch_changed_symbols(gold) = {'post_process'}, and 'post_process' does not occur anywhere in the spec view -- and it is public regardless, appearing verbatim in problem_statement line 1 ('post_process() yields multiple times for the same file'). Repo-vocabulary sweep of the spec view: post_process 0, storage 0, staticfiles 0, collectstatic 0, adjustable_paths 0, isinstance 0, Exception 0, hash 0, dict 0, buffer 0, overwrite 0, substitutions 0, max_post_process 0. The gold's mechanism nouns -- dict keyed by name, per-pass overwrite, terminal `yield from` -- appear NOWHERE in the consumer view. The genuinely mechanism-narrating prose ('collected, keyed by file, so each is held only once', 'result = first + collected') lives in the impl region and I confirmed it is elided.\n\nTHE ONE CLAUSE WORTH ATTACKING, AND WHY IT SURVIVES. The spec view says more than problem_statement in exactly one place: the failure hand-off (the `err` stream, first_pass_ids' `err[0] != 0` disjunct, failing_adj_count, and the docstring paragraph 'a failure outcome may never be deferred to the end of the run'). problem_statement contains ZERO occurrences of fail/error/exception/raise/except (measured). So I tested whether that clause reconstructs the gold edit, using the load-bearing test.\n  (1) LOAD-BEARING, not decorative. I built atk_defer.py -- the atk_7 shape: satisfies multiplicity (each file once for its settled outcome) but DROPS the `fe != 0` disjunct, holding failing files back to the settled segment. `adversary same-spec` -> exit 0 (SAME spec, impl-only change). nagini_verify -> Verification FAILED: 'Postcondition of collect_reports might not hold ... ToSeq(Result()) == reported(...)'. So the clause is what rejects the known verify-but-not-resolve implementation (meta.json records G-EQ/G-PANEL-1 failing on exactly that atk_7, PASS_TO_PASS 'post_processing indicates the origin of the error when it fails'). Stripping the clause weakens the spec; it is not gratuitous.\n  (2) IT DESCRIBES PRE-PATCH BEHAVIOUR, so it cannot reveal the edit. This is the decisive measurement. I materialized base_commit 179ee13eb37  and the gold-applied tree, then drove the REAL post_process on both (failpos.py, 4 collections with reachable ValueError failures). Result: 'failure report is the FIRST report for that file' holds ok=4 bad=0 on BOTH trees. The failure hand-off at first-pass position is UNCHANGED CONTEXT -- true before the patch and after it. A clause that both pre- and post-patch code satisfy carries zero information about the delta, so it cannot be gold reconstruction. Its public source is the repo itself at base_commit (`except ValueError as exc: yield name, None, exc, False` at storage.py:300, and the PRE-EXISTING test test_post_processing_failure asserting \"Post-processing 'faulty.css' failed!\", both present at base_commit -- confirmed by git log). It is repo-visible to any solver, not hints_text-only. I checked hints_text (493 chars, about max_post_process_passes looping) -- the failure clause is NOT drawn from it, so the 'echoes hints-only vocabulary' failure mode does not apply.\n  (3) The gold DELTA itself is what the spec pins behaviourally, which is attacker-1 territory, not leakage: G-DIFF requires model_prepatch.py to fail, so the spec must pin the reported sequence, and any total order it pins necessarily coincides with gold's.\n\nSTRUCTURE IS NOT PINNED (no gold reconstruction). I built atk_twoloop.py: same spec, but a materially different shape -- two INDEPENDENT re-enumerations of the streams with no shared buffer accumulated alongside the first segment, i.e. not the gold's single-pass-collect-into-a-dict-then-flush structure. same-spec -> exit 0; nagini_verify -> 'Verification successful' (24.0s). So the spec admits implementations structurally unlike the gold: it constrains the observable reported sequence, not the gold's mechanism. A solver reading the spec view still has to invent the restructuring of post_process (buffer keyed by name, suppress the per-pass yield, flush at the end) themselves. That is directive 6's sanctioned behavioural-contract form.\n\nCORE GATES I LEANED ON, CONFIRMED FIRST-HAND (not read off meta.json). G-AX: ran axiom_check.py against BOTH trees -- REPO_ROOT=wt_post exits 0 with the recorded detail (20000 fuzz + exhaustive, 4307 carrying a real failure); REPO_ROOT=wt (pre-patch) correctly FAILS with 'deep model unsound: real post_process yielded [a.css, a.css] vs model [a.css]'. So the A-reference deep model is genuinely discriminating and axiom_check is not a null check. G-VERIFY/G-MUT are stamped on the live model.py digest (verified match). Gold patch applies cleanly at base_commit.\n\nSTALENESS FLAGGED (an integrity item, NOT a leakage defect, and it is why I re-derived rather than inherited). G-EQ / G-PANEL / G-PANEL-1/2/3 are all stamped against model.py 74b116b55ec0..., which is NOT the live model.py (78241d0cc46e...). The prior NO-LEAKAGE record therefore judged OLDER bytes. Per git (a19a2008b -> HEAD), the drift is exactly the addition of the third `err` stream and the failure-hand-off clause -- i.e. the one clause a leakage reviewer must weigh was added AFTER the last leakage stamp. I screened the live bytes: clean on the mechanical screen and clean on my own load-bearing/pre-patch analysis above. Operator item: G-EQ/G-PANEL-1 are recorded 'fail' on stale bytes against atk_7, which the current spec now rejects (measured in (1)) -- those need re-running, and green_check.classify remains the only authority for green. My leakage verdict is unaffected either way.\n\nVERDICT: NO-LEAKAGE. No diff marker, no gold line, no patched path/symbol, no fix narration; the only super-problem_statement clause is unchanged pre-patch repo behaviour that is load-bearing for spec strength, and the spec demonstrably does not pin the gold's structure. Bundle worked on read-only; all artifacts  and *.py.",
+      "gate": "G-PANEL",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d",
+        "properties.py": "d9c98b3bbd8294cda5cfb0e10c51a839d3e4440a41148be2b67d8acd9eec40ed"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T03:08:55+00:00",
+      "code_version": "57bc6d0cb-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 11 admissible attacks re-run of 11 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 11 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 10 | `atk_0_prepatch.py`, `atk_1_drop_err.py`, `atk_3_partial_domain.py`, `atk_4_boundary.py`, `atk_5_control_flow.py`, `atk_6_vacuity_echo.py`, `atk_7_swap_segments.py`, `atk_8_dup_settled.py`, `atk_9_reverse_settled.py`, `atk_10_late_failure.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_2_two_traversals.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d",
+        "properties.py": "d9c98b3bbd8294cda5cfb0e10c51a839d3e4440a41148be2b67d8acd9eec40ed"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T02:16:55+00:00",
+      "code_version": "15a818433-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACK: faithfulness-break on django__django-14053 (nagini). Verdict FAITHFUL \u2014 no undisclosed divergence found between the modelled function and the real patched callee.\n\nSETUP (all work in /tmp; bundle untouched). Fresh worktree at base_commit 179ee13eb37348cd87169a198aec18fedccc8668 with the gold patch (from data/swe_bench_verified/test.jsonl, byte-identical to meta.json's patch_diff intent) APPLIED \u2014 the correct reference tree per the brief. Second worktree left at base_commit for the direction check only.\n\nSPEC-REGION INTEGRITY: `adversary same-spec nagini django__django-14053 <copy of model.py>` -> exit 0, \"SAME \u2014 attack shares the bundle's exact specification\". `scripts/nagini_verify.sh model.py` -> exit 0 (\"Verification successful\", 17.3s), so the spec region is the frozen one and it really does verify.\n\nINDEPENDENT ORACLE (my own, NOT the bundle's stub). I wrote harness.py: real `django.contrib.staticfiles.storage.HashedFilesMixin` over a real `FileSystemStorage` on a real temp filesystem, real `_patterns` (the shipped *.css url(...)/@import patterns), real `hashed_name`/`file_hash`/`url_converter`/`_post_process`. NOTHING stubbed \u2014 failures are produced by genuinely missing referenced files (real ValueError from `hashed_name`), and multi-pass substitution is driven by genuinely nested @import chains. This is a strictly harder oracle than axiom_check.py/conformance_check.py, which stub storage I/O and url_converter.\n\nRESULTS.\n\n(1) fuzz.py \u2014 400 real-filesystem collections (0..9 files, mixed depths 1..4, random adjustable/failing subsets, keep_intermediate_files toggled), one failing rewrite pattern per file (mapping.md \u00a72's stated binding): seq_mismatch=0, len_mismatch=0, observable_prefix_mismatch=0, with 203 runs carrying a REAL failure and 288 genuinely reordered by the depth sort. So postcondition (1) ToSeq(Result())==reported(...) and (2) len==len(ids)+failing_adj_count(...) both hold exactly on the real callee.\n\n(2) Real multi-pass convergence: a 4-deep nested @import chain (css/a->b->c->d) plus a plain png reports each file exactly once, matching `reported` \u2014 confirms mapping.md's \"pass count drops out\" claim against real substitution, not a settling stub.\n\n(3) Enumeration-order binding probed directly: `paths` order ['d/z.css','d/a.css','d/m.png','q.css'] -> real output ['d/m.png','d/z.css','d/a.css','q.css'] == model under the depth-sort binding. mapping.md \u00a72 explicitly documents this binding (and records the corrected 19252/30000 failure of the older \"paths iteration order\" reading), so it is disclosed, not smuggled.\n\n(4) THE REAL P2P FIXTURE: tests/staticfiles_tests/project/faulty/faulty.css is `@import url(\"missing.css\");`. I feared this string matches BOTH shipped css patterns and would yield 3 reports vs the model's 2. It does not \u2014 real output is exactly ['faulty.css','faulty.css'] (one ValueError report, then the settled report), i.e. len 2 == len(ids)+failing_adj_count = 1+1. The specific input the failure-path PASS_TO_PASS test drives matches the spec EXACTLY. This was my strongest candidate counterexample and it is refuted.\n\nTHE ONE MEASURED DIVERGENCE IS DISCLOSED AND SOUND-AT-THE-OBSERVABLE. fuzz2.py (500 runs) deliberately fed files failing under TWO distinct patterns (e.g. `@import \"gone_a.css\"; body{background:url(\"gone_b.png\")}`). Raw-sequence mismatch 271/500 \u2014 and exactly 271 runs were the multi-pattern ones (multi=271), i.e. the divergence is 1:1 with per-file failure multiplicity and nothing else. Real output for such a file is [f, f, f] (two exception reports at the same enumeration position, then the settled report); the model says [f, f]. This is NOT an undisclosed break:\n\n  (a) It is explicitly declared in BOTH docs before I looked: refinement.md \"Scope actually claimed\" bullet 1 (\"Per-file failure multiplicity ... one report per failure, at the same enumeration position. The model abstracts that to one\") and mapping.md \u00a72 \"Per-file failure multiplicity (scope, stated)\", both citing storage.py:294-301.\n\n  (b) It is unobservable to the caller, and I verified that mechanically rather than taking the prose: collect() (collectstatic.py:129-134) `raise processed` on the FIRST Exception report, so reports after it are never consumed. In fuzz2.py, on all 500 runs including the 271 divergent ones: observable_prefix_mismatch=0 (the stream up to and including the first Exception is identical to the model's), abort_bad=0 (collect() aborts on exactly the file the model's first_pass_ids names first), nonrecorded_bad=0 (with nothing failing, the recorded set is exactly the file set). The extra reports fall strictly AFTER the abort point.\n\n  (c) The abstraction is conservative in the safe direction \u2014 it under-counts duplicate FAILURE reports; it never under-counts settled reports, which is where the F2P property lives.\n\nSPEC-TOO-STRONG CHECKS (the drift direction I was asked to press). Preconditions are Acc(list_pred,1/2)x3 + len(ids)==len(adj)==len(err) + MustTerminate(2) \u2014 no hidden carve-out excluding the awkward inputs. Empty collection: model gives [], real gives [] (covered in fuzz, n=0 drawn). The admitted-but-unreachable adj[k]==0 & err[k]!=0 binding: mapping.md \u00a72 states it and claims model-insensitivity; I confirmed against the real callee that url_converter is only reached inside `if name in adjustable_paths:` (storage.py:291), so a plain file's `processed` is never an Exception, and axiom_check.py line ~425 asserts m_reported(ids,adj,raw_err)==expected. The spec claims nothing about a state the callee cannot occupy.\n\nTwo out-of-carrier arms I probed and found correctly scoped: dry_run=True (real yields [], no file identity, and the model's domain is the reporting body) and non-convergence ('All', None, RuntimeError) \u2014 the latter is unchanged context in patch.diff, is caller-observable via test_import_loop, and axiom_check.py pins it executably as purely additive (sentinel exactly between the two modelled segments). I separately note max_post_process_passes=0 raises UnboundLocalError on `substitutions` in the real code \u2014 a genuine pre-existing repo bug, present identically at base_commit, untouched by the patch and outside any step A1-A6, so not a spec-faithfulness defect.\n\nDIRECTION CHECK (guards against rubber-stamping a vacuous spec). Against the BASE tree the same axiom_check.py FAILS with a real counterexample: files=['a.css'] adjustable=['a.css'] -> real pre-patch yields ['a.css','a.css'], model `reported` says ['a.css']. So the spec genuinely senses the patch's delta and is not trivially satisfiable. refinement.md's model_prepatch.py claim (fails postconditions 1 and 2) is consistent with that.\n\nBUNDLE GATES REPRODUCED ON MY PATCHED WORKTREE: axiom_check.py exit 0 (20000 fuzz + exhaustive files<=5 x all adjustable-subsets x each single failure; 4307 fuzz cases with a real failure; both anti-vacuity guards _assert_suite_exercises_depth_sort and _assert_suite_exercises_failures active). conformance_check.py exit 0, 100035 inputs, 0 disagreements, 81513 depth-reordered, 55405 with a real failure. Full staticfiles_tests.test_storage suite: 32 tests, OK \u2014 including the F2P assertCountEqual and test_post_processing_failure and test_import_loop.\n\nCONCLUSION: no diverging input exists on the modelled convergent domain under the documented bindings. Every divergence I could manufacture (multi-pattern per-file failure) is pre-disclosed in refinement.md and mapping.md, is invisible to the only caller (collect() aborts first \u2014 measured, prefix/abort/record mismatches all 0), and errs conservatively. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T02:26:19+00:00",
+      "code_version": "15a818433-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "SCOPE / RELAXATION. No relaxation is claimed or present: meta.json has no `relaxed_leakage` key (grepped the whole JSON), gates.G-LEAK.status = \"pass\" (mode strict), and RELAXED_LEAKAGE.md does not exist in the bundle. So this is an ordinary strict leakage judgement, not an inherited disposition. I also scanned every bundle file for text addressing a reviewer (G-PANEL / attacker / 'the honest verdict' / 'record NO-LEAKAGE' / submit directives): the only hits are properties.py:41,49, which say the PBT author does 'NOT submit' a certain property as a spec break -- author-facing scoping of properties.py, not an instruction to this panel. verdict.md contains prior panel notes including a previous NO-LEAKAGE writeup; I did not rely on it (see STALENESS below) and treated it only as a claim to re-derive. Nothing in the bundle tries to direct my verdict.\n\nSPEC VIEW MEASURED, NOT ASSUMED. spec_view(model.py, NaginiBackend) = docstring + axioms + pure + signature + pre/post-conditions; impl and invariants elided (EvalAdapter.spec_view hard-guards the impl elision before exposure). model.py sha256 78241d0cc46e...; spec_view sha256 960b1b1d41dd... == meta.json region_hashes.spec_view AND == gates.G-LEAK.sources['model.py'] digest of the live bytes, so the recorded leak stamp is on exactly the bytes I screened.\n\nMECHANICAL SCREEN (re-run, not read off). leakage.screen(model.py, nagini language, gold patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Independently re-derived the sub-checks against the spec view: (a) ZERO gold changed lines reproduced at >=8 normalized chars; (b) _NARRATION_RE findall = [] (no bug/fix/patch/previously/incorrectly narration); (c) patched path 'django/contrib/staticfiles/storage.py' and dotted 'staticfiles.storage' both ABSENT; (d) _patch_changed_symbols(gold) = {'post_process'}, and 'post_process' does not occur anywhere in the spec view -- and it is public regardless, appearing verbatim in problem_statement line 1 ('post_process() yields multiple times for the same file').\n\nRepo-vocabulary sweep of the spec view: post_process 0, storage 0, staticfiles 0, collectstatic 0, adjustable_paths 0, isinstance 0, Exception 0, hash 0, dict 0, buffer 0, overwrite 0, substitutions 0, max_post_process 0. The gold's mechanism nouns -- dict keyed by name, per-pass overwrite, terminal `yield from` -- appear NOWHERE in the consumer view. The genuinely mechanism-narrating prose ('collected, keyed by file, so each is held only once', 'result = first + collected') lives in the impl region and I confirmed it is elided.\n\nTHE ONE CLAUSE WORTH ATTACKING, AND WHY IT SURVIVES. The spec view says more than problem_statement in exactly one place: the failure hand-off (the `err` stream, first_pass_ids' `err[0] != 0` disjunct, failing_adj_count, and the docstring paragraph 'a failure outcome may never be deferred to the end of the run'). problem_statement contains ZERO occurrences of fail/error/exception/raise/except (measured). So I tested whether that clause reconstructs the gold edit, using the load-bearing test.\n\n  (1) LOAD-BEARING, not decorative. I built atk_defer.py -- the atk_7 shape: satisfies multiplicity (each file once for its settled outcome) but DROPS the `fe != 0` disjunct, holding failing files back to the settled segment. `adversary same-spec` -> exit 0 (SAME spec, impl-only change). nagini_verify -> Verification FAILED: 'Postcondition of collect_reports might not hold ... ToSeq(Result()) == reported(...)'. So the clause is what rejects the known verify-but-not-resolve implementation (meta.json records G-EQ/G-PANEL-1 failing on exactly that atk_7, PASS_TO_PASS 'post_processing indicates the origin of the error when it fails'). Stripping the clause weakens the spec; it is not gratuitous.\n\n  (2) IT DESCRIBES PRE-PATCH BEHAVIOUR, so it cannot reveal the edit. This is the decisive measurement. I materialized base_commit 179ee13eb37  and the gold-applied tree, then drove the REAL post_process on both (failpos.py, 4 collections with reachable ValueError failures). Result: 'failure report is the FIRST report for that file' holds ok=4 bad=0 on BOTH trees. The failure hand-off at first-pass position is UNCHANGED CONTEXT -- true before the patch and after it. A clause that both pre- and post-patch code satisfy carries zero information about the delta, so it cannot be gold reconstruction. Its public source is the repo itself at base_commit (`except ValueError as exc: yield name, None, exc, False` at storage.py:300, and the PRE-EXISTING test test_post_processing_failure asserting \"Post-processing 'faulty.css' failed!\", both present at base_commit -- confirmed by git log). It is repo-visible to any solver, not hints_text-only. I checked hints_text (493 chars, about max_post_process_passes looping) -- the failure clause is NOT drawn from it, so the 'echoes hints-only vocabulary' failure mode does not apply.\n\n  (3) The gold DELTA itself is what the spec pins behaviourally, which is attacker-1 territory, not leakage: G-DIFF requires model_prepatch.py to fail, so the spec must pin the reported sequence, and any total order it pins necessarily coincides with gold's.\n\nSTRUCTURE IS NOT PINNED (no gold reconstruction). I built atk_twoloop.py: same spec, but a materially different shape -- two INDEPENDENT re-enumerations of the streams with no shared buffer accumulated alongside the first segment, i.e. not the gold's single-pass-collect-into-a-dict-then-flush structure. same-spec -> exit 0; nagini_verify -> 'Verification successful' (24.0s). So the spec admits implementations structurally unlike the gold: it constrains the observable reported sequence, not the gold's mechanism. A solver reading the spec view still has to invent the restructuring of post_process (buffer keyed by name, suppress the per-pass yield, flush at the end) themselves. That is directive 6's sanctioned behavioural-contract form.\n\nCORE GATES I LEANED ON, CONFIRMED FIRST-HAND (not read off meta.json). G-AX: ran axiom_check.py against BOTH trees -- REPO_ROOT=wt_post exits 0 with the recorded detail (20000 fuzz + exhaustive, 4307 carrying a real failure); REPO_ROOT=wt (pre-patch) correctly FAILS with 'deep model unsound: real post_process yielded [a.css, a.css] vs model [a.css]'. So the A-reference deep model is genuinely discriminating and axiom_check is not a null check. G-VERIFY/G-MUT are stamped on the live model.py digest (verified match). Gold patch applies cleanly at base_commit.\n\nSTALENESS FLAGGED (an integrity item, NOT a leakage defect, and it is why I re-derived rather than inherited). G-EQ / G-PANEL / G-PANEL-1/2/3 are all stamped against model.py 74b116b55ec0..., which is NOT the live model.py (78241d0cc46e...). The prior NO-LEAKAGE record therefore judged OLDER bytes. Per git (a19a2008b -> HEAD), the drift is exactly the addition of the third `err` stream and the failure-hand-off clause -- i.e. the one clause a leakage reviewer must weigh was added AFTER the last leakage stamp. I screened the live bytes: clean on the mechanical screen and clean on my own load-bearing/pre-patch analysis above. Operator item: G-EQ/G-PANEL-1 are recorded 'fail' on stale bytes against atk_7, which the current spec now rejects (measured in (1)) -- those need re-running, and green_check.classify remains the only authority for green. My leakage verdict is unaffected either way.\n\nVERDICT: NO-LEAKAGE. No diff marker, no gold line, no patched path/symbol, no fix narration; the only super-problem_statement clause is unchanged pre-patch repo behaviour that is load-bearing for spec strength, and the spec demonstrably does not pin the gold's structure. Bundle worked on read-only; all artifacts  and *.py.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:19:04+00:00",
+      "code_version": "5c158293b-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-route-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 27.2
+          },
+          {
+            "expect": "verify",
+            "id": "admissibility-normal-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 33.5
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-write-readonly-err",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.8
+          },
+          {
+            "expect": "reject",
+            "id": "uniqueness-adjustable-reported-twice",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 48.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-all-adjustable",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-first-adjustable",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.5
+          },
+          {
+            "expect": "reject",
+            "id": "withheld-failure-report",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.2
+          },
+          {
+            "expect": "reject",
+            "id": "boundary-singleton-drops-first-pass",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.1
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "d9c98b3bbd8294cda5cfb0e10c51a839d3e4440a41148be2b67d8acd9eec40ed",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d",
+        "properties.py": "d9c98b3bbd8294cda5cfb0e10c51a839d3e4440a41148be2b67d8acd9eec40ed"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T18:10:54+00:00",
+      "code_version": "bedff1fa0-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "fb403a771a83",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bc6b828482ec789a2b88f74f82bbb73ae40b1a74b1fde63f417cfcaae04b94ef",
+        "patch.diff": "19ff433af4d3ba1f86ceacd81ba0d059e4c2bc754a44cb27ef82b9b3f16a9a39"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T20:33:44+00:00",
+      "code_version": "3d996bfaa-dirty",
+      "data": {
+        "wall_time_s": 21.6
+      },
+      "detail": "verified in 21.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "78241d0cc46e60be7e334ff3dfa05901eb39de95b9dbae8d6bbc921b8a16775d"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-14053",
+  "modeled_functions": [
+    {
+      "carrier_type": "paths-keys (str file names) -> List[int] of distinct file ids, presented in the routine's enumeration order (sorted(paths, key=path_level, reverse=True)); the `name in adjustable_paths` predicate -> parallel 0/non-0 List[int]; the `isinstance(processed, Exception)` predicate -> a second parallel 0/non-0 List[int]; specification over PSeq[int] via ToSeq; the yielded triple is projected to its `name` component",
+      "model_symbol": "collect_reports",
+      "repo_location": "django/contrib/staticfiles/storage.py:203 (changed hunk body lines 230-260)",
+      "repo_symbol": "django.contrib.staticfiles.storage.HashedFilesMixin.post_process",
+      "role": "modeled changed function: the multi-pass routine that yields one report per file to collectstatic's collect(); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition (1) ToSeq(Result()) == reported(ToSeq(ids), ToSeq(adj), ToSeq(err)) and postcondition (2) len(Result()) == len(ids) + failing_adj_count(...): an adjustable file appears twice for its settled outcome (first pass + repeat pass)",
+      "file": "model_prepatch.py",
+      "prior_behavior": "post_process() multiplicity of reported names (a file yielded once vs once-per-pass)",
+      "reverted_to": "the pre-change unconditional `yield name, hashed_name, processed` in BOTH the first pass and every repeat pass (storage.py:232,239 pre-patch): the first loop reports every file, the second loop reports each adjustable file again. Note the pre-change code never WITHHELD a failing file's outcome -- it yielded every quadruple _post_process produced -- so the failure hand-off the spec now pins is a PRESERVATION obligation, not part of the change"
+    }
+  ],
+  "refinement_history": [
+    {
+      "cycle": "adversarial-panel batch04",
+      "defect": "D1 (HIGH, internal contradiction): mapping.md \u00a73 + refinement.md \u00a7B falsely claimed 'no A-reference callee' and that axiom_check.py 'is the null check / exits 0 asserting no axioms', contradicting meta.json deep_model_references (which correctly declares `reported` an A-reference) and the actual axiom_check.py (which loads+drives the real patched post_process). D2 (MEDIUM, over-claim of faithfulness, directive 7): mapping.md \u00a72 + refinement.md A2 claimed `processed`/exceptions universally irrelevant to the duplicate-vs-once property -- false: an adjustable file whose `processed` is an Exception is emitted by the isinstance(processed, Exception) first-pass arm and also stored (a real extra emission), and non-convergence yields ('All', None, RuntimeError) -- neither modelled. D3 (MEDIUM, G-AX blind spot): axiom_check.py hardcoded processed=True and converged at _pass==2, never exercising either arm.",
+      "fix": "DOCUMENTATION + EVIDENCE ONLY -- model.py, model_prepatch.py, patch.diff, and every spec region UNCHANGED (region_hashes + spec_view byte-identical; same_spec True). D1: rewrote mapping.md header+\u00a73 and refinement.md \u00a7B/\u00a7C to correctly state `plain_ids`/`adj_ids`/`reported` ARE an A-reference deep model of post_process itself, validated by axiom_check.py (matching meta.json + the model.py docstring). D2: scoped the projection in mapping.md \u00a72 (added a 'Domain restriction' note) and refinement.md A2 to the convergent/non-exception domain, grounded in the caller-side fact that collect() (collectstatic.py:128-134) re-raises on the first Exception report -- aborting before any duplicate/sentinel reaches stats['post_processed']. D3: extended axiom_check.py with a collect()-faithful consumer + two new check families (Exception-`processed` arm; forced non-convergence 'All' arm), each asserting the arm diverges from `reported` AND that collect() re-raises before recording, scoping the A-reference to the modelled domain.",
+      "reverify": "G-VERIFY pass (model.py, 30s); G-DIFF fail (model_prepatch.py fails postcond 1 ToSeq(Result())==reported(...)); static gates pass; same_spec True; region_hashes unchanged. G-AX: axiom_check.py RC=0 in-container against the PATCHED source (gold applied) WITH the new out-of-domain coverage, and RC=1 (correctly) against the PRE-patch source (['a','a','a'] vs ['a']) -- still discriminating.",
+      "verdict": "NEEDS-REFINEMENT (documentation + G-AX coverage only; CORE sound)"
+    },
+    {
+      "cycle": "repair (widen the carrier)",
+      "defect": "SPEC TOO WEAK (verify does not imply resolve). The carrier projected each report to its file identity only, so the operand the changed first-pass guard branches on -- isinstance(processed, Exception) -- had NO counterpart in the model. A rival implementation that satisfies the multiplicity property by HOLDING BACK a failing file (storing its failing outcome under the file's key, so the later settled outcome overwrites it, and emitting only the settled one) was extensionally identical to the gold implementation on (ids, adj) -> List[int], so it verified; against the real test suite it passed FAIL_TO_PASS 1/1 and destroyed PASS_TO_PASS 'post_processing indicates the origin of the error when it fails'. refinement.md leg A2 compounded it by explicitly licensing the omission of the second disjunct.",
+      "fix": "WIDENED THE CARRIER (spec change, not documentation). model.py: added a third parallel stream `err` (per-file examination-failure flag) with its own Requires/Ensures half-permission framing and length alignment; renamed plain_ids -> first_pass_ids and gave it the disjunct `adj[0] == 0 or err[0] != 0`; added the pure fold failing_adj_count; reported = first_pass_ids ++ adj_ids; strengthened postcondition (2) to len(ids) + failing_adj_count(...); lemma_split_len now proves the two-segment length split with the failing overlap. The impl routes each file with TWO INDEPENDENT tests (report-now if plain or failing; collect if adjustable) rather than an if/else, matching the patch's per-quadruple branching aggregated per file. model_prepatch.py carries byte-identical spec regions. refinement.md: A2 rewritten as disjunct-for-disjunct with an explicit 'no latitude' section retracting the earlier licence, new leg A2b deriving the two-reports-per-failing-file fact from storage.py:300-301 and 332 under the 291 guard. mapping.md: new `err` carrier row, 'Where a failing file's report lands', 'Unreachable flag combination', and 'Domain: the failure arm is IN, non-convergence is OUT' explicitly retracting the earlier out-of-domain argument as covering only the F2P observable. axiom_check.py and conformance_check.py both widened to the 3-stream shadow with failing collections and vacuity guards. properties.py rebuilt around the new anchors with a withheld-failure reject case.",
+      "reverify": "G-VERIFY pass; G-DIFF pass (model_prepatch.py spec-identical and failing); G-GOLD pass; G-MUT pass; G-PBT pass; static gates pass; G-AX RC=0 against the post-patch source and RC=1 against the pre-patch source (still discriminating); the withheld-failure rival no longer verifies.",
+      "verdict": "REPAIRED (spec strengthened; carrier widened)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "cc651f446f04efae8fc5760afc42d25e7bf291a6d8f5db5ee391cb1896528fee",
+    "impl": "a6297a0b07ec49fa9c821fb713b9e2e8747c235454367f608e1c175f41ea618b",
+    "invariants": "7f15d4bd1f9dc60cc5559ce633266cef2ac559076325a0bf5ebfd473c48cc108",
+    "post-conditions": "3e533d37e8151bc7d10d1980e3bb3542dbfbe8ca83ee5148015c23f082d2c42f",
+    "pre-conditions": "e8fb893ba923ef47775c7cac2d6e4cb5a079f7bf781e5e0a22a6bb144bfc6b71",
+    "pure": "85a6233b37e7de900b6bfdecbf73ed6272ee5758b8ee342f3323b6baf128129a",
+    "spec_view": "960b1b1d41ddfc66ff13f5050cacc6d64bfb139975b93a07ac87168bd99bfa42"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "file names abstracted to distinct integer ids (the paths mapping is keyed, so ids do not repeat), presented in the routine's enumeration order; adjustability and per-file examination failure as two parallel 0/non-0 streams; the reported id sequence proven by two front-recursive sub-sequence folds (first_pass_ids, adj_ids) concatenated, with a front-recursive length-split lemma (lemma_split_len) discharging the completeness count len(ids) + failing_adj_count",
+  "version": "4.0"
+}

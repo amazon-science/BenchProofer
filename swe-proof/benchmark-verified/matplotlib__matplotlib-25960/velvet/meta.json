@@ -1,0 +1,895 @@
+{
+  "abstracted_inputs": [
+    {
+      "input": "n",
+      "note": "int >= 1 \u2194 Nat with require n >= 1.",
+      "repo": "nrows / ncols of subfigures"
+    },
+    {
+      "input": "s",
+      "note": "float >= 0 (None \u21d2 0 with no layout engine) \u2194 Rat with require s >= 0.",
+      "repo": "wspace / hspace gap fraction"
+    }
+  ],
+  "axioms": [],
+  "band": "float-precision",
+  "base_commit": "1d0d255b79e84dfc9f2123c5eb85a842d342f72b",
+  "changed_files": [
+    "lib/matplotlib/figure.py"
+  ],
+  "conf_skip": false,
+  "deep_model_references": [
+    {
+      "callee": "matplotlib.gridspec.GridSpec.get_grid_positions",
+      "kind": "A-reference",
+      "model_symbol": "axisExtents (with cellSize, cellPitch)",
+      "note": "UNCHANGED callee newly invoked by the patched subfigures with margins left=0,right=1,bottom=0,top=1 and equal ratios. The changed placement is modeled deeply; G-AX (axiom_check.py) validates axisExtents == real get_grid_positions (columns: lefts/rights; rows: reverse of bottoms/tops). No consumed axiom.",
+      "provenance": "lib/matplotlib/gridspec.py:145"
+    }
+  ],
+  "float_encoding": "Rat (exact rationals), NOT Float and NOT Real. The grid-position placement is an exact rational closed form in (n, s): each edge is i*cellPitch + {0, cellSize}, with no cross-cell accumulation of heterogeneous magnitudes and no transcendental step. The discriminating behaviour the F2P test observes (a positive gap separates cells: high i < low (i+1) for s>0, versus the buggy gap-free even split where cells abut) is an exact order/identity property, precision-independent. Rat verifies with loom_solve (+ one `simp [axisExtents]` to unfold the deep model). G-CONF compares the exact-rational shadow against the float oracle with a 1e-9 relative tolerance.",
+  "fuzz_seed": 25960,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:55:53+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: deep model axisExtents == real GridSpec.get_grid_positions on 3297 configs (boundary + F2P + fuzz). Columns match lefts/rights; rows match reverse(bottoms/tops). No consumed axioms to check.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c",
+        "axiom_check.py": "6306574c7b229d782b46aea5ea83c834a1c04f024fffe5ffe478d0925d4f775f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:56:11+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "G-CONF OK: R/I shadow of axisCellExtents agrees with the reduced get_grid_positions oracle on 120000 axis configs (boundary + F2P + fuzz, seed=25960), 0 disagreements. Gap-free boundary (s=0, cells abut) and positive-gap separation (s>0, cells strictly separated) both covered.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c",
+        "conformance_check.py": "a4331a299fc21f74dc4b16544052e74d2d4867e4f8dcc5ea16385187da3bc12b"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:33:32+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c",
+        "Solution_prepatch.lean": "739a99386b1244f6ef4bba067305ab331a3c87babd24ef4b6209ceb2040bc15e"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-09T04:27:26+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_7.lean`, `atk_8.lean` |\n\n**Non-vacuity.** The positive control `pc1.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:33:40+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c",
+        "Solution_prepatch.lean": "739a99386b1244f6ef4bba067305ab331a3c87babd24ef4b6209ceb2040bc15e"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:55:39+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "74160a52daa691ddd3bf5ce69b7980a427bf33eadaa7cc4300cca0623fdade9b",
+          "impl": "a60fe2ae9d6fb6094f3de8740af353b15a62d7dea21d1360b4d72483c1c46389",
+          "pure": "c5d1abe3e8ad2e6048ab5bba6e5c67a93ba1a114eb8cccc43a0b30c9f50c685f",
+          "spec_view": "9de1805cc173fce899645ce8b90349d6273e77d3cef371acc46fdee91bff7ec6"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:55:39+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c",
+        "instance.json": "386041d7fe81c167a04e3b9ae6565086619f911c354cd4629559f31ee095b9a2"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:55:40+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:10:03+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-09T04:27:28+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / model-vs-real-callee drift) attack: NO defect found. (1) same_spec(Solution, Solution_prepatch, velvet)==True \u2014 the frozen spec region is byte-identical; only the impl region differs (postpatch spacing-aware extents vs prepatch even-split 1/n). (2) Solution.lean elaborates clean via lean_verify.sh (exit 0), so the impl truly satisfies `ensures out = axisExtents n s` and `out.length = n`. (3) Faithfulness of the deep model `axisExtents n s` (from cellSize=1/(n+s(n-1)), cellPitch=cellSize*(1+s)) to the REAL matplotlib.gridspec.GridSpec.get_grid_positions under the patch-supplied margins left=0,right=1,bottom=0,top=1 and equal ratios: verified against installed matplotlib 3.6.3 (worktree $SCRATCH). Bundle axiom_check.py -> OK on 3297 configs. Independent broad fuzz (8000+ configs, n up to 500, s up to 1000 and down to 1e-6, seed varied) -> ZERO mismatches. Worst-case large-n float cumsum stress -> max abs deviation 2e-14 (ULP noise). The reduced closed form lefts[i]=i*cell_w*(1+wspace), rights[i]=lefts[i]+cell_w matches axisExtents exactly (norm=1 with equal ratios); row axis correctly modeled as reverse(axisExtents(nrows,hspace)) for top-origin indexing. No input in the spec domain (n>=1, s>=0) makes the modeled function disagree with the real callee beyond float rounding. The spec is not too strong and does not drift: it faithfully pins the gold spacing-aware placement and correctly refutes the prepatch even split (residual goal false for s!=0). No diverging input exists.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec-view = axioms+pure+pre/post regions + method signature (impl and prove_correct bodies elided). same_spec(Solution, Solution_prepatch)=True; spec regions byte-identical. Mechanical leakage.screen() PASSES (0 hard_failures). Checked against public problem_statement ONLY (not hints_text).\n\nWHAT vs HOW: The public problem_statement already states the intended behavior \u2014 wspace/hspace should reserve space between subfigures 'expressed as a fraction of the average subfigure width/height' (via the linked docstring) and currently 'do nothing'. The spec view models exactly that required behavior arithmetically: cellSize=1/(n+s(n-1)), cellPitch=cellSize*(1+s), axisExtents = per-cell (low,high) with a (1+s) pitch that separates cells when s>0. This is the WHAT (the gap-aware layout the issue demands), derivable from the public statement.\n\nThe gold edit is a MECHANISM that is NOT reconstructable from the spec view: GridSpec(..., left=0,right=1,bottom=0,top=1); gs.get_grid_positions(self); Bbox.from_extents; sf._redo_transform_rel_fig(bbox=...); the nested zip loops; the `get_layout_engine() is None` guard. None of these callee names, margin literals, loop structure, class names (GridSpec/Bbox), or the patched file path (lib/matplotlib/figure.py) / symbol appear anywhere in the spec view. The only changed repo symbol, `subfigures`, is public. Crucially the closed-form 1/(n+s(n-1)) lives in the UNCHANGED callee get_grid_positions, not in the patch hunk \u2014 so it reflects pre-existing repo behavior, not the edit.\n\nComments reference 'grid-position arithmetic/routine' only descriptively (concept), never the verbatim get_grid_positions symbol. mapping.md/refinement.md do name get_grid_positions, Bbox, figure.py etc., but those are auditor docs explicitly scoped 'not in the consumer spec view' and are not part of the G-LEAK spec view. No L1/L2/L3/L5 hits; no gold-edit reconstruction beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / model-vs-real-callee drift) attack: NO defect found. (1) same_spec(Solution, Solution_prepatch, velvet)==True \u2014 the frozen spec region is byte-identical; only the impl region differs (postpatch spacing-aware extents vs prepatch even-split 1/n). (2) Solution.lean elaborates clean via lean_verify.sh (exit 0), so the impl truly satisfies `ensures out = axisExtents n s` and `out.length = n`. (3) Faithfulness of the deep model `axisExtents n s` (from cellSize=1/(n+s(n-1)), cellPitch=cellSize*(1+s)) to the REAL matplotlib.gridspec.GridSpec.get_grid_positions under the patch-supplied margins left=0,right=1,bottom=0,top=1 and equal ratios: verified against installed matplotlib 3.6.3 (worktree $SCRATCH). Bundle axiom_check.py -> OK on 3297 configs. Independent broad fuzz (8000+ configs, n up to 500, s up to 1000 and down to 1e-6, seed varied) -> ZERO mismatches. Worst-case large-n float cumsum stress -> max abs deviation 2e-14 (ULP noise). The reduced closed form lefts[i]=i*cell_w*(1+wspace), rights[i]=lefts[i]+cell_w matches axisExtents exactly (norm=1 with equal ratios); row axis correctly modeled as reverse(axisExtents(nrows,hspace)) for top-origin indexing. No input in the spec domain (n>=1, s>=0) makes the modeled function disagree with the real callee beyond float rounding. The spec is not too strong and does not drift: it faithfully pins the gold spacing-aware placement and correctly refutes the prepatch even split (residual goal false for s!=0). No diverging input exists.; G-PANEL-3 (leakage): pass \u2014 Spec-view = axioms+pure+pre/post regions + method signature (impl and prove_correct bodies elided). same_spec(Solution, Solution_prepatch)=True; spec regions byte-identical. Mechanical leakage.screen() PASSES (0 hard_failures). Checked against public problem_statement ONLY (not hints_text).\n\nWHAT vs HOW: The public problem_statement already states the intended behavior \u2014 wspace/hspace should reserve space between subfigures 'expressed as a fraction of the average subfigure width/height' (via the linked docstring) and currently 'do nothing'. The spec view models exactly that required behavior arithmetically: cellSize=1/(n+s(n-1)), cellPitch=cellSize*(1+s), axisExtents = per-cell (low,high) with a (1+s) pitch that separates cells when s>0. This is the WHAT (the gap-aware layout the issue demands), derivable from the public statement.\n\nThe gold edit is a MECHANISM that is NOT reconstructable from the spec view: GridSpec(..., left=0,right=1,bottom=0,top=1); gs.get_grid_positions(self); Bbox.from_extents; sf._redo_transform_rel_fig(bbox=...); the nested zip loops; the `get_layout_engine() is None` guard. None of these callee names, margin literals, loop structure, class names (GridSpec/Bbox), or the patched file path (lib/matplotlib/figure.py) / symbol appear anywhere in the spec view. The only changed repo symbol, `subfigures`, is public. Crucially the closed-form 1/(n+s(n-1)) lives in the UNCHANGED callee get_grid_positions, not in the patch hunk \u2014 so it reflects pre-existing repo behavior, not the edit.\n\nComments reference 'grid-position arithmetic/routine' only descriptively (concept), never the verbatim get_grid_positions symbol. mapping.md/refinement.md do name get_grid_positions, Bbox, figure.py etc., but those are auditor docs explicitly scoped 'not in the consumer spec view' and are not part of the G-LEAK spec view. No L1/L2/L3/L5 hits; no gold-edit reconstruction beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 8 | `atk_1.lean`, `atk_2.lean`, `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_7.lean`, `atk_8.lean` |\n\n**Non-vacuity.** The positive control `pc1.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / model-vs-real-callee drift) attack: NO defect found.\n\n(1) same_spec(Solution, Solution_prepatch, velvet)==True \u2014 the frozen spec region is byte-identical; only the impl region differs (postpatch spacing-aware extents vs prepatch even-split 1/n).\n\n(2) Solution.lean elaborates clean via lean_verify.sh (exit 0), so the impl truly satisfies `ensures out = axisExtents n s` and `out.length = n`.\n\n(3) Faithfulness of the deep model `axisExtents n s` (from cellSize=1/(n+s(n-1)), cellPitch=cellSize*(1+s)) to the REAL matplotlib.gridspec.GridSpec.get_grid_positions under the patch-supplied margins left=0,right=1,bottom=0,top=1 and equal ratios: verified against installed matplotlib 3.6.3 (worktree $SCRATCH). Bundle axiom_check.py -> OK on 3297 configs. Independent broad fuzz (8000+ configs, n up to 500, s up to 1000 and down to 1e-6, seed varied) -> ZERO mismatches. Worst-case large-n float cumsum stress -> max abs deviation 2e-14 (ULP noise). The reduced closed form lefts[i]=i*cell_w*(1+wspace), rights[i]=lefts[i]+cell_w matches axisExtents exactly (norm=1 with equal ratios); row axis correctly modeled as reverse(axisExtents(nrows,hspace)) for top-origin indexing. No input in the spec domain (n>=1, s>=0) makes the modeled function disagree with the real callee beyond float rounding. The spec is not too strong and does not drift: it faithfully pins the gold spacing-aware placement and correctly refutes the prepatch even split (residual goal false for s!=0). No diverging input exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec-view = axioms+pure+pre/post regions + method signature (impl and prove_correct bodies elided). same_spec(Solution, Solution_prepatch)=True; spec regions byte-identical. Mechanical leakage.screen() PASSES (0 hard_failures). Checked against public problem_statement ONLY (not hints_text).\n\nWHAT vs HOW: The public problem_statement already states the intended behavior \u2014 wspace/hspace should reserve space between subfigures 'expressed as a fraction of the average subfigure width/height' (via the linked docstring) and currently 'do nothing'. The spec view models exactly that required behavior arithmetically: cellSize=1/(n+s(n-1)), cellPitch=cellSize*(1+s), axisExtents = per-cell (low,high) with a (1+s) pitch that separates cells when s>0. This is the WHAT (the gap-aware layout the issue demands), derivable from the public statement.\n\nThe gold edit is a MECHANISM that is NOT reconstructable from the spec view: GridSpec(..., left=0,right=1,bottom=0,top=1); gs.get_grid_positions(self); Bbox.from_extents; sf._redo_transform_rel_fig(bbox=...); the nested zip loops; the `get_layout_engine() is None` guard. None of these callee names, margin literals, loop structure, class names (GridSpec/Bbox), or the patched file path (lib/matplotlib/figure.py) / symbol appear anywhere in the spec view. The only changed repo symbol, `subfigures`, is public. Crucially the closed-form 1/(n+s(n-1)) lives in the UNCHANGED callee get_grid_positions, not in the patch hunk \u2014 so it reflects pre-existing repo behavior, not the edit.\n\nComments reference 'grid-position arithmetic/routine' only descriptively (concept), never the verbatim get_grid_positions symbol. mapping.md/refinement.md do name get_grid_positions, Bbox, figure.py etc., but those are auditor docs explicitly scoped 'not in the consumer spec view' and are not part of the G-LEAK spec view. No L1/L2/L3/L5 hits; no gold-edit reconstruction beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:10:23+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-closed-form",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.0
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-factored-pitch",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.5
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-two-pass",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 3.8
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-grid",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 4.2
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 2 (1 / 2) is not definitionally equal to the right-hand side false",
+            "id": "reject-even-split",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 3 (1 / 6) is not definitionally equal to the right-hand side false",
+            "id": "reject-even-split-pinned",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.9,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 2 (1 / 6) is not definitionally equal to the right-hand side false",
+            "id": "reject-cell-swallows-gap",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.1,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 2 0 is not definitionally equal to the right-hand side false",
+            "id": "reject-reversed-order",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 3.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 1 0 is not definitionally equal to the right-hand side false",
+            "id": "reject-offset-by-one-stride",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 4 (1 / 3) is not definitionally equal to the right-hand side false",
+            "id": "reject-extra-cell",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 2 2 is not definitionally equal to the right-hand side false",
+            "id": "reject-gap-clamped-at-one",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 4.3,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-last-cell-snapped",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 5.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 4,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "c352013ff2c7146604819c6fbb15c1896f3ab4223b38354db9b4b98442e1e3aa",
+        "n_cases": 12,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 12 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c",
+        "properties.py": "c352013ff2c7146604819c6fbb15c1896f3ab4223b38354db9b4b98442e1e3aa"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:11:17+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:33:27+00:00",
+      "code_version": "c7207a1e5-dirty",
+      "data": {
+        "wall_time_s": 4.2
+      },
+      "detail": "verified in 4.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "7e5b1f32cf09aecef404b9c08011a80890f8e3f3997a33788bd4c11b71d9268c"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "matplotlib__matplotlib-25960",
+  "modeled_functions": [
+    {
+      "carrier_type": "(n : Nat) -> (s : Rat) -> List (Rat x Rat)",
+      "model_symbol": "axisCellExtents",
+      "repo_symbol": "matplotlib.figure.Figure.subfigures[spacing-aware cell placement]"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "D_onegap",
+        "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: gap inserted as a single fixed offset on every cell after the first (lo i = i*size + (if i = 0 then 0 else s*size)) instead of accumulating one separation per stride, so only the first gap is honoured",
+        "outcome": "REJECTED by the spec (module build exit 1). Discriminating witness at (3,1/2): rival exit 0, gold exit 1 with the semantic `axisCellExtentsTester 3 (1 / 2) is not definitionally equal to false`, flipped claim on gold exit 0. Confirms C2 pins the CUMULATIVE stride and not merely the presence of a gap. Rival is correct at n<=2 (`Tester 2 (1/2) = true` exit 0), so it is a genuine near-miss the spec still catches."
+      },
+      {
+        "id": "D_clamp",
+        "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: requested gap fraction saturated at 1 before layout (s' = if s > 1 then 1 else s), correct on the whole sub-domain s <= 1",
+        "outcome": "REJECTED (module exit 1). Witness at (2,2): rival 0, gold 1 semantic, flip-gold 0. Correct at (3,1/6), (2,1/2), (2,1) \u2014 all `= true` exit 0. NOT a spec hole, but it exposed a real BATTERY gap: every shipped rival was refuted at s <= 1/2, leaving the s > 1 band of the admitted domain unattacked. SHIPPED as the new case reject-gap-clamped-at-one."
+      },
+      {
+        "id": "D_allsame",
+        "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: List.replicate n (0, cellSize n s), i.e. correct cardinality and correct cell SIZE but every cell stacked at the origin (all strides dropped)",
+        "outcome": "REJECTED (module exit 1). Witness at (2,0): rival 0, gold 1 semantic, flip-gold 0. Confirms C1 alone is not what carries the layout: satisfying the cardinality with correctly-sized cells is insufficient, C2 pins per-index placement."
+      },
+      {
+        "id": "E_natcast",
+        "kind": "E / SPEC-TOO-STRONG \u2014 new correct reshape: denominator written with the Nat-level predecessor cast, ((n-1 : Nat) : Rat), instead of the Rat-level ((n:Rat) - 1); equal on the whole precondition domain but a different term",
+        "outcome": "VERIFIES (exit 0). NO spec hole. Took 8 proof attempts: the obligation reduces to the cast identity ((n-1:Nat):Rat) = (n:Rat)-1, and the workspace's restricted tactic set blocked the idiomatic routes (`push_cast`/`ring_nf`/`linarith`/`norm_cast` are `unknown tactic`; `Nat.cast_sub`/`Nat.cast_pred` exist but `AddGroupWithOne Rat` fails to synthesize, so neither applies at Rat). Closed by `cases n` + `push_cast; grind` inside the branch. Reported as tooling, not as a spec defect."
+      },
+      {
+        "id": "E_snap",
+        "kind": "E / SPEC-TOO-STRONG \u2014 new correct reshape: last cell's far edge emitted as the literal axis end `1` rather than low + cellSize; correct only via the normalization identity (n-1)(1+s) + 1 = n + s(n-1)",
+        "outcome": "VERIFIES (exit 0). NO spec hole \u2014 the spec accepts an impl correct by arithmetic identity rather than by post-image shape. Required deriving the non-zero denominator from the preconditions (`Rat.mul_nonneg require_1 (by grind)` + `grind`; note plain `mul_nonneg` is an Unknown identifier here and `positivity`/`field_simp` are unknown tactics). Judged valuable enough to SHIP as the new positive pos-control-last-cell-snapped, since it covers the shape-vs-identity axis all three existing positives miss."
+      },
+      {
+        "id": "workspace_tactic_survey",
+        "kind": "tooling \u2014 establish what the Velvet.Std workspace actually provides, before attributing any E failure to the spec",
+        "outcome": "MEASURED, and it changed two verdicts. UNAVAILABLE as tactics: ring, ring_nf, linarith, nlinarith, positivity, field_simp, push_cast at top level, norm_cast (all `unknown tactic`). UNAVAILABLE as identifiers: mul_nonneg, div_add_div_same, div_eq_one_iff_eq, eq_div_iff. AVAILABLE: grind (closes the key Rat facts, e.g. `(n-1)*(1/(n+s*(n-1))*(1+s)) + 1/(n+s*(n-1)) = 1` given the denominator non-zero, exit 0), Rat.mul_nonneg, Nat.cast_pred/Nat.cast_sub (but not at Rat \u2014 AddGroupWithOne Rat fails to synthesize), exact_mod_cast for 1 <= n. My first six E attempts failed for exactly this reason, NOT for a spec disagreement; had I stopped there I would have reported two false spec holes."
+      },
+      {
+        "id": "admiss_content_probe",
+        "kind": "admissibility content probe \u2014 rebuild admiss-f2p-grid with the asserted post-image falsified to the even-split tiling",
+        "outcome": "FAILED as required (exit 1, `unsolved goals` displaying the real axisExtents 3 (1/6) map against the wrong literal list). Proves the assert is genuinely checked rather than a shape that passes regardless, and that the shipped literals are the true layout."
+      },
+      {
+        "id": "closer_claims",
+        "kind": "docstring verification \u2014 rebuild a witness with each closer the docstring says is DEAD, to check the prose is true rather than trusting it",
+        "outcome": "ALL CONFIRMED VERBATIM. bare `decide`: exit 1, stuck at `instDecidableEqBool (axisCellExtentsTester 2 (1 / 2)) false` ... `did not reduce to isTrue or isFalse` \u2014 exactly the spec_guide Rat trap. `decide +kernel`: rival exit 0 but GOLD exit 1 with `Reduction got stuck at the Decidable instance` \u2014 the precise witness-undecided signature, so the recorded MALFORMED-TESTS history is accurate and the migration to `with_unfolding_all rfl` was necessary, not cosmetic. `ring`: exit 1, `unknown tactic`."
+      },
+      {
+        "id": "statement_integrity_sweep",
+        "kind": "A / statement integrity \u2014 diff all 12 generated modules against frozen Solution.lean",
+        "outcome": "CLEAN on all 12. Every diff is confined to the impl region and (for 4 cases) the prove_correct tactic body. The `method axisCellExtents` header, both `require` clauses and both `ensures` clauses are byte-identical everywhere; no case reformats or weakens a hypothesis. No `sorry`/`admit`/`axiom`/`native_decide` in any variant or witness."
+      },
+      {
+        "id": "coverage_report",
+        "kind": "G / advisory coverage reporter",
+        "outcome": "CLEAN before (obl=1 cases=10 binders=2 pts=6-6) and after my repairs (obl=1 cases=12 (+5/-7) binders=2 pts=7-7, 0 findings). I checked the variation is MEANINGFUL, not two spellings of one point: n in {1,2,3,4} and s in {0,1/6,1/3,1/2,2}, seven distinct points, no two rivals refuted at the same point, s=0 probed by two rivals whose defects survive the gap factor collapsing, n=1 probed at the precondition boundary, and s=2 now probing the previously-unattacked s>1 band. The reuse of n=2 is at four different gap fractions with different spec verdicts."
+      }
+    ],
+    "audited_at": "u4",
+    "cases": [
+      {
+        "evidence": "Attack A: diffed the generated module against frozen Solution.lean byte-for-byte \u2014 the only change is inside impl-start/impl-end; method header, both `require`s and both `ensures` are byte-identical, and the frozen `prove_correct` body is untouched. Gate: verified [4.8s]. That untouched proof body IS the tell: `return (axisExtents n s)` is the frozen body with the `axisExtents` def FOLDED, so it is DEFINITIONALLY equal to gold and as a SPEC-TOO-STRONG probe it tests almost nothing. Its rationale's substantive claim is nonetheless TRUE and I checked it against Solution.lean: cellSize/cellPitch/axisExtents are transparent computable `def`s in the pure region and the axioms region is EMPTY, so there is no opaque answer key and echoing the post-image is honest work, not an ungrounded-oracle echo. Not vacuous (it is a real control on the grounding claim), so kept; the shape-vs-identity gap it leaves is now closed by the new pos-control-last-cell-snapped.",
+        "id": "pos-control-closed-form",
+        "verdict": "weak-but-honest (kept)"
+      },
+      {
+        "evidence": "Attack A clean (impl region + tactic body only; statement byte-identical). Gate: verified [7.7s]. Genuinely reshaped: `size + s*size` vs `size*(1+s)` leaves a real distributivity residual that the frozen `simp [axisExtents]` does not close, hence the retuned `simp [axisExtents, cellPitch]; grind`. I independently re-derived the docstring's aside that `ring` is unavailable in this workspace: built `example (a b : Rat) : a*(1+b) = a + a*b := by ring` -> exit 1, `unknown tactic`. Retuning is tactic-body-only, adds no lemma, assumes nothing.",
+        "id": "pos-control-factored-pitch",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Gate: verified [7.7s]. Changes the traversal STRUCTURE (materialize lows, then pair each with its far edge), so the residual is a genuine map-composition step needing `List.map_map` rather than a reflexivity \u2014 a real axis of variation the other two ported positives do not cover. I rebuilt the module standalone: exit 0.",
+        "id": "pos-control-two-pass",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean. Gate: verified [12.0s]. The admissibility lane IS present here (not dropped), which is the systematic omission the brief flags. I probed whether the `assert` carries CONTENT rather than being a shape that passes regardless: I rebuilt it with the asserted post-image falsified to the even-split tiling [(0,1/3),(1/3,2/3),(2/3,1)] and it FAILED, exit 1, `unsolved goals` with the residual goal displaying the real `axisExtents 3 (1/6)` map against the wrong literal list. So the assert is genuinely checked and the shipped literals [(0,3/10),(7/20,13/20),(7/10,1)] are the true layout. That point satisfies P1 and P2 jointly at a real in-domain input and the post-image there is non-degenerate: cells strictly separated (3/10 < 7/20) and the axis exactly filled (last high = 1), matching the F2P test's own configuration (nrows=2, ncols=3, wspace=1/6) per instance.json.",
+        "id": "admiss-f2p-grid",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; module build exit 1 (rival really is refused). Witness rebuilt from the gate's own witness_file construction at (2,1/2): rival exit 0, gold exit 1. Gold error is SEMANTIC and I read the full text: `Tactic rfl failed: The left-hand side axisCellExtentsTester 2 (1 / 2) is not definitionally equal to the right-hand side false`, with a grep for stuck-reduction markers (`did not reduce to`, `failed to synthesize`, `Application type mismatch`, `maximum recursion`) returning ZERO hits. Attack B': flipped claim `= true` on gold -> exit 0, and on the rival -> exit 1 with the mirror `not definitionally equal to ... true`. So gold's exit code TRACKS the claim and is not constant. Attack C: observably distinct from gold (pitch 1/2 vs 2/5). Partial-domain claim re-derived: `Tester n s = true` against THIS RIVAL at (5,0) exits 0, so it genuinely satisfies the contract on the s=0 sub-domain.",
+        "id": "reject-even-split",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; module exit 1. Witness at (3,1/6): rival 0, gold 1 with the semantic `axisCellExtentsTester 3 (1 / 6) is not definitionally equal to false`, no stuck-reduction text. Attack B': flip `= true` on gold exit 0, flip on rival exit 1 (`not definitionally equal to true`). Attack C: observably distinct at its pinned point (lows 0,1/3,2/3 size 1/3 vs pinned 0,7/20,7/10 size 3/10). The rationale asserts a NEAR-MISS correct on EVERY other input \u2014 a claim no gate checks \u2014 so I re-derived it: `Tester = true` against this rival at (3,1/3) and (4,1/6) both exit 0. Correctly refuted at its own single distinguishing point rather than borrowing reject-even-split's.",
+        "id": "reject-even-split-pinned",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; module exit 1. Witness at (2,1/6): rival 0, gold 1, semantic (`axisCellExtentsTester 2 (1 / 6) is not definitionally equal to false`), no stuck text. Attack B': flip-gold exit 0, flip-rival exit 1. Attack C: observably distinct (high = low + cellPitch vs + cellSize; at (2,1/6) the rival's second extent is (7/13, 14/13), off the unit axis). Isolates the SPAN while satisfying C1 exactly, so it is a distinct attack from the cardinality rival. Partial-domain claim re-derived: `Tester 3 0 = true` against this rival exits 0 (stride = size when s=0).",
+        "id": "reject-cell-swallows-gap",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; module exit 1. Witness at (2,0): rival 0, gold 1, semantic (`axisCellExtentsTester 2 0 is not definitionally equal to false`), no stuck text. Attack B': flip-gold exit 0, flip-rival exit 1. Attack C: NOT definitionally equal to gold \u2014 List.reverse of a 2-element list is observably a different list, refuted at s=0 where every gap factor collapses to 1, so the defect is genuinely independent of the dropped-gap defect. The only rival whose extents are all individually correct, so ONLY the list-order half of C2 refutes it: real added coverage. Its mapping.md \u00a72 justification is real \u2014 the row axis is consumed as `(axisExtents nrows hspace).reverse` because the underlying routine indexes that axis from the far end, so an orientation confusion is a live failure mode. Partial-domain claim re-derived: `Tester 1 (1/2) = true` against the rival exits 0 (reverse of a singleton).",
+        "id": "reject-reversed-order",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; module exit 1. Witness at (1,0): rival 0, gold 1, semantic (`axisCellExtentsTester 1 0 is not definitionally equal to false`), no stuck text. Attack B': flip-gold exit 0, flip-rival exit 1. Attack C: observably distinct (returns [(1,2)] where the pinned layout is [(0,1)], entirely off the unit axis). Probes BOTH precondition boundaries at once (n=1 at equality, s=0 at equality) \u2014 a point no other witness touches \u2014 and isolates the layout ORIGIN while span, order, count and stride length are all correct.",
+        "id": "reject-offset-by-one-stride",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Attack A clean; module exit 1. Witness at (4,1/3): rival 0, gold 1, semantic (`axisCellExtentsTester 4 (1 / 3) is not definitionally equal to false`), no stuck text. Attack B': flip-gold exit 0, flip-rival exit 1. Attack C: observably distinct (length n+1 vs n at every input). The ONLY rival aimed at C1 (`out.length = n`) rather than C2, so without it the cardinality clause would be defended-but-never-attacked. Its note that the mirror defect (one too FEW) is the same clause with the same refutation is correct \u2014 I built that mirror anyway as attack D1_one_too_few and it was rejected with a discriminating witness, so nothing is lost by not shipping it separately.",
+        "id": "reject-extra-cell",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "NEW rival I wrote and shipped to close a binder-RANGE gap: all six pre-existing witnesses sit at s <= 1/2, so the band s > 1 (a gap WIDER than a cell \u2014 admitted by `require s >= 0`, which bounds s nowhere above, and exercised by the G-CONF/G-AX fuzz) was attacked by nothing. This rival saturates the honoured gap fraction at 1, so it agrees with the pinned layout on the whole sub-domain s <= 1 \u2014 including all six other witness points and the tested configuration \u2014 and diverges only past s = 1. Builds: module exit 1 (refused, residual goal shows `cellPitch n (if 1 < s then 1 else s)` vs `cellPitch n s`); witness at (2,2) rival exit 0, gold exit 1 with the semantic `axisCellExtentsTester 2 2 is not definitionally equal to false` and no stuck-reduction text. Attack B': flip `= true` on gold exit 0, flip on rival exit 1 (`not definitionally equal to true`). Partial-domain claim demonstrated with `Tester = true` against the rival at (3,1/6), (2,1/2) and (2,1) \u2014 all exit 0, i.e. correct up to and including the clamp threshold. Gate: rejected (witness refutes the rival) [8.5s].",
+        "id": "reject-gap-clamped-at-one",
+        "verdict": "earned (ADDED by this audit)"
+      },
+      {
+        "evidence": "NEW soundness positive I wrote and shipped. The three pre-existing positives are each closed by simp-level rewriting of the post-image, i.e. all three are correct by SHAPE; none asks whether the spec accepts an impl correct by ARITHMETIC IDENTITY. This one writes the last cell's far edge as the literal `1` instead of `low + cellSize`, which is right only because the pinned layout exactly tiles the unit axis ((n-1)(1+s) + 1 = n + s(n-1)), and discharging it needs the denominator to be non-zero on the precondition's domain \u2014 a genuine arithmetic obligation, not a shape match. It also exercises the last-cell boundary of the index range, which no other positive distinguishes. Standalone build exit 0; gate: verified [4.0s]. Proof retuned in the tactic body only (elided from the spec view): no lemma added, nothing assumed, statement byte-identical.",
+        "id": "pos-control-last-cell-snapped",
+        "verdict": "earned (ADDED by this audit)"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "D1_one_too_few",
+            "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: `List.range (n - 1)`, the mirror of reject-extra-cell (one extent too FEW)",
+            "outcome": "REJECTED by the spec (impl build exit 1). Discriminating witness at (1,0) built: rival exit 0. Confirms C1 pins the cardinality in both directions, and confirms the battery's stated reason for not shipping the mirror separately."
+          },
+          {
+            "id": "D2_pair_swapped",
+            "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: each extent emitted as (high, low), components transposed",
+            "outcome": "REJECTED (exit 1). Witness at (1,0) exit 0. C2 pins the pair ORIENTATION, not just the set of edge values \u2014 an axis the battery's rivals did not probe."
+          },
+          {
+            "id": "D3_n_gaps",
+            "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: off-by-one in the NORMALIZATION, denominator n + s*n instead of n + s*(n-1) (n gaps counted instead of n-1)",
+            "outcome": "REJECTED (exit 1). Witness at (1,1/2) exit 0; gold at (1,1/2) `= true` exit 0 and `= false` exit 1, so the witness discriminates. This is the subtlest wrong impl I could construct (correct at s=0 AND at n=1 for the pitch, wrong only in how many gaps the axis must accommodate) and the spec still catches it."
+          },
+          {
+            "id": "D4_abs_gap",
+            "kind": "D / SPEC-TOO-WEAK \u2014 new wrong impl: gap treated as an ABSOLUTE fraction of the axis (pitch = size + s) rather than a fraction of the cell size (size*(1+s))",
+            "outcome": "REJECTED (exit 1). Witness at (2,1/2) exit 0. This is the most plausible real-world misreading of the spec's own prose (`expressed as a fraction s of a single cell's size`) and C2 excludes it."
+          },
+          {
+            "id": "E1_two_pass",
+            "kind": "E / SPEC-TOO-STRONG \u2014 new correct reshape: build lows in one pass, pair with far edges in a second",
+            "outcome": "VERIFIES (exit 0) with `simp [axisExtents, List.map_map]`. No spec hole. Judged valuable enough to SHIP as the new case pos-control-two-pass, since it covers a reshape axis the ported positives miss."
+          },
+          {
+            "id": "E2_high_from_next",
+            "kind": "E / SPEC-TOO-STRONG \u2014 new correct reshape: far edge derived from the NEXT cell's low edge minus the separation, ((i+1)*cellPitch - s*cellSize), instead of low + cellSize",
+            "outcome": "VERIFIES (exit 0) with `simp [axisExtents, cellPitch]; grind`. No spec hole: the spec accepts a faithful impl that computes the span by backing off from the next stride, so C2 pins the value and not the arithmetic route."
+          },
+          {
+            "id": "E3_ofFn",
+            "kind": "E / SPEC-TOO-STRONG \u2014 new correct reshape: `List.ofFn` over `Fin n` instead of mapping `List.range n`",
+            "outcome": "UNCERTAIN, NOT a claimed hole. Six proof attempts all failed for TOOLING reasons, never a spec disagreement: `simp [List.ofFn_eq_map, List.finRange]` hit `maximum recursion depth` (with `Possibly looping simp theorem` warnings); `List.finRange_map_cast` is an `Unknown constant` in this Mathlib pin; an induction attempt via `List.ofFn_succ`/`List.range_succ_eq_map` also failed. The obligation is `List.ofFn f = List.map f (List.range n)` modulo the Fin/Nat cast, which is TRUE, so I believe the impl is correct and the spec would accept it given the right lemma name. Per instructions I mark this uncertain rather than reporting a soundness hole."
+          },
+          {
+            "id": "A1_false_assert",
+            "kind": "admissibility content probe \u2014 rebuild admiss-f2p-grid with the asserted post-image falsified to the even-split tiling",
+            "outcome": "FAILED as required (exit 1, `unsolved goals` exposing the real axisExtents 3 (1/6) goal). Proves the admissibility assert is genuinely checked rather than a shape that passes regardless, and that its shipped literals are the true layout."
+          },
+          {
+            "id": "closer_claims",
+            "kind": "docstring verification \u2014 rebuild the (2,1/2) witness with each closer the docstring says is DEAD, to check the prose is true",
+            "outcome": "ALL FOUR CLAIMS CONFIRMED VERBATIM. bare `decide`: rival exit 1, stuck at `instDecidableEqBool (axisCellExtentsTester 2 (1 / 2)) false` after unfolding Rat.instDecidableLe etc. \u2014 exactly the spec_guide Rat trap. plain `rfl`: both sides exit 1. `simp [cellSize, cellPitch, Rat.normalize]`: exit 1, `simp made no progress`. `decide +kernel`: rival exit 0 but GOLD exit 1 with `Reduction got stuck at the Decidable instance / did not reduce to isTrue or isFalse` \u2014 the precise witness-undecided signature, so the recorded MALFORMED-TESTS history is accurate and the migration to `with_unfolding_all rfl` was necessary rather than cosmetic."
+          },
+          {
+            "id": "coverage_report",
+            "kind": "G / advisory coverage reporter",
+            "outcome": "CLEAN before and consistent after: `obl=1 cases=9 (+3/-6) binders=2 pts=6-6 ok`, 0 coverage findings. I checked the variation is MEANINGFUL rather than two spellings of one point: n \u2208 {1,2,3,4} and s \u2208 {0,1/6,1/3,1/2}, six distinct points, no two rivals refuted at the same point, s=0 probed by two rivals whose defects survive the gap factor collapsing, and n=1 probed at the precondition boundary. The three-way reuse of n=2 is at three different gap fractions with different spec verdicts."
+          }
+        ],
+        "audited_at": "a7",
+        "cases": [
+          {
+            "evidence": "Attack A: diff vs frozen is confined to the impl region; method/require/ensures header byte-identical. Verifies (gate: 82.4s) with the FROZEN proof body untouched \u2014 which is the tell: `return (axisExtents n s)` is the frozen body with the `axisExtents` def FOLDED, so it is DEFINITIONALLY EQUAL to gold, not a structural reshape. Its rationale's claim (grounded post-image, empty axioms region, so echoing is honest work) is TRUE and verified against Solution.lean: cellSize/cellPitch/axisExtents are transparent computable defs and the axioms region is empty, so this is not an ungrounded-oracle echo. But as a SPEC-TOO-STRONG probe it tests almost nothing, since passing required no proof retuning at all. Not vacuous (a real positive control on the grounding claim), so kept rather than dropped; the gap it leaves is closed by the new pos-control-two-pass.",
+            "id": "pos-control-closed-form",
+            "verdict": "weak-but-honest"
+          },
+          {
+            "evidence": "Attack A clean (impl region + tactic body only; statement byte-identical). Verifies (gate: 167.6s). Genuinely reshaped: `size + s*size` vs `size*(1+s)` leaves a real distributivity residual the frozen `simp [axisExtents]` does not close, hence the added `simp [axisExtents, cellPitch]; grind`. The docstring's aside that `ring` is unavailable in this workspace is TRUE \u2014 I built `example (a b : Rat) : a*(1+b) = a + a*b := by ring` and got exit 1, `unknown tactic`. Retuning is tactic-body-only, adds no lemma and assumes nothing.",
+            "id": "pos-control-factored-pitch",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "New soundness positive I wrote and shipped, closing the axis of variation the two ported positives leave uncovered (closed-form folds a def and is definitionally gold; factored-pitch varies arithmetic inside the SAME single-pass `(List.range n).map`). Neither asks whether the spec tolerates a different list-BUILDING structure. Two passes \u2014 materialize lows, then pair each with its far edge \u2014 makes the residual a genuine map-composition step closed by adding `List.map_map`. Out-of-band build exit 0; gate re-run: verified (187.2s). Confirms C2 pins the VALUE, not the traversal shape.",
+            "id": "pos-control-two-pass",
+            "verdict": "earned (ADDED by this audit)"
+          },
+          {
+            "evidence": "Attack A clean. Verifies (gate: 115.3s). I probed whether the `assert` carries CONTENT rather than being a shape that passes regardless: I rebuilt it with the post-image list falsified to the even-split tiling [(0,1/3),(1/3,2/3),(2/3,1)] and it FAILED, exit 1, `unsolved goals` with the residual goal showing the real axisExtents 3 (1/6) map against the wrong literal list. So the asserted layout is genuinely checked, and the shipped literals [(0,3/10),(7/20,13/20),(7/10,1)] are the true ones. Those literals also match the real F2P test in instance.json (test_subfigures_wspace_hspace, 2x3, wspace=1/6: x-coords 0/0.3, 0.35/0.65, 0.7/1.0), so P1+P2 are jointly satisfiable at a real in-domain input and the post-image there is non-degenerate (cells strictly separated, 3/10 < 7/20; axis exactly filled, last high = 1).",
+            "id": "admiss-f2p-grid",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt witness at (2,1/2): rival exit 0, gold exit 1, gold error is SEMANTIC \u2014 `Tactic rfl failed: The left-hand side axisCellExtentsTester 2 (1/2) is not definitionally equal to the right-hand side false` with NO stuck-reduction text; the same-point `= true` build on gold exits 0, proving the reduction really happened. Attack C: observably distinct from gold (pitch 1/2 vs 2/5). Attack: I validated the rationale's partial-domain claim (`correct on the whole s = 0 sub-domain`) by building `Tester n s = true` against THIS RIVAL at (2,0) and (5,0) \u2014 both exit 0, so the rival genuinely satisfies the contract there. Refinement is true: this is the even gap-free tiling, i.e. the pre-change reading, and on the F2P 3-cell axis it puts column 1 at 1/3 not the asserted 0.35.",
+            "id": "reject-even-split",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt witness at (3,1/6): rival exit 0, gold exit 1 with the semantic `not definitionally equal to false` verdict (no stuck reduction), gold `= true` at (3,1/6) exit 0. Attack C: observably distinct from gold at its pinned point (lows 0,1/3,2/3 size 1/3 vs pinned 0,7/20,7/10 size 3/10). The rationale claims it is a NEAR-MISS correct on EVERY other input \u2014 a claim the gate never checks \u2014 so I checked it: `Tester n s = true` against this rival at (2,1/2), (3,1/3) and (4,1/6) all exit 0. So the near-miss claim is demonstrated, not merely asserted, and the case is correctly refuted at its own single distinguishing point rather than borrowing reject-even-split's.",
+            "id": "reject-even-split-pinned",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt witness at (2,1/6): rival exit 0, gold exit 1 semantic (`axisCellExtentsTester 2 (1/6) is not definitionally equal to false`, no stuck reduction), gold `= true` exit 0. Attack C: observably distinct (high = low + cellPitch vs + cellSize; at (2,1/6) the rival's second extent is (7/13, 14/13), off the unit axis). Isolates the SPAN component while satisfying C1 exactly, so it is a distinct attack from the cardinality rival. Rationale's `agrees on the whole s = 0 sub-domain` claim verified: `Tester 3 0 = true` against this rival exits 0.",
+            "id": "reject-cell-swallows-gap",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt witness at (2,0): rival exit 0, gold exit 1 semantic (`axisCellExtentsTester 2 0 is not definitionally equal to false`), gold `= true` at (2,0) exit 0. Attack C: NOT definitionally equal to gold \u2014 List.reverse of a 2-element list is observably a different list, and the witness proves exactly that at s=0 where every gap factor collapses to 1, so the defect is genuinely independent of the dropped-gap defect. This is the only rival whose extents are all individually correct, so ONLY the list-order half of C2 refutes it \u2014 real added coverage. Rationale's implicit claim that it is correct at n=1 (reverse of a singleton) verified: `Tester 1 (1/2) = true` against the rival exits 0. Its mapping.md \u00a72 justification is real: the row axis is consumed as `(axisExtents nrows hspace).reverse`, so an orientation confusion is a live failure mode.",
+            "id": "reject-reversed-order",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt witness at (1,0): rival exit 0, gold exit 1 semantic (`axisCellExtentsTester 1 0 is not definitionally equal to false`), gold `= true` exit 0. Attack C: observably distinct (returns [(1,2)] where the pinned layout is [(0,1)]). Probes both precondition boundaries at once (n = 1 at equality, s = 0 at equality) \u2014 a point no other witness touches \u2014 and isolates the layout ORIGIN while span/order/count/stride are all correct.",
+            "id": "reject-offset-by-one-stride",
+            "verdict": "earned"
+          },
+          {
+            "evidence": "Attack A clean. Rebuilt witness at (4,1/3): rival exit 0, gold exit 1 semantic (`axisCellExtentsTester 4 (1/3) is not definitionally equal to false`), gold `= true` exit 0. Attack C: observably distinct (length n+1 vs n at every input). The ONLY rival aimed at C1 (`out.length = n`) rather than C2, so without it the cardinality clause would be defended-but-never-attacked. Its own note that the mirror defect (one too FEW) is the same clause with the same refutation is correct \u2014 I built that mirror anyway as attack D1 and it was rejected with a discriminating witness, so nothing is lost by not shipping it.",
+            "id": "reject-extra-cell",
+            "verdict": "earned"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "SCOPE OF EDIT: velvet/properties.py only. I did not touch Solution.lean, meta.json, or instance.json. (git status shows other instances' meta.json and this instance's lean/ bundle as modified \u2014 that is concurrent processes' concurrent work in the shared tree, not mine; my diff is 78 insertions / 6 deletions in velvet/properties.py.) All scratch was kept in a private /tmp dir and deleted afterwards; nothing was written into the bundle or the repo root.\n\nWHY REPAIRED RATHER THAN SHIP. The recorded SOUND was substantially earned: attack A found no statement tampering in any of the 9 cases, all 18 witness builds reproduced exactly (with SEMANTIC gold-side failures, which is the half the gate cannot judge), all six rivals are observably distinct from gold on this carrier so none is vacuous under attack C, and four new tuned wrong impls (D1-D4) were all rejected, so I found no spec hole. The defect I did find is one of DEFENSIVE COVERAGE rather than a false pass: pos-control-closed-form passes with the frozen proof body completely untouched because `return (axisExtents n s)` is the frozen impl with one transparent def folded \u2014 definitionally equal to gold. As a SPEC-TOO-STRONG probe it therefore tests essentially nothing, and pos-control-factored-pitch varies only the arithmetic inside the same single-pass traversal. Neither asks whether C2 over-fits the TRAVERSAL SHAPE. I added pos-control-two-pass to close that, whose residual obligation is a real map-composition step. I kept closed-form rather than dropping it, since it does honestly control the grounded-post-image claim.\n\nPROSE CORRECTED. The docstring claimed `18 of 18 builds behaved as stated` and made several strong sub-domain claims that no gate checks. I re-derived the 18 and confirmed them, then added the audit's own measurements: for every rival claiming partial-domain correctness I built `Tester n s = true` AGAINST THAT RIVAL inside the claimed sub-domain (7 builds, all exit 0), which is what turns `this is a near-miss` from an assertion into a demonstration. Previously a rationale could have claimed a sub-domain the manifest never showed; now each one is machine-backed. I also verified the docstring's closer history verbatim \u2014 including that `decide +kernel` really does leave gold with `Reduction got stuck at the Decidable instance`, the exact witness-undecided signature \u2014 so the recorded MALFORMED-TESTS history and the migration to `with_unfolding_all rfl` are accurate rather than post-hoc narrative.\n\nONE UNCERTAIN ITEM, deliberately not escalated. E3_ofFn (a `List.ofFn`/`Fin n` reshape) is, I believe, a faithful correct impl, but I could not close its proof in six attempts and every failure was tooling-shaped \u2014 `maximum recursion depth` from a looping simp set, and `List.finRange_map_cast` being an Unknown constant in this Mathlib pin \u2014 never the spec disagreeing with the impl. Per the instructions I mark it uncertain rather than claiming a SPEC-TOO-STRONG hole. It is worth one follow-up with the right lemma name if anyone wants full confidence that C2 is traversal-agnostic; note that E1 and E2 (both of which DO verify) already give two independent pieces of evidence in that direction, including E1 which I shipped.\n\nLEAK DISCIPLINE: the case I added names no repo file, function, or patch line, and describes the reshape purely in terms of the Lean carrier.",
+        "omissions_reviewed": [
+          {
+            "evidence": "Merged into reject-even-split-pinned, correctly. The nagini surface models FOUR extents of a 2-D cell rectangle (left/right/bottom/top) in ONE function, so it can attack the column axis and the row axis as separate rivals. This carrier models ONE axis, `axisCellExtents n s`, consumed for BOTH orientations (mapping.md \u00a72: rows are `(axisExtents nrows hspace).reverse`). So `the column axis is wrong` and `the row axis is wrong` are the same modeled behaviour at different binder values \u2014 one rival, not two. The shipped merge keeps the load-bearing shape (wrong on exactly the tested configuration, correct elsewhere) and I verified that near-miss claim with real builds: `Tester = true` against the rival at (2,1/2), (3,1/3), (4,1/6) all exit 0. Genuine carrier narrowing, not a dropped attack.",
+            "nagini_case": "weak-hdrop-partial (columns laid out gap-less on exactly the F2P grid)",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "The `wrong only on the tested grid` half duplicates weak-hdrop-partial on a single-axis carrier (same reason as above). The REFLECTION half does carry content this carrier keeps, and the port shipped it as reject-reversed-order rather than dropping it \u2014 the right call, and independently justified: mapping.md \u00a72 records that this one axis computation is consumed in both orientations because get_grid_positions indexes rows from the far end, so an order confusion is a live failure mode. I verified reject-reversed-order discriminates (rival exit 0 / gold exit 1 semantic / gold-true exit 0 at (2,0)) and that it breaks at s=0 where every gap factor collapses, so it is genuinely independent of the dropped-gap defect rather than a restatement of it.",
+            "nagini_case": "weak-row-reflect (rows counted from the bottom on exactly the F2P grid)",
+            "verdict": "inexpressible AS STATED, but its content was re-expressed and I confirm the re-expression is real"
+          },
+          {
+            "evidence": "Demonstrated, not merely asserted. Nagini itself declares this class N/A (scalar args by value, no Acc(x,1/2) read-only reference parameter, freshly constructed result), so there is no sibling case to port in the first place. On this carrier it is vacuous a second time: the frozen `method axisCellExtents (n : Nat) (s : Rat) return (out : ...)` binds both inputs as immutable non-`mut` values, Velvet is referentially transparent, and there is no heap, aliasing or permission system in the language \u2014 so there exists no read-only input a rival could overwrite and no frame clause to weaken. Correctly recorded with no substitute probe fabricated.",
+            "nagini_case": "FRAME / PERMISSION-MUTATION",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Verified against the frozen file rather than taken on trust. A wrong-echo rival requires an opaque answer-key oracle to echo; the `-- axioms-start/-- axioms-end` region of Solution.lean is EMPTY, and cellSize/cellPitch/axisExtents are all transparent computable `def`s written as closed forms of the method's own two arguments. So computing `axisExtents n s` IS doing the modeled work and there is nothing to echo wrongly. Correctly folded into a positive control (pos-control-closed-form) rather than shipped as a rival \u2014 though see that case's verdict: because the fold is definitional, it is a weak positive, which is why I added pos-control-two-pass.",
+            "nagini_case": "UNGROUNDED-ORACLE ECHO",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "C1 + C2 jointly pin the ENTIRE output value (the cardinality and every extent, as a total function of both binders), and the method has no exception, side-effect or raise channel in the language. There is no observable behaviour the spec cannot see, so no rival can differ from gold in a way the value abstraction misses. Consistent with nagini's own N/A declaration for the same class.",
+            "nagini_case": "CONTROL-FLOW-EFFECT",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Correctly dropped. G-PBT parses SPEC_TESTS and ignores AXIOM_TESTS entirely, and the axiom-soundness obligation is carried by this bundle's own axiom_check.py under G-AX, which meta.json records as pass on 3297 configs (`deep model axisExtents == real GridSpec.get_grid_positions`, columns lefts/rights, rows reverse(bottoms/tops)). Re-litigating it here would duplicate a gate outside this lane. AXIOM_TESTS = [] is right.",
+            "nagini_case": "AXIOM_TESTS / ax-ref-getgridpositions (A-reference: re-run the real grid-position routine in Docker against the closed-form model)",
+            "verdict": "inexpressible (out of this lane, not a battery gap)"
+          },
+          {
+            "evidence": "The bundle runs under `set_option loom.semantics.termination \"partial\"`, so a non-terminating impl satisfies every `ensures` vacuously. Per the audit instructions this lane is already settled and measured across all 401 `partial` bundles in the corpus-wide termination-semantics finding, so I spent no builds re-measuring it and deliberately left `spec_holes` empty rather than double-reporting a known finding as new. I did check the port's REASONING, which is the part that matters: it does NOT claim referential transparency collapses the class (the wrong reason the instructions warn about) \u2014 it states the correct reason, that no witness can exist for a rival the frozen spec SATISFIES, and cites the remedy as `partial` -> `total` plus a decreasing measure, which would edit the frozen artifact and is out of lane.",
+            "nagini_case": "DIVERGENCE / NON-TERMINATION",
+            "verdict": "inexpressible (known corpus-wide spec hole; disposition correct, and NOT re-reported here)"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "gold_error": "Tactic `rfl` failed: The left-hand side axisCellExtentsTester 2 (1 / 2) is not definitionally equal to the right-hand side false \u2014 SEMANTIC, no stuck-reduction text",
+            "gold_exit": 1,
+            "gold_true_exit": 0,
+            "id": "reject-even-split",
+            "probe_exit": "n/a (witness binds no hypothesis, consistency_probe() returns None \u2014 verified programmatically via witness_head_binders)",
+            "rival_exit": 0
+          },
+          {
+            "gold_error": "axisCellExtentsTester 3 (1 / 6) is not definitionally equal to false \u2014 SEMANTIC",
+            "gold_exit": 1,
+            "gold_true_exit": 0,
+            "id": "reject-even-split-pinned",
+            "probe_exit": "n/a (no binders)",
+            "rival_exit": 0
+          },
+          {
+            "gold_error": "axisCellExtentsTester 2 (1 / 6) is not definitionally equal to false \u2014 SEMANTIC",
+            "gold_exit": 1,
+            "gold_true_exit": 0,
+            "id": "reject-cell-swallows-gap",
+            "probe_exit": "n/a (no binders)",
+            "rival_exit": 0
+          },
+          {
+            "gold_error": "axisCellExtentsTester 2 0 is not definitionally equal to false \u2014 SEMANTIC",
+            "gold_exit": 1,
+            "gold_true_exit": 0,
+            "id": "reject-reversed-order",
+            "probe_exit": "n/a (no binders)",
+            "rival_exit": 0
+          },
+          {
+            "gold_error": "axisCellExtentsTester 1 0 is not definitionally equal to false \u2014 SEMANTIC",
+            "gold_exit": 1,
+            "gold_true_exit": 0,
+            "id": "reject-offset-by-one-stride",
+            "probe_exit": "n/a (no binders)",
+            "rival_exit": 0
+          },
+          {
+            "gold_error": "axisCellExtentsTester 4 (1 / 3) is not definitionally equal to false \u2014 SEMANTIC",
+            "gold_exit": 1,
+            "gold_true_exit": 0,
+            "id": "reject-extra-cell",
+            "probe_exit": "n/a (no binders)",
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 6
+      }
+    ],
+    "notes": "SCOPE OF MY CHANGES: properties.py only. I did not touch Solution.lean, instance.json, or any other instance; `git diff --name-only` on the frozen artifacts returns 0 files. meta.json changed only because the gate stamped its own re-run record. All scratch (75 Lean files, ~90 builds) lived in a private mktemp dir under /tmp \u2014 nothing was written into the bundle or the repo root.\n\nWHY REPAIRED RATHER THAN SHIP: the recorded SOUND was substantially earned \u2014 Attack A is clean on every case, all six original witnesses discriminate with genuine semantic gold-side refutations, and the forgery pair passes on all of them (gold's error is a mirror image that TRACKS the claim; `= true` on gold exits 0). Every prose claim I sampled was true, including the four dead-closer claims and the partial-domain sub-domain claims, and the admissibility lane is present with a demonstrably load-bearing assert. But two real gaps existed, both found by writing new attacks rather than by reading:\n\n1. BINDER-RANGE gap (the more serious). All six rivals were refuted at s <= 1/2. `require s >= 0` bounds the gap fraction nowhere above, and G-CONF/G-AX fuzz s up to 1000, so the entire s > 1 band \u2014 a gap wider than a cell \u2014 was defended by no rival. A real implementation that capped the requested spacing at one cell would have slipped past the battery entirely while honouring the gap exactly on the tested configuration. Closed by reject-gap-clamped-at-one, the widest-domain near-miss in the battery (correct on all of s <= 1, including all six pre-existing witness points).\n\n2. SOUNDNESS-AXIS gap. All three positives were correct by SHAPE \u2014 each closed by simp-level rewriting of the post-image \u2014 so none tested whether the spec accepts an impl correct by ARITHMETIC IDENTITY. Closed by pos-control-last-cell-snapped, whose residual is a genuine fact about the precondition's domain (the denominator is non-zero) rather than a shape match, and which additionally exercises the last-cell index boundary.\n\nI also corrected the docstring/footer prose that my edits falsified (case counts, binder and point lists, build counts) and added the forgery-check evidence, so the shipped narrative matches what actually ships and what was actually measured.\n\nMETHODOLOGICAL WARNING WORTH PROPAGATING: my first six attempts at the two E reshapes all failed, and reading those failures naively would have produced TWO false SPEC-TOO-STRONG reports. The cause was entirely tooling \u2014 Velvet.Std exposes a restricted tactic set in which ring, ring_nf, linarith, nlinarith, positivity, field_simp, push_cast and norm_cast are all `unknown tactic`, and `mul_nonneg` is not even in scope. Both reshapes verify once the proof is written in the vocabulary that IS available (grind, Rat.mul_nonneg, cases + push_cast inside a branch, exact_mod_cast). This is the brief's 'the tactic I need is unavailable' trap in its live form: the residual goals were true statements about Rat arithmetic the whole time. Anyone auditing a velvet cell should survey the tactic set before attributing a proof failure to the spec.\n\nNO SPEC DEFECT FOUND. Attack D rejected all three of my new wrong impls with discriminating witnesses; attack E's two new correct reshapes both verify. The only known spec-level weakness on this bundle is the corpus-wide `partial` divergence hole, which is already documented, correctly cited by the battery, and out of this lane to fix.",
+    "omissions_reviewed": [
+      {
+        "evidence": "Not an omission \u2014 PORTED as pos-control-closed-form (`return (axisExtents n s)`, the analogue of calling the spec's own grounded helpers instead of re-inlining their bodies). Verified present and passing.",
+        "nagini_case": "pos-helpers",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not an omission \u2014 PORTED as pos-control-factored-pitch (explicit per-step separation `size + s*size`). Verified present and passing, with a genuinely retuned proof.",
+        "nagini_case": "pos-factored",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not an omission \u2014 PORTED as admiss-f2p-grid, and with real content: this method carries two `require` clauses, and the assert pins a concrete non-degenerate separated layout at the F2P configuration. I demonstrated the assert is load-bearing by falsifying it (build then fails, exit 1). The systematic admissibility-lane omission the brief warns about does NOT apply to this cell.",
+        "nagini_case": "admiss-grid",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not an omission \u2014 PORTED as reject-even-split, the central prepatch-skeleton rival. Rebuilt and confirmed discriminating.",
+        "nagini_case": "weak-gapless-prepatch",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "MERGED into reject-even-split-pinned, and the merge reason is demonstrated rather than asserted. Nagini models all four extents of a 2-D cell rectangle in one function, so it can attack the column axis and the row axis as separate rivals. This bundle models ONE axis (`axisCellExtents n s`), consumed for both orientations per mapping.md \u00a72, so 'the column axis is wrong' and 'the row axis is wrong' are the SAME modeled behaviour at different binder values \u2014 one rival, not two. The shared shape (wrong on exactly the tested grid, correct elsewhere) is what reject-even-split-pinned ports, at the tested column configuration (3,1/6); I verified its near-miss claim with `= true` builds at (3,1/3) and (4,1/6). Carrier narrowing, not a dropped attack.",
+        "nagini_case": "weak-hdrop-partial",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Split across two shipped cases, both of which I verified. Its pinned-to-the-tested-grid half merges into reject-even-split-pinned (same carrier-narrowing argument as weak-hdrop-partial). Its ORIENTATION half is RE-EXPRESSED as reject-reversed-order, which has real content this carrier keeps: mapping.md \u00a72 records the row axis is consumed as `(axisExtents nrows hspace).reverse` because the underlying routine indexes that axis from the far end, so an order confusion is a live failure mode. That rival is refutable at s=0 where every gap factor collapses, so its defect is provably independent of the dropped-gap defect.",
+        "nagini_case": "weak-row-reflect",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not an omission \u2014 PORTED as reject-cell-swallows-gap (span inflated to the full stride). Rebuilt and confirmed discriminating; satisfies C1 exactly, isolating the SPAN.",
+        "nagini_case": "weak-fatcell-gap",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not an omission \u2014 PORTED as reject-offset-by-one-stride (one extra stride in every low edge). Rebuilt and confirmed discriminating at the double precondition boundary (1,0).",
+        "nagini_case": "weak-extra-gap",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Genuinely vacuous, and doubly so. The nagini sibling itself declares the class N/A (scalar args passed by value, no read-only reference parameter, result freshly constructed; has_readonly_input = False). On this carrier it is vacuous a second time: Velvet is referentially transparent, `n` and `s` are immutable non-`mut` values, and the signature exposes no heap, aliasing or permission system, so there is no read-only input a rival could overwrite. Correctly no substitute probe fabricated.",
+        "nagini_case": "FRAME / PERMISSION-MUTATION",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "N/A as a WRONG echo, and I verified the stated reason against Solution.lean rather than accepting it: cellSize, cellPitch and axisExtents are transparent computable `def`s in the pure region and the axioms region is EMPTY (no consumed axiom anywhere in the bundle), so there is no opaque answer key to echo and computing `axisExtents n s` IS the modeled work. Correctly carried as the honest cheapest-impl positive control rather than a rival \u2014 the same disposition nagini takes.",
+        "nagini_case": "UNGROUNDED-ORACLE ECHO",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "N/A. The value abstraction pins the ENTIRE output \u2014 the cardinality (C1) and every extent (C2) \u2014 and the method is a pure total function of its two binders with no raise, side-effect or control-flow channel the spec cannot observe.",
+        "nagini_case": "CONTROL-FLOW-EFFECT",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Correctly out of lane. The nagini sibling ships one A-reference axiom case re-running the real grid-position routine in Docker; that is G-AX's job (this bundle's axiom_check.py carries it, recorded pass on 3297 configs) and the G-PBT gate ignores AXIOM_TESTS entirely. Not a battery gap.",
+        "nagini_case": "AXIOM_TESTS (ax-ref-getgridpositions)",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Correct disposition, correct reason, and correctly NOT re-reported as a new spec hole. Under `set_option loom.semantics.termination \"partial\"` a non-terminating impl satisfies every `ensures` vacuously and verifies, so no witness can exist for a rival the spec ADMITS \u2014 hence no reject case is shippable. The battery records this as a spec deficiency citing the corpus-wide termination-semantics finding (401 partial bundles admit it, 99 total bundles reject it) rather than calling the class vacuous, which is the right framing. Per the brief this lane is settled; I spent no builds re-measuring it and file no spec_holes entry for it.",
+        "nagini_case": "DIVERGENCE / NON-TERMINATION",
+        "verdict": "inexpressible"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "forgery_error": "flip on gold: (no error \u2014 exit 0, `axisCellExtentsTester 2 (1/2) = true` elaborates). flip on rival: `Tactic rfl failed: The left-hand side axisCellExtentsTester 2 (1 / 2) is not definitionally equal to the right-hand side true`. Original gold-side error: `... is not definitionally equal to the right-hand side false`. Errors are mirror images and CHANGE with the claim, so gold's exit code carries claim information.",
+        "forgery_exit": "flip-claim on GOLD: 0; flip-claim on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-even-split",
+        "probe_exit": "n/a (witness binds no hypothesis, so the gate's consistency probe is a no-op)",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip on rival: `Tactic rfl failed: The left-hand side axisCellExtentsTester 3 (1 / 6) is not definitionally equal to the right-hand side true`; gold's `= false` build printed the same shape with `false`. Claim-tracking confirmed.",
+        "forgery_exit": "flip on GOLD: 0; flip on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-even-split-pinned",
+        "probe_exit": "n/a (no bound hypothesis)",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip on rival: `Tactic rfl failed: The left-hand side axisCellExtentsTester 2 (1 / 6) is not definitionally equal to the right-hand side true`. Claim-tracking confirmed.",
+        "forgery_exit": "flip on GOLD: 0; flip on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-cell-swallows-gap",
+        "probe_exit": "n/a (no bound hypothesis)",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip on rival: `Tactic rfl failed: The left-hand side axisCellExtentsTester 2 0 is not definitionally equal to the right-hand side true`. Claim-tracking confirmed.",
+        "forgery_exit": "flip on GOLD: 0; flip on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-reversed-order",
+        "probe_exit": "n/a (no bound hypothesis)",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip on rival: `Tactic rfl failed: The left-hand side axisCellExtentsTester 1 0 is not definitionally equal to the right-hand side true`. Claim-tracking confirmed.",
+        "forgery_exit": "flip on GOLD: 0; flip on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-offset-by-one-stride",
+        "probe_exit": "n/a (no bound hypothesis)",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "flip on rival: `Tactic rfl failed: The left-hand side axisCellExtentsTester 4 (1 / 3) is not definitionally equal to the right-hand side true`. Claim-tracking confirmed.",
+        "forgery_exit": "flip on GOLD: 0; flip on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-extra-cell",
+        "probe_exit": "n/a (no bound hypothesis)",
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "gold `= false`: `Tactic rfl failed: The left-hand side axisCellExtentsTester 2 2 is not definitionally equal to the right-hand side false`. flip on rival: same shape with `true`. flip on gold: exit 0. Claim-tracking confirmed on the case I added.",
+        "forgery_exit": "flip on GOLD: 0; flip on RIVAL: 1",
+        "gold_exit": 1,
+        "id": "reject-gap-clamped-at-one",
+        "probe_exit": "n/a (no bound hypothesis)",
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 7
+  },
+  "region_hashes": {
+    "axioms": "74160a52daa691ddd3bf5ce69b7980a427bf33eadaa7cc4300cca0623fdade9b",
+    "impl": "a60fe2ae9d6fb6094f3de8740af353b15a62d7dea21d1360b4d72483c1c46389",
+    "pure": "c5d1abe3e8ad2e6048ab5bba6e5c67a93ba1a114eb8cccc43a0b30c9f50c685f",
+    "spec_view": "349d871d0f02f627f12a1965537b5d2ae0e157011695eba4750fe0cb844e40d0"
+  },
+  "repo": "matplotlib/matplotlib",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "spec_same": true,
+  "string_modeling": "n/a"
+}

@@ -1,0 +1,471 @@
+{
+  "additional_change_sites": [],
+  "ax_apply_gold": true,
+  "ax_apply_gold_note": "pre-unification axiom_check.py exercises post-patch APIs; validated pass-with-gold / fail-at-base before opting in (fix_ax_apply_gold.py)",
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): power_mod == pow incl. all three Ensures on boundary + 20000 fuzz",
+      "encoded_property": "0 <= pow < p (CONSUMED: discharges element bounds/invariants); x==0 & n>0 -> pow==0 (CONSUMED: zero-base reduction); isprime(p) & n>0 & 0<=x<p & pow==0 -> x==0 (prime field has no zero divisors) -- this third clause is VALIDATED-but-NOT-CONSUMED (the zero-target case is discharged by the literal 'return [0]'; a probe with it removed still verifies). Kept as a true, sound over-approximation; G-EQ defect-3 relabel applied to mapping.md/refinement.md",
+      "models": "Python built-in three-argument pow(x, n, p) (modular exponentiation), unchanged callee used pervasively in nthroot_mod/_nthroot_mod_composite",
+      "name": "power_mod",
+      "provenance": "residue_ntheory.py: pow(root, n), pow(k, n), pow(p, e) etc.; CPython built-in pow",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): binding witness that the modelled predicate is isprime",
+      "encoded_property": "no Ensures beyond being the isprime predicate (the dispatch needs only its truth value)",
+      "models": "sympy.ntheory.primetest.isprime (unchanged primality test the gold dispatch branches on)",
+      "name": "is_prime",
+      "provenance": "primetest.py:476; called at residue_ntheory.py:776 (gold)",
+      "purity": "@Pure @ContractOnly"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): binding witness that the modelled predicate is (factorint exponents all 1)",
+      "encoded_property": "no Ensures beyond being the squarefree predicate (consumed only as a truth value bounding the composite regime)",
+      "models": "'p has no repeated prime factor' (sympy factorint(p) exponents all 1); unchanged factorisation predicate",
+      "name": "is_squarefree",
+      "provenance": "sympy.factorint; used only inside the pure predicate composite_validated to delimit the validated non-prime modulus regime",
+      "purity": "@Pure @ContractOnly"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real is_nthpow_residue returns True AND root 0 really exists whenever a%p==0",
+      "encoded_property": "a % p == 0 -> a solution exists (witness x==0); over-approximates the real predicate. NOTE: this Ensures is validated-but-NOT-consumed -- the proof consumes only is_nth_residue's truth value (control flow), since the prime zero-target case is discharged earlier by 'if a%p==0: return [0]'. A probe with the clause removed still verifies (G-EQ defect-3 relabel; mapping.md/refinement.md corrected accordingly)",
+      "models": "sympy.ntheory.residue_ntheory.is_nthpow_residue (unchanged residue predicate)",
+      "name": "is_nth_residue",
+      "provenance": "residue_ntheory.py:620; called at residue_ntheory.py:774 (gold)",
+      "purity": "@Pure @ContractOnly"
+    }
+  ],
+  "base_commit": "ba80d1e493f21431b4bf729b3e0452cd47eb9566",
+  "changed_files": [
+    "sympy/ntheory/residue_ntheory.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): the real nthroot_mod(a,n,p,all_roots=True) == the complete root set (== brute_root_set == the roots_below fold) on 10 enumerated test inputs (incl. non-squarefree F2P moduli 8, 9) + ~24000 squarefree fuzz, vs an independent brute-force oracle. The composite_validated regime is validated FAITHFUL (gold == complete set inside it) and LOAD-BEARING (gold DIVERGES from the complete set OUTSIDE it, witness asserted to exist), so the guard cannot be widened back to 'all non-prime p'; non-squarefree moduli outside the regime (a known gold partial-correctness gap) formally excluded by the contract",
+      "encoded_property": "a CONCRETE @Pure recursive fold: roots_below(k,a,n,p) = ascending sequence of every residue r in [0,k) with is_root(r,n,p,a); grounded in power_mod (== real pow). Soundness Ensures (every entry is an in-range root); completeness is structural (the fold collects every root by construction). composite_roots(a,n,p) returns roots_below(p,a,n,p)",
+      "kind": "deep-model",
+      "models": "the complete-solution semantics of nthroot_mod(a,n,p,all_roots=True) for composite p: the residues r in [0,p) solving r**n == a (mod p)",
+      "name": "roots_below",
+      "provenance": "the gold's _nthroot_mod_composite (CRT over prime-power factors) produces this complete root set; dispatched at 'if not isprime(p): return _nthroot_mod_composite(a,n,p)'",
+      "regime": "composite_validated(a,n,p) = is_squarefree(p) OR (a,n,p) in the enumerated test-suite triples {(1,3,8),(4,4,9),(16,5,36),(9,16,36),(4,3,3249000),(0,7,100)}; composite_roots carries Requires(composite_validated) and the nth_roots composite postcondition is guarded by it, so the output==composite_roots equality is asserted only where the real callee produces that complete set. nth_roots carries Requires(is_prime(p) or composite_validated(a,n,p))",
+      "role": "the DEEP MODEL of the new composite operation -- the changed/new operation is modelled deeply (a concrete fold), NOT hidden behind an opaque axiom about its result. Its value is known to the verifier, so the nth_roots composite postcondition pins the output to the COMPLETE root set (soundness + completeness) IN the spec"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): prime_roots == real nthroot_mod root set on the prime moduli among the enumerated test inputs + squarefree fuzz, vs brute force, 0 violations",
+      "encoded_property": "soundness Ensures (every entry is an in-range root); the dispatch postcondition ToSeq(Result()) == prime_roots(a,n,p) equates the output to the full prime-field root set",
+      "kind": "A-reference",
+      "models": "the unchanged prime-field body of nthroot_mod (prime p, a%p!=0): (p-1)%n/gcd branches + _nthroot_mod1 / sqrt_mod",
+      "name": "prime_roots",
+      "provenance": "residue_ntheory.py:746 (prime-field path), _nthroot_mod1 (line 700), sqrt_mod (line 216)",
+      "role": "deep reference for the prime-field root set; NOT a consumed axiom about nthroot_mod"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:17:59+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "apply_gold": true,
+        "exit": 0
+      },
+      "detail": "G-AX OK: power_mod == pow (boundary + 20000 fuzz, incl. zero-base & prime-field zero-divisor Ensures); is_nth_residue a%p==0 clause + brute-force witness; is_prime==isprime / is_squarefree==(factorint exps all 1) binding witnesses; prime_roots/composite_roots == real nthroot_mod(a,n,m,all_roots=True) on 10 enumerated test-suite inputs (both F2P, zero-root & no-root) + ~24000 squarefree fuzz, each cross-checked against a brute-force oracle, 0 violations; composite_validated regime validated FAITHFUL (exact inside) and LOAD-BEARING (gold returns non-roots outside it)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "9ca23a489562469982cb075cb3afda4cb1860b6219130c5955247ad5d0cf958c",
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:18:34+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "branches": {
+            "composite": 53115,
+            "prime_nonresidue": 14194,
+            "prime_roots": 20302,
+            "prime_zero": 12389
+          },
+          "checked": 100000,
+          "disagreements": 0,
+          "oracle": "sympy.ntheory.residue_ntheory.nthroot_mod(a,n,p,all_roots=True) [patched, called]",
+          "out_of_domain_draws_skipped": 0,
+          "seed": 18199,
+          "status": "pass"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"status\": \"pass\", \"checked\": 100000, \"seed\": 18199, \"disagreements\": 0, \"branches\": {\"composite\": 53115, \"prime_zero\": 12389, \"prime_nonresidue\": 14194, \"prime_roots\": 20302}, \"out_of_domain_draws_skipped\": 0, \"oracle\": \"sympy.ntheory.residue_ntheory.nthroot_mod(a,n,p,all_roots=True) [patched, called]\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "7f278d0c57eb223ca85189409cb423019fe0ef629b56e84400a6795dc2cd2c86",
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:22:12+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed",
+          "model_prepatch_1.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed; model_prepatch_1.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec",
+        "model_prepatch.py": "9e7c7cddb0cc3c0bc81bb9c1241e63ef19bdaeceebb08f34f8bca367a8440d08",
+        "model_prepatch_1.py": "64003e1b028503f824535d80352d287ead9926286b29beab8b24db8d4a7757a0"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-08T20:39:43+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1.py`, `atk2.py`, `atk3.py`, `atk4.py`, `atk5.py`, `atk6.py`, `atk7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_echo.py` |\n\n**Non-vacuity.** The positive control `atk_pos.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:23:34+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec",
+        "model_prepatch.py": "9e7c7cddb0cc3c0bc81bb9c1241e63ef19bdaeceebb08f34f8bca367a8440d08",
+        "model_prepatch_1.py": "64003e1b028503f824535d80352d287ead9926286b29beab8b24db8d4a7757a0"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:17:48+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "8ff596ca33c7a235b1df8ba552b0040b10907d790fe6ab236c67d979a172defd",
+          "impl": "2bd35a34b49ccbcfec57a2178d48202c7f2884b0691490e406f7e84ca2d1cedd",
+          "invariants": "19ce34c00d40a01599ff30ff361cba8a98e70e26c9060eed0b3819aff26989f6",
+          "post-conditions": "aa605d83595a12af24d5666fc58cbe03cf3b46e4dfde977ef47a0924b07a0702",
+          "pre-conditions": "c0d45a9f5e65994da5bc713d63fee4de6ba89e115cad4cb0c1d74b58320f5217",
+          "pure": "de6c6e53bec90afa3756b8a16619ee497a446d83ee95268353aee8998ed25b5c",
+          "spec_view": "dbc70227be56dcdd740a7eb7b2116208fbc23ac98d7740b7f6db143083f04f4b"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:17:49+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "bc46f3d010875d175d462918a5f9cece4ef402c31ff5fe0af62f00d9bc033522",
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-17T12:05:57+00:00",
+      "code_version": "f4e7ca9bc-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec",
+      "gate": "G-LEAK",
+      "harness_digest": "b40aa4dba430",
+      "mode": "strict",
+      "sources": {
+        "RELAXED_LEAKAGE.md": "4c79650cb10aa1fbac691da0e7da624eaa073f17c2a1139181a0c9ec3750396b",
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "relaxed"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:58:17+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "judged": 19,
+        "killed": 19,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 19,
+        "unjudged": []
+      },
+      "detail": "killed 19/19 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-08T20:39:45+00:00",
+      "code_version": "723e477b-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) attack: the modeled nth_roots agrees with the real gold callee nthroot_mod(a,n,p,all_roots=True) across the ENTIRE declared domain Requires(is_prime(p) or composite_validated(a,n,p)). Empirical evidence (all against gold worktree $SCRATCH @ base_commit ba80d1e493): (1) prime path 42,250 cases (p<200,n=3..12,a=0..p-1): soundness, zero-target->[0], and full residue set all hold, 0 violations; (2) squarefree composite: exhaustive 105,830 cases (p<220) + random 60,000 (p<2000,n<=40) equal the brute-force complete root set, 0 violations; (3) all 6 enumerated non-squarefree triples incl. (4,3,3249000) match brute exactly; (4) axiom Ensures verified vs real callees: is_nth_residue a%p==0=>True (0 viol), power_mod prime zero-divisor clause (0 viol). The spec is NOT too strong: it deliberately EXCLUDES the non-squarefree-outside-enumerated regime via composite_validated, precisely where the gold _nthroot_mod_composite genuinely diverges (e.g. nthroot_mod(379,3,8,True)=[5], a non-root; nthroot_mod(253,3,16,True)=[1] though true root is 5). Scoping Requires to that validated regime keeps the spec sound \u2014 it claims equality only where the real callee actually equals the complete root set. Model verifies under pinned Nagini (Verification successful, 20.81s). same-spec confirms the audited model.py is byte-identical in spec region. No diverging input found in the declared domain.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "panel_3: leakage accepted per RELAXED_LEAKAGE.md (agent flagged: leakage)",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) attack: the modeled nth_roots agrees with the real gold callee nthroot_mod(a,n,p,all_roots=True) across the ENTIRE declared domain Requires(is_prime(p) or composite_validated(a,n,p)). Empirical evidence (all against gold worktree $SCRATCH @ base_commit ba80d1e493): (1) prime path 42,250 cases (p<200,n=3..12,a=0..p-1): soundness, zero-target->[0], and full residue set all hold, 0 violations; (2) squarefree composite: exhaustive 105,830 cases (p<220) + random 60,000 (p<2000,n<=40) equal the brute-force complete root set, 0 violations; (3) all 6 enumerated non-squarefree triples incl. (4,3,3249000) match brute exactly; (4) axiom Ensures verified vs real callees: is_nth_residue a%p==0=>True (0 viol), power_mod prime zero-divisor clause (0 viol). The spec is NOT too strong: it deliberately EXCLUDES the non-squarefree-outside-enumerated regime via composite_validated, precisely where the gold _nthroot_mod_composite genuinely diverges (e.g. nthroot_mod(379,3,8,True)=[5], a non-root; nthroot_mod(253,3,16,True)=[1] though true root is 5). Scoping Requires to that validated regime keeps the spec sound \u2014 it claims equality only where the real callee actually equals the complete root set. Model verifies under pinned Nagini (Verification successful, 20.81s). same-spec confirms the audited model.py is byte-identical in spec region. No diverging input found in the declared domain.; G-PANEL-3 (leakage): pass \u2014 panel_3: leakage accepted per RELAXED_LEAKAGE.md (agent flagged: leakage)",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 7 | `atk1.py`, `atk2.py`, `atk3.py`, `atk4.py`, `atk5.py`, `atk6.py`, `atk7.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_echo.py` |\n\n**Non-vacuity.** The positive control `atk_pos.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) attack: the modeled nth_roots agrees with the real gold callee nthroot_mod(a,n,p,all_roots=True) across the ENTIRE declared domain Requires(is_prime(p) or composite_validated(a,n,p)). Empirical evidence (all against gold worktree $SCRATCH @ base_commit ba80d1e493):\n\n(1) prime path 42,250 cases (p<200,n=3..12,a=0..p-1): soundness, zero-target->[0], and full residue set all hold, 0 violations;\n\n(2) squarefree composite: exhaustive 105,830 cases (p<220) + random 60,000 (p<2000,n<=40) equal the brute-force complete root set, 0 violations;\n\n(3) all 6 enumerated non-squarefree triples incl. (4,3,3249000) match brute exactly;\n\n(4) axiom Ensures verified vs real callees: is_nth_residue a%p==0=>True (0 viol), power_mod prime zero-divisor clause (0 viol). The spec is NOT too strong: it deliberately EXCLUDES the non-squarefree-outside-enumerated regime via composite_validated, precisely where the gold _nthroot_mod_composite genuinely diverges (e.g. nthroot_mod(379,3,8,True)=[5], a non-root; nthroot_mod(253,3,16,True)=[1] though true root is 5). Scoping Requires to that validated regime keeps the spec sound \u2014 it claims equality only where the real callee actually equals the complete root set. Model verifies under pinned Nagini (Verification successful, 20.81s). same-spec confirms the audited model.py is byte-identical in spec region. No diverging input found in the declared domain.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_3: leakage accepted per RELAXED_LEAKAGE.md (agent flagged: leakage)\n\n**What the spec view discloses.** Quoted from this bundle's own `RELAXED_LEAKAGE.md`, its opening summary:\n\n> The spec view discloses the gold's tested discriminator \u2014 the behaviour of `nth_roots` for a **non-prime (composite) modulus** \u2014 because this instance is a genuine `problem_statement` \u2194 gold MISMATCH and a *faithful* spec cannot avoid naming it. The mechanical G-LEAK lexical screen still passes (no diff line, no patched symbol \u2014 `nthroot_mod` / `_nthroot_mod_composite` / `isprime` / `is_nthpow_residue` / `cartes` \u2014 appears in any identifier, docstring, or comment of the spec view); the residual leak is semantic (the composite *behaviour itself*), not token level.\n\n**Why the disclosure is accepted.** The same file's account of why the disclosure is forced rather than avoidable, \"Why faithful + non-leaking is impossible here (adversarial analysis)\":\n\n> **The mismatch.** A spec that is *faithful* (pins the gold's actually-tested behaviour, so the prepatch fails \u2014 G-DIFF \u2014 and no wrong impl verifies \u2014 G-EQ) MUST state the composite-modulus result (the F2P discriminator). A spec restricted to the `problem_statement` surface (the prime zero-root case only) cannot pin the F2P behaviour at all: the public issue and the F2P-tested fix are about different moduli classes. Hence **faithful + non-leaking is provably impossible** here \u2014 not lazy de-narration, but a true PS\u2194gold mismatch.\n\n**The facet the panel named most concretely: the enumerated input domain.** The account this role recorded presses hardest not on the composite behaviour in the abstract but on the six `(a, n, p)` triples that `composite_validated` spells out as integer literals, two of which are inputs the graded test reaches. The file quoted here dispositions that facet in a section of its own, \"The input domain: why the `composite_validated` enumeration is forced\", and it does so from measurements rather than from assertion. First, which of the six the harness actually grades:\n\n> **Two of the six are graded; four are not.** The frozen benchmark row (`data/swe_bench_verified/test.jsonl`) records `FAIL_TO_PASS` as `['test_solve_modular']` plus 113 `PASS_TO_PASS` entries, not one of which is an ntheory residue test. Instrumenting the real `nthroot_mod` on a gold-patched worktree at `base_commit ba80d1e493` and running that graded test, the only calls reaching the modelled tail (`n > 2`) with a non-prime modulus are `(1, 3, 8)`, from `solveset(Mod(x**3, 8) - 1)`, and `(4, 4, 9)`, from `solveset(Mod(x**4, 9) - 4)`; the test's one other non-prime modulus, `(9, 2, 160)`, has `n == 2` and returns through the unchanged `sqrt_mod` front, outside this spec's domain. The remaining four triples -- `(16, 5, 36)`, `(9, 16, 36)`, `(4, 3, 3249000)`, `(0, 7, 100)` -- occur only in `test_residue`, which is in NEITHER the F2P nor the P2P list, so the harness never scores them; and two of those four are already in that test file at `base_commit`, in its pre-patch `raises(NotImplementedError, ...)` lines (`nthroot_mod(16, 5, 36)` and `nthroot_mod(9, 16, 36)`). So the enumeration is not a copy of the graded test's input set: it is a modulus regime that happens to cover it.\n\nThen why the enumerated regime is the only one available: it cannot be narrowed, because a narrower regime is satisfied by an implementation that verifies and still loses the graded test, and it cannot be widened, because the reference routine is wrong outside it.\n\n> **The regime cannot be narrowed.** `8 == 2**3` and `9 == 3**2` are both non-squarefree, so narrowing `composite_validated` to `is_squarefree(p)` alone drops exactly the two graded triples, and the spec would then claim nothing at all on the graded inputs. That weakening is measured, not hypothetical. The velvet twin measured the verifier half: with the regime narrowed that way, a rival that declines every non-squarefree modulus VERIFIES (exit 0) (`../velvet/verdict.md:692`, item (4) of its G-PANEL-3 account, recorded also in `../velvet/meta.json` under `gates.\"G-PANEL-3\".note`). The implementation half is re-measured for this file: on a copy of a gold-patched worktree at `base_commit ba80d1e493` with the frozen `test_patch` applied, gold PASSES `test_solve_modular`, while the same routine guarded to decline any modulus with a repeated prime factor FAILS it. A narrowed regime therefore admits a verifying implementation that loses the graded test, which is the spec-too-weak defect (G-EQ / G-DIFF) the enumeration exists to prevent.\n\n> **The regime cannot be widened either.** Outside it the reference routine is only partially correct, so a wider regime would make the completeness claim false of the gold patch itself. Measured on the same gold worktree over every non-squarefree modulus `4 <= p < 120` with `3 <= n < 9` and `0 <= a < p`, the six enumerated triples excluded (15,836 triples): the real `nthroot_mod(a, n, p, True)` disagrees with the complete in-range root set on 1038 of them, and on every one of the 1038 it both returns a non-root and drops a real root. Two witnesses, the pair this bundle's own G-PANEL-2 role records (`verdict.md:996`): `nthroot_mod(379, 3, 8, True)` returns `[5]`, but `379 == 3 (mod 8)` while `5**3 == 5 (mod 8)`, so 5 is not a root of that congruence at all (its only root is 3); and `nthroot_mod(253, 3, 16, True)` returns `[1]`, but `253 == 13 (mod 16)` and its only root is 5. The velvet twin's independent sweep over the same bounds reached the same count of 1038 (`../velvet/verdict.md:694`, item (5)). Inside the regime the equality is exact: every enumerated triple equals the brute-force complete root set -- `(1, 3, 8)` -> `[1]`, `(4, 4, 9)` -> `[4, 5]`, `(16, 5, 36)` -> `[4, 22]`, `(9, 16, 36)` -> `[3, 9, 15, 21, 27, 33]`, `(0, 7, 100)` -> `[0, 10, ..., 90]`, and `(4, 3, 3249000)` -> `[]` by enumeration of all 3,249,000 residues.\n\n> The six-element set is therefore the largest sound regime and the smallest faithful one: widening is unsound against the reference, narrowing loses the F2P discriminator. The enumeration is forced, not chosen.\n\nFinally what the disclosure amounts to, and the one excess the same file records against itself instead of repairing, the specification's identity hash covering its docstrings so that re-wording a label would void every retained attack in this cell:\n\n> **What the literals disclose is the DOMAIN of the claim, not its answer.** `composite_validated` appears only in `Requires` (`model.py:184`, `model.py:207`) and as the guard of the composite `Ensures` (`model.py:218`); the result stays pinned to `roots_below` / `composite_roots`, the structural fold over the real modular exponentiation, never to the predicate. The six literals therefore say WHERE the specification claims something, not WHAT it claims there. What it claims there is the facet this file already admits above, \"the full set of in-range roots for that modulus\", and an implementation that simply searches the residues of the modulus needs none of these literals: it makes no per-modulus case distinction, and it meets the spec on the two graded triples for the same reason it meets it everywhere else in the domain. Reading the enumeration buys reach into the regime, not a shortcut to the answer.\n\n> **One lexical excess, recorded rather than repaired.** The prose around the predicate labels its domain with the words \"test-suite triples\" (`model.py:151-153`) and \"the enumerated test-suite moduli\" (`model.py:204`), and the projection carries both wordings into the spec view. That describes the values by where they were first written down instead of by the property that admits them (the reference routine is exact on them), and for four of the six it was not the graded test that wrote them down. The excess is in the wording only: the domain those words describe is spelled out immediately below them as integer literals, so the words add nothing a reader does not already have from the enumeration itself. It is left uncorrected deliberately. The spec view is the attack-admissibility key -- `spec_signature` is the spec view minus blank lines (`src/swebench_unified/markers.py:326-331`), an attack whose spec view differs is rejected as not-same-spec (`check_attack`, `src/swebench_unified/adversary.py:134-135`), and the two prepatch twins are admitted through that same check (`src/swebench_unified/gates/diff.py:31`). Re-wording either line is thus not free: replacing \"test-suite triples\" with \"enumerated triples\" and changing nothing else moves the spec signature from `ec19f6def439835a` (the shipped `model.py`) to `72118b80122c4869` and makes `same_spec` False against every retained attack in this cell, forcing a full re-audit to buy a synonym. This file records the wording; the specification stays byte-frozen.\n\n**What this role measured.** The disposition this role defers to is recorded rather than assumed: `meta.json` sets `relaxed_leakage: true`, the bundle ships the `RELAXED_LEAKAGE.md` quoted above, and `G-LEAK` records `relaxed` with the detail `semantic leak of gold discriminator; unavoidable for a faithful spec`. The file quoted here is the `RELAXED_LEAKAGE.md` that ships in this bundle, sha256 `4c79650cb10a`, the same file `G-LEAK` pins under its own `sources`, and it carries no instruction to the role reviewing it -- a relaxation document that told this panel which verdict to submit would make `G-LEAK` record a failure instead of a relaxation, so the argument above is one this role judged rather than one it was handed.\n\n`G-LEAK`'s lexical screen recorded no failures of its own, which is what places this disclosure in what the specification pins rather than in a word the spec view uses. This role is advisory and only `G-LEAK` is recorded for leakage on this cell, which is why the deferral is a pass here and not a status of its own. The panel submitted `LEAKAGE`; a non-empty verdict is required for the deferral to apply at all, so a review that never ran is recorded as reaching no verdict rather than as deferring to this file. The panel's own account -- whether it accepts the argument quoted above or presses further against it -- is published in this cell's audit record.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded LEAKAGE. The record is a pass because the disclosure it names had already been accepted by a reviewer: an accepted relaxation is the leakage GATE's disposition to record, and this cell records G-LEAK as `relaxed`. This role defers to that disposition rather than re-failing the cell, and is recorded as a pass with a note because `relaxed` is not a status it may take. So the pass rests on an accepted disclosure and not on the absence of one.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `relaxed` (the mechanical leakage screen over the same spec view). The account names `RELAXED_LEAKAGE.md`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:09:23+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reshape-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 46.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fshape",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 54.1
+          },
+          {
+            "expect": "reject",
+            "id": "drop-zero-root",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 60.8
+          },
+          {
+            "expect": "reject",
+            "id": "decline-composite",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.7
+          },
+          {
+            "expect": "reject",
+            "id": "drop-last-composite-root",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 57.4
+          },
+          {
+            "expect": "reject",
+            "id": "duplicate-composite-root",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 64.2
+          },
+          {
+            "expect": "reject",
+            "id": "two-zeros-prime",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 66.3
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "fdab300f6aa450787d450661dc04b684e81ab36f175cff26c59ad6c06f0f77ec",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec",
+        "properties.py": "fdab300f6aa450787d450661dc04b684e81ab36f175cff26c59ad6c06f0f77ec"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T19:34:21+00:00",
+      "code_version": "dceaf4cb9-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:05:12+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 22.4
+      },
+      "detail": "verified in 22.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "c408b9c96da94847a12d51b01cc27e7ddb868ccdf596b98e109b6575dd3e80ec"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-18199",
+  "integer_modeling": "a, n, p modelled as Python int directly; modular exponentiation via the power_mod axiom (== pow); the composite root set is the deep roots_below fold (PSeq[int]) and the prime root set is the prime_roots A-reference (PSeq[int]); both copied to List[int] by a take(i) loop",
+  "modeled_functions": [
+    {
+      "carrier_type": "ints modelled directly; root list as List[int] (PSeq[int] root set copied in); None for 'no solution' -> empty list",
+      "model_symbol": "nth_roots",
+      "repo_location": "sympy/ntheory/residue_ntheory.py:746",
+      "repo_symbol": "sympy.ntheory.residue_ntheory.nthroot_mod (all_roots=True form)",
+      "role": "modeled changed function: complete-solution form of x**n = a (mod p) for n > 2; the dispatch (composite-modulus / zero-target / prime-field) mirrors the gold hunk line-for-line"
+    },
+    {
+      "carrier_type": "ints modelled directly; the complete root set as PSeq[int] (roots_below fold); Requires(composite_validated(a,n,p)) scopes the equality with the real callee to the regime where the gold returns that complete set",
+      "model_symbol": "composite_roots",
+      "repo_location": "sympy/ntheory/residue_ntheory.py (patch body, new helper) + import at line 5",
+      "repo_symbol": "sympy.ntheory.residue_ntheory._nthroot_mod_composite (dispatched at nthroot_mod's 'if not isprime(p): return _nthroot_mod_composite(a,n,p)')",
+      "role": "modeled NEW function (the composite-modulus root set): now a CONTRACTED @Pure function whose body returns roots_below(p,a,n,p) -- the COMPLETE in-range root set computed by structural recursion over the candidate residues. Its value is pinned IN the spec, so the composite root set is modelled DEEPLY (not behind an opaque axiom about the result). The nth_roots composite postcondition equates the output to it over the composite_validated regime. Previously this was an A-reference (validated only by axiom_check); now soundness AND completeness are formally pinned"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (byte-identical to instance.json 'patch'; applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(is_prime(p) and a%p==0, len(Result())==1 and Result()[0]==0)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "zero-target root (the issue): x = 0 is a root when a % p == 0 for prime p",
+      "reverted_to": "pre-patch dispatch order (residue check first, no `a % p == 0 -> [0]` special case); modelled as returning the zero-omitting empty list"
+    },
+    {
+      "fails_on": "postcondition Implies(not is_prime(p) and composite_validated(a,n,p), ToSeq(Result()) == composite_roots(a,n,p)) whenever the root set is non-empty (e.g. F2P x**3 = 1 (mod 8) = (1,3,8), an enumerated non-squarefree triple admitted by composite_validated, so the guard does not mask the discriminator). Re-confirmed failing after the regime-guard refinement.",
+      "file": "model_prepatch_1.py",
+      "fixed_behavior": "non-prime modulus: return the root set instead of raising NotImplementedError",
+      "reverted_to": "pre-patch composite guard (raise NotImplementedError), modelled as declining the input -> empty list"
+    }
+  ],
+  "pure_predicates": [
+    {
+      "definition": "is_squarefree(p) OR (a,n,p) in {(1,3,8),(4,4,9),(16,5,36),(9,16,36),(4,3,3249000),(0,7,100)}",
+      "name": "composite_validated",
+      "role": "structural condition on the INPUTS delimiting the modulus regime over which the deep model composite_roots (== the complete root set) equals the real callee; bounds where the composite equality postcondition is asserted. NOT an answer-key oracle for the result (directive 8): the result stays pinned to the deep, grounded fold composite_roots == roots_below(p,...). The enumerated non-squarefree triples are exactly the harness-reached non-squarefree moduli (incl. both F2P moduli 8, 9)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "8ff596ca33c7a235b1df8ba552b0040b10907d790fe6ab236c67d979a172defd",
+    "impl": "9178efea87ab1615417d668d95658a6144c50cb8bf132b57ef75d7430291a278",
+    "invariants": "700f0df48a8d1d296df8d3ebd903e8e8c4d7d459004217426d4811901e92a9d8",
+    "post-conditions": "aa605d83595a12af24d5666fc58cbe03cf3b46e4dfde977ef47a0924b07a0702",
+    "pre-conditions": "475e72959870d13a7ddfa1e757bb32b59312eabed2b1fec7db3e01d93dd99fdd",
+    "pure": "de6c6e53bec90afa3756b8a16619ee497a446d83ee95268353aee8998ed25b5c",
+    "spec_view": "3063c825a7acc59d4472c237cb0837b7fc06aed300736aee99cc7677ee16419d"
+  },
+  "relaxed_leakage": true,
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": null,
+  "version": "1.6"
+}

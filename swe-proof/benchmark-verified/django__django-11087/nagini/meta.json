@@ -1,0 +1,535 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "pure refactor: the inline pre/post/m2m guard is factored into the new _has_signal_listeners helper. Behaviour of can_fast_delete is observationally unchanged for the F2P/P2P tests (P2P fast-delete tests pass); the helper's two-term content is modeled by rows_exposed_to_observers and validated by G-AX.",
+      "repo_location": "django/db/models/deletion.py:138-140 (inline 3-term guard) -> if self._has_signal_listeners(model)",
+      "repo_symbol": "django.db.models.deletion.Collector.can_fast_delete"
+    },
+    {
+      "handling": "mechanical import for the referenced_fields comprehension; no standalone behaviour.",
+      "repo_location": "django/db/models/deletion.py:2 (import added)",
+      "repo_symbol": "from itertools import chain"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "8180ffba21bf10f4be905cb0d4890dc2bcff2788",
+  "changed_files": [
+    "django/db/models/deletion.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real pre_delete/post_delete/m2m_changed Signal connect/disconnect over 200 cycles; disjunction True iff pre/post receiver connected, unaffected by m2m_changed",
+      "encoded_property": "exposed_to_observers(pre, post) == (pre or post): True iff a pre_delete OR post_delete receiver is connected; the m2m_changed term is intentionally absent",
+      "kind": "A-reference",
+      "models": "Collector._has_signal_listeners == signals.pre_delete.has_listeners(model) or signals.post_delete.has_listeners(model)",
+      "name": "rows_exposed_to_observers / exposed_to_observers",
+      "provenance": "django/dispatch/dispatcher.py:149 (Signal.has_listeners); the helper body is the gold patch hunk 2",
+      "role": "deep model (pure + contracted) of the new exposure helper; NOT a consumed axiom"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): the patched collect branch over a mirror of Query.deferred_loading + deferred_to_data, on 19 boundary + 20000 fuzz configurations spanning every pending-query state (no restriction / deferral / immediate-loading set). The mirror is itself cross-validated against the REAL SQL compiler on all 528 (pending state x requested set) pairs of a real 4-column model: 0 mismatches.",
+      "encoded_property": "select_cascade_fields partitions into cells pinned by value: reachable consulted columns (union the row identity) when a narrowing request is made and at least one consulted column is reachable; the FULL column set when the resulting request names nothing (a reset, not a narrowing to nothing); the pending query's OWN column set when no request is made at all",
+      "kind": "A-reference",
+      "models": "Collector.collect reduced-column branch: sub_objs = sub_objs.only(*referenced_fields) when not (select_related or _has_signal_listeners), else full sub_objs",
+      "name": "select_cascade_fields",
+      "provenance": "django/db/models/query.py:1109 (QuerySet.only) -> django/db/models/sql/query.py:1959 (add_immediate_loading: field_names.difference(existing) when the pending restriction is a deferral, replace otherwise) -> sql/query.py:645 (deferred_to_data: returns at `if not field_names`; must_include seeded with orig_opts.pk at :660; the defer branch treats an empty workset as `include all fields` at :700-703); the branch body is the gold patch hunk 3",
+      "role": "deep model (contracted) of the new reduced-column decision; NOT a consumed axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-14T22:28:36+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: exposure predicate == real pre/post-delete has_listeners (m2m_changed excluded) over 200 connect/disconnect cycles; column decision == the real .only-based collect branch over the real deferred-loading semantics (identity column always retained; an empty .only() resets rather than narrows; a new immediate-loading set respects an existing deferral; with no request the pending query's own set stands) over 19 boundary + 20000 fuzz configurations spanning every pending-query state.",
+      "gate": "G-AX",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "6f1f003bd77c9feeb72c1646b4ce3a0cc10c0f8fbad89e18a584367b1a5538ff",
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-14T22:28:34+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "cells": {
+            "full-reset": 2504,
+            "pending-stands": 49679,
+            "reduced": 13089
+          },
+          "checked": 100000,
+          "disagreements": 0,
+          "exhaustive": 30592,
+          "fuzz": 33384,
+          "guard_release": {
+            "post": 16461,
+            "pre": 16296,
+            "pre+post": 16290,
+            "whole_row_required": 2627
+          },
+          "oracle": "real patched Collector._has_signal_listeners + Collector.collect (called)",
+          "pending": {
+            "narrowed": 48645,
+            "unrestricted": 16627
+          },
+          "seed": 110870,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100000, \"disagreements\": 0, \"seed\": 110870, \"exhaustive\": 30592, \"fuzz\": 33384, \"cells\": {\"reduced\": 13089, \"full-reset\": 2504, \"pending-stands\": 49679}, \"guard_release\": {\"whole_row_required\": 2627, \"pre\": 16296, \"post\": 16461, \"pre+post\": 16290}, \"pending\": {\"unrestricted\": 16627, \"narrowed\": 48645}, \"shadow\": \"direct (contract-stripped impl region)\", \"oracle\": \"real patched Collector._has_signal_listeners + Collector.collect (called)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "5a4d858c92ddd78344b0f63ab64f888c411ca5615fba43de4f764f2b31530edf",
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:31:02+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20",
+        "model_prepatch.py": "e03b6224ebd66e9ca3406bb362e401f1e97ca99d768b128c88f8cc3b0e329836"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T00:00:20+00:00",
+      "code_version": "f6dad4124-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 18 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1_prepatch_passthrough.py`, `atk_2_singleton_ref_keeps_all.py`, `atk_3_no_pk_retention.py`, `atk_4_exposure_term_dropped.py`, `atk_5_select_related_term_dropped.py`, `atk_6_offbyone_drops_last_ref.py`, `atk_7_empty_request_pk_only.py`, `atk_8_no_request_returns_full.py`, `atk_9_empty_pending_returns_full.py`, +9 more |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20",
+        "properties.py": "51973a3ddd51c71b5e85bb5c3d700c8467d86920221cb9ba6bd45e99e649fd53"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:32:49+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20",
+        "model_prepatch.py": "e03b6224ebd66e9ca3406bb362e401f1e97ca99d768b128c88f8cc3b0e329836"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-14T22:27:43+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "ede2595c26693b19ea5d5510fb6d0f919e4d7148d9489b0e51a7310e43767798",
+          "impl": "496c6162ca23d8e57489f0640bad53fb44e7189787e6e7f37d5e5e15fc0eec0e",
+          "invariants": "202d21c80f2b38bdd0c8cf8e71f2eebc89adbdc2146845855cb95fa0c60c66db",
+          "post-conditions": "8ffbeec812fd4f0ec5a83f50e844eac116c93108fd2ebd573c2a161a281916db",
+          "pre-conditions": "ac6afdd8991d391117c52235ca82c23a6988ba018982c9893fe409c63f8e5a82",
+          "pure": "b304fc1562fd5af7ee0d6ca2d85075138c1e12852f0ec2b7f03b1fa944ee7a0a",
+          "spec_view": "89682cc1281b91081158208771ca5e20e549d5eb38669582e7f5c16574de52d2"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-14T22:27:43+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "58ba01cbf0e588abb5f49a5a5784a049f30e576b4d456b13832a6eb2a7ecf6d2",
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-14T22:27:43+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec",
+      "gate": "G-LEAK",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "RELAXED_LEAKAGE.md": "562b11006bd86c26ee8a2bc958938785cd14412facfa9013da9d36058f9bbf62",
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "relaxed"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-14T22:26:14+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 18,
+        "survivors": [
+          "line 216: '>' -> '>='",
+          "line 242: 'and' -> 'or'"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 18/20 (90%); survivors: [\"line 216: '>' -> '>='\", \"line 242: 'and' -> 'or'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T00:00:20+00:00",
+      "code_version": "f6dad4124-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "G-PANEL attacker (2) faithfulness-break for django__django-11087 (nagini). Reference = worktree at base_commit 8180ffba21bf10f4be905cb0d4890dc2bcff2788 with patch.diff APPLIED (per instructions); base commit used only for untouched callees (.only/add_immediate_loading/deferred_to_data/get_default_columns/has_listeners, none of which the patch modifies). Worktree under /tmp; bundle not modified.\n\nBASELINE: `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (exit 0), so the spec region is the live, verifying one I audited.\n\nWHAT THE SPEC CLAIMS (4-cell partition over all_fields, already_selected, referenced, pk, whole_row_required, pre, post):\n  cell1: not wr & not(pre|post) & referenced nonempty & pk in referenced -> Result == referenced\n  cell2: same but pk not in referenced -> Result == referenced + [pk]\n  cell3: not wr & not(pre|post) & referenced empty -> Result == all_fields\n  cell4: wr | pre | post -> Result == already_selected\nPlus rows_exposed_to_observers == (pre or post).\n\nEVIDENCE (all against the REAL patched repo, callees CALLED not transliterated):\n\n1. HELPER (hunk 2) EXACT. Drove the real `Collector._has_signal_listeners` over the real django.db.models.signals registry with connect/disconnect cycles across all 8 (pre_delete, post_delete, m2m_changed) combinations. real == (pre or post) on all 8, MATCH each row. Critically the m2m_changed axis is confirmed IRRELEVANT to the real patched helper (pre=0,post=0,m2m=1 -> real False), so the spec's deliberate two-term disjunction (dropping the m2m_changed term the pre-patch can_fast_delete guard carried) is the real post-patch behavior, not an over-strengthening.\n\n2. DIFFERENTIAL SWEEPS vs the REAL SQL compiler: ~27,000 inputs, 0 disagreements. 11 model graphs built to stress exactly the places a column-set spec breaks: the F2P shape; 2-level MTI; 3-level grandparent MTI; MTI where the ONLY incoming ref targets a unique column on the grandparent table (IC) and on the middle table (JC); proxy model (both proxy and concrete target); self-referential FK with to_field on a unique non-pk of the same model; OneToOneField(primary_key=True) so the pk IS an FK column; a GenericRelation target with an EMPTY consulted set. Pending-query axis swept over unrestricted, defer(subset), only(subset) by BOTH field .name and .attname, and chained defer->only / only->defer, crossed with all 8 boolean triples. Cell coverage across sweeps: cell1 ~1995, cell2 ~822, cell3 ~436, cell4 ~22771. Model prediction compared as SETS (per mapping.md sec 2; column order is not test-observable) against the column set read off the real compiled SQL.\n\n3. ALL FOUR CELLS CONFIRMED END-TO-END through the REAL patched `Collector.collect` (not just the compiler), with column sets read from real captured SQL via CaptureQueriesContext on a real sqlite schema:\n  - cell1/2 via documented Meta.base_manager_name route (mapping sec 1.1): pending defers large_field, REAL cascade SELECT {id, unique_field} == MODEL {id, unique_field}.\n  - cell4: pre_delete receiver connected -> no request made -> REAL {id, origin_id, unique_field} == already_selected {id, origin_id, unique_field}. This is the discriminating check that cell4 states already_selected and NOT all_fields: large_field is absent because the PENDING query deferred it, exactly as the spec says.\n  - cell3 route (a): empty consulted set (GenericRelation blocks fast-delete) -> REAL all 4 columns == all_fields.\n  - cell3 route (b): pending query defers EVERY consulted column, so referenced becomes empty -> REAL fetches ALL 4 columns including the deferred unique_field == all_fields. This confirms the subtle 'empty .only() is a RESET not a narrowing' fact (deferred_to_data returns at `if not field_names`), i.e. cell3 is not merely reachable but real.\n  - MTI pk retention verified directly: IC (allf 8 cols, pk ip_ptr_id, consulted {guniq} on the grandparent) -> REAL SELECT {guniq, ip_ptr_id} == MODEL referenced+[pk]. So cell2's 'row identity always fetched even when not consulted' matches the real must_include={orig_opts.pk} seeding across a 3-table join.\n\n4. TWO CANDIDATE DIVERGENCES I RAISED AND THEN REFUTED AS MY OWN BRIDGE ERRORS (recorded so this is not a rubber-stamp):\n  (a) name-vs-attname deferral subtraction: defer('anchor') stores the NAME 'anchor' in deferred_loading while add_immediate_loading subtracts raw strings against attname 'anchor_id', which I predicted would make the mapping's `referenced = raw_consulted - existing` compute an empty set (model -> cell3 -> all columns) where the real SELECT narrows to {id, anchor_id}. On re-derivation this is a defect in MY manual bridge, not in the spec: mapping.md sec 1 binds `referenced` to the consulted columns a narrowing request can STILL REACH (the semantic reachable set), not to a literal string difference. Computing the difference in the correct token space, the systematic sweeps that include defer-by-name states over 11 graphs produce 0 disagreements. Not a finding.\n  (b) select_related pushes already_selected OUTSIDE all_fields: with an overridden related_objects doing select_related('origin'), the real cascade SELECT includes joined parent columns (ox, oy) that are not in Referrer's all_fields, technically outside the model's Requires (already_selected[k] in all_fields). But this is a PRECONDITION-SCOPE observation, not a divergence: on that very input cell4's postcondition Result == already_selected still holds exactly as a set equality (verified True), and the spec deliberately declines to narrow in this cell (matching the gold patch's own comment that select_related interactions are skipped). A narrower precondition is spec WEAKNESS territory (attacker 1/3's lane), not unfaithfulness, and it cannot make the modeled function disagree with the real callee on any input it admits.\n\nNo input was found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every cell boundary I could reach in the real repo (including the three cell-3 degeneracies, MTI pk retention, and the m2m_changed drop) is real behavior, and the two facts that historically refuted earlier revisions of this bundle (pk retained when unreferenced; empty .only() is a reset) are both stated correctly. Verdict FAITHFUL; diverging_input null because none exists.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "VERDICT NO-LEAKAGE. The relaxation argument holds, and the registration defect that failed the PRIOR panel_3 run has been repaired. Everything below is my own measurement; the bundle was never modified.\n\n1. ARTIFACT IDENTITY. sha256(model.py)=9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20, which matches gates.G-LEAK.sources.model.py AND gates.G-AX/G-CONF/G-DIFF/G-GOLD sources, so the spec I judged is the stamped one. `adversary same-spec nagini django__django-11087 <verbatim copy of model.py>` -> exit 0 \"SAME\". Spec view extracted independently via swebench_unified.markers.spec_view(model.py, get_backend('nagini')) -> atk3_specview.txt (both impl regions elided). patch.diff == instance.json['patch'] byte-for-byte (sha 38dfd4492...), matching the G-RESOLVE stamp.\n\n2. CORE GATES RE-RUN BY ME, NOT INHERITED. scripts/nagini_verify.sh on model.py -> \"Verification successful\" 18.63s (G-VERIFY sound). scripts/nagini_verify.sh on model_prepatch.py -> \"Verification failed\" at prepatch.py:144 on the cell-1 narrowing postcondition, and same-spec(model_prepatch.py) -> exit 0, so G-DIFF is sound: the spec-identical pass-the-pending-queryset-on skeleton is genuinely rejected. Zero @ContractOnly axioms (the single 'ContractOnly' hit in model.py is the axioms-region comment saying there are none), so there is no axiom over-claim surface for the relaxation to hide behind. G-CONF recorded 100000 checks / 0 disagreements against the real patched Collector.collect. G-PANEL-1 (spec-too-weak) and G-PANEL-2 (faithfulness) both recorded pass.\n\n3. PROBLEM_STATEMENT RE-SCAN (from instance.json, NOT hints_text). Counts in the PS: signal 0, listener 0, receiver 0, has_listeners 0, pre_delete 0, post_delete 0, m2m 0, select_related 0, observ* 0, expose 0, unless 0, condition/conditional 0, \"whole row\" 0, defer 0, eager 0, prefetch 0. The PS is an UNCONDITIONAL request: title \"Optimize .delete() to use only required fields\", body \"a field (text_log_error.line) that is not actually needed for the .delete() (it's not a primary key etc), so Django shouldn't be fetching that field REGARDLESS\". By contrast hints_text: signal 10, has_listeners 3, listener 3, pre_delete 1, post_delete 1, m2m_changed 1, defer 4 -- the conditionality lives only where directive 6 forbids me to look. So there is no problem_statement-only derivation of the discriminator; the file's central factual claim checks out.\n\n4. UNAVOIDABILITY RE-DERIVED BY MY OWN STRIP TEST (not inherited from the file). I built atk_pslit.py: the PS-literal impl -- reduce to referenced (+pk when absent), full-reset on empty referenced, with NO observer/whole-row gate whatsoever. same-spec -> exit 0 \"SAME\", so it is a legitimate same-spec rival. nagini_verify -> \"Verification failed\" on EXACTLY ONE obligation, atk_pslit.py:168-169, `Implies((whole_row_required or exposed_to_observers(pre, post)), ToSeq(Result()) == ToSeq(already_selected))`. Then the converse half: I built degated_pslit.py -- the same spec with every gate-mentioning clause stripped from select_cascade_fields' postconditions (cells 1/2/3 made unconditional, i.e. the PS-surface-only spec) -- and the PS-literal impl VERIFIES against it (\"Verification successful\" 14.61s). So the gate clause is exactly what separates the PS-literal impl from a verifying one.\n\n   Why that makes the leak unavoidable rather than merely convenient: the sole FAIL_TO_PASS test test_only_referenced_fields_selected pins BOTH halves -- reduced to ['id','unique_field'] with no receivers, AND `assertIn(quote_name('large_field'), captured_queries[0]['sql'])` for each of pre_delete and post_delete connected. An impl that verifies against the de-gated spec (the PS-literal one, measured above) therefore FAILS the second half of the F2P test. A PS-surface-restricted spec thus cannot deliver verify => correct. Refinement of the standard strip test worth recording: the de-gated spec DOES still reject the prepatch (degated_prepatch.py -> \"Verification failed\" at :136 on the unconditional cell-1 clause), so the gate is not load-bearing for G-DIFF; it is load-bearing for verify => correct, which is the stronger and the operative requirement. The narration-strip test passes in the sense that matters: strip the gate and a wrong impl verifies.\n\n5. FACET SCOPE -- what I re-confirmed the spec view discloses, and that nothing exceeds it. The disclosed facet is the gated exception: the two-term observer disjunction (`exposed_to_observers = pre or post`) plus the whole-row strand. Both terms of the gold's guard `not (sub_objs.query.select_related or self._has_signal_listeners(related_model))` map into that one facet, so the whole_row_required strand is the same facet, not a second leak. Verbatim gold-identifier scan of the 185-line spec view: select_related 0, _has_signal_listeners 0, has_listeners 0, signal 0, listener 0, pre_delete 0, post_delete 0, m2m_changed 0, only( 0, .only 0, defer/deferred 0, queryset 0, sub_objs 0, related_objects 0, can_fast_delete 0, get_candidate_relations 0, foreign_related_fields 0, attname 0, remote_field 0, on_delete 0, chain 0, referenced_fields 0, deletion.py 0, capital-C `Collector` 0. G-LEAK's edit-narration vocabulary (fixed/copy/patch/bug) is 0. The 3 'collect' hits are English -- \"the deletion collector walks a relation\" and twice \"sub-collection of consulted columns\" -- and I confirmed both `collector.collect` and `deletion.py` are themselves PUBLIC in the problem_statement (they appear in the pasted traceback, deletion.py x3, `collector.collect(del_query)` x1), so even the English usage discloses nothing the PS does not. Parameters all_fields/already_selected/referenced/pk/whole_row_required/pre/post are none of them gold identifiers. I re-ran the lexical screen live: leakage.screen(...) -> passed=True, 0 hard failures, 0 warnings.\n\n   One marginal item I judged and did NOT rest a finding on: cell 3 (\"when NO consulted column is reachable at all, every column is fetched\") telegraphs that the reduction goes through a narrowing-request API with .only()-style empty-set-is-a-reset semantics, which is a mechanism flavour absent from the PS. It is not the discriminator -- the prepatch is silent on it and is rejected by cell 1, not cell 3 (measured at prepatch.py:144) -- and it is stated in column-set vocabulary naming no repo symbol. Within tolerance for the covered facet; flagged for the record, not as leakage.\n\n6. DISPOSITION IS NOW SOUNDLY REGISTERED -- the prior panel_3 FAIL is repaired, and I verified the repair against the gate code rather than the file's assertion. gates/leak.py:31-36 accepts on `meta_status == \"relaxed\"` OR (`relaxed_leakage is True` AND RELAXED_LEAKAGE.md exists). Current bundle: meta.json['relaxed_leakage'] is True, gates.G-LEAK.status == \"relaxed\", RELAXED_LEAKAGE.md present -- BOTH acceptance paths now evaluate True (the prior run measured the key absent and status==\"pass\"/\"spec view clean\"). I ran the gate live: Bundle('django__django-11087', get_backend('nagini')); leak.run(b) -> status='relaxed', detail='RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec' -- matching the recorded stamp, so the record is not a misleading \"spec view clean\" pass. I also confirmed the two verifiably-false self-claims the prior panel caught are gone: the file now explicitly RETRACTS the bogus `docs/RELAXED_LEAKAGE.md` citation (\"an earlier revision of this file cited one, and that citation was wrong\"), and Requirement #3 no longer claims a scope list -- I confirmed by reading gates/leak.py and construct/build_one.py::_leakage_relaxed that neither reads any repo-level scope list, so \"the registration IS the flag plus this file\" is accurate. Requirement #1's cited prepatch failure clause is the one I actually reproduced.\n\n7. BUNDLE-ADDRESSES-REVIEWER CHECK, as instructed. leakage.reviewer_directed(RELAXED_LEAKAGE.md) -> [] (clean). Manual read agrees: the file argues its case and never tells me which verdict to submit or how to record it. Notably the prior revision's relitigation of an earlier panel's recommendation (the model_noSR.py / \"the reviewer who found the leak recommended...\" narration the previous panel_3 flagged as pressure-adjacent) has been REMOVED -- grep for reviewer|panel|noSR|nonfunc|recommend across RELAXED_LEAKAGE.md, mapping.md, refinement.md returns only two self-corrections about earlier revisions of the file/spec plus one 'scratch harness' mention in mapping.md's G-AX provenance. No finding to report on this axis. The uncheckable supporting artifacts the prior run could not find (nonfunc.py, model_noSR.py) are no longer cited as load-bearing; the surviving non-functionality measurement is stated as reproducible-from-the-image, and in any case it is a faithfulness question covered by a passing G-PANEL-2, so nothing in my verdict depends on it.\n\nCONCLUSION: the spec view leaks the gold's gated exception and nothing beyond it; that facet is provably undisclosable-free for a faithful spec (my atk_pslit / degated_pslit pair measures it directly); the core gates the relaxation leans on are sound when re-run by me; and the disposition is correctly registered on both acceptance paths with a clean reviewer-directed screen. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 G-PANEL attacker (2) faithfulness-break for django__django-11087 (nagini). Reference = worktree at base_commit 8180ffba21bf10f4be905cb0d4890dc2bcff2788 with patch.diff APPLIED (per instructions); base commit used only for untouched callees (.only/add_immediate_loading/deferred_to_data/get_default_columns/has_listeners, none of which the patch modifies). Worktree under /tmp; bundle not modified.\n\nBASELINE: `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (exit 0), so the spec region is the live, verifying one I audited.\n\nWHAT THE SPEC CLAIMS (4-cell partition over all_fields, already_selected, referenced, pk, whole_row_required, pre, post):\n  cell1: not wr & not(pre|post) & referenced nonempty & pk in referenced -> Result == referenced\n  cell2: same but pk not in referenced -> Result == referenced + [pk]\n  cell3: not wr & not(pre|post) & referenced empty -> Result == all_fields\n  cell4: wr | pre | post -> Result == already_selected\nPlus rows_exposed_to_observers == (pre or post).\n\nEVIDENCE (all against the REAL patched repo, callees CALLED not transliterated):\n\n1. HELPER (hunk 2) EXACT. Drove the real `Collector._has_signal_listeners` over the real django.db.models.signals registry with connect/disconnect cycles across all 8 (pre_delete, post_delete, m2m_changed) combinations. real == (pre or post) on all 8, MATCH each row. Critically the m2m_changed axis is confirmed IRRELEVANT to the real patched helper (pre=0,post=0,m2m=1 -> real False), so the spec's deliberate two-term disjunction (dropping the m2m_changed term the pre-patch can_fast_delete guard carried) is the real post-patch behavior, not an over-strengthening.\n\n2. DIFFERENTIAL SWEEPS vs the REAL SQL compiler: ~27,000 inputs, 0 disagreements. 11 model graphs built to stress exactly the places a column-set spec breaks: the F2P shape; 2-level MTI; 3-level grandparent MTI; MTI where the ONLY incoming ref targets a unique column on the grandparent table (IC) and on the middle table (JC); proxy model (both proxy and concrete target); self-referential FK with to_field on a unique non-pk of the same model; OneToOneField(primary_key=True) so the pk IS an FK column; a GenericRelation target with an EMPTY consulted set. Pending-query axis swept over unrestricted, defer(subset), only(subset) by BOTH field .name and .attname, and chained defer->only / only->defer, crossed with all 8 boolean triples. Cell coverage across sweeps: cell1 ~1995, cell2 ~822, cell3 ~436, cell4 ~22771. Model prediction compared as SETS (per mapping.md sec 2; column order is not test-observable) against the column set read off the real compiled SQL.\n\n3. ALL FOUR CELLS CONFIRMED END-TO-END through the REAL patched `Collector.collect` (not just the compiler), with column sets read from real captured SQL via CaptureQueriesContext on a real sqlite schema:\n  - cell1/2 via documented Meta.base_manager_name route (mapping sec 1.1): pending defers large_field, REAL cascade SELECT {id, unique_field} == MODEL {id, unique_field}.\n  - cell4: pre_delete receiver connected -> no request made -> REAL {id, origin_id, unique_field} == already_selected {id, origin_id, unique_field}. This is the discriminating check that cell4 states already_selected and NOT all_fields: large_field is absent because the PENDING query deferred it, exactly as the spec says.\n  - cell3 route (a): empty consulted set (GenericRelation blocks fast-delete) -> REAL all 4 columns == all_fields.\n  - cell3 route (b): pending query defers EVERY consulted column, so referenced becomes empty -> REAL fetches ALL 4 columns including the deferred unique_field == all_fields. This confirms the subtle 'empty .only() is a RESET not a narrowing' fact (deferred_to_data returns at `if not field_names`), i.e. cell3 is not merely reachable but real.\n  - MTI pk retention verified directly: IC (allf 8 cols, pk ip_ptr_id, consulted {guniq} on the grandparent) -> REAL SELECT {guniq, ip_ptr_id} == MODEL referenced+[pk]. So cell2's 'row identity always fetched even when not consulted' matches the real must_include={orig_opts.pk} seeding across a 3-table join.\n\n4. TWO CANDIDATE DIVERGENCES I RAISED AND THEN REFUTED AS MY OWN BRIDGE ERRORS (recorded so this is not a rubber-stamp):\n  (a) name-vs-attname deferral subtraction: defer('anchor') stores the NAME 'anchor' in deferred_loading while add_immediate_loading subtracts raw strings against attname 'anchor_id', which I predicted would make the mapping's `referenced = raw_consulted - existing` compute an empty set (model -> cell3 -> all columns) where the real SELECT narrows to {id, anchor_id}. On re-derivation this is a defect in MY manual bridge, not in the spec: mapping.md sec 1 binds `referenced` to the consulted columns a narrowing request can STILL REACH (the semantic reachable set), not to a literal string difference. Computing the difference in the correct token space, the systematic sweeps that include defer-by-name states over 11 graphs produce 0 disagreements. Not a finding.\n  (b) select_related pushes already_selected OUTSIDE all_fields: with an overridden related_objects doing select_related('origin'), the real cascade SELECT includes joined parent columns (ox, oy) that are not in Referrer's all_fields, technically outside the model's Requires (already_selected[k] in all_fields). But this is a PRECONDITION-SCOPE observation, not a divergence: on that very input cell4's postcondition Result == already_selected still holds exactly as a set equality (verified True), and the spec deliberately declines to narrow in this cell (matching the gold patch's own comment that select_related interactions are skipped). A narrower precondition is spec WEAKNESS territory (attacker 1/3's lane), not unfaithfulness, and it cannot make the modeled function disagree with the real callee on any input it admits.\n\nNo input was found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every cell boundary I could reach in the real repo (including the three cell-3 degeneracies, MTI pk retention, and the m2m_changed drop) is real behavior, and the two facts that historically refuted earlier revisions of this bundle (pk retained when unreferenced; empty .only() is a reset) are both stated correctly. Verdict FAITHFUL; diverging_input null because none exists.; G-PANEL-3 (leakage): pass \u2014 VERDICT NO-LEAKAGE. The relaxation argument holds, and the registration defect that failed the PRIOR panel_3 run has been repaired. Everything below is my own measurement; the bundle was never modified.\n\n1. ARTIFACT IDENTITY. sha256(model.py)=9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20, which matches gates.G-LEAK.sources.model.py AND gates.G-AX/G-CONF/G-DIFF/G-GOLD sources, so the spec I judged is the stamped one. `adversary same-spec nagini django__django-11087 <verbatim copy of model.py>` -> exit 0 \"SAME\". Spec view extracted independently via swebench_unified.markers.spec_view(model.py, get_backend('nagini')) -> atk3_specview.txt (both impl regions elided). patch.diff == instance.json['patch'] byte-for-byte (sha 38dfd4492...), matching the G-RESOLVE stamp.\n\n2. CORE GATES RE-RUN BY ME, NOT INHERITED. scripts/nagini_verify.sh on model.py -> \"Verification successful\" 18.63s (G-VERIFY sound). scripts/nagini_verify.sh on model_prepatch.py -> \"Verification failed\" at prepatch.py:144 on the cell-1 narrowing postcondition, and same-spec(model_prepatch.py) -> exit 0, so G-DIFF is sound: the spec-identical pass-the-pending-queryset-on skeleton is genuinely rejected. Zero @ContractOnly axioms (the single 'ContractOnly' hit in model.py is the axioms-region comment saying there are none), so there is no axiom over-claim surface for the relaxation to hide behind. G-CONF recorded 100000 checks / 0 disagreements against the real patched Collector.collect. G-PANEL-1 (spec-too-weak) and G-PANEL-2 (faithfulness) both recorded pass.\n\n3. PROBLEM_STATEMENT RE-SCAN (from instance.json, NOT hints_text). Counts in the PS: signal 0, listener 0, receiver 0, has_listeners 0, pre_delete 0, post_delete 0, m2m 0, select_related 0, observ* 0, expose 0, unless 0, condition/conditional 0, \"whole row\" 0, defer 0, eager 0, prefetch 0. The PS is an UNCONDITIONAL request: title \"Optimize .delete() to use only required fields\", body \"a field (text_log_error.line) that is not actually needed for the .delete() (it's not a primary key etc), so Django shouldn't be fetching that field REGARDLESS\". By contrast hints_text: signal 10, has_listeners 3, listener 3, pre_delete 1, post_delete 1, m2m_changed 1, defer 4 -- the conditionality lives only where directive 6 forbids me to look. So there is no problem_statement-only derivation of the discriminator; the file's central factual claim checks out.\n\n4. UNAVOIDABILITY RE-DERIVED BY MY OWN STRIP TEST (not inherited from the file). I built atk_pslit.py: the PS-literal impl -- reduce to referenced (+pk when absent), full-reset on empty referenced, with NO observer/whole-row gate whatsoever. same-spec -> exit 0 \"SAME\", so it is a legitimate same-spec rival. nagini_verify -> \"Verification failed\" on EXACTLY ONE obligation, atk_pslit.py:168-169, `Implies((whole_row_required or exposed_to_observers(pre, post)), ToSeq(Result()) == ToSeq(already_selected))`. Then the converse half: I built degated_pslit.py -- the same spec with every gate-mentioning clause stripped from select_cascade_fields' postconditions (cells 1/2/3 made unconditional, i.e. the PS-surface-only spec) -- and the PS-literal impl VERIFIES against it (\"Verification successful\" 14.61s). So the gate clause is exactly what separates the PS-literal impl from a verifying one.\n\n   Why that makes the leak unavoidable rather than merely convenient: the sole FAIL_TO_PASS test test_only_referenced_fields_selected pins BOTH halves -- reduced to ['id','unique_field'] with no receivers, AND `assertIn(quote_name('large_field'), captured_queries[0]['sql'])` for each of pre_delete and post_delete connected. An impl that verifies against the de-gated spec (the PS-literal one, measured above) therefore FAILS the second half of the F2P test. A PS-surface-restricted spec thus cannot deliver verify => correct. Refinement of the standard strip test worth recording: the de-gated spec DOES still reject the prepatch (degated_prepatch.py -> \"Verification failed\" at :136 on the unconditional cell-1 clause), so the gate is not load-bearing for G-DIFF; it is load-bearing for verify => correct, which is the stronger and the operative requirement. The narration-strip test passes in the sense that matters: strip the gate and a wrong impl verifies.\n\n5. FACET SCOPE -- what I re-confirmed the spec view discloses, and that nothing exceeds it. The disclosed facet is the gated exception: the two-term observer disjunction (`exposed_to_observers = pre or post`) plus the whole-row strand. Both terms of the gold's guard `not (sub_objs.query.select_related or self._has_signal_listeners(related_model))` map into that one facet, so the whole_row_required strand is the same facet, not a second leak. Verbatim gold-identifier scan of the 185-line spec view: select_related 0, _has_signal_listeners 0, has_listeners 0, signal 0, listener 0, pre_delete 0, post_delete 0, m2m_changed 0, only( 0, .only 0, defer/deferred 0, queryset 0, sub_objs 0, related_objects 0, can_fast_delete 0, get_candidate_relations 0, foreign_related_fields 0, attname 0, remote_field 0, on_delete 0, chain 0, referenced_fields 0, deletion.py 0, capital-C `Collector` 0. G-LEAK's edit-narration vocabulary (fixed/copy/patch/bug) is 0. The 3 'collect' hits are English -- \"the deletion collector walks a relation\" and twice \"sub-collection of consulted columns\" -- and I confirmed both `collector.collect` and `deletion.py` are themselves PUBLIC in the problem_statement (they appear in the pasted traceback, deletion.py x3, `collector.collect(del_query)` x1), so even the English usage discloses nothing the PS does not. Parameters all_fields/already_selected/referenced/pk/whole_row_required/pre/post are none of them gold identifiers. I re-ran the lexical screen live: leakage.screen(...) -> passed=True, 0 hard failures, 0 warnings.\n\n   One marginal item I judged and did NOT rest a finding on: cell 3 (\"when NO consulted column is reachable at all, every column is fetched\") telegraphs that the reduction goes through a narrowing-request API with .only()-style empty-set-is-a-reset semantics, which is a mechanism flavour absent from the PS. It is not the discriminator -- the prepatch is silent on it and is rejected by cell 1, not cell 3 (measured at prepatch.py:144) -- and it is stated in column-set vocabulary naming no repo symbol. Within tolerance for the covered facet; flagged for the record, not as leakage.\n\n6. DISPOSITION IS NOW SOUNDLY REGISTERED -- the prior panel_3 FAIL is repaired, and I verified the repair against the gate code rather than the file's assertion. gates/leak.py:31-36 accepts on `meta_status == \"relaxed\"` OR (`relaxed_leakage is True` AND RELAXED_LEAKAGE.md exists). Current bundle: meta.json['relaxed_leakage'] is True, gates.G-LEAK.status == \"relaxed\", RELAXED_LEAKAGE.md present -- BOTH acceptance paths now evaluate True (the prior run measured the key absent and status==\"pass\"/\"spec view clean\"). I ran the gate live: Bundle('django__django-11087', get_backend('nagini')); leak.run(b) -> status='relaxed', detail='RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec' -- matching the recorded stamp, so the record is not a misleading \"spec view clean\" pass. I also confirmed the two verifiably-false self-claims the prior panel caught are gone: the file now explicitly RETRACTS the bogus `docs/RELAXED_LEAKAGE.md` citation (\"an earlier revision of this file cited one, and that citation was wrong\"), and Requirement #3 no longer claims a scope list -- I confirmed by reading gates/leak.py and construct/build_one.py::_leakage_relaxed that neither reads any repo-level scope list, so \"the registration IS the flag plus this file\" is accurate. Requirement #1's cited prepatch failure clause is the one I actually reproduced.\n\n7. BUNDLE-ADDRESSES-REVIEWER CHECK, as instructed. leakage.reviewer_directed(RELAXED_LEAKAGE.md) -> [] (clean). Manual read agrees: the file argues its case and never tells me which verdict to submit or how to record it. Notably the prior revision's relitigation of an earlier panel's recommendation (the model_noSR.py / \"the reviewer who found the leak recommended...\" narration the previous panel_3 flagged as pressure-adjacent) has been REMOVED -- grep for reviewer|panel|noSR|nonfunc|recommend across RELAXED_LEAKAGE.md, mapping.md, refinement.md returns only two self-corrections about earlier revisions of the file/spec plus one 'scratch harness' mention in mapping.md's G-AX provenance. No finding to report on this axis. The uncheckable supporting artifacts the prior run could not find (nonfunc.py, model_noSR.py) are no longer cited as load-bearing; the surviving non-functionality measurement is stated as reproducible-from-the-image, and in any case it is a faithfulness question covered by a passing G-PANEL-2, so nothing in my verdict depends on it.\n\nCONCLUSION: the spec view leaks the gold's gated exception and nothing beyond it; that facet is provably undisclosable-free for a faithful spec (my atk_pslit / degated_pslit pair measures it directly); the core gates the relaxation leans on are sound when re-run by me; and the disposition is correctly registered on both acceptance paths with a clean reviewer-directed screen. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20",
+        "properties.py": "51973a3ddd51c71b5e85bb5c3d700c8467d86920221cb9ba6bd45e99e649fd53"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T00:00:20+00:00",
+      "code_version": "f6dad4124-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 18 admissible attacks re-run of 18 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 18 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 18 | `atk_1_prepatch_passthrough.py`, `atk_2_singleton_ref_keeps_all.py`, `atk_3_no_pk_retention.py`, `atk_4_exposure_term_dropped.py`, `atk_5_select_related_term_dropped.py`, `atk_6_offbyone_drops_last_ref.py`, `atk_7_empty_request_pk_only.py`, `atk_8_no_request_returns_full.py`, `atk_9_empty_pending_returns_full.py`, +9 more |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20",
+        "properties.py": "51973a3ddd51c71b5e85bb5c3d700c8467d86920221cb9ba6bd45e99e649fd53"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-14T22:51:08+00:00",
+      "code_version": "181bd78bb-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "G-PANEL attacker (2) faithfulness-break for django__django-11087 (nagini). Reference = worktree at base_commit 8180ffba21bf10f4be905cb0d4890dc2bcff2788 with patch.diff APPLIED (per instructions); base commit used only for untouched callees (.only/add_immediate_loading/deferred_to_data/get_default_columns/has_listeners, none of which the patch modifies). Worktree under /tmp; bundle not modified.\n\nBASELINE: `bash scripts/nagini_verify.sh model.py` -> \"Verification successful\" (exit 0), so the spec region is the live, verifying one I audited.\n\nWHAT THE SPEC CLAIMS (4-cell partition over all_fields, already_selected, referenced, pk, whole_row_required, pre, post):\n  cell1: not wr & not(pre|post) & referenced nonempty & pk in referenced -> Result == referenced\n  cell2: same but pk not in referenced -> Result == referenced + [pk]\n  cell3: not wr & not(pre|post) & referenced empty -> Result == all_fields\n  cell4: wr | pre | post -> Result == already_selected\nPlus rows_exposed_to_observers == (pre or post).\n\nEVIDENCE (all against the REAL patched repo, callees CALLED not transliterated):\n\n1. HELPER (hunk 2) EXACT. Drove the real `Collector._has_signal_listeners` over the real django.db.models.signals registry with connect/disconnect cycles across all 8 (pre_delete, post_delete, m2m_changed) combinations. real == (pre or post) on all 8, MATCH each row. Critically the m2m_changed axis is confirmed IRRELEVANT to the real patched helper (pre=0,post=0,m2m=1 -> real False), so the spec's deliberate two-term disjunction (dropping the m2m_changed term the pre-patch can_fast_delete guard carried) is the real post-patch behavior, not an over-strengthening.\n\n2. DIFFERENTIAL SWEEPS vs the REAL SQL compiler: ~27,000 inputs, 0 disagreements. 11 model graphs built to stress exactly the places a column-set spec breaks: the F2P shape; 2-level MTI; 3-level grandparent MTI; MTI where the ONLY incoming ref targets a unique column on the grandparent table (IC) and on the middle table (JC); proxy model (both proxy and concrete target); self-referential FK with to_field on a unique non-pk of the same model; OneToOneField(primary_key=True) so the pk IS an FK column; a GenericRelation target with an EMPTY consulted set. Pending-query axis swept over unrestricted, defer(subset), only(subset) by BOTH field .name and .attname, and chained defer->only / only->defer, crossed with all 8 boolean triples. Cell coverage across sweeps: cell1 ~1995, cell2 ~822, cell3 ~436, cell4 ~22771. Model prediction compared as SETS (per mapping.md sec 2; column order is not test-observable) against the column set read off the real compiled SQL.\n\n3. ALL FOUR CELLS CONFIRMED END-TO-END through the REAL patched `Collector.collect` (not just the compiler), with column sets read from real captured SQL via CaptureQueriesContext on a real sqlite schema:\n  - cell1/2 via documented Meta.base_manager_name route (mapping sec 1.1): pending defers large_field, REAL cascade SELECT {id, unique_field} == MODEL {id, unique_field}.\n  - cell4: pre_delete receiver connected -> no request made -> REAL {id, origin_id, unique_field} == already_selected {id, origin_id, unique_field}. This is the discriminating check that cell4 states already_selected and NOT all_fields: large_field is absent because the PENDING query deferred it, exactly as the spec says.\n  - cell3 route (a): empty consulted set (GenericRelation blocks fast-delete) -> REAL all 4 columns == all_fields.\n  - cell3 route (b): pending query defers EVERY consulted column, so referenced becomes empty -> REAL fetches ALL 4 columns including the deferred unique_field == all_fields. This confirms the subtle 'empty .only() is a RESET not a narrowing' fact (deferred_to_data returns at `if not field_names`), i.e. cell3 is not merely reachable but real.\n  - MTI pk retention verified directly: IC (allf 8 cols, pk ip_ptr_id, consulted {guniq} on the grandparent) -> REAL SELECT {guniq, ip_ptr_id} == MODEL referenced+[pk]. So cell2's 'row identity always fetched even when not consulted' matches the real must_include={orig_opts.pk} seeding across a 3-table join.\n\n4. TWO CANDIDATE DIVERGENCES I RAISED AND THEN REFUTED AS MY OWN BRIDGE ERRORS (recorded so this is not a rubber-stamp):\n  (a) name-vs-attname deferral subtraction: defer('anchor') stores the NAME 'anchor' in deferred_loading while add_immediate_loading subtracts raw strings against attname 'anchor_id', which I predicted would make the mapping's `referenced = raw_consulted - existing` compute an empty set (model -> cell3 -> all columns) where the real SELECT narrows to {id, anchor_id}. On re-derivation this is a defect in MY manual bridge, not in the spec: mapping.md sec 1 binds `referenced` to the consulted columns a narrowing request can STILL REACH (the semantic reachable set), not to a literal string difference. Computing the difference in the correct token space, the systematic sweeps that include defer-by-name states over 11 graphs produce 0 disagreements. Not a finding.\n\n  (b) select_related pushes already_selected OUTSIDE all_fields: with an overridden related_objects doing select_related('origin'), the real cascade SELECT includes joined parent columns (ox, oy) that are not in Referrer's all_fields, technically outside the model's Requires (already_selected[k] in all_fields). But this is a PRECONDITION-SCOPE observation, not a divergence: on that very input cell4's postcondition Result == already_selected still holds exactly as a set equality (verified True), and the spec deliberately declines to narrow in this cell (matching the gold patch's own comment that select_related interactions are skipped). A narrower precondition is spec WEAKNESS territory (attacker 1/3's lane), not unfaithfulness, and it cannot make the modeled function disagree with the real callee on any input it admits.\n\nNo input was found on which the modeled function disagrees with the real patched callee. The spec is not too strong: every cell boundary I could reach in the real repo (including the three cell-3 degeneracies, MTI pk retention, and the m2m_changed drop) is real behavior, and the two facts that historically refuted earlier revisions of this bundle (pk retained when unreferenced; empty .only() is a reset) are both stated correctly. Verdict FAITHFUL; diverging_input null because none exists.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-14T22:44:19+00:00",
+      "code_version": "181bd78bb-dirty",
+      "harness_digest": "73433bf259b3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "VERDICT NO-LEAKAGE. The relaxation argument holds, and the registration defect that failed the PRIOR panel_3 run has been repaired. Everything below is my own measurement; the bundle was never modified.\n\n1. ARTIFACT IDENTITY. sha256(model.py)=9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20, which matches gates.G-LEAK.sources.model.py AND gates.G-AX/G-CONF/G-DIFF/G-GOLD sources, so the spec I judged is the stamped one. `adversary same-spec nagini django__django-11087 <verbatim copy of model.py>` -> exit 0 \"SAME\". Spec view extracted independently via swebench_unified.markers.spec_view(model.py, get_backend('nagini')) -> atk3_specview.txt (both impl regions elided). patch.diff == instance.json['patch'] byte-for-byte (sha 38dfd4492...), matching the G-RESOLVE stamp.\n\n2. CORE GATES RE-RUN BY ME, NOT INHERITED. scripts/nagini_verify.sh on model.py -> \"Verification successful\" 18.63s (G-VERIFY sound). scripts/nagini_verify.sh on model_prepatch.py -> \"Verification failed\" at prepatch.py:144 on the cell-1 narrowing postcondition, and same-spec(model_prepatch.py) -> exit 0, so G-DIFF is sound: the spec-identical pass-the-pending-queryset-on skeleton is genuinely rejected. Zero @ContractOnly axioms (the single 'ContractOnly' hit in model.py is the axioms-region comment saying there are none), so there is no axiom over-claim surface for the relaxation to hide behind. G-CONF recorded 100000 checks / 0 disagreements against the real patched Collector.collect. G-PANEL-1 (spec-too-weak) and G-PANEL-2 (faithfulness) both recorded pass.\n\n3. PROBLEM_STATEMENT RE-SCAN (from instance.json, NOT hints_text). Counts in the PS: signal 0, listener 0, receiver 0, has_listeners 0, pre_delete 0, post_delete 0, m2m 0, select_related 0, observ* 0, expose 0, unless 0, condition/conditional 0, \"whole row\" 0, defer 0, eager 0, prefetch 0. The PS is an UNCONDITIONAL request: title \"Optimize .delete() to use only required fields\", body \"a field (text_log_error.line) that is not actually needed for the .delete() (it's not a primary key etc), so Django shouldn't be fetching that field REGARDLESS\". By contrast hints_text: signal 10, has_listeners 3, listener 3, pre_delete 1, post_delete 1, m2m_changed 1, defer 4 -- the conditionality lives only where directive 6 forbids me to look. So there is no problem_statement-only derivation of the discriminator; the file's central factual claim checks out.\n\n4. UNAVOIDABILITY RE-DERIVED BY MY OWN STRIP TEST (not inherited from the file). I built atk_pslit.py: the PS-literal impl -- reduce to referenced (+pk when absent), full-reset on empty referenced, with NO observer/whole-row gate whatsoever. same-spec -> exit 0 \"SAME\", so it is a legitimate same-spec rival. nagini_verify -> \"Verification failed\" on EXACTLY ONE obligation, atk_pslit.py:168-169, `Implies((whole_row_required or exposed_to_observers(pre, post)), ToSeq(Result()) == ToSeq(already_selected))`. Then the converse half: I built degated_pslit.py -- the same spec with every gate-mentioning clause stripped from select_cascade_fields' postconditions (cells 1/2/3 made unconditional, i.e. the PS-surface-only spec) -- and the PS-literal impl VERIFIES against it (\"Verification successful\" 14.61s). So the gate clause is exactly what separates the PS-literal impl from a verifying one.\n\n   Why that makes the leak unavoidable rather than merely convenient: the sole FAIL_TO_PASS test test_only_referenced_fields_selected pins BOTH halves -- reduced to ['id','unique_field'] with no receivers, AND `assertIn(quote_name('large_field'), captured_queries[0]['sql'])` for each of pre_delete and post_delete connected. An impl that verifies against the de-gated spec (the PS-literal one, measured above) therefore FAILS the second half of the F2P test. A PS-surface-restricted spec thus cannot deliver verify => correct. Refinement of the standard strip test worth recording: the de-gated spec DOES still reject the prepatch (degated_prepatch.py -> \"Verification failed\" at :136 on the unconditional cell-1 clause), so the gate is not load-bearing for G-DIFF; it is load-bearing for verify => correct, which is the stronger and the operative requirement. The narration-strip test passes in the sense that matters: strip the gate and a wrong impl verifies.\n\n5. FACET SCOPE -- what I re-confirmed the spec view discloses, and that nothing exceeds it. The disclosed facet is the gated exception: the two-term observer disjunction (`exposed_to_observers = pre or post`) plus the whole-row strand. Both terms of the gold's guard `not (sub_objs.query.select_related or self._has_signal_listeners(related_model))` map into that one facet, so the whole_row_required strand is the same facet, not a second leak. Verbatim gold-identifier scan of the 185-line spec view: select_related 0, _has_signal_listeners 0, has_listeners 0, signal 0, listener 0, pre_delete 0, post_delete 0, m2m_changed 0, only( 0, .only 0, defer/deferred 0, queryset 0, sub_objs 0, related_objects 0, can_fast_delete 0, get_candidate_relations 0, foreign_related_fields 0, attname 0, remote_field 0, on_delete 0, chain 0, referenced_fields 0, deletion.py 0, capital-C `Collector` 0. G-LEAK's edit-narration vocabulary (fixed/copy/patch/bug) is 0. The 3 'collect' hits are English -- \"the deletion collector walks a relation\" and twice \"sub-collection of consulted columns\" -- and I confirmed both `collector.collect` and `deletion.py` are themselves PUBLIC in the problem_statement (they appear in the pasted traceback, deletion.py x3, `collector.collect(del_query)` x1), so even the English usage discloses nothing the PS does not. Parameters all_fields/already_selected/referenced/pk/whole_row_required/pre/post are none of them gold identifiers. I re-ran the lexical screen live: leakage.screen(...) -> passed=True, 0 hard failures, 0 warnings.\n\n   One marginal item I judged and did NOT rest a finding on: cell 3 (\"when NO consulted column is reachable at all, every column is fetched\") telegraphs that the reduction goes through a narrowing-request API with .only()-style empty-set-is-a-reset semantics, which is a mechanism flavour absent from the PS. It is not the discriminator -- the prepatch is silent on it and is rejected by cell 1, not cell 3 (measured at prepatch.py:144) -- and it is stated in column-set vocabulary naming no repo symbol. Within tolerance for the covered facet; flagged for the record, not as leakage.\n\n6. DISPOSITION IS NOW SOUNDLY REGISTERED -- the prior panel_3 FAIL is repaired, and I verified the repair against the gate code rather than the file's assertion. gates/leak.py:31-36 accepts on `meta_status == \"relaxed\"` OR (`relaxed_leakage is True` AND RELAXED_LEAKAGE.md exists). Current bundle: meta.json['relaxed_leakage'] is True, gates.G-LEAK.status == \"relaxed\", RELAXED_LEAKAGE.md present -- BOTH acceptance paths now evaluate True (the prior run measured the key absent and status==\"pass\"/\"spec view clean\"). I ran the gate live: Bundle('django__django-11087', get_backend('nagini')); leak.run(b) -> status='relaxed', detail='RELAXED per RELAXED_LEAKAGE.md: semantic leak of gold discriminator; unavoidable for a faithful spec' -- matching the recorded stamp, so the record is not a misleading \"spec view clean\" pass. I also confirmed the two verifiably-false self-claims the prior panel caught are gone: the file now explicitly RETRACTS the bogus `docs/RELAXED_LEAKAGE.md` citation (\"an earlier revision of this file cited one, and that citation was wrong\"), and Requirement #3 no longer claims a scope list -- I confirmed by reading gates/leak.py and construct/build_one.py::_leakage_relaxed that neither reads any repo-level scope list, so \"the registration IS the flag plus this file\" is accurate. Requirement #1's cited prepatch failure clause is the one I actually reproduced.\n\n7. BUNDLE-ADDRESSES-REVIEWER CHECK, as instructed. leakage.reviewer_directed(RELAXED_LEAKAGE.md) -> [] (clean). Manual read agrees: the file argues its case and never tells me which verdict to submit or how to record it. Notably the prior revision's relitigation of an earlier panel's recommendation (the model_noSR.py / \"the reviewer who found the leak recommended...\" narration the previous panel_3 flagged as pressure-adjacent) has been REMOVED -- grep for reviewer|panel|noSR|nonfunc|recommend across RELAXED_LEAKAGE.md, mapping.md, refinement.md returns only two self-corrections about earlier revisions of the file/spec plus one 'scratch harness' mention in mapping.md's G-AX provenance. No finding to report on this axis. The uncheckable supporting artifacts the prior run could not find (nonfunc.py, model_noSR.py) are no longer cited as load-bearing; the surviving non-functionality measurement is stated as reproducible-from-the-image, and in any case it is a faithfulness question covered by a passing G-PANEL-2, so nothing in my verdict depends on it.\n\nCONCLUSION: the spec view leaks the gold's gated exception and nothing beyond it; that facet is provably undisclosable-free for a faithful spec (my atk_pslit / degated_pslit pair measures it directly); the core gates the relaxation leans on are sound when re-run by me; and the disposition is correctly registered on both acceptance paths with a clean reviewer-directed screen. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere. This cell separately records G-LEAK as `relaxed`, which is a disclosure a reviewer accepted rather than the absence of one.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `relaxed` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, `RELAXED_LEAKAGE.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:44:33+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-fields-branch-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 49.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-bool-demorgan",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 53.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-shaped-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 67.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-referenced-inplace",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-allfields-inplace",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 51.7
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-pending-inplace",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-prepatch-passthrough",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 77.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-ignore-whole-row-required",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 84.5
+          },
+          {
+            "expect": "reject",
+            "id": "partial-drop-identity-retention",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 95.3
+          },
+          {
+            "expect": "reject",
+            "id": "partial-empty-consulted-narrows",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 45.0
+          },
+          {
+            "expect": "reject",
+            "id": "partial-cell4-returns-full-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.4
+          },
+          {
+            "expect": "reject",
+            "id": "partial-cell3-returns-pending-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 36.2
+          },
+          {
+            "expect": "reject",
+            "id": "partial-bool-drop-post",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 33.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-bool-always-true",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 11
+        },
+        "manifest_sha256": "51973a3ddd51c71b5e85bb5c3d700c8467d86920221cb9ba6bd45e99e649fd53",
+        "n_cases": 14,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 14 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20",
+        "properties.py": "51973a3ddd51c71b5e85bb5c3d700c8467d86920221cb9ba6bd45e99e649fd53"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-14T22:28:24+00:00",
+      "code_version": "3226c006f-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "58ba01cbf0e588abb5f49a5a5784a049f30e576b4d456b13832a6eb2a7ecf6d2",
+        "patch.diff": "38dfd449272afdf7269e56d798668fd4167db5c34c775614ca0b2fb47eb25789"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-14T22:23:44+00:00",
+      "code_version": "3226c006f",
+      "data": {
+        "wall_time_s": 17.6
+      },
+      "detail": "verified in 17.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "73433bf259b3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "9a9634af9f0f8a4cc367550a39730fa2701cb21b30767a9f0328b89990e8eb20"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-11087",
+  "modeled_functions": [
+    {
+      "carrier_type": "two bool observation flags -> bool",
+      "model_symbol": "rows_exposed_to_observers",
+      "repo_location": "django/db/models/deletion.py:120 (new helper); factored out of can_fast_delete guard at deletion.py:138-140",
+      "repo_symbol": "django.db.models.deletion.Collector._has_signal_listeners",
+      "role": "modeled changed function #1 -- exposure predicate (pre/post-delete listener disjunction); dropping the m2m_changed term for the deletion-graph path"
+    },
+    {
+      "carrier_type": "column attname (str) -> int token; column set -> List[int]; specification over PSeq[int] via ToSeq; the pending related-set query's own column set is the List[int] `already_selected`",
+      "model_symbol": "select_cascade_fields",
+      "repo_location": "django/db/models/deletion.py:223-224 (pre-patch elif sub_objs) -> new else: block (post-patch)",
+      "repo_symbol": "django.db.models.deletion.Collector.collect (the related-set branch)",
+      "role": "modeled changed function #2 -- which columns the cascade SELECT fetches for a related set; narrowed to the consulted columns reachable by the request (plus the always-retained row identity) unless the rows will be exposed (pre/post listener) or the pending query already requires the whole row, in which case the pending query's own column set stands"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; git apply --check OK)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(not whole_row_required and not exposed_to_observers(pre, post) and len(referenced) > 0 and Exists(k: referenced[k] == pk), ToSeq(Result()) == ToSeq(referenced)) of select_cascade_fields",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "collect() reduced-column cascade SELECT",
+      "reverted_to": "pass the pending related-set queryset on untouched -- no narrowing request is ever made, so whatever that query fetches on its own is what is fetched (the prior `elif sub_objs:` branch)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "ede2595c26693b19ea5d5510fb6d0f919e4d7148d9489b0e51a7310e43767798",
+    "impl": "3bd2d70d4ecec11c745f21bb41b40f31ca6609d6d6d91019251e15cc85f4adaf",
+    "invariants": "42af6bc1e7fd6ee40da05b58646aa9a136ac9dbb1fe85095cda03771e9d5e1ca",
+    "post-conditions": "f44ce394548c1e1db72add206d5aa150ec9ee38cf0c7a6ebe00a2edd6ecf4672",
+    "pre-conditions": "8976e87d10bbe45b210de2bfa03d31ca367489398c6e3b2ddc2ec97917fd3933",
+    "pure": "40aa127b427a2883c70e72d0963574c72a2e772e749af5b44ac2ad9e2fbc28ec",
+    "spec_view": "0461afe819087683a9396bf87b61e728f26e1de3c603732ad536f7d23ba6a408"
+  },
+  "relaxed_leakage": true,
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "model fields/columns are int tokens; a column set is a List[int]; specification carried by PSeq[int] via ToSeq; the abstract set the SELECT fetches is preserved (column order is not test-observable)",
+  "version": "3.0"
+}

@@ -1,0 +1,406 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "R/I class-wiring / vendor-routing: selects which of the two ALREADY-modeled final-key forms (member-access vs array-element) each call site uses; introduces no new computation. Not separately modeled; exercised by G-RESOLVE; audited in refinement.md \u00a7B / mapping.md \u00a73.2",
+      "repo_location": "django/db/models/fields/json.py:250-258 (new subclass), :389-393/:400-408/:465-476 (re-pointed call sites)",
+      "repo_symbol": "class HasKeyOrArrayIndex(HasKey) + re-pointed KeyTransformIsNull/KeyTransform Oracle/SQLite call sites"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "859a87d873ce7152af73ab851653b4e1c3ffea4c",
+  "changed_files": [
+    "django/db/models/fields/json.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts member_access_segment == real compile_json_path_final_key on F2P keys + boundary + 70000 fuzz keys, 0 mismatch; also confirms the pre-patch array-index discriminator vs the real compile_json_path",
+      "encoded_property": "member_access_segment(key) = '.'(46) + '\"'(34) + key + '\"'(34); on the modelled domain (printable ASCII 32..126 minus quote/backslash) json.dumps(key) == '\"'+key+'\"', so the step == '.' + json.dumps(key); a numeric key keeps verbatim digits and the object-member form, never the array-element form [n]",
+      "kind": "A-reference",
+      "models": "HasKeyLookup.compile_json_path_final_key body: \".%s\" % json.dumps(key_transform) (CPython json.dumps, default ensure_ascii=True)",
+      "name": "member_access_segment / json_string_literal",
+      "provenance": "django/db/models/fields/json.py post-patch new method; json.dumps docs https://docs.python.org/3/library/json.html#json.dumps",
+      "role": "deep model (pure region) of the changed serialization step; NOT a consumed axiom \u2014 the axioms region is empty"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T12:09:06+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: member_access_segment deep model == real compile_json_path_final_key on 30 boundary + 70000 fuzz keys; numeric-key bug discriminator confirmed (array-index form pre-patch, object-member form post-patch)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "f06019c067b05b5121228d41eb4bee81e4dd7e8f299f1cd2d46a21d53187d487",
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T12:09:11+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 120330,
+          "disagreements": 0,
+          "seed": 15503,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 120330, \"disagreements\": 0, \"seed\": 15503, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "6a3f8f07c8b465129427dc46ab6c18b404dfd7e63ecbdff8f4b7b79fad34ef0d",
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:18:05+00:00",
+      "code_version": "17067c5d2-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f",
+        "model_prepatch.py": "3a1f2867c33ddd41d7f97a4a25afff424c5a1d1d7c16da4d9d397d91791b4903"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T10:39:08+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 7 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1_prepatch.py`, `atk_2_wrongsep.py`, `atk_3_noquote.py`, `atk_5_emptyboundary.py`, `atk_7_reverse.py`, `atk_8_partialdomain.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6_echo.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:19:06+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f",
+        "model_prepatch.py": "3a1f2867c33ddd41d7f97a4a25afff424c5a1d1d7c16da4d9d397d91791b4903"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T12:09:02+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "3b63d6c4b5bcdff92114bea8f84c56f27d70bb60d810dba02a22eb2d58268bd5",
+          "impl": "92d0b14a75c3fde59324cc450a2ff2d5c22e02a90daa18bf7abcace304dd3d0b",
+          "invariants": "c7385e66aa294628035237b18e3b4b2d7f5d6d5ae09671bff0c6afe0f98de80e",
+          "post-conditions": "79068643da5b9370c4cdbf3c510ef72322f9f423cba264059887c3ef3c70df0a",
+          "pre-conditions": "2380eb4c9f231584327c97332d92b5765b9957861a2706a2e39e845df5f485f7",
+          "pure": "d39456048835467ae12fff83644891b07d2433a93faf5259b228e49ca5ae8402",
+          "spec_view": "a295d4f01b48d1b16c7e849239a37cf1daab1244718538d4eb6961905ad51b04"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T12:09:03+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "a4ab8b8db7a38c7e1316f5dbeacd4d02f2ef556cb725943daf64dc737f261e45",
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T12:09:04+00:00",
+      "code_version": "1a38888a2-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T10:52:19+00:00",
+      "code_version": "15a93b535-dirty",
+      "data": {
+        "judged": 15,
+        "killed": 15,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 15,
+        "unjudged": []
+      },
+      "detail": "killed 15/15 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T10:39:10+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "The spec models the fixed callee `compile_json_path_final_key(key) = '.' + json.dumps(key)` deeply as `member_access_segment(key) = '.' + '\"' + key + '\"'`, restricted to in_domain keys (printable ASCII 32..126, excluding quote 34 and backslash 92). I verified faithfulness on that domain three ways: (1) exhaustive single-char check over 32..126 minus {34,92} \u2014 0 mismatches; (2) 1,000,000 random multi-char keys (len 0..25) over the domain \u2014 0 divergences between the model and real `'.%s' % json.dumps(k)`; (3) the bundle's axiom_check.py (G-AX) passes (30 boundary + 70000 fuzz keys, incl. all-digit stress). The domain restriction is legitimate and non-hiding: it is exactly the region where json.dumps leaves the key verbatim between quotes (it escapes quote/backslash/controls and emits non-ASCII as \\uXXXX, none of which occur in-domain), and it covers the F2P numeric-key discriminator ('000'->.\"000\", '1111'->.\"1111\"). Structural postconditions (len=len(key)+3, [0]==46, [1]==34, last==34, key verbatim between quotes) all match the real callee. model.py verifies (Nagini, 19s). No input in the specified domain where the modeled function disagrees with the real repo callee. Spec is not too strong.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen (swebench_unified.leakage.screen over the spec_view of model.py, python flavor) passes with zero hard failures. Manual gold-reconstruction review of the spec view (module docstring + axioms/pure/pre/post regions; impl elided) confirms NO leakage beyond the public problem_statement:\n\n(1) No patched repo symbol echoed. Changed symbols {compile_json_path_final_key, HasKeyOrArrayIndex, as_sql, as_sqlite, as_oracle, HasAnyKeys} \u2014 none appear in spec-view identifiers or comments. The modelled symbols (compile_final_key_segment, member_access_segment, json_string_literal, in_domain, all_digits, is_digit) are generic and do not localize the edit.\n(2) No gold-patch line reproduced. The gold body '.%s\" % json.dumps(key_transform)' and 'json.dumps' do NOT appear in the spec view (they live only in mapping.md/refinement.md, which are audit docs, not the spec surface). Nothing >=8 chars from a changed line collides.\n(3) No diff markers, no patched file path (django/db/models/fields/json.py absent), no module path.\n(4) No bug/fix narration (bug/fixed/previously/incorrectly/wrong/pre-patch etc. all absent from spec-view comments).\n(5) Pre-patch array-index branch and the HasKeyOrArrayIndex subclass-wiring are discussed only in refinement.md/mapping.md/model_prepatch.py \u2014 outside the spec view.\n\nWhat the spec view DOES state is the target behavior: the final JSON-path step for a key is '.' + '\"key\"' (member-access form) for EVERY key including all-digit keys like '1111'/'000'. The public problem_statement already discloses the symptom precisely \u2014 has_key with numeric key '1111' fails on SQLite/MySQL/Oracle but works on Postgres. Making that publicly-stated symptom precise as a postcondition (the desired output must reproduce the key's exact characters, no array-index conversion) is the intrinsic, legitimate function of a formal spec; it does not narrate the edit, name the mechanism (array-paths, which is a hints_text-only term correctly NOT echoed), or reconstruct the gold. The all-digit examples '1111'/'000' mirror the '1111' example already in problem_statement. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 7 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 The spec models the fixed callee `compile_json_path_final_key(key) = '.' + json.dumps(key)` deeply as `member_access_segment(key) = '.' + '\"' + key + '\"'`, restricted to in_domain keys (printable ASCII 32..126, excluding quote 34 and backslash 92). I verified faithfulness on that domain three ways: (1) exhaustive single-char check over 32..126 minus {34,92} \u2014 0 mismatches; (2) 1,000,000 random multi-char keys (len 0..25) over the domain \u2014 0 divergences between the model and real `'.%s' % json.dumps(k)`; (3) the bundle's axiom_check.py (G-AX) passes (30 boundary + 70000 fuzz keys, incl. all-digit stress). The domain restriction is legitimate and non-hiding: it is exactly the region where json.dumps leaves the key verbatim between quotes (it escapes quote/backslash/controls and emits non-ASCII as \\uXXXX, none of which occur in-domain), and it covers the F2P numeric-key discriminator ('000'->.\"000\", '1111'->.\"1111\"). Structural postconditions (len=len(key)+3, [0]==46, [1]==34, last==34, key verbatim between quotes) all match the real callee. model.py verifies (Nagini, 19s). No input in the specified domain where the modeled function disagrees with the real repo callee. Spec is not too strong.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen (swebench_unified.leakage.screen over the spec_view of model.py, python flavor) passes with zero hard failures. Manual gold-reconstruction review of the spec view (module docstring + axioms/pure/pre/post regions; impl elided) confirms NO leakage beyond the public problem_statement:\n\n(1) No patched repo symbol echoed. Changed symbols {compile_json_path_final_key, HasKeyOrArrayIndex, as_sql, as_sqlite, as_oracle, HasAnyKeys} \u2014 none appear in spec-view identifiers or comments. The modelled symbols (compile_final_key_segment, member_access_segment, json_string_literal, in_domain, all_digits, is_digit) are generic and do not localize the edit.\n(2) No gold-patch line reproduced. The gold body '.%s\" % json.dumps(key_transform)' and 'json.dumps' do NOT appear in the spec view (they live only in mapping.md/refinement.md, which are audit docs, not the spec surface). Nothing >=8 chars from a changed line collides.\n(3) No diff markers, no patched file path (django/db/models/fields/json.py absent), no module path.\n(4) No bug/fix narration (bug/fixed/previously/incorrectly/wrong/pre-patch etc. all absent from spec-view comments).\n(5) Pre-patch array-index branch and the HasKeyOrArrayIndex subclass-wiring are discussed only in refinement.md/mapping.md/model_prepatch.py \u2014 outside the spec view.\n\nWhat the spec view DOES state is the target behavior: the final JSON-path step for a key is '.' + '\"key\"' (member-access form) for EVERY key including all-digit keys like '1111'/'000'. The public problem_statement already discloses the symptom precisely \u2014 has_key with numeric key '1111' fails on SQLite/MySQL/Oracle but works on Postgres. Making that publicly-stated symptom precise as a postcondition (the desired output must reproduce the key's exact characters, no array-index conversion) is the intrinsic, legitimate function of a formal spec; it does not narrate the edit, name the mechanism (array-paths, which is a hints_text-only term correctly NOT echoed), or reconstruct the gold. The all-digit examples '1111'/'000' mirror the '1111' example already in problem_statement. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 7 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 7 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1_prepatch.py`, `atk_2_wrongsep.py`, `atk_3_noquote.py`, `atk_5_emptyboundary.py`, `atk_7_reverse.py`, `atk_8_partialdomain.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk_6_echo.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "The spec models the fixed callee `compile_json_path_final_key(key) = '.' + json.dumps(key)` deeply as `member_access_segment(key) = '.' + '\"' + key + '\"'`, restricted to in_domain keys (printable ASCII 32..126, excluding quote 34 and backslash 92). I verified faithfulness on that domain three ways:\n\n(1) exhaustive single-char check over 32..126 minus {34,92} \u2014 0 mismatches;\n\n(2) 1,000,000 random multi-char keys (len 0..25) over the domain \u2014 0 divergences between the model and real `'.%s' % json.dumps(k)`;\n\n(3) the bundle's axiom_check.py (G-AX) passes (30 boundary + 70000 fuzz keys, incl. all-digit stress). The domain restriction is legitimate and non-hiding: it is exactly the region where json.dumps leaves the key verbatim between quotes (it escapes quote/backslash/controls and emits non-ASCII as \\uXXXX, none of which occur in-domain), and it covers the F2P numeric-key discriminator ('000'->.\"000\", '1111'->.\"1111\"). Structural postconditions (len=len(key)+3, [0]==46, [1]==34, last==34, key verbatim between quotes) all match the real callee. model.py verifies (Nagini, 19s). No input in the specified domain where the modeled function disagrees with the real repo callee. Spec is not too strong.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen (swebench_unified.leakage.screen over the spec_view of model.py, python flavor) passes with zero hard failures. Manual gold-reconstruction review of the spec view (module docstring + axioms/pure/pre/post regions; impl elided) confirms NO leakage beyond the public problem_statement:\n\n(1) No patched repo symbol echoed. Changed symbols {compile_json_path_final_key, HasKeyOrArrayIndex, as_sql, as_sqlite, as_oracle, HasAnyKeys} \u2014 none appear in spec-view identifiers or comments. The modelled symbols (compile_final_key_segment, member_access_segment, json_string_literal, in_domain, all_digits, is_digit) are generic and do not localize the edit.\n(2) No gold-patch line reproduced. The gold body '.%s\" % json.dumps(key_transform)' and 'json.dumps' do NOT appear in the spec view (they live only in mapping.md/refinement.md, which are audit docs, not the spec surface). Nothing >=8 chars from a changed line collides.\n(3) No diff markers, no patched file path (django/db/models/fields/json.py absent), no module path.\n(4) No bug/fix narration (bug/fixed/previously/incorrectly/wrong/pre-patch etc. all absent from spec-view comments).\n(5) Pre-patch array-index branch and the HasKeyOrArrayIndex subclass-wiring are discussed only in refinement.md/mapping.md/model_prepatch.py \u2014 outside the spec view.\n\nWhat the spec view DOES state is the target behavior: the final JSON-path step for a key is '.' + '\"key\"' (member-access form) for EVERY key including all-digit keys like '1111'/'000'. The public problem_statement already discloses the symptom precisely \u2014 has_key with numeric key '1111' fails on SQLite/MySQL/Oracle but works on Postgres. Making that publicly-stated symptom precise as a postcondition (the desired output must reproduce the key's exact characters, no array-index conversion) is the intrinsic, legitimate function of a formal spec; it does not narrate the edit, name the mechanism (array-paths, which is a hints_text-only term correctly NOT echoed), or reconstruct the gold. The all-digit examples '1111'/'000' mirror the '1111' example already in problem_statement. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T17:27:07+00:00",
+      "code_version": "8ee30848f-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-prefix-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 20.8
+          },
+          {
+            "expect": "verify",
+            "id": "honest-cheapest",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 23.4
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-numeric-key",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.9
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-key",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.4
+          },
+          {
+            "expect": "reject",
+            "id": "prepatch-array-index",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.0
+          },
+          {
+            "expect": "reject",
+            "id": "drop-last-char",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.1
+          },
+          {
+            "expect": "reject",
+            "id": "skip-first-char",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 21.1
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-quote",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 20.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "d2a98ed0e005db573cff6bfedc17eee4c2d1adaf64aa5231ac0b4a3737f95ea9",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f",
+        "properties.py": "d2a98ed0e005db573cff6bfedc17eee4c2d1adaf64aa5231ac0b4a3737f95ea9"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T13:28:38+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:02:04+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 14.7
+      },
+      "detail": "verified in 14.7s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "22cd55817b4ebae8f2a4929ee2a8eff5e68116b01c10e05516ab0c3c5562b60f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-15503",
+  "modeled_functions": [
+    {
+      "carrier_type": "str key -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "compile_final_key_segment",
+      "repo_location": "django/db/models/fields/json.py:172 (class HasKeyLookup), :175 (as_sql)",
+      "repo_symbol": "django.db.models.fields.json.HasKeyLookup.compile_json_path_final_key (+ its use for the final key in HasKeyLookup.as_sql)",
+      "role": "modeled changed function: compile the final key of a key-membership test into a JSON-path step (member-access form for every key, numeric or not); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result()) == member_access_segment(ToSeq(key)) (compile_final_key_segment)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "final-key compilation for an OBJECT key whose characters are all decimal digits",
+      "reverted_to": "old path compiler routing the final numeric key through the array-element branch ('[' key ']') instead of the member-access form"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "3b63d6c4b5bcdff92114bea8f84c56f27d70bb60d810dba02a22eb2d58268bd5",
+    "impl": "a2fd35e3b6d13e9087a2aab404d03009e3ee86027cabea3c8ab8ab8d2b7d329b",
+    "invariants": "a6b204678da975911352d732cb2e90055c9edc954e3c380ceaebc2abbe602686",
+    "post-conditions": "79068643da5b9370c4cdbf3c510ef72322f9f423cba264059887c3ef3c70df0a",
+    "pre-conditions": "531c672e40026eb0214387fb768586585f7386d828e263ad2e30d600d27c0f45",
+    "pure": "d39456048835467ae12fff83644891b07d2433a93faf5259b228e49ca5ae8402",
+    "spec_view": "0c9bb09b0782f78d788c974450b47d1c5879fef140126041f9b0d68a1a9d58c8"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "str key modelled as List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; final-key step built by a forward per-code-point copy between a fixed '.\"' prefix and a '\"' suffix; key domain restricted to printable ASCII (32..126) minus quote(34)/backslash(92) so json.dumps is the verbatim quote-wrap",
+  "version": "4.1"
+}

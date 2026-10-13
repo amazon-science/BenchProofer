@@ -1,0 +1,426 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "value-provenance plumbing of conn_tzname/use_tz into _sqlite_datetime_parse; refinement.md tags R/I; not differentially observable, shares the SQLite arithmetic witness",
+      "repo_location": "django/db/backends/sqlite3/operations.py:87 and base.py:194-201",
+      "repo_symbol": "django.db.backends.sqlite3.operations._convert_tzname_to_sql -> _convert_tznames_to_sql (+ datetime_* SQL builders, get_new_connection arity)"
+    },
+    {
+      "handling": "same abstract behaviour as SQLite (CONVERT_TZ source = connection.timezone_name not 'UTC'; skip when equal); SQL string for an engine the harness does not run; refinement.md A-reference/I",
+      "repo_location": "django/db/backends/mysql/operations.py:71",
+      "repo_symbol": "django.db.backends.mysql.operations._convert_field_to_tz"
+    },
+    {
+      "handling": "same abstract behaviour (FROM_TZ source = connection.timezone_name not '0:00'; return field unchanged when equal); SQL string for an engine the harness does not run; refinement.md A-reference/I",
+      "repo_location": "django/db/backends/oracle/operations.py:97",
+      "repo_symbol": "django.db.backends.oracle.operations._convert_field_to_tz"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "c84b91b7603e488f7171fdff8f08368ef3d6b856",
+  "changed_files": [
+    "django/db/backends/sqlite3/base.py",
+    "django/db/backends/sqlite3/operations.py",
+    "django/db/backends/mysql/operations.py",
+    "django/db/backends/oracle/operations.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts normalised_walltime == real datetime/pytz relabel+convert using the ACTUAL offsets the real ops use, over F2P instants + boundary matrix + 20000 fuzz; confirms F2P date 2016-01-01 (gold) vs 2016-01-02 (UTC-sourced pre-patch)",
+      "encoded_property": "result wall-clock minutes = stored - conn_off + target_off when use_tz and a target zone is requested; = stored otherwise (tz off / no target / zones coincide). conn_off = offset attached by replace() (pytz base/LMT); target_off = offset produced by astimezone() for the instant.",
+      "kind": "A-reference",
+      "models": "datetime.replace(tzinfo=pytz.timezone(conn)) then timezone.localtime/astimezone(target) (CPython datetime + pytz; Django utils.timezone.localtime)",
+      "name": "normalised_walltime",
+      "provenance": "django/db/backends/sqlite3/base.py:401-410 (gold body); django/utils/timezone.py:191 localtime == astimezone; django/db/backends/base/base.py:137 timezone_name (connection zone); write side make_naive(value, connection.timezone) at sqlite3/operations.py:208",
+      "role": "deep model (pure region) of the changed time-zone normalisation; NOT a consumed axiom \u2014 there is no @ContractOnly axiom in this bundle"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:04:49+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: normalised_walltime deep model == real datetime/pytz relabel+convert (actual offsets, pytz replace/LMT honoured) over F2P instants + boundary matrix + 20000 fuzz; connection-sourced conversion confirmed (F2P date 2016-01-01; pre-patch UTC-sourced date 2016-01-02 differs).",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "1f2f8efa2e44fa62845e2d931db66860a1924cd912110eb29263725f20afc67f",
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:04:56+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 101266,
+          "disagreements": 0,
+          "seed": 111380,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 101266, \"disagreements\": 0, \"seed\": 111380, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "b2e9f7ce74722e92d3043b02a745040444d7f61910de9fdf2e87e25843ccac86",
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:31:57+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f",
+        "model_prepatch.py": "262d6b4031ba0ae23ae7b704f1ee37a2a7524a4f9f1a385116d8294382aeeb68"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-02T03:05:53+00:00",
+      "code_version": "05792c06-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 6 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The audit re-ran 6 candidate wrong implementations against this specification, each changing the implementation and leaving the specification as this bundle ships it. None of them verified without also resolving the instance, which is what a counterexample to `verify => correct` would require. The positive control verifies, so the specification is satisfiable by a correct implementation and that outcome is not an artifact of a specification nothing can satisfy.\n\n**How far this record can be re-checked.** The attack sources are not carried in this bundle. The count above and the positive-control outcome are what the harness recorded; the sources and their individual outcomes are not, so this role is the one part of the cell a reader cannot re-run from the bundle alone. The audit record states the same limitation.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:32:46+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f",
+        "model_prepatch.py": "262d6b4031ba0ae23ae7b704f1ee37a2a7524a4f9f1a385116d8294382aeeb68"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:04:38+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "18663fa57e39b270aa77f5972843813f5e36f74151fe05a9621fb81b9e02e022",
+          "impl": "ae25032c337071226cb75969a1a6d1d5c60febef596a90cfefa4347414381723",
+          "post-conditions": "f21ef22bb926865faeaf266fcd3bd8c8fec406c3ce1542d794161d3e7a57524c",
+          "pre-conditions": "c99b478424290b421be486dc1b20dc678707d8021cbe767fcce4f3f9114ce2e0",
+          "pure": "d2e42781e690a72e16a52682ff91bf8d786bf50b1376f163257cda6f3beb3d22",
+          "spec_view": "b73ddfda24e87beab4a681b56404bc0b5da0b5cf4f3ffd0e4dc2c3e0f2e9e6d2"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:04:39+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "47372af7dacbdbe15afab29960580a2d7003ddc674a332f00b76c9fd8d8825d8",
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:04:39+00:00",
+      "code_version": "5836d048d-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:07:30+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "judged": 6,
+        "killed": 6,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 6,
+        "unjudged": []
+      },
+      "detail": "killed 6/6 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-02T03:05:54+00:00",
+      "code_version": "05792c06-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / spec-drifts-from-repo) check for django__django-11138 nagini bundle. The modeled function local_walltime/normalised_walltime models the SQLite read path _sqlite_datetime_parse (sqlite3/base.py:401, the F2P-executed callee: test_query_convert_timezones on SQLite). Verdict FAITHFUL \u2014 the model agrees with the real callee on every in-domain input at the observable granularity.\n\nEvidence:\n1. same-spec: SAME (exit 0) for the unmodified bundle model. A first pass wrote a generically named atk.py whose contents were overwritten before the comparison, producing a spurious cross-instance diff; re-run with a per-instance attack filename it is SAME. Model verifies with pinned Nagini in 11.4s (exit 0).\n2. axiom_check.py (G-AX) passes exit 0: deep model == real datetime/pytz relabel+convert over F2P instants + boundary matrix + 20000 fuzz, actual pytz offsets (LMT/replace subtlety honoured).\n3. Independent second-precision fuzz (200,000 samples, seed 999) comparing the model against the REAL gold operation (typecast naive -> replace(conn) -> astimezone(target)) across DST/half-hour/45-min zones NOT in axiom_check's list (Australia/Sydney, Pacific/Chatham, America/St_Johns, Europe/Paris, Asia/Kathmandu, plus LMT-sensitive Asia/Bangkok): 0 minute-level mismatches, 0 DATE-level mismatches. The 196,733 TIME-level 'mismatches' are solely the DECLARED minute-granularity abstraction dropping the seconds component (mapping.md \u00a72) \u2014 the F2P observable is .date(), which never diverges; sub-minute rounding never flips a whole-day boundary here (offsets are whole-minute).\n4. Precondition Requires(use_tz or not has_target) excludes exactly the case not use_tz AND has_target, which is UNREACHABLE in the real code: _convert_tznames_to_sql emits (NULL, NULL) when not USE_TZ so tzname is None (has_target False). Hence not an over-strong precondition that would drop reachable behavior.\n5. Guard-divergence probe: model uses target_off != conn_off where real uses tzname != conn_tzname. Two distinct zone names sharing one offset make real call astimezone (net stored - conn_off + target_off == stored) while the model takes the restore branch (stored) \u2014 identical observable, no divergence.\n\nNo diverging input found; the spec is neither too strong nor drifted from repo behavior on the tested/observable domain.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Leakage/gold-reconstruction check for django__django-11138 (nagini). The public problem_statement is an unusually explicit bug report that already discloses the entire desired behavior: (1) 'conversion should go from the database timezone tz2 to the django app one tz1' instead of UTC->Paris; (2) 'when tz1 == tz2, there should be no need to use CONVERT_TZ'; and (3) it even links the exact source line where 'UTC' is hard-wired. Every behavioral fact pinned by the spec view is fully derivable from that baseline:\n- The pure model normalised_walltime and postconditions state the net shift is (target_off - conn_off) = re-expressing the stored connection-zone wall clock in the target zone \u2014 the math form of 'convert from tz2 to tz1'.\n- The comment 'the source zone is the CONNECTION offset, never a hard-wired universal zero' restates problem_statement's core complaint about UTC being forced.\n- The Ensures(conn_off==target_off => Result()==stored) and comment 'no-conversion optimisation is observationally the identity' restate 'when tz1==tz2 no need for CONVERT_TZ'.\n- use_tz off / no target => passthrough restates the settings.USE_TZ guard already visible in the linked code region and the problem_statement.\nThe spec uses only abstract modeling identifiers (conn_off, target_off, has_target, use_tz, integer-minutes wall clock) and does NOT expose any gold-edit-specific implementation structure: no self.connection.timezone_name, no CONVERT_TZ/FROM_TZ SQL string edits, no sqlite create_function arity changes (2->3, 3->4), no conn_tzname parameter threading, no _convert_tznames_to_sql rename. Those concrete edit shapes are unrecoverable from the spec view. This is a legitimate formalization of a detailed public bug report, not a disclosure of the gold patch beyond problem_statement. Spec view rendered via markers.spec_view with the nagini backend; impl region correctly elided.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 6 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / spec-drifts-from-repo) check for django__django-11138 nagini bundle. The modeled function local_walltime/normalised_walltime models the SQLite read path _sqlite_datetime_parse (sqlite3/base.py:401, the F2P-executed callee: test_query_convert_timezones on SQLite). Verdict FAITHFUL \u2014 the model agrees with the real callee on every in-domain input at the observable granularity.\n\nEvidence:\n1. same-spec: SAME (exit 0) for the unmodified bundle model. A first pass wrote a generically named atk.py whose contents were overwritten before the comparison, producing a spurious cross-instance diff; re-run with a per-instance attack filename it is SAME. Model verifies with pinned Nagini in 11.4s (exit 0).\n2. axiom_check.py (G-AX) passes exit 0: deep model == real datetime/pytz relabel+convert over F2P instants + boundary matrix + 20000 fuzz, actual pytz offsets (LMT/replace subtlety honoured).\n3. Independent second-precision fuzz (200,000 samples, seed 999) comparing the model against the REAL gold operation (typecast naive -> replace(conn) -> astimezone(target)) across DST/half-hour/45-min zones NOT in axiom_check's list (Australia/Sydney, Pacific/Chatham, America/St_Johns, Europe/Paris, Asia/Kathmandu, plus LMT-sensitive Asia/Bangkok): 0 minute-level mismatches, 0 DATE-level mismatches. The 196,733 TIME-level 'mismatches' are solely the DECLARED minute-granularity abstraction dropping the seconds component (mapping.md \u00a72) \u2014 the F2P observable is .date(), which never diverges; sub-minute rounding never flips a whole-day boundary here (offsets are whole-minute).\n4. Precondition Requires(use_tz or not has_target) excludes exactly the case not use_tz AND has_target, which is UNREACHABLE in the real code: _convert_tznames_to_sql emits (NULL, NULL) when not USE_TZ so tzname is None (has_target False). Hence not an over-strong precondition that would drop reachable behavior.\n5. Guard-divergence probe: model uses target_off != conn_off where real uses tzname != conn_tzname. Two distinct zone names sharing one offset make real call astimezone (net stored - conn_off + target_off == stored) while the model takes the restore branch (stored) \u2014 identical observable, no divergence.\n\nNo diverging input found; the spec is neither too strong nor drifted from repo behavior on the tested/observable domain.; G-PANEL-3 (leakage): pass \u2014 Leakage/gold-reconstruction check for django__django-11138 (nagini). The public problem_statement is an unusually explicit bug report that already discloses the entire desired behavior: (1) 'conversion should go from the database timezone tz2 to the django app one tz1' instead of UTC->Paris; (2) 'when tz1 == tz2, there should be no need to use CONVERT_TZ'; and (3) it even links the exact source line where 'UTC' is hard-wired. Every behavioral fact pinned by the spec view is fully derivable from that baseline:\n- The pure model normalised_walltime and postconditions state the net shift is (target_off - conn_off) = re-expressing the stored connection-zone wall clock in the target zone \u2014 the math form of 'convert from tz2 to tz1'.\n- The comment 'the source zone is the CONNECTION offset, never a hard-wired universal zero' restates problem_statement's core complaint about UTC being forced.\n- The Ensures(conn_off==target_off => Result()==stored) and comment 'no-conversion optimisation is observationally the identity' restate 'when tz1==tz2 no need for CONVERT_TZ'.\n- use_tz off / no target => passthrough restates the settings.USE_TZ guard already visible in the linked code region and the problem_statement.\nThe spec uses only abstract modeling identifiers (conn_off, target_off, has_target, use_tz, integer-minutes wall clock) and does NOT expose any gold-edit-specific implementation structure: no self.connection.timezone_name, no CONVERT_TZ/FROM_TZ SQL string edits, no sqlite create_function arity changes (2->3, 3->4), no conn_tzname parameter threading, no _convert_tznames_to_sql rename. Those concrete edit shapes are unrecoverable from the spec view. This is a legitimate formalization of a detailed public bug report, not a disclosure of the gold patch beyond problem_statement. Spec view rendered via markers.spec_view with the nagini backend; impl region correctly elided.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The audit re-ran 6 candidate wrong implementations against this specification, each changing the implementation and leaving the specification as this bundle ships it. None of them verified without also resolving the instance, which is what a counterexample to `verify => correct` would require. The positive control verifies, so the specification is satisfiable by a correct implementation and that outcome is not an artifact of a specification nothing can satisfy.\n\n**How far this record can be re-checked.** The attack sources are not carried in this bundle. The count above and the positive-control outcome are what the harness recorded; the sources and their individual outcomes are not, so this role is the one part of the cell a reader cannot re-run from the bundle alone. The audit record states the same limitation.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / spec-drifts-from-repo) check for django__django-11138 nagini bundle. The modeled function local_walltime/normalised_walltime models the SQLite read path _sqlite_datetime_parse (sqlite3/base.py:401, the F2P-executed callee: test_query_convert_timezones on SQLite). Verdict FAITHFUL \u2014 the model agrees with the real callee on every in-domain input at the observable granularity.\n\nEvidence:\n1. same-spec: SAME (exit 0) for the unmodified bundle model. A first pass wrote a generically named atk.py whose contents were overwritten before the comparison, producing a spurious cross-instance diff; re-run with a per-instance attack filename it is SAME. Model verifies with pinned Nagini in 11.4s (exit 0).\n2. axiom_check.py (G-AX) passes exit 0: deep model == real datetime/pytz relabel+convert over F2P instants + boundary matrix + 20000 fuzz, actual pytz offsets (LMT/replace subtlety honoured).\n3. Independent second-precision fuzz (200,000 samples, seed 999) comparing the model against the REAL gold operation (typecast naive -> replace(conn) -> astimezone(target)) across DST/half-hour/45-min zones NOT in axiom_check's list (Australia/Sydney, Pacific/Chatham, America/St_Johns, Europe/Paris, Asia/Kathmandu, plus LMT-sensitive Asia/Bangkok): 0 minute-level mismatches, 0 DATE-level mismatches. The 196,733 TIME-level 'mismatches' are solely the DECLARED minute-granularity abstraction dropping the seconds component (mapping.md \u00a72) \u2014 the F2P observable is .date(), which never diverges; sub-minute rounding never flips a whole-day boundary here (offsets are whole-minute).\n4. Precondition Requires(use_tz or not has_target) excludes exactly the case not use_tz AND has_target, which is UNREACHABLE in the real code: _convert_tznames_to_sql emits (NULL, NULL) when not USE_TZ so tzname is None (has_target False). Hence not an over-strong precondition that would drop reachable behavior.\n5. Guard-divergence probe: model uses target_off != conn_off where real uses tzname != conn_tzname. Two distinct zone names sharing one offset make real call astimezone (net stored - conn_off + target_off == stored) while the model takes the restore branch (stored) \u2014 identical observable, no divergence.\n\nNo diverging input found; the spec is neither too strong nor drifted from repo behavior on the tested/observable domain.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Leakage/gold-reconstruction check for django__django-11138 (nagini). The public problem_statement is an unusually explicit bug report that already discloses the entire desired behavior: (1) 'conversion should go from the database timezone tz2 to the django app one tz1' instead of UTC->Paris; (2) 'when tz1 == tz2, there should be no need to use CONVERT_TZ'; and (3) it even links the exact source line where 'UTC' is hard-wired. Every behavioral fact pinned by the spec view is fully derivable from that baseline:\n- The pure model normalised_walltime and postconditions state the net shift is (target_off - conn_off) = re-expressing the stored connection-zone wall clock in the target zone \u2014 the math form of 'convert from tz2 to tz1'.\n- The comment 'the source zone is the CONNECTION offset, never a hard-wired universal zero' restates problem_statement's core complaint about UTC being forced.\n- The Ensures(conn_off==target_off => Result()==stored) and comment 'no-conversion optimisation is observationally the identity' restate 'when tz1==tz2 no need for CONVERT_TZ'.\n- use_tz off / no target => passthrough restates the settings.USE_TZ guard already visible in the linked code region and the problem_statement.\nThe spec uses only abstract modeling identifiers (conn_off, target_off, has_target, use_tz, integer-minutes wall clock) and does NOT expose any gold-edit-specific implementation structure: no self.connection.timezone_name, no CONVERT_TZ/FROM_TZ SQL string edits, no sqlite create_function arity changes (2->3, 3->4), no conn_tzname parameter threading, no _convert_tznames_to_sql rename. Those concrete edit shapes are unrecoverable from the spec view. This is a legitimate formalization of a detailed public bug report, not a disclosure of the gold patch beyond problem_statement. Spec view rendered via markers.spec_view with the nagini backend; impl region correctly elided.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:46:33+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-cheapest",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.7
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 28.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-self",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.4
+          },
+          {
+            "expect": "reject",
+            "id": "weak-drop-conn",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-sign",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-partial-equalzone",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-partial-notarget",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 30.2
+          },
+          {
+            "expect": "reject",
+            "id": "weak-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.6
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 6
+        },
+        "manifest_sha256": "80992c802f2ab036778fa7bac2ed6cdc71ee6f53e8ebbf12ddb96f63e8352dca",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f",
+        "properties.py": "80992c802f2ab036778fa7bac2ed6cdc71ee6f53e8ebbf12ddb96f63e8352dca"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T08:45:11+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:07:47+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 17.1
+      },
+      "detail": "verified in 17.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "0eba7e3a30a09980a3ee1ab939b117b4b737849176f5419e97e7be92486d028f"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-11138",
+  "modeled_functions": [
+    {
+      "carrier_type": "naive datetime -> int wall-clock minutes; pytz zone -> int UTC offset minutes (actual replace/astimezone offsets)",
+      "model_symbol": "local_walltime",
+      "repo_location": "django/db/backends/sqlite3/base.py:401",
+      "repo_symbol": "django.db.backends.sqlite3.base._sqlite_datetime_parse",
+      "role": "modeled changed function: read-side time-zone normalisation of a stored naive datetime; the SQLite path is the one the FAIL_TO_PASS test executes (harness runs on SQLite)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit, confirmed via git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == normalised_walltime(...) (and Result() == stored + target_off - conn_off), violated whenever conn_off != 0",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "read-side time-zone source: connection zone vs hard-wired UTC",
+      "reverted_to": "pre-patch _sqlite_datetime_parse: no connection-zone relabel; localtime(target) on a UTC-sourced wall clock (source offset hard-wired to 0)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "18663fa57e39b270aa77f5972843813f5e36f74151fe05a9621fb81b9e02e022",
+    "impl": "ae25032c337071226cb75969a1a6d1d5c60febef596a90cfefa4347414381723",
+    "invariants": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "post-conditions": "f21ef22bb926865faeaf266fcd3bd8c8fec406c3ce1542d794161d3e7a57524c",
+    "pre-conditions": "ea1f25e35976adfbfa2dc806a8c6d76e4763cc5d3d2c89740d4707f5d6fc4545",
+    "pure": "d2e42781e690a72e16a52682ff91bf8d786bf50b1376f163257cda6f3beb3d22",
+    "spec_view": "aee2968385fef16d38489487cac6239d409018372e127ce19bf90123b87e284c"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "n/a (integer wall-clock arithmetic)",
+  "version": "3.0"
+}

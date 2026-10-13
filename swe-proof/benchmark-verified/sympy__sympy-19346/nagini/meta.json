@@ -1,0 +1,482 @@
+{
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real ReprPrinter().doprint(elem) == public srepr(elem) (the consumed value link, no length assertion) on a wide pool of real sympy elements -- Symbols, Integers, Rationals, Floats, nested dict, the constant/singleton/boolean/None class, Symbol(''), AND the empty-representation class. check_empty_representation_witness asserts at least one element genuinely renders as '' , so G-AX would FAIL a model re-introducing a len(elem_repr) >= 1 over-claim.",
+      "encoded_property": "elem_repr(t): Ensures(True) -- wholly UNINTERPRETED, no constraint on the length or content of an element's representation (in particular NOT non-empty: the real routine returns the empty string for some element classes, e.g. srepr(Quantity(''))==''). The only property the proof consumes is doprint_elem's VALUE LINK ToSeq(Result()) == elem_repr(t), i.e. that the concrete per-element callee the container rendering invokes is exactly the routine elem_repr denotes.",
+      "models": "ReprPrinter.doprint -> Printer._print recursive dispatch (the engine behind public srepr)",
+      "name": "elem_repr / doprint_elem",
+      "provenance": "sympy/printing/printer.py:249 (doprint), :253 (_print); invoked by reprify (repr.py:31) and directly in _print_dict; UNCHANGED by the patch",
+      "purity": "elem_repr @Pure @ContractOnly, Ensures(True) (used inside Ensures); doprint_elem @ContractOnly with Requires(MustTerminate(2)) and the value link (materialises the list in the impl). The contrast callee str_elem carries no MustTerminate, so a str_elem-based rival is reported as an obligation leak at the call site; the semantic fold discriminator underneath was measured separately (see refinement.md sec.C)."
+    }
+  ],
+  "base_commit": "94fb720696f5f5d12bad8bc813699fd696afd2fb",
+  "changed_files": [
+    "sympy/printing/repr.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): set_seq/dict_seq (token substitution by real srepr) == real srepr assembly and == live ReprPrinter._print_set/_print_dict on boundary + 8000 fuzz inputs",
+      "encoded_property": "set_seq(elems): 'set()' when empty, else '{' + ', '-joined elem_repr(e) + '}'. dict_seq(flat): '{}' when empty, else '{' + ', '-joined (elem_repr(k) + ': ' + elem_repr(v)) + '}'",
+      "kind": "A-reference",
+      "models": "the new methods' string assembly: reprify/sep.join + brace wrap + set()/{} empty literals + the ': ' pair separator",
+      "name": "set_seq / dict_seq / joined_elems / joined_pairs",
+      "provenance": "gold _print_set/_print_dict (sympy/printing/repr.py); reprify at repr.py:27-31",
+      "role": "deep model (pure region) of the new methods' assembly; NOT a consumed axiom about the function under spec"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts BOTH str(elem) != srepr(elem) on the discriminating class AND str(elem) == srepr(elem) on the constant/singleton/None class (plus str(Symbol(''))==''); would FAIL if the universal inequality or len>=1 were re-introduced",
+      "encoded_property": "NONE relative to elem_repr: elem_str is its own uninterpreted callee with no Ensures relating it to elem_repr and no len>=1. The str!=srepr distinction is EXISTENTIAL (true on the symbolic/numeric class the F2P uses, e.g. str(Symbol('x'))='x' != srepr='Symbol('x')'), FALSE on the constant/singleton/boolean/None class (str(oo)==srepr(oo)=='oo'), and str(Symbol(''))==''. A universal inequality or len>=1 would be unsound; neither is shipped.",
+      "kind": "A-reference",
+      "models": "Python str(elem): the per-element rendering the pre-patch whole-object fallback (emptyPrinter -> str(expr)) performs",
+      "name": "elem_str / str_elem",
+      "provenance": "repr.py:33,49 emptyPrinter final branch returns str(expr)",
+      "role": "the contrast callee discriminating the bug; the prepatch builds via str_elem and fails the elem_repr-built fold invariant because elem_str/elem_repr are distinct uninterpreted functions Nagini cannot prove equal (no universal axiom needed)"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-15T16:13:20+00:00",
+      "code_version": "2cb362967-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: elem_repr A-consumed VALUE LINK (doprint == srepr) sound on 26 elements incl. constant/singleton/None/empty-name class; 3 element(s) render as the EMPTY representation -> elem_repr is correctly uninterpreted, no len>=1 over-claim; str != srepr is EXISTENTIAL (holds on 11 discriminating elements, str == srepr on 13 constant-class elements, str(Symbol(''))=='' -> no universal inequality and no len(elem_str)>=1 over-claim); set_seq/dict_seq deep model == real srepr assembly on boundary + 4000 set + 4000 dict fuzz inputs over the full pool",
+      "gate": "G-AX",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "08c5771d7a4501ab1f5234edc35f0b6d222af07ffc44d3b29bcf0988026012dc",
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-15T16:13:17+00:00",
+      "code_version": "2cb362967-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100023,
+          "disagreements": 0,
+          "seed": 19346,
+          "shadow": "direct (contract-stripped impl regions; doprint_elem calls the real doprint)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100023, \"disagreements\": 0, \"seed\": 19346, \"shadow\": \"direct (contract-stripped impl regions; doprint_elem calls the real doprint)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "bbc8496c6a566c68f1d2816bd0d3cc2a97d252f0a1e15c858088bbb65ef5b920",
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:22:21+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544",
+        "model_prepatch.py": "a02c9310509e7316d663f1c8643c6555822d8ce5944e5a5f1a80001157d8a184"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T17:48:11+00:00",
+      "code_version": "c2e9196c0-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1_prepatch_plain_str.py`, `atk_2_dict_colon_no_space.py`, `atk_3_dict_value_from_key.py`, `atk_5_dict_empty_is_set_literal.py`, `atk_6_dict_uses_set_assembly.py`, `atk_7_dict_ungrounded_echo.py`, `atk_8_dict_diverges_multi_pair.py`, `atk_9_set_empty_is_dict_literal.py`, `atk_10_set_trailing_separator.py`, +5 more |\n\n**Non-vacuity.** The positive control `pos_control_frozen.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544",
+        "properties.py": "f0d3e8277772dcd0a4badb4d6ea3d7cc4adf0f12d16c9514f6695528d8180c5e"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:23:19+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544",
+        "model_prepatch.py": "a02c9310509e7316d663f1c8643c6555822d8ce5944e5a5f1a80001157d8a184"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-15T16:12:20+00:00",
+      "code_version": "2cb362967-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "2442d00cdb3f80ea795b8d36a4fcea4ab9336d62ae78cb018e84d154761e2ed9",
+          "impl": "0f141f6cdfcc645a432ba266d98f743d027f8e46a2a54a21012134fea4d8a778",
+          "invariants": "494393b0f47e3974c28b4e93adcd19cb9bbbb6788d112ca4f6cb7e4672da4602",
+          "post-conditions": "32973900ddf88828e5ec69e51318e0b89d68aac6535cdf50070a071c79e933aa",
+          "pre-conditions": "dd5ab35041b1ec624fd605fe358394cb5066190ba9e0725f8127bf20e9276d3d",
+          "pure": "f6e0998735f795b544fc436129ecfc27e5d72b69e474e71477351bc65bbc860a",
+          "spec_view": "8744f2c162ed3da5403770eab08f65e13065586063a67faae7e724f005ab6b95"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-15T16:12:18+00:00",
+      "code_version": "2cb362967-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "3496942ca6151c59e57291651cb7f79d94f6caac2b980a4e62f2083643936830",
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-15T16:12:21+00:00",
+      "code_version": "2cb362967-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T13:55:52+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "judged": 17,
+        "killed": 16,
+        "survivors": [
+          "line 237: '0' -> '1'"
+        ],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": [
+          "line 188: '0' -> '-1'",
+          "line 206: '+' -> '-'",
+          "line 268: '+' -> '-'"
+        ]
+      },
+      "detail": "killed 16/17 (94%); survivors: [\"line 237: '0' -> '1'\"]; no verdict on 3: [\"line 188: '0' -> '-1'\", \"line 206: '+' -> '-'\", \"line 268: '+' -> '-'\"]",
+      "gate": "G-MUT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T17:48:12+00:00",
+      "code_version": "c2e9196c0-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE SETUP (per instructions): compared model.py against a fresh worktree of sympy/sympy at base_commit 94fb720696f5f5d12bad8bc813699fd696afd2fb with the gold patch APPLIED (git apply clean; confirmed _print_dict/_print_set present in sympy/printing/repr.py after _print_list). Base commit used only for untouched callees (doprint/_print/reprify/emptyPrinter, which the patch demonstrably does not modify). All work in /tmp worktrees; bundle never modified.\n\nSPEC-REGION IDENTITY: `adversary same-spec nagini sympy__sympy-19346` on a copy of model.py -> exit 0 (\"SAME\"); on model_prepatch.py -> exit 0, confirming the G-DIFF rival shares the frozen spec byte-identically and only the impl region differs. meta.json region_hashes present for axioms/pure/pre/post/invariants/impl/spec_view.\n\nMODEL VERIFIES: `scripts/nagini_verify.sh` on model.py -> \"Verification successful\" in 21.6s, exit 0. So the spec is discharged, not vacuous, and the MustTerminate(3)/MustTerminate(2) obligation chain is real.\n\nMY OWN DIFFERENTIAL EVIDENCE (independent of the bundle's own checks):\n- Wide element-pool differential: 76-element pool (Symbols incl. Symbol(''), Dummy, Wild, Integer/Rational/Float incl. Float(0.1,60) and Float('1e100'), oo/-oo/zoo/nan/pi/E/I, S.Half/EmptySet/Naturals/Reals/Integers, True/False/None, raw python int/float/str/'', Add/Mul/Pow/sin/AppliedUndef/Lambda, tuples/lists/dicts/sets/frozensets, Matrix incl. Matrix(0,3,[]), Interval/FiniteSet/Tuple/Eq/And, Permutation/Cycle, Quantity('')/meter, PolyElement, Ket/Bra/HilbertSpace, stringPict(''), CNF(), diffgeom CoordSystem/Manifold/Patch). Tested empty, every singleton, every unordered pair (itertools.combinations), plus 20000 random sets and 20000 random dicts against the model assembly set_seq/dict_seq (token substitution, using the real set/dict iteration order). RESULT: 0 divergences, and _print_set/_print_dict live-method output matched too.\n- _sympyrepr-hook pool (the classes that bypass the normal dispatch and could make nested rendering differ): codegen.ast String/Type/Variable/Declaration/Assignment, physics.quantum Ket/Bra/Dagger/HilbertSpace/ComplexSpace/FockSpace/L2/TensorProduct/InnerProduct/Commutator/AntiCommutator/Operator/hbar, physics.vector frames+dyadics incl. ReferenceFrame(''), sympy.vector, Q.positive(x). 8000 more random containers: 0 divergences.\n- PRINTER-STATE probes (the sharpest attack on an `elem_repr(t)` axiom modeled as a stateless pure function): for all 50 hook-pool elements checked (a) reused-printer doprint == fresh srepr, (b) nested rendering at _print_level>=1 == fresh rendering (srepr([e]) == '['+srepr(e)+']'), (c) idempotence of repeated srepr. 0 anomalies. I specifically confirmed ReprPrinter.__mro__ == (ReprPrinter, Printer, object) -- it does NOT inherit StrPrinter, so str.py:693's `self._print_level > 1` full_prec branch (the one genuinely level-sensitive printer path) is unreachable, which is why the stateless elem_repr modeling is sound here.\n- SETTINGS probe: found the one real settings-sensitive element (Permutation under perm_cyclic=False makes fresh srepr(p) != that printer's doprint(p)). Crucially the modeled function still matched the model assembly computed with the SAME printer's doprint in all 4 settings dicts ({}, perm_cyclic=False/True, order='lex') -- the model's elem_repr is per-printer, so this is faithful, and mapping.md's provenance (ReprPrinter.doprint) is the right binding rather than the free function srepr.\n- TRUE-DOMAIN test: determined by MRO scan which classes actually dispatch to the modeled methods, then compared model vs modeled-fn on each: OrderedDict, Counter, defaultdict, plain dict/set (empty and non-empty), AssumptionsContext (empty+non-empty), DiophantineSolutionSet (empty+non-empty), StdFactKB, SubsSet, FiniteDensity, polyoptions Options -> ALL match. Cycle and PolyElement are dict subclasses but dispatch to _print_Cycle/_print_PolyElement, so they never reach the modeled function (correctly out of scope); frozenset is NOT a set subclass (MRO is (frozenset, object)) so it falls to emptyPrinter -- also out of scope. These three were the only 'mismatches' my sweep produced and all three are dispatch-level, not spec-level.\n- Deep nesting + scale: {x:{y:{z:{x:{y}}}}}, {x:[{y:z},{z}]}, {frozenset([x]):{y:(z,)}}, {(x,y):{z:[1,2,{x}]}}, {x:set()}, {x:{}} and a 300-key dict / 300-element set (past the 255-arg boundary in _print_Add) all match.\n\nSPEC-STRENGTH REVIEW (is the spec too strong?): the axioms are notably WEAK in the right direction, and I confirmed the two documented non-over-claims are genuinely necessary rather than cosmetic. elem_repr is Ensures(True) with NO len>=1: I reproduced the empty-representation witnesses (Quantity(''), stringPict(''), CNF() all have srepr == '' at base and under the patch), and confirmed the container still emits them with separators (srepr({Quantity(''), Symbol('x')}) style cases matched the model). elem_str carries no universal `!= elem_repr` and no len>=1: str(oo)==srepr(oo)=='oo' and str(Symbol(''))=='' both hold, so shipping either would have been the unsound over-claim -- the spec correctly omits both and the G-DIFF discriminator rests only on open-world distinctness of two @ContractOnly callees. The dict carrier's `len(flat) % 2 == 0` precondition is a carrier well-formedness condition (a real dict's items() always yields pairs), not a strengthening that excludes real inputs.\n\nBUNDLE CHECKS RE-RUN BY ME IN MY OWN WORKTREE (not trusted from meta.json): axiom_check.py -> exit 0, G-AX OK (value link on 26 elements, 3 empty-representation witnesses, existential str!=srepr, 8000 fuzz). conformance_check.py -> exit 0, \"shadow impl == real repo renderers on 100023 inputs (50013 collection + 50010 mapping), disagreements: 0\". F2P: applied the test_patch and ran pytest sympy/printing/tests/test_repr.py -k 'test_dict or test_set' -> 3 passed (F2P test_dict passes with the patch).\n\nCONCLUSION: I could not produce an input on the modeled function's real domain where the modeled function disagrees with the real patched callee. Roughly 150k+ differential inputs across element classes, hook classes, real subclasses, printer states, settings, nesting depth and scale yielded zero in-domain divergence. The spec is not too strong and does not drift from real repo behavior. Verdict FAITHFUL. Residual (documented, non-blocking): the two out-of-domain gaps above -- a hypothetical user set subclass overriding __bool__, and self-referential containers where the untouched callee already diverges at base_commit -- are honest carrier/idealization boundaries, not spec defects, and neither is reachable from any in-repo input.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "ATTACKER-3 (leakage / gold-reconstruction), sympy__sympy-19346 nagini. Verdict NO-LEAKAGE, from my own measurements.\n\nSCOPE / DISPOSITION. No relaxation is in play: meta.json has NO `relaxed_leakage` key (checked by key scan), no RELAXED_LEAKAGE.md exists in the bundle, and gates.G-LEAK.status == 'pass' (detail 'spec view clean'). So this is an ordinary strict leakage judgement, not a relaxed one, and there was no unavoidability argument to re-derive.\n\nWHAT I JUDGED. I generated the actual consumer projection myself rather than eyeballing model.py: markers.spec_view(model.py, nagini.language) -> spec_view.py. Both impl regions elide to the placeholder; what reaches the consumer is the module docstring, the 5 punctuation constants, the axioms region (elem_repr/elem_str/doprint_elem/str_elem), the pure region (empty_seq/joined_elems/joined_pairs/set_seq/dict_seq), and the two signatures + pre/post regions. mapping.md and refinement.md -- which DO say '_print_set/_print_dict ... added by the patch' and narrate the pre-patch emptyPrinter->str(expr) dispatch -- are audit-only: prompts.py `_spec_block` injects ONLY task.spec_view (+ meta modeled_functions), and dataset.py builds spec_view solely from adapter.spec_view(model). Neither doc is ever assembled into a consumer prompt, so their edit-localizing prose is out of scope. Frozen artifact I judged: model.py sha256 223f3eb6...41a544, identical to the digest recorded in gates.G-LEAK.sources.\n\nMECHANICAL RE-RUN (my own, not the stamp). leakage.screen(model.py, nagini, patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Patched symbols the screen derives: {print_dict, print_set, print_EmptySequence}; patched files: sympy/printing/repr.py. I then hand-scanned the projection for mechanism vocabulary the lexical screen could miss: '_print_dict', '_print_set', '_print_list', 'ReprPrinter', 'emptyPrinter', 'reprify', 'repr.py', 'printing/repr', 'srepr', 'MRO', 'dispatch', 'fallback', '__str__' -- ALL absent. Independent narration scan over ['bug','fix','wrong','patch','previously','incorrectly','broken','regression','prepatch','pre-patch'] with word boundaries: zero hits. Model symbol names are render_collection_codepoints / render_mapping_codepoints -- no echo of print_dict/print_set. Same-spec confirmed byte-identical spec region for the identity copy AND for the shipped model_prepatch.py (both exit 0), and the pinned verifier accepts model.py (28.95s, 'Verification successful'), so the artifact I screened is the live, verifying one.\n\nSEMANTIC RE-DERIVATION -- every spec-view fact traced to a public source. (a) 'render each element by the EXECUTABLE element representation, not the element's PLAIN DISPLAY FORM' -- this is the discriminator, and it is a direct restatement of the problem_statement's own two code blocks: the PS shows srepr([x,y]) == \"[Symbol('x'), Symbol('y')]\" against srepr({x,y}) == '{x, y}' and srepr({x:y}) == '{x: y}'. The wrong form IS the plain-str form and the PS displays both sides, so the contrast is public, not hints-derived (hints_text is empty here anyway, len 0 -- nothing to echo). (b) Braces, ', ' separators, ': ' pair separator -- all literally visible in the PS's own '{x, y}' / '{x: y}' / '[Symbol('x'), Symbol('y')]' output. (c) The 'set()' five-char and '{}' two-char empty literals are the only spec-view facts NOT in the PS text, so I measured them at base_commit in a fresh worktree (94fb720) BEFORE the patch: srepr(set()) == 'set()' and srepr({}) == '{}' already. They are UNCHANGED pre-patch behaviour, hence cannot disclose the edit, and they are independently forced by the public round-trip premise (eval('{}') is a dict, only 'set()' re-creates a set). (d) 'doprint' appears (as doprint_elem) at spec-view lines 74/90 -- I confirmed in the worktree that doprint pre-exists at base_commit (printer.py:249) and is NOT among the patched symbols; naming an unchanged callee is permitted and localizes no edit, while _print_set/_print_dict are genuinely absent from repr.py at base (grep: only reprify:27, emptyPrinter:33, _print_list:144). (e) No test identity leaks: 'test_dict'/'test_set' and the hidden nested-dict case appear nowhere in the projection; the recursive-rendering clause is stated as the abstract consistency requirement, which the PS's list/tuple examples already exhibit.\n\nBUNDLE-ADDRESSES-THE-REVIEWER CHECK (reported as its own finding, per my instructions). I ran leakage.reviewer_directed() over every bundle file plus a wider hand-written pattern set ('the honest/correct recording is', 'submit NO-LEAKAGE|LEAKAGE', 'attacker 3', 'G-PANEL-3', 'recording convention', 'you should record', 'dear auditor/reviewer/panel'). reviewer_directed() returns [] for every file. The only hits for 'G-PANEL-3'/'recording convention' are in meta.json and verdict.md, and on reading the surrounding text they are a PRIOR panel run's own recorded note (it states it found no file addressing it) plus machine-derived role statuses -- audit records of past runs, not instructions aimed at me. NOTHING in this bundle told me how to record or which verdict is honest, and I inherited no disposition from any file: the pass above is my own screen re-run plus my own base_commit measurements.\n\nADJACENT OBSERVATIONS (not leakage, not my gate, recorded for the trail). meta.json carries G-PANEL-2 = fail (faithfulness) and G-PANEL = fail overall; that is orthogonal to leakage and I did not let it colour this verdict. refinement.md \u00a7C / mapping.md \u00a73.2 candidly disclose that the shipped model_prepatch.py is actually rejected by an obligation-leak error at the str_elem call site rather than by the named fold invariants (str_elem carries no MustTerminate while the renderers hold MustTerminate(3)), with the semantic discriminator measured only in a scratch strengthening. That is a G-DIFF/G-EQ documentation-precision matter, and it is disclosed rather than hidden -- it does not affect the spec view the consumer sees.\n\nCONCLUSION. The projection reads as a behavioural contract over an abstract container renderer; every discriminating fact in it is recoverable from the public problem_statement or from unchanged base_commit behaviour the solver can observe directly, and nothing names the patched file, the patched methods, the dispatch mechanism, or the hidden tests. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE SETUP (per instructions): compared model.py against a fresh worktree of sympy/sympy at base_commit 94fb720696f5f5d12bad8bc813699fd696afd2fb with the gold patch APPLIED (git apply clean; confirmed _print_dict/_print_set present in sympy/printing/repr.py after _print_list). Base commit used only for untouched callees (doprint/_print/reprify/emptyPrinter, which the patch demonstrably does not modify). All work in /tmp worktrees; bundle never modified.\n\nSPEC-REGION IDENTITY: `adversary same-spec nagini sympy__sympy-19346` on a copy of model.py -> exit 0 (\"SAME\"); on model_prepatch.py -> exit 0, confirming the G-DIFF rival shares the frozen spec byte-identically and only the impl region differs. meta.json region_hashes present for axioms/pure/pre/post/invariants/impl/spec_view.\n\nMODEL VERIFIES: `scripts/nagini_verify.sh` on model.py -> \"Verification successful\" in 21.6s, exit 0. So the spec is discharged, not vacuous, and the MustTerminate(3)/MustTerminate(2) obligation chain is real.\n\nMY OWN DIFFERENTIAL EVIDENCE (independent of the bundle's own checks):\n- Wide element-pool differential: 76-element pool (Symbols incl. Symbol(''), Dummy, Wild, Integer/Rational/Float incl. Float(0.1,60) and Float('1e100'), oo/-oo/zoo/nan/pi/E/I, S.Half/EmptySet/Naturals/Reals/Integers, True/False/None, raw python int/float/str/'', Add/Mul/Pow/sin/AppliedUndef/Lambda, tuples/lists/dicts/sets/frozensets, Matrix incl. Matrix(0,3,[]), Interval/FiniteSet/Tuple/Eq/And, Permutation/Cycle, Quantity('')/meter, PolyElement, Ket/Bra/HilbertSpace, stringPict(''), CNF(), diffgeom CoordSystem/Manifold/Patch). Tested empty, every singleton, every unordered pair (itertools.combinations), plus 20000 random sets and 20000 random dicts against the model assembly set_seq/dict_seq (token substitution, using the real set/dict iteration order). RESULT: 0 divergences, and _print_set/_print_dict live-method output matched too.\n- _sympyrepr-hook pool (the classes that bypass the normal dispatch and could make nested rendering differ): codegen.ast String/Type/Variable/Declaration/Assignment, physics.quantum Ket/Bra/Dagger/HilbertSpace/ComplexSpace/FockSpace/L2/TensorProduct/InnerProduct/Commutator/AntiCommutator/Operator/hbar, physics.vector frames+dyadics incl. ReferenceFrame(''), sympy.vector, Q.positive(x). 8000 more random containers: 0 divergences.\n- PRINTER-STATE probes (the sharpest attack on an `elem_repr(t)` axiom modeled as a stateless pure function): for all 50 hook-pool elements checked (a) reused-printer doprint == fresh srepr, (b) nested rendering at _print_level>=1 == fresh rendering (srepr([e]) == '['+srepr(e)+']'), (c) idempotence of repeated srepr. 0 anomalies. I specifically confirmed ReprPrinter.__mro__ == (ReprPrinter, Printer, object) -- it does NOT inherit StrPrinter, so str.py:693's `self._print_level > 1` full_prec branch (the one genuinely level-sensitive printer path) is unreachable, which is why the stateless elem_repr modeling is sound here.\n- SETTINGS probe: found the one real settings-sensitive element (Permutation under perm_cyclic=False makes fresh srepr(p) != that printer's doprint(p)). Crucially the modeled function still matched the model assembly computed with the SAME printer's doprint in all 4 settings dicts ({}, perm_cyclic=False/True, order='lex') -- the model's elem_repr is per-printer, so this is faithful, and mapping.md's provenance (ReprPrinter.doprint) is the right binding rather than the free function srepr.\n- TRUE-DOMAIN test: determined by MRO scan which classes actually dispatch to the modeled methods, then compared model vs modeled-fn on each: OrderedDict, Counter, defaultdict, plain dict/set (empty and non-empty), AssumptionsContext (empty+non-empty), DiophantineSolutionSet (empty+non-empty), StdFactKB, SubsSet, FiniteDensity, polyoptions Options -> ALL match. Cycle and PolyElement are dict subclasses but dispatch to _print_Cycle/_print_PolyElement, so they never reach the modeled function (correctly out of scope); frozenset is NOT a set subclass (MRO is (frozenset, object)) so it falls to emptyPrinter -- also out of scope. These three were the only 'mismatches' my sweep produced and all three are dispatch-level, not spec-level.\n- Deep nesting + scale: {x:{y:{z:{x:{y}}}}}, {x:[{y:z},{z}]}, {frozenset([x]):{y:(z,)}}, {(x,y):{z:[1,2,{x}]}}, {x:set()}, {x:{}} and a 300-key dict / 300-element set (past the 255-arg boundary in _print_Add) all match.\n\nSPEC-STRENGTH REVIEW (is the spec too strong?): the axioms are notably WEAK in the right direction, and I confirmed the two documented non-over-claims are genuinely necessary rather than cosmetic. elem_repr is Ensures(True) with NO len>=1: I reproduced the empty-representation witnesses (Quantity(''), stringPict(''), CNF() all have srepr == '' at base and under the patch), and confirmed the container still emits them with separators (srepr({Quantity(''), Symbol('x')}) style cases matched the model). elem_str carries no universal `!= elem_repr` and no len>=1: str(oo)==srepr(oo)=='oo' and str(Symbol(''))=='' both hold, so shipping either would have been the unsound over-claim -- the spec correctly omits both and the G-DIFF discriminator rests only on open-world distinctness of two @ContractOnly callees. The dict carrier's `len(flat) % 2 == 0` precondition is a carrier well-formedness condition (a real dict's items() always yields pairs), not a strengthening that excludes real inputs.\n\nBUNDLE CHECKS RE-RUN BY ME IN MY OWN WORKTREE (not trusted from meta.json): axiom_check.py -> exit 0, G-AX OK (value link on 26 elements, 3 empty-representation witnesses, existential str!=srepr, 8000 fuzz). conformance_check.py -> exit 0, \"shadow impl == real repo renderers on 100023 inputs (50013 collection + 50010 mapping), disagreements: 0\". F2P: applied the test_patch and ran pytest sympy/printing/tests/test_repr.py -k 'test_dict or test_set' -> 3 passed (F2P test_dict passes with the patch).\n\nCONCLUSION: I could not produce an input on the modeled function's real domain where the modeled function disagrees with the real patched callee. Roughly 150k+ differential inputs across element classes, hook classes, real subclasses, printer states, settings, nesting depth and scale yielded zero in-domain divergence. The spec is not too strong and does not drift from real repo behavior. Verdict FAITHFUL. Residual (documented, non-blocking): the two out-of-domain gaps above -- a hypothetical user set subclass overriding __bool__, and self-referential containers where the untouched callee already diverges at base_commit -- are honest carrier/idealization boundaries, not spec defects, and neither is reachable from any in-repo input.; G-PANEL-3 (leakage): pass \u2014 ATTACKER-3 (leakage / gold-reconstruction), sympy__sympy-19346 nagini. Verdict NO-LEAKAGE, from my own measurements.\n\nSCOPE / DISPOSITION. No relaxation is in play: meta.json has NO `relaxed_leakage` key (checked by key scan), no RELAXED_LEAKAGE.md exists in the bundle, and gates.G-LEAK.status == 'pass' (detail 'spec view clean'). So this is an ordinary strict leakage judgement, not a relaxed one, and there was no unavoidability argument to re-derive.\n\nWHAT I JUDGED. I generated the actual consumer projection myself rather than eyeballing model.py: markers.spec_view(model.py, nagini.language) -> spec_view.py. Both impl regions elide to the placeholder; what reaches the consumer is the module docstring, the 5 punctuation constants, the axioms region (elem_repr/elem_str/doprint_elem/str_elem), the pure region (empty_seq/joined_elems/joined_pairs/set_seq/dict_seq), and the two signatures + pre/post regions. mapping.md and refinement.md -- which DO say '_print_set/_print_dict ... added by the patch' and narrate the pre-patch emptyPrinter->str(expr) dispatch -- are audit-only: prompts.py `_spec_block` injects ONLY task.spec_view (+ meta modeled_functions), and dataset.py builds spec_view solely from adapter.spec_view(model). Neither doc is ever assembled into a consumer prompt, so their edit-localizing prose is out of scope. Frozen artifact I judged: model.py sha256 223f3eb6...41a544, identical to the digest recorded in gates.G-LEAK.sources.\n\nMECHANICAL RE-RUN (my own, not the stamp). leakage.screen(model.py, nagini, patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Patched symbols the screen derives: {print_dict, print_set, print_EmptySequence}; patched files: sympy/printing/repr.py. I then hand-scanned the projection for mechanism vocabulary the lexical screen could miss: '_print_dict', '_print_set', '_print_list', 'ReprPrinter', 'emptyPrinter', 'reprify', 'repr.py', 'printing/repr', 'srepr', 'MRO', 'dispatch', 'fallback', '__str__' -- ALL absent. Independent narration scan over ['bug','fix','wrong','patch','previously','incorrectly','broken','regression','prepatch','pre-patch'] with word boundaries: zero hits. Model symbol names are render_collection_codepoints / render_mapping_codepoints -- no echo of print_dict/print_set. Same-spec confirmed byte-identical spec region for the identity copy AND for the shipped model_prepatch.py (both exit 0), and the pinned verifier accepts model.py (28.95s, 'Verification successful'), so the artifact I screened is the live, verifying one.\n\nSEMANTIC RE-DERIVATION -- every spec-view fact traced to a public source. (a) 'render each element by the EXECUTABLE element representation, not the element's PLAIN DISPLAY FORM' -- this is the discriminator, and it is a direct restatement of the problem_statement's own two code blocks: the PS shows srepr([x,y]) == \"[Symbol('x'), Symbol('y')]\" against srepr({x,y}) == '{x, y}' and srepr({x:y}) == '{x: y}'. The wrong form IS the plain-str form and the PS displays both sides, so the contrast is public, not hints-derived (hints_text is empty here anyway, len 0 -- nothing to echo). (b) Braces, ', ' separators, ': ' pair separator -- all literally visible in the PS's own '{x, y}' / '{x: y}' / '[Symbol('x'), Symbol('y')]' output. (c) The 'set()' five-char and '{}' two-char empty literals are the only spec-view facts NOT in the PS text, so I measured them at base_commit in a fresh worktree (94fb720) BEFORE the patch: srepr(set()) == 'set()' and srepr({}) == '{}' already. They are UNCHANGED pre-patch behaviour, hence cannot disclose the edit, and they are independently forced by the public round-trip premise (eval('{}') is a dict, only 'set()' re-creates a set). (d) 'doprint' appears (as doprint_elem) at spec-view lines 74/90 -- I confirmed in the worktree that doprint pre-exists at base_commit (printer.py:249) and is NOT among the patched symbols; naming an unchanged callee is permitted and localizes no edit, while _print_set/_print_dict are genuinely absent from repr.py at base (grep: only reprify:27, emptyPrinter:33, _print_list:144). (e) No test identity leaks: 'test_dict'/'test_set' and the hidden nested-dict case appear nowhere in the projection; the recursive-rendering clause is stated as the abstract consistency requirement, which the PS's list/tuple examples already exhibit.\n\nBUNDLE-ADDRESSES-THE-REVIEWER CHECK (reported as its own finding, per my instructions). I ran leakage.reviewer_directed() over every bundle file plus a wider hand-written pattern set ('the honest/correct recording is', 'submit NO-LEAKAGE|LEAKAGE', 'attacker 3', 'G-PANEL-3', 'recording convention', 'you should record', 'dear auditor/reviewer/panel'). reviewer_directed() returns [] for every file. The only hits for 'G-PANEL-3'/'recording convention' are in meta.json and verdict.md, and on reading the surrounding text they are a PRIOR panel run's own recorded note (it states it found no file addressing it) plus machine-derived role statuses -- audit records of past runs, not instructions aimed at me. NOTHING in this bundle told me how to record or which verdict is honest, and I inherited no disposition from any file: the pass above is my own screen re-run plus my own base_commit measurements.\n\nADJACENT OBSERVATIONS (not leakage, not my gate, recorded for the trail). meta.json carries G-PANEL-2 = fail (faithfulness) and G-PANEL = fail overall; that is orthogonal to leakage and I did not let it colour this verdict. refinement.md \u00a7C / mapping.md \u00a73.2 candidly disclose that the shipped model_prepatch.py is actually rejected by an obligation-leak error at the str_elem call site rather than by the named fold invariants (str_elem carries no MustTerminate while the renderers hold MustTerminate(3)), with the semantic discriminator measured only in a scratch strengthening. That is a G-DIFF/G-EQ documentation-precision matter, and it is disclosed rather than hidden -- it does not affect the spec view the consumer sees.\n\nCONCLUSION. The projection reads as a behavioural contract over an abstract container renderer; every discriminating fact in it is recoverable from the public problem_statement or from unchanged base_commit behaviour the solver can observe directly, and nothing names the patched file, the patched methods, the dispatch mechanism, or the hidden tests. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544",
+        "properties.py": "f0d3e8277772dcd0a4badb4d6ea3d7cc4adf0f12d16c9514f6695528d8180c5e"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T17:48:11+00:00",
+      "code_version": "c2e9196c0-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 14 admissible attacks re-run of 14 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 14 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 14 | `atk_1_prepatch_plain_str.py`, `atk_2_dict_colon_no_space.py`, `atk_3_dict_value_from_key.py`, `atk_5_dict_empty_is_set_literal.py`, `atk_6_dict_uses_set_assembly.py`, `atk_7_dict_ungrounded_echo.py`, `atk_8_dict_diverges_multi_pair.py`, `atk_9_set_empty_is_dict_literal.py`, `atk_10_set_trailing_separator.py`, +5 more |\n\n**Non-vacuity.** The positive control `pos_control_frozen.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544",
+        "properties.py": "f0d3e8277772dcd0a4badb4d6ea3d7cc4adf0f12d16c9514f6695528d8180c5e"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T16:36:05+00:00",
+      "code_version": "0f11c4e42-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE SETUP (per instructions): compared model.py against a fresh worktree of sympy/sympy at base_commit 94fb720696f5f5d12bad8bc813699fd696afd2fb with the gold patch APPLIED (git apply clean; confirmed _print_dict/_print_set present in sympy/printing/repr.py after _print_list). Base commit used only for untouched callees (doprint/_print/reprify/emptyPrinter, which the patch demonstrably does not modify). All work in /tmp worktrees; bundle never modified.\n\nSPEC-REGION IDENTITY: `adversary same-spec nagini sympy__sympy-19346` on a copy of model.py -> exit 0 (\"SAME\"); on model_prepatch.py -> exit 0, confirming the G-DIFF rival shares the frozen spec byte-identically and only the impl region differs. meta.json region_hashes present for axioms/pure/pre/post/invariants/impl/spec_view.\n\nMODEL VERIFIES: `scripts/nagini_verify.sh` on model.py -> \"Verification successful\" in 21.6s, exit 0. So the spec is discharged, not vacuous, and the MustTerminate(3)/MustTerminate(2) obligation chain is real.\n\nMY OWN DIFFERENTIAL EVIDENCE (independent of the bundle's own checks):\n- Wide element-pool differential: 76-element pool (Symbols incl. Symbol(''), Dummy, Wild, Integer/Rational/Float incl. Float(0.1,60) and Float('1e100'), oo/-oo/zoo/nan/pi/E/I, S.Half/EmptySet/Naturals/Reals/Integers, True/False/None, raw python int/float/str/'', Add/Mul/Pow/sin/AppliedUndef/Lambda, tuples/lists/dicts/sets/frozensets, Matrix incl. Matrix(0,3,[]), Interval/FiniteSet/Tuple/Eq/And, Permutation/Cycle, Quantity('')/meter, PolyElement, Ket/Bra/HilbertSpace, stringPict(''), CNF(), diffgeom CoordSystem/Manifold/Patch). Tested empty, every singleton, every unordered pair (itertools.combinations), plus 20000 random sets and 20000 random dicts against the model assembly set_seq/dict_seq (token substitution, using the real set/dict iteration order). RESULT: 0 divergences, and _print_set/_print_dict live-method output matched too.\n- _sympyrepr-hook pool (the classes that bypass the normal dispatch and could make nested rendering differ): codegen.ast String/Type/Variable/Declaration/Assignment, physics.quantum Ket/Bra/Dagger/HilbertSpace/ComplexSpace/FockSpace/L2/TensorProduct/InnerProduct/Commutator/AntiCommutator/Operator/hbar, physics.vector frames+dyadics incl. ReferenceFrame(''), sympy.vector, Q.positive(x). 8000 more random containers: 0 divergences.\n- PRINTER-STATE probes (the sharpest attack on an `elem_repr(t)` axiom modeled as a stateless pure function): for all 50 hook-pool elements checked (a) reused-printer doprint == fresh srepr, (b) nested rendering at _print_level>=1 == fresh rendering (srepr([e]) == '['+srepr(e)+']'), (c) idempotence of repeated srepr. 0 anomalies. I specifically confirmed ReprPrinter.__mro__ == (ReprPrinter, Printer, object) -- it does NOT inherit StrPrinter, so str.py:693's `self._print_level > 1` full_prec branch (the one genuinely level-sensitive printer path) is unreachable, which is why the stateless elem_repr modeling is sound here.\n- SETTINGS probe: found the one real settings-sensitive element (Permutation under perm_cyclic=False makes fresh srepr(p) != that printer's doprint(p)). Crucially the modeled function still matched the model assembly computed with the SAME printer's doprint in all 4 settings dicts ({}, perm_cyclic=False/True, order='lex') -- the model's elem_repr is per-printer, so this is faithful, and mapping.md's provenance (ReprPrinter.doprint) is the right binding rather than the free function srepr.\n- TRUE-DOMAIN test: determined by MRO scan which classes actually dispatch to the modeled methods, then compared model vs modeled-fn on each: OrderedDict, Counter, defaultdict, plain dict/set (empty and non-empty), AssumptionsContext (empty+non-empty), DiophantineSolutionSet (empty+non-empty), StdFactKB, SubsSet, FiniteDensity, polyoptions Options -> ALL match. Cycle and PolyElement are dict subclasses but dispatch to _print_Cycle/_print_PolyElement, so they never reach the modeled function (correctly out of scope); frozenset is NOT a set subclass (MRO is (frozenset, object)) so it falls to emptyPrinter -- also out of scope. These three were the only 'mismatches' my sweep produced and all three are dispatch-level, not spec-level.\n- Deep nesting + scale: {x:{y:{z:{x:{y}}}}}, {x:[{y:z},{z}]}, {frozenset([x]):{y:(z,)}}, {(x,y):{z:[1,2,{x}]}}, {x:set()}, {x:{}} and a 300-key dict / 300-element set (past the 255-arg boundary in _print_Add) all match.\n\nSPEC-STRENGTH REVIEW (is the spec too strong?): the axioms are notably WEAK in the right direction, and I confirmed the two documented non-over-claims are genuinely necessary rather than cosmetic. elem_repr is Ensures(True) with NO len>=1: I reproduced the empty-representation witnesses (Quantity(''), stringPict(''), CNF() all have srepr == '' at base and under the patch), and confirmed the container still emits them with separators (srepr({Quantity(''), Symbol('x')}) style cases matched the model). elem_str carries no universal `!= elem_repr` and no len>=1: str(oo)==srepr(oo)=='oo' and str(Symbol(''))=='' both hold, so shipping either would have been the unsound over-claim -- the spec correctly omits both and the G-DIFF discriminator rests only on open-world distinctness of two @ContractOnly callees. The dict carrier's `len(flat) % 2 == 0` precondition is a carrier well-formedness condition (a real dict's items() always yields pairs), not a strengthening that excludes real inputs.\n\nBUNDLE CHECKS RE-RUN BY ME IN MY OWN WORKTREE (not trusted from meta.json): axiom_check.py -> exit 0, G-AX OK (value link on 26 elements, 3 empty-representation witnesses, existential str!=srepr, 8000 fuzz). conformance_check.py -> exit 0, \"shadow impl == real repo renderers on 100023 inputs (50013 collection + 50010 mapping), disagreements: 0\". F2P: applied the test_patch and ran pytest sympy/printing/tests/test_repr.py -k 'test_dict or test_set' -> 3 passed (F2P test_dict passes with the patch).\n\nCONCLUSION: I could not produce an input on the modeled function's real domain where the modeled function disagrees with the real patched callee. Roughly 150k+ differential inputs across element classes, hook classes, real subclasses, printer states, settings, nesting depth and scale yielded zero in-domain divergence. The spec is not too strong and does not drift from real repo behavior. Verdict FAITHFUL. Residual (documented, non-blocking): the two out-of-domain gaps above -- a hypothetical user set subclass overriding __bool__, and self-referential containers where the untouched callee already diverges at base_commit -- are honest carrier/idealization boundaries, not spec defects, and neither is reachable from any in-repo input.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T16:26:20+00:00",
+      "code_version": "4304f058a-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "ATTACKER-3 (leakage / gold-reconstruction), sympy__sympy-19346 nagini. Verdict NO-LEAKAGE, from my own measurements.\n\nSCOPE / DISPOSITION. No relaxation is in play: meta.json has NO `relaxed_leakage` key (checked by key scan), no RELAXED_LEAKAGE.md exists in the bundle, and gates.G-LEAK.status == 'pass' (detail 'spec view clean'). So this is an ordinary strict leakage judgement, not a relaxed one, and there was no unavoidability argument to re-derive.\n\nWHAT I JUDGED. I generated the actual consumer projection myself rather than eyeballing model.py: markers.spec_view(model.py, nagini.language) -> spec_view.py. Both impl regions elide to the placeholder; what reaches the consumer is the module docstring, the 5 punctuation constants, the axioms region (elem_repr/elem_str/doprint_elem/str_elem), the pure region (empty_seq/joined_elems/joined_pairs/set_seq/dict_seq), and the two signatures + pre/post regions. mapping.md and refinement.md -- which DO say '_print_set/_print_dict ... added by the patch' and narrate the pre-patch emptyPrinter->str(expr) dispatch -- are audit-only: prompts.py `_spec_block` injects ONLY task.spec_view (+ meta modeled_functions), and dataset.py builds spec_view solely from adapter.spec_view(model). Neither doc is ever assembled into a consumer prompt, so their edit-localizing prose is out of scope. Frozen artifact I judged: model.py sha256 223f3eb6...41a544, identical to the digest recorded in gates.G-LEAK.sources.\n\nMECHANICAL RE-RUN (my own, not the stamp). leakage.screen(model.py, nagini, patch, problem_statement, test_patch) -> passed=True, hard_failures=[], warnings=[]. Patched symbols the screen derives: {print_dict, print_set, print_EmptySequence}; patched files: sympy/printing/repr.py. I then hand-scanned the projection for mechanism vocabulary the lexical screen could miss: '_print_dict', '_print_set', '_print_list', 'ReprPrinter', 'emptyPrinter', 'reprify', 'repr.py', 'printing/repr', 'srepr', 'MRO', 'dispatch', 'fallback', '__str__' -- ALL absent. Independent narration scan over ['bug','fix','wrong','patch','previously','incorrectly','broken','regression','prepatch','pre-patch'] with word boundaries: zero hits. Model symbol names are render_collection_codepoints / render_mapping_codepoints -- no echo of print_dict/print_set. Same-spec confirmed byte-identical spec region for the identity copy AND for the shipped model_prepatch.py (both exit 0), and the pinned verifier accepts model.py (28.95s, 'Verification successful'), so the artifact I screened is the live, verifying one.\n\nSEMANTIC RE-DERIVATION -- every spec-view fact traced to a public source. (a) 'render each element by the EXECUTABLE element representation, not the element's PLAIN DISPLAY FORM' -- this is the discriminator, and it is a direct restatement of the problem_statement's own two code blocks: the PS shows srepr([x,y]) == \"[Symbol('x'), Symbol('y')]\" against srepr({x,y}) == '{x, y}' and srepr({x:y}) == '{x: y}'. The wrong form IS the plain-str form and the PS displays both sides, so the contrast is public, not hints-derived (hints_text is empty here anyway, len 0 -- nothing to echo). (b) Braces, ', ' separators, ': ' pair separator -- all literally visible in the PS's own '{x, y}' / '{x: y}' / '[Symbol('x'), Symbol('y')]' output.\n\n(c) The 'set()' five-char and '{}' two-char empty literals are the only spec-view facts NOT in the PS text, so I measured them at base_commit in a fresh worktree (94fb720) BEFORE the patch: srepr(set()) == 'set()' and srepr({}) == '{}' already. They are UNCHANGED pre-patch behaviour, hence cannot disclose the edit, and they are independently forced by the public round-trip premise (eval('{}') is a dict, only 'set()' re-creates a set).\n\n(d) 'doprint' appears (as doprint_elem) at spec-view lines 74/90 -- I confirmed in the worktree that doprint pre-exists at base_commit (printer.py:249) and is NOT among the patched symbols; naming an unchanged callee is permitted and localizes no edit, while _print_set/_print_dict are genuinely absent from repr.py at base (grep: only reprify:27, emptyPrinter:33, _print_list:144). (e) No test identity leaks: 'test_dict'/'test_set' and the hidden nested-dict case appear nowhere in the projection; the recursive-rendering clause is stated as the abstract consistency requirement, which the PS's list/tuple examples already exhibit.\n\nBUNDLE-ADDRESSES-THE-REVIEWER CHECK (reported as its own finding, per my instructions). I ran leakage.reviewer_directed() over every bundle file plus a wider hand-written pattern set ('the honest/correct recording is', 'submit NO-LEAKAGE|LEAKAGE', 'attacker 3', 'G-PANEL-3', 'recording convention', 'you should record', 'dear auditor/reviewer/panel'). reviewer_directed() returns [] for every file. The only hits for 'G-PANEL-3'/'recording convention' are in meta.json and verdict.md, and on reading the surrounding text they are a PRIOR panel run's own recorded note (it states it found no file addressing it) plus machine-derived role statuses -- audit records of past runs, not instructions aimed at me. NOTHING in this bundle told me how to record or which verdict is honest, and I inherited no disposition from any file: the pass above is my own screen re-run plus my own base_commit measurements.\n\nADJACENT OBSERVATIONS (not leakage, not my gate, recorded for the trail). meta.json carries G-PANEL-2 = fail (faithfulness) and G-PANEL = fail overall; that is orthogonal to leakage and I did not let it colour this verdict. refinement.md \u00a7C / mapping.md \u00a73.2 candidly disclose that the shipped model_prepatch.py is actually rejected by an obligation-leak error at the str_elem call site rather than by the named fold invariants (str_elem carries no MustTerminate while the renderers hold MustTerminate(3)), with the semantic discriminator measured only in a scratch strengthening. That is a G-DIFF/G-EQ documentation-precision matter, and it is disclosed rather than hidden -- it does not affect the spec view the consumer sees.\n\nCONCLUSION. The projection reads as a behavioural contract over an abstract container renderer; every discriminating fact in it is recoverable from the public problem_statement or from unchanged base_commit behaviour the solver can observe directly, and nothing names the patched file, the patched methods, the dispatch mechanism, or the hidden tests. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:05:27+00:00",
+      "code_version": "f4e74b62d-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-set",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.3
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-dict",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.5
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-dict",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 22.9
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-str-elem-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.4
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-str-elem-dict",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.6
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-first-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 37.7
+          },
+          {
+            "expect": "reject",
+            "id": "swap-key-value-dict",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.1
+          },
+          {
+            "expect": "reject",
+            "id": "no-separator-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.0
+          },
+          {
+            "expect": "reject",
+            "id": "wrong-empty-literal-set",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.8
+          }
+        ],
+        "lanes": {
+          "soundness": 2,
+          "uniqueness": 8
+        },
+        "manifest_sha256": "ce0dcd628a90c9fcdcd004d050838a8968171fff902aeec6909f6e30c4cda8e3",
+        "n_cases": 10,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 10 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544",
+        "properties.py": "ce0dcd628a90c9fcdcd004d050838a8968171fff902aeec6909f6e30c4cda8e3"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-15T16:13:09+00:00",
+      "code_version": "2cb362967-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "3496942ca6151c59e57291651cb7f79d94f6caac2b980a4e62f2083643936830",
+        "patch.diff": "65aa70d5de9f1f4f99c3037b267b22928b24a03f3ba42af988bd679c8b1a0a4f"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-15T16:08:02+00:00",
+      "code_version": "113bd28e8-dirty",
+      "data": {
+        "wall_time_s": 25.3
+      },
+      "detail": "verified in 25.3s",
+      "gate": "G-VERIFY",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "223f3eb6b4719c33d6722607ea9ca28ee4b0f5fed82b9102be6fbba03641a544"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-19346",
+  "modeled_functions": [
+    {
+      "carrier_type": "set -> List[int] of element tokens; rendering str -> List[int] of code points; specification over PSeq[int]",
+      "model_symbol": "render_collection_codepoints",
+      "repo_location": "sympy/printing/repr.py (added by patch after _print_list, line 145)",
+      "repo_symbol": "sympy.printing.repr.ReprPrinter._print_set",
+      "role": "modeled new function: render an unordered collection (the set repr method)"
+    },
+    {
+      "carrier_type": "dict -> flat even-length List[int] of alternating key,value tokens; rendering str -> List[int] of code points; specification over PSeq[int]",
+      "model_symbol": "render_mapping_codepoints",
+      "repo_location": "sympy/printing/repr.py (added by patch after _print_list, line 145)",
+      "repo_symbol": "sympy.printing.repr.ReprPrinter._print_dict",
+      "role": "modeled new function: render an associative mapping (the dict repr method)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; checked with git apply --check)",
+  "prepatch_models": [
+    {
+      "fails_on": "loop invariant ToSeq(inner) == joined_elems(elems_s.drop(i)) (set, line 187) and ToSeq(inner) == joined_pairs(flat_s.drop(i)) (dict, line 242): inner built from elem_str can never be shown to equal the elem_repr-built fold because elem_str and elem_repr are distinct uninterpreted @ContractOnly functions Nagini cannot prove equal (sound discriminator; no universal elem_str != elem_repr axiom -- that over-claim was removed and the prepatch still fails both invariants, verified empirically)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "both the set and the dict rendering (one prepatch covers both independently-observable behaviours; graded F2P is test_dict)",
+      "reverted_to": "the pre-patch whole-object str fallback: each element/key/value rendered via str_elem (plain display form) instead of doprint_elem (executable representation), with the same brace/separator assembly"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "f06fc2cd42a390a9bdca5e4808e6771da9457a43ed63f493c3bae37f725b8065",
+    "impl": "3367794ff4122fe2ffa5ea78da75c39a6bdcd7ee3875632ef9d75124d14ca12f",
+    "invariants": "99f81268b35cd6a99598d0e8cbad1da229d9ea926a07364be05d8048fb291e95",
+    "post-conditions": "32973900ddf88828e5ec69e51318e0b89d68aac6535cdf50070a071c79e933aa",
+    "pre-conditions": "86153158a4720c49e38e17bc8f63f0f31c975a44b2b4ac1fb04d911c0559a3c7",
+    "pure": "f6e0998735f795b544fc436129ecfc27e5d72b69e474e71477351bc65bbc860a",
+    "spec_view": "a8d40aee89589175d3aa14e5dbe7046a1dd09ecc0a67cf10a4a8af2b56bb9753"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; a set is a List[int] of element tokens, a dict is a flat even-length List[int] of alternating key,value tokens; assembly proven by backward folds matching front-recursive joined_elems/joined_pairs (single unfold per loop step)",
+  "version": "1.7"
+}

@@ -1,0 +1,398 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "the enabling control-flow edit (delete the early raise so the multi-axis case reaches the null_mask expression). Same behavioural change as the count fix; the model admits the multi-axis case directly via len(sizes) >= 2. No separate failing prepatch: the deleted raise is not an independently-observable computed behavior \u2014 its removal is only observable through the corrected multi-axis count, which model_prepatch.py already discriminates.",
+      "repo_location": "xarray/core/nanops.py:29-32 (removed)",
+      "repo_symbol": "xarray.core.nanops._maybe_null_out early raise ValueError on tuple/list axis"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "e05fddea852d08fc0845f954b79deb9e9f9ff883",
+  "changed_files": [
+    "xarray/core/nanops.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): prod(select(shape, axis)) == np.take(shape, axis).prod() on 13 boundary + 4000 fuzz shape/axis cases; plus the full null_mask = (np.take(mask.shape, axis).prod() - mask.sum(axis) - min_count) < 0 decision matched against the gold numpy expression on real boolean masks over 7 multi-axis array configurations",
+      "encoded_property": "prod(select(shape, axis)): the product of the input's sizes along ALL reduced axes (the whole reduced block); coincides with the single-axis size shape[axis] when exactly one axis is reduced; front-recursive fold so one unfold per loop step",
+      "kind": "A-reference",
+      "models": "np.take(mask.shape, axis).prod() (numpy select-then-product)",
+      "name": "prod (over the selected reduced-axes sizes)",
+      "provenance": "numpy.org docs numpy.take (gather a at indices) + numpy.ndarray.prod (product over the array, empty product = 1); the gold patch xarray/core/nanops.py:35 (this instance). Integer-only, precision-independent; no float encoding.",
+      "role": "deep model (pure region) of the changed element-count operation; NOT a consumed axiom \u2014 there is no @ContractOnly axiom in the bundle"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T13:10:20+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: prod(select) deep model == np.take(shape, axis).prod() on 13 boundary + 4000 fuzz cases; null_mask decision matches gold numpy expression on 7 real-array configurations",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "151c8985139bc5dcfbc911207d7f338824c71498afe9e2108843666b74e498cf",
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T13:10:26+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100021,
+          "disagreements": 0,
+          "seed": 4356,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100021, \"disagreements\": 0, \"seed\": 4356, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "e01c1c98dcc6c35a05014fd4d0505a018f97816a3db566db35b0546acba0d4e3",
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T12:48:47+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d",
+        "model_prepatch.py": "1c2779e39fb194ffe3beecc383114cc2b387b61dd27dd0c09ed12ff41c36c27a"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-11T21:05:43+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_7.py`, `atk_8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_4.py`, `atk_6.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T12:49:48+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d",
+        "model_prepatch.py": "1c2779e39fb194ffe3beecc383114cc2b387b61dd27dd0c09ed12ff41c36c27a"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T13:10:17+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "4513f93ed54c4c5f30443b342b6428a94ab108c48e699a4310688c617c236368",
+          "impl": "351bf84e8f54d3534acb5de51ef756b5df324896806ee7a21ed8574feb34c9c5",
+          "invariants": "32c687f2b9882aea5e49b0d7067674aad5af798391963f157ed50e7af1a797dd",
+          "post-conditions": "4ee0b92a24d40d3bb67fbdb9b1ffafae4968f24920faa4677829c99b2fc8174b",
+          "pre-conditions": "50451f62e6c74de829333e2e33f983427781d70ef52ddf0f8b83f3d803c19028",
+          "pure": "7c372416d35008e5f6bd68b535b30026834e463727d87edcf49beef25c410f9b",
+          "spec_view": "bcc32a12f3b45791cf478225b5692af53d3995d702ced0e4af4d419bfac61dee"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T13:10:17+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "a33ddadbf5bebc6e835c77a811b0fa7d3159e1be3f787a5053bc3b9d5291bc49",
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T13:10:18+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T14:07:52+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "judged": 19,
+        "killed": 19,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 19,
+        "unjudged": []
+      },
+      "detail": "killed 19/19 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-11T21:05:46+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) check for pydata__xarray-4356 nagini bundle. The modeled function flag_too_few pins the per-position null_mask boolean of the patched _maybe_null_out: postcondition Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0). This is byte-identical arithmetic to the fixed repo expression (np.take(mask.shape, axis).prod() - mask.sum(axis) - min_count) < 0 (xarray/core/nanops.py:34, base_commit e05fddea). Mapping: sizes = np.take(mask.shape, axis) (selected reduced-axes sizes, each >0), missing = mask.sum(axis) per position, required_minimum = min_count; prod = numpy .prod over the selection. The precondition domain (len(sizes)>=1, 0<=missing<=prod(sizes)) is exactly what any real boolean-mask reduction over a non-empty axis group produces, so the spec neither over- nor under-constrains the callee's actual inputs. Model VERIFIES against the frozen spec (nagini_verify.sh exit 0, 10.8s). Differential test of the modeled flag against the REAL patched callee $SCRATCH _maybe_null_out (behaviorally, via NaN-fill sentinel observation) over 150,013 output positions across randomized multi-axis shapes/axes/min_count (incl. negative/zero/interior/beyond-block minimums, bare-int and tuple axis spellings): ZERO disagreements. No diverging input exists; the modeled function agrees with the real repo callee on every precondition-satisfying input. Spec is faithful, not too strong.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Mechanical G-LEAK screen passes (leakage.screen: no hard failures). Semantic review confirms NO-LEAKAGE.\n\nBaseline: the public problem_statement already discloses the entire gold fix verbatim -- it names the file/line (xarray/core/nanops.py#L35) and states the exact edit: 'replacing mask.shape[axis] with np.take(a.shape, axis).prod()'. Thus the discriminating content of the change (count the PRODUCT of the reduced-axes sizes, allowing multi-dim reductions, rather than a single axis's size) is fully public and NOT considered leakage.\n\nSpec view (docstring + pre/post-conditions + prod pure region + lemma) leaks nothing beyond that:\n- Uses only abstract model symbols: flag_too_few, prod, sizes, missing, required_minimum, total, lemma_prod_snoc. None echo patched repo symbols (_maybe_null_out, nanops, mask, min_count, null_mask, axis); min_count is even abstracted to required_minimum.\n- Postcondition 'Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0)' restates the desired behaviour (product of reduced-axes sizes minus missing < minimum), which the problem_statement already states as the intended solution -- no additional edit-localization.\n- No diff markers, no patched file path/module path, no gold-patch line reproduced (mechanical L1/L2 clean), no narration terms (bug/fix/patch/etc.).\n- The 'select the reduced-axes sizes then take their product' phrasing mirrors the np.take(shape,axis).prod() already named publicly in the problem statement.\n\nThe refinement.md and mapping.md are NOT part of the consumer spec view (spec_view projection), so their explicit gold-hunk quotes are out of scope for G-PANEL-3. The spec view (model.py projected) reveals no gold-edit detail beyond the public problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) check for pydata__xarray-4356 nagini bundle. The modeled function flag_too_few pins the per-position null_mask boolean of the patched _maybe_null_out: postcondition Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0). This is byte-identical arithmetic to the fixed repo expression (np.take(mask.shape, axis).prod() - mask.sum(axis) - min_count) < 0 (xarray/core/nanops.py:34, base_commit e05fddea). Mapping: sizes = np.take(mask.shape, axis) (selected reduced-axes sizes, each >0), missing = mask.sum(axis) per position, required_minimum = min_count; prod = numpy .prod over the selection. The precondition domain (len(sizes)>=1, 0<=missing<=prod(sizes)) is exactly what any real boolean-mask reduction over a non-empty axis group produces, so the spec neither over- nor under-constrains the callee's actual inputs. Model VERIFIES against the frozen spec (nagini_verify.sh exit 0, 10.8s). Differential test of the modeled flag against the REAL patched callee $SCRATCH _maybe_null_out (behaviorally, via NaN-fill sentinel observation) over 150,013 output positions across randomized multi-axis shapes/axes/min_count (incl. negative/zero/interior/beyond-block minimums, bare-int and tuple axis spellings): ZERO disagreements. No diverging input exists; the modeled function agrees with the real repo callee on every precondition-satisfying input. Spec is faithful, not too strong.; G-PANEL-3 (leakage): pass \u2014 Mechanical G-LEAK screen passes (leakage.screen: no hard failures). Semantic review confirms NO-LEAKAGE.\n\nBaseline: the public problem_statement already discloses the entire gold fix verbatim -- it names the file/line (xarray/core/nanops.py#L35) and states the exact edit: 'replacing mask.shape[axis] with np.take(a.shape, axis).prod()'. Thus the discriminating content of the change (count the PRODUCT of the reduced-axes sizes, allowing multi-dim reductions, rather than a single axis's size) is fully public and NOT considered leakage.\n\nSpec view (docstring + pre/post-conditions + prod pure region + lemma) leaks nothing beyond that:\n- Uses only abstract model symbols: flag_too_few, prod, sizes, missing, required_minimum, total, lemma_prod_snoc. None echo patched repo symbols (_maybe_null_out, nanops, mask, min_count, null_mask, axis); min_count is even abstracted to required_minimum.\n- Postcondition 'Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0)' restates the desired behaviour (product of reduced-axes sizes minus missing < minimum), which the problem_statement already states as the intended solution -- no additional edit-localization.\n- No diff markers, no patched file path/module path, no gold-patch line reproduced (mechanical L1/L2 clean), no narration terms (bug/fix/patch/etc.).\n- The 'select the reduced-axes sizes then take their product' phrasing mirrors the np.take(shape,axis).prod() already named publicly in the problem statement.\n\nThe refinement.md and mapping.md are NOT part of the consumer spec view (spec_view projection), so their explicit gold-hunk quotes are out of scope for G-PANEL-3. The spec view (model.py projected) reveals no gold-edit detail beyond the public problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_5.py`, `atk_7.py`, `atk_8.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_4.py`, `atk_6.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) check for pydata__xarray-4356 nagini bundle. The modeled function flag_too_few pins the per-position null_mask boolean of the patched _maybe_null_out: postcondition Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0). This is byte-identical arithmetic to the fixed repo expression (np.take(mask.shape, axis).prod() - mask.sum(axis) - min_count) < 0 (xarray/core/nanops.py:34, base_commit e05fddea). Mapping: sizes = np.take(mask.shape, axis) (selected reduced-axes sizes, each >0), missing = mask.sum(axis) per position, required_minimum = min_count; prod = numpy .prod over the selection.\n\nThe precondition domain (len(sizes)>=1, 0<=missing<=prod(sizes)) is exactly what any real boolean-mask reduction over a non-empty axis group produces, so the spec neither over- nor under-constrains the callee's actual inputs. Model VERIFIES against the frozen spec (nagini_verify.sh exit 0, 10.8s). Differential test of the modeled flag against the REAL patched callee $SCRATCH _maybe_null_out (behaviorally, via NaN-fill sentinel observation) over 150,013 output positions across randomized multi-axis shapes/axes/min_count (incl. negative/zero/interior/beyond-block minimums, bare-int and tuple axis spellings): ZERO disagreements. No diverging input exists; the modeled function agrees with the real repo callee on every precondition-satisfying input. Spec is faithful, not too strong.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery).",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Mechanical G-LEAK screen passes (leakage.screen: no hard failures). Semantic review confirms NO-LEAKAGE.\n\nBaseline: the public problem_statement already discloses the entire gold fix verbatim -- it names the file/line (xarray/core/nanops.py#L35) and states the exact edit: 'replacing mask.shape[axis] with np.take(a.shape, axis).prod()'. Thus the discriminating content of the change (count the PRODUCT of the reduced-axes sizes, allowing multi-dim reductions, rather than a single axis's size) is fully public and NOT considered leakage.\n\nSpec view (docstring + pre/post-conditions + prod pure region + lemma) leaks nothing beyond that:\n- Uses only abstract model symbols: flag_too_few, prod, sizes, missing, required_minimum, total, lemma_prod_snoc. None echo patched repo symbols (_maybe_null_out, nanops, mask, min_count, null_mask, axis); min_count is even abstracted to required_minimum.\n- Postcondition 'Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0)' restates the desired behaviour (product of reduced-axes sizes minus missing < minimum), which the problem_statement already states as the intended solution -- no additional edit-localization.\n- No diff markers, no patched file path/module path, no gold-patch line reproduced (mechanical L1/L2 clean), no narration terms (bug/fix/patch/etc.).\n- The 'select the reduced-axes sizes then take their product' phrasing mirrors the np.take(shape,axis).prod() already named publicly in the problem statement.\n\nThe refinement.md and mapping.md are NOT part of the consumer spec view (spec_view projection), so their explicit gold-hunk quotes are out of scope for G-PANEL-3. The spec view (model.py projected) reveals no gold-edit detail beyond the public problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `mapping.md`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T14:08:51+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reorder-local-bool",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 55.4
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-commuted-accumulate",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 57.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-f2p-three-axes",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 59.2
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutation-self-store",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 55.0
+          },
+          {
+            "expect": "reject",
+            "id": "reject-prepatch-first-axis-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 53.5
+          },
+          {
+            "expect": "reject",
+            "id": "reject-first-two-axes-only",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 57.1
+          },
+          {
+            "expect": "reject",
+            "id": "reject-off-by-one-le-zero",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 50.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "1f46fbc29b0c4e98cfc69f45f59cd6b6331fb659da24cfc7c0765d87ac285ddc",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d",
+        "properties.py": "1f46fbc29b0c4e98cfc69f45f59cd6b6331fb659da24cfc7c0765d87ac285ddc"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T15:50:24+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T12:48:19+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "wall_time_s": 27.2
+      },
+      "detail": "verified in 27.2s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "2458bee856a870e3178567240d74d47121275a06139104ade5114bafe65b318d"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "pydata__xarray-4356",
+  "modeled_functions": [
+    {
+      "carrier_type": "reduced-axes sizes np.take(mask.shape, axis) -> List[int]; per-position missing count mask.sum(axis) -> int; min_count -> int; null_mask element -> bool; specification over PSeq[int] via prod fold",
+      "model_symbol": "flag_too_few",
+      "repo_location": "xarray/core/nanops.py:34-35 (function _maybe_null_out, lines 25-46)",
+      "repo_symbol": "xarray.core.nanops._maybe_null_out (the per-position null_mask element of the multi-/single-axis reduction branch)",
+      "role": "modeled changed function; single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Result() == (prod(ToSeq(sizes)) - missing - required_minimum < 0) (the present-element count uses only the first reduced axis instead of the product over the block)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "the reduced-block element count for multi-axis reductions",
+      "reverted_to": "total = sizes[0] (the single-axis mask.shape[axis] count; the only expressible analog of the pre-patch code, which actually raised for a tuple/list axis)"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "4513f93ed54c4c5f30443b342b6428a94ab108c48e699a4310688c617c236368",
+    "impl": "351bf84e8f54d3534acb5de51ef756b5df324896806ee7a21ed8574feb34c9c5",
+    "invariants": "32c687f2b9882aea5e49b0d7067674aad5af798391963f157ed50e7af1a797dd",
+    "post-conditions": "4ee0b92a24d40d3bb67fbdb9b1ffafae4968f24920faa4677829c99b2fc8174b",
+    "pre-conditions": "50451f62e6c74de829333e2e33f983427781d70ef52ddf0f8b83f3d803c19028",
+    "pure": "7c372416d35008e5f6bd68b535b30026834e463727d87edcf49beef25c410f9b",
+    "spec_view": "bcc32a12f3b45791cf478225b5692af53d3995d702ced0e4af4d419bfac61dee"
+  },
+  "repo": "pydata/xarray",
+  "schema_version": 1,
+  "string_modeling": "not applicable; integer shape sizes modeled as List[int], specification carried by PSeq[int] via ToSeq; the reduced-block element count proven by a forward product fold (front-recursive prod gives a single unfold per step, with a snoc lemma)",
+  "version": "0.12"
+}

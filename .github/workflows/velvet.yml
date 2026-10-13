@@ -1,0 +1,71 @@
+name: Velvet
+
+# The one toolchain the other workflows cannot afford. Velvet is a Lean library rather
+# than a release archive, so installing it means resolving a dependency graph, fetching
+# several gigabytes of prebuilt Mathlib, and elaborating against it. That is too slow and
+# too large for a per-push job, and it answers a question no other job can: do the pins
+# in scripts/install/velvet/lake-manifest.json still resolve to the revisions they name,
+# and does the workspace they build still decide anything.
+#
+# Weekly, because what breaks it is upstream moving rather than this repository changing.
+
+on:
+  schedule:
+    - cron: "43 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  velvet:
+    name: pinned workspace, backend case
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    # The documented environment: environment.yml provides the git, curl and zstd the
+    # installer shells out to.
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Lean unpacks to about 2 GB and Velvet's libraries to about 7 GB, which does not
+      # fit beside the language runtimes a hosted runner ships preinstalled.
+      - name: Make room for the workspace
+        run: sudo rm -rf /usr/local/lib/android /opt/ghc /usr/share/dotnet
+
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          environment-file: environment.yml
+          activate-environment: benchproofer
+
+      - name: Install
+        run: bash scripts/setup.sh --no-doctor
+
+      # Never cached. A drifted revision or a moved release is exactly what this job is
+      # for, and a cache would hide it.
+      - name: Build the pinned Velvet workspace
+        run: make velvet
+
+      - name: Report what this machine can do
+        run: python -m benchproofer doctor
+
+      # A hosted runner has two cores and a slow disk, so a file that elaborates in 80
+      # seconds here can take several times that there. The case skips rather than fails
+      # when nothing was decided, and `--strict` turns a skip into a red job, so the
+      # budget is raised to leave no doubt about which of the two happened.
+      - name: Verify a template and refute a mutant of it
+        env:
+          BENCHPROOFER_VERIFY_TIMEOUT_S: 600
+        run: >
+          python -m benchproofer smoke backends.velvet
+          --slow --strict --report smoke-out/velvet
+
+      - name: Upload the smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-velvet
+          path: smoke-out/
+          if-no-files-found: ignore

@@ -1,0 +1,1258 @@
+{
+  "additional_change_sites": [
+    {
+      "kind": "pure comment edit",
+      "modeled": false,
+      "note": "removes a stray 'Notes' heading / fixes a duplicated word / adds a trailing blank line; no behavior, observed by no F2P test; carried verbatim in patch.diff for G-RESOLVE",
+      "site": "sympy/sets/conditionset.py docstring (first gold hunk)"
+    }
+  ],
+  "axioms": [],
+  "base_commit": "25fbcce5b1a4c7e3956e6062930f4a44ce95a632",
+  "changed_files": [
+    "sympy/sets/conditionset.py"
+  ],
+  "conf_skip": false,
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX) obligation 6 (sort preservation on 1260 condition substitutions) and obligations 11-15 (the reversed direction really raises; the three preconditions hold on the F2P witness and on 2328/2532 pool inputs, with all 185 substitution-excluded inputs really erroring)",
+      "encoded_property": "modeled opaque with NO ensures; the method never inspects the substituted condition, only forwards it to the constructor. Its result SORT (Cond) is the domain fact that a substituted condition is still legal in the condition slot, and its two ARGUMENT sorts (Old, New) are the domain fact that the callee is not symmetric in them \u2014 the reversed call raises. Definedness beyond that is the opaque precondition CondSubDefined.",
+      "kind": "A-reference",
+      "models": "sympy.core.basic.Basic.subs applied at the condition slot, self.condition.subs(old, new) (conditionset.py:243); UNCHANGED by the gold patch",
+      "name": "substCond"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) obligation 6 (72 set substitutions, both directions, all sort-preserving) and obligations 11-15 (definedness domain measured against the real callee)",
+      "encoded_property": "modeled opaque with NO ensures; result sort SetObj (a COMPONENT set, never the produced BuiltSet, so a substitution receiver cannot be manufactured by the impl); argument sorts Old / New as for substCond; definedness carried by BaseSubDefined",
+      "kind": "A-reference",
+      "models": "sympy.core.basic.Basic.subs applied at the base-set slot, self.base_set.subs(old, new) (conditionset.py:244); UNCHANGED by the gold patch",
+      "name": "substSet"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) obligations 1-5 (the deep model equals the real _eval_subs on non-collapse and collapse inputs, with discriminating collapse witnesses), 7 (3780 binder-keyed invocations accepted, 0 refused), 9-10 (the excluded shapes are really refused: object-not-bound in the binder slot -> ValueError, set in the condition slot -> TypeError, condition in the base slot -> TypeError, 225 Expr-non-Symbol binder pairings refused), 15 (72 writable invocation shapes all accepted) and 16-18 (the non-sortal refusals are real \u2014 96 well-sorted triples refused, e.g. ConditionSet(x, x > 0, FiniteSet(I)) -> TypeError, with the real _eval_subs propagating it \u2014 and BuildsDefined covers all 41904 nameable set-building invocations over the admitted pool inputs)",
+      "encoded_property": "modeled opaque with NO ensures; the method's sole responsibility is to choose WHICH (binder, condition, base) triple to hand the constructor \u2014 the spec pins the binder to the ORIGINAL boundSym. The callee is PARTIAL in two ways. Sortally, its three slots carry three distinct sorts (Binder, Cond, SetObj) and its result a fourth (BuiltSet). Non-sortally, it tests the condition against the elements of a finite base, so it refuses some fully well-sorted triples; that part is the precondition BuildsDefined, bundled over every nameable set-building invocation. Under both, every application the impl region can write is an invocation the real callee accepts, INCLUDING one whose result is discarded.",
+      "kind": "A-reference",
+      "models": "the ConditionSet constructor ConditionSet.__new__ (conditionset.py:117) reached via self.func, in its BINDER-KEYED invocation shape self.func(sym, cond, base); UNCHANGED by the gold patch",
+      "name": "mkSet"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX) obligation 8: 84 value-keyed membership invocations accepted inside BuildsDefined, 0 refused; obligation 8 also fixes the shape to ONE shared base set, the only binding the callee accepts (a cross-base binding raises BadSignatureError), and exhibits the value-keyed non-sortal refusal that BuildsDefined also covers (a non-comparable replacement absorbed into a substituted base -> ValueError)",
+      "encoded_property": "modeled opaque with NO ensures; result sort BuiltSet; unused by the gold impl. Present so the pre-patch twin can transcribe the deleted rebuild faithfully, so the value-keyed part of the callee domain is expressible, and so the headline rival can be written at all \u2014 which is what keeps the discriminating decision an ensures decision rather than a typing one",
+      "kind": "A-reference",
+      "models": "the same ConditionSet constructor in its VALUE-KEYED invocation shape ConditionSet(v, Contains(v, base), base) \u2014 the shape the gold patch DELETES from the collapse path (conditionset.py:245 pre-patch); UNCHANGED as a callee",
+      "name": "mkSetOnValue"
+    }
+  ],
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T14:24:59+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX CONSTRUCTOR DEFINEDNESS (BuildsDefined): the exhibit ConditionSet(x, x > 0, FiniteSet(z)) with z -> I has both component substitutions defined, old != sym, and every slot well-sorted, yet the operation's own rebuild raises TypeError: Invalid comparison of non-real I inside __new__'s sift and the real pre-patch _eval_subs propagates it (TypeError) while the RAW rebuild is accepted \u2014 so the precondition is necessary for a total-semantics contract and is about WHICH arguments reach the constructor. Over the pool it excludes 20 of the 2409 inputs the two substitution preconditions admit: 9 because the operation's own rebuild is refused \u2014 the real operation raises on all 9 of those, so that clause is exactly as strict as the operation itself (e.g. ConditionSet(n, n >= 1, FiniteSet(z)) with z -> 2*I, refused: binder-keyed(substituted cond, substituted base), binder-keyed(raw cond, substituted base)) \u2014 and 11 because only a writable EXTRA shape is refused, on 11 of which the operation itself returns normally: that sliver is the price of building axioms that are total on their sorts, and the contract is silent there rather than over-strong.",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "axiom_check.py": "456a7b68168bf4a76e22b912e5809510f58d02b88900f1672ea296a275948522"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T14:26:39+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "exit": 0,
+        "shadow_provenance": "transliterated"
+      },
+      "detail": "G-CONF OK: R/I shadow of evalSubsFree (rebuild with the ORIGINAL bound symbol; substitutions and constructor left as the real Basic.subs / ConditionSet callees) agrees with the patched ConditionSet._eval_subs on 100000 inputs (17944 on the condition-collapse path), seed=19495, 0 disagreements. A further 7169 input(s) were outside the modeled domain because a component substitution itself refused (CondSubDefined / BaseSubDefined, mapping.md \u00a73.4) and 309 because the constructor refused the operation's own rebuild although every slot was well-sorted (BuildsDefined, mapping.md \u00a73.5) \u2014 on ALL 309 of those the patched _eval_subs refused as well, so that precondition is not stricter than the real operation. On every input INSIDE the domain the operation returned normally, so the total-semantics contract is not stronger than the real method here.",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "conformance_check.py": "a5ecc22dc37c608a47ccb9c306f6aa5f2c473fda33ac7e131059207f355a23f2"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:47:14+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {
+        "variants": {
+          "Solution_prepatch.lean": "verification failed"
+        }
+      },
+      "detail": "Solution_prepatch.lean: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "Solution_prepatch.lean": "17c7e9ad42c343f2c4547c69b09ece5a1c16dd829909c145ebe52b01dd7ff18e"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-16T12:50:01+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_8.lean` |\n| does not verify against this specification, so the specification excludes it | 3 | `atk_1.lean`, `atk_2.lean`, `atk_7.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "rederived_at": "2026-08-16T13:06:38+00:00",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "properties.py": "eae0eec379634b114c8a3c13397b22d20a2abd9996e46e7b2878a4767ffb113c"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:47:28+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (Solution.lean); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "Solution_prepatch.lean": "17c7e9ad42c343f2c4547c69b09ece5a1c16dd829909c145ebe52b01dd7ff18e"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T14:24:18+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "57ca214b0145d36706f2ff77fd5b84fa746a86ec6c8e7e17417c86f09e7f0df1",
+          "impl": "cea4c1151800ee5c9cbd07313f7e3ac7bbcfebcf752400ed112d26ae27953839",
+          "pure": "90cb400b679b36fb9aefdd78a670d75dd00ff2cfaad51a1dc30798cbab205202",
+          "spec_view": "07196bc2111c415783b81811349a8cb196d509bb6b8000b7ac9e516b7765c88e"
+        }
+      },
+      "detail": "imports/markers/regions/solver-flags clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T14:24:19+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "instance.json": "48108902ddb9079a36006163cb519cc230053966c8bb9c8996abf2d527e35f56"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T14:24:19+00:00",
+      "code_version": "d7b299ec3-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T12:11:57+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "judged": 2,
+        "killed": 2,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 2,
+        "unjudged": []
+      },
+      "detail": "killed 2/2 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-16T12:26:55+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "FAITHFULNESS-BREAK ATTACK: no divergence found. Spec models ConditionSet._eval_subs (sympy/sets/conditionset.py) restricted to the `isinstance(self.sym, Expr) and old != sym` branch with a Symbol binder. Reference = base_commit 25fbcce5b1a4c7e3956e6062930f4a44ce95a632 WITH patch.diff applied (per instructions); base used only for the unchanged callees the axioms model.\n\nSETUP\n- Two clean git worktrees off sympy_sympy.git at base_commit: one pristine (models base-only callees), one with patch.diff applied via `git apply` (verified the post-patch `else:` block returns `self.func(self.sym, cond, base)` uniformly).\n- Spec region byte-identity: swebench_unified.markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('velvet')) -> True. The frozen region is the 4 requires + `ensures out = evalSubsSpec boundSym condition baseSet old new`.\n\nDIFFERENTIAL EVIDENCE (real patched `_eval_subs` vs. the modeled function `mkSet boundSym (substCond condition old new) (substSet baseSet old new)`)\nOn every input satisfying all four requires, I compared the real callee's return against the spec's rebuild `ConditionSet(csym, ccond.subs(old,new), cbase.subs(old,new))`. Requires were enforced faithfully, including BuildsDefined bundled over EVERY nameable set-building invocation (both shapes: binder-keyed and value-keyed `ConditionSet(o, Contains(o,b), b)`, over the stored condition/base and their substituted images to depth 2, keyed on the binder / oldObj / newObj), matching mapping.md 3.5's enumeration.\n- Probe 1 (curated boundary receivers): 1,524 admitted inputs, 0 violations.\n- Probe 2 (broad fuzz, seed 19495, 1,401 receivers): 61,561 admitted inputs, 495 on the discriminating collapse path (cond.subs -> S.true), 0 violations.\n- Probe 3 (nested-ConditionSet-base receivers, aimed at the ctor's fresh-Dummy arm): 208,464 admitted inputs, 0 violations, 0 nondeterminism.\n- Probe 4 (final wide fuzz: 40 conditions x 34 bases x 18 binders, 40-element `new` pool incl. I/nan/zoo/oo/Float/Function apps, 2,601 receivers): 168,394 admitted inputs, 995 collapse-path, 0 hard violations, 0 cases differing under `==`, and 0 REAL_RAISES.\nTotal ~440K admitted inputs, zero disagreement.\n\nTOO-STRONG (over-restrictive) CHECK -- the actual attack surface, and it holds up\n- REAL_RAISES = 0 across all probes: on every input the three definedness preconditions ADMIT, the real `_eval_subs` returns normally. So the preconditions are sufficient, not merely convenient, and they do not hide a real-behavior case where the spec promises a result the repo lacks. Conversely they are non-vacuous (~440K inputs admitted), so the contract is not narrowed to nothing.\n- Excluded sub-domains are all genuinely UNCHANGED-by-patch arms, not spec drift: (a) the Tuple/compound binder early return (`return self`, conditionset.py:209-212) is excluded by the `Binder` sort; (b) the `old == self.sym` dummy-renaming arm (lines 213-241) is excluded by `require oldObj old != binderObj boundSym`, matching the real guard `old == sym` on `self.args[0]` (SymPy `==` is structural, so it maps onto Lean `!=` exactly); (c) the Expr-but-not-Symbol binder sub-domain is where the real ctor raises ValueError('non-symbol dummy not recognized in condition'). None of these carries patched behavior.\n\nABSTRACTION PROBES THAT COULD HAVE BROKEN FAITHFULNESS (all cleared)\n- `mkSet` must be a FUNCTION of (binder, condition, base). I found `ConditionSet.__new__` IS nondeterministic under `==` on its fresh-Dummy arm (conditionset.py:171-176): four identical calls with a ConditionSet base gave pairwise `==` [True,False,False,False] while `dummy_eq` was True for all. I then confirmed this cannot break the spec inside the modeled branch: no receiver's STORED base_set is ever a ConditionSet (`__new__` always flattens a ConditionSet base, so nesting never survives construction -- measured 0 of 20 candidate receivers). Where I forced the rebuild's base to become a ConditionSet via `Union(FiniteSet(y), inner_cs).subs(...)`, 560 rebuilds gave only 2 `==`-differences and both were `dummy_eq`-True, i.e. the same set up to bound-symbol naming -- exactly the equality mapping.md 2 declares for the bijection. 233 rebuilds landing on a fresh-Dummy binder all matched real == spec.\n- `ConditionSet` has no subclasses (`__subclasses__() == []`), so `self.func` is always `ConditionSet` and the mkSet binding is not under-specified by dispatch.\n\nDISCRIMINATION / NON-VACUITY (spec is not trivially true)\n- scripts/lean_verify.sh Solution.lean -> EXIT 0 (elaborates, no sorry/error).\n- scripts/lean_verify.sh Solution_prepatch.lean -> EXIT 1, `247:27: error: unsolved goals`. The pre-patch impl `mkSetOnValue (newObj new) newBase` (the deleted `ConditionSet(new, Contains(new, base), base)` collapse path) elaborates fine and is rejected by the `ensures` alone -- so the postcondition, not typing, decides the binder question the instance is about (mapping.md 3.3's 'what the sorts must NOT decide').\n- Patch resolves on the real repo: with test_patch applied, sympy/sets/tests/test_conditionset.py = 9 passed, 1 xfailed (F2P test_subs_CondSet passes). Without the gold patch that same test FAILS, confirming the modeled delta is the real behavioral change and that I compared against the correct (post-patch) reference.\n\nCONCLUSION: the modeled function agrees with the real patched callee on every input the spec admits, the preconditions are both sufficient (0 real refusals) and non-vacuous, the excluded arms are patch-unchanged, and the only real abstraction wrinkle (ctor Dummy nondeterminism) is unreachable in the modeled branch and absorbed by the declared dummy_eq equality. No diverging input exists to cite; I could not construct one. Verdict FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "MY OWN MEASUREMENT ON CURRENT BYTES; prior G-PANEL-3 notes in verdict.md NOT inherited.\n\nNO RELAXATION CLAIM: `'relaxed_leakage' in json.load(open('meta.json'))` = False; no RELAXED_LEAKAGE.md anywhere under the instance dir (`ls` of instance root = ears/ instance.json lean/ nagini/ patch.diff velvet/). The only 'relaxed_leakage' string hits in the bundle are inside prior audit prose in meta.json asserting the same absence. So this is judged as an ordinary (non-relaxed) leakage review.\n\nFRESHNESS / SPEC REGION: swebench_unified.markers.same_spec(Solution.lean, Solution_prepatch.lean, backends.get_backend('velvet')) = True. My spec_view sha256 = 07196bc2, which matches meta.json region_hashes.spec_view (07196bc2111c...). NOTE: the pre-existing G-PANEL-3 notes in verdict.md (lines 592-644) claim 'current bytes hash to 9e7ed1a1 / c731ed0f' -- that does NOT match the current spec_view (07196bc2) or the current ledger, so those notes describe superseded bytes (cf. a prose edit voids retained attacks). Everything here is re-derived.\n\nGOLD EDIT (patch.diff, sympy/sets/conditionset.py _eval_subs): removes the special case `cond = ...; base = ...; if cond is S.true: return ConditionSet(new, Contains(new, base), base); return self.func(self.sym, cond, base)` and replaces it with an unconditional `self.func(self.sym, cond, base)` (plus pure-docstring churn: a 'Notes =====' heading removal and a 'and appears'->'appears' typo fix, neither semantic).\n\nDECISIVE LOAD-BEARING TEST (this is the measurement, not a re-assertion): I mechanically stripped EVERY /- ... -/ block comment and every -- line comment except the region markers from both Solution.lean and Solution_prepatch.lean (93-line bare files; verified by grep that no narration survives -- only identifier names). Then `scripts/lean_verify.sh` on each:\n  - atk3_gold_bare.lean  -> VERIFIES (clean, exit 0)\n  - atk3_pre_bare.lean   -> REFUTED: 'unsolved goals ... |- mkSetOnValue (newObj new) (substSet baseSet old new) = mkSet boundSym (substCond condition old new) (substSet baseSet old new)'\nSo NO prose clause anywhere in the spec view is load-bearing for the gold/pre-patch discrimination -- the `ensures out = evalSubsSpec ...` equation plus the axiom signatures do all the work. Prose here is commentary, not the discriminator. (Unstripped controls also run: Solution.lean verifies; Solution_prepatch.lean refuted with the identical goal.)\n\nPER-CANDIDATE SCAN of the spec view (242 lines), strongest candidates and why each stays inside problem_statement:\n1. `axiom mkSetOnValue : Obj -> SetObj -> BuiltSet` (line 150) + its docstring 'the object is bound over the membership test of that very object in the base set -- the shape the problem statement's own transcript displays for Out[75]', with ONE set argument reused as both tested and bound-over set. This is the value-keyed shape `ConditionSet(new, Contains(new, base), base)` that the gold patch deletes. But it is read straight off the PUBLIC transcript: Out[75] literally prints `{1/3 | 1/3 in {2*pi*n + asin(1/3) | n in Z} AND (1/3 in {2*pi*n + asin(1/3) | n in Z})}` -- same base set twice, keyed on the substituted value 1/3, original condition absent. The docstring cites that public line rather than disclosing anything past it. The axiom is unused by evalSubsSpec/impl; it exists so a rival CAN be written, which is the harness's rival-writability requirement, not a hint.\n2. 'the substitution ... must never rename or replace it [the binder] -- even if the substituted condition happens to simplify' (line 206). This is the closest thing to naming the removed branch's trigger (`cond is S.true`). I checked whether it is problem_statement-derivable and it is: Out[74]'s condition is `(y in [-1,1])`; after subs y->Rational(1,3) that condition is manifestly True (1/3 in [-1,1]) and Out[75] shows it VANISHED, replaced by a membership test on 1/3. The public transcript therefore exhibits exactly 'condition simplified away AND the result got re-keyed on the substituted value'. The DESIRED output is also public: Out[78] (`xreplace`) and Out[80] (`simultaneous=True`) both give `{2*pi*n + asin(1/3) | n in Z}`, which is what post-patch `ConditionSet(x, True, ImageSet)` canonicalizes to. And the user's own diagnosis is public: 'It's as if the bound variable x of the ConditionSet were mistaken for a y.'\n3. 'short-circuits and leaves the whole set untouched' (lines 44, 210-211) -- this is the Tuple/compound-binder early-return arm (conditionset.py:209-212), UNCHANGED by the gold patch, describing an excluded domain, not the edit.\n\nNEGATIVE GREPS over the spec view: no hits for S.true / 'is true' / Contains / 'assumptions are ignored' / __new__ / 'belongs to base' / patch / gold / diff / 'the fix' / 'remov' / 'delet' / conditionset.py / any file:line citation. The gold patch's own added comment text ('The condition may have become true due to assumptions on sym. In order for .subs() to be consistent with __new__ we *don't* check if sym actually belongs to base') appears NOWHERE in the spec view. The impl region is elided in the spec view ('implementation elided -- supplied by the consumer'), as is the proof.\n\nMACHINE SCREEN: swebench_unified.leakage.screen(Solution.lean, velvet backend, gold_patch, problem_statement, test_patch) = LeakageReport(hard_failures=[], warnings=[]).\n\nNO FILE ADDRESSES THE REVIEWER: leakage.reviewer_directed() = [] on all nine artifacts (Solution.lean, Solution_prepatch.lean, mapping.md, refinement.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md). Independent grep for auditor|panel|attacker|adversar|'you should'|'please record'|'honest verdict'|'do not submit'|NO-LEAK|'gate FAIL'|reviewer over authored content: hits are only prior audit RECORDS in verdict.md describing their own past runs, and properties.py's use of 'attacker' to name mutation-battery rivals. No file instructs me how to record or which verdict is honest. Nothing to report as a finding on that axis.\n\nOUT OF SCOPE, for the rollup only: meta.json stamps G-EQ, G-PANEL-1 and G-PANEL-2 fails, and verdict.md carries a G-EQ advisory that mapping.md 3.3 / axiom_check.py obligation 7 OVERSTATE mkSet's totality (ConditionSet(x, x>0, FiniteSet(I)) raises TypeError inside the preconditions, so the contract is TOO STRONG on that sliver). A too-strong / under-constraining contract discloses LESS, not more, so neither moves this verdict. My verdict is on leakage only.\n\nCONCLUSION: the spec view discloses nothing about the gold edit beyond the public problem_statement -- the value-keyed rebinding shape and the simplified-condition trigger are both visible in the Out[74]/Out[75]/Out[78]/Out[80] transcript, and with all narration stripped the formal contract still admits gold and refutes the pre-patch impl. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 FAITHFULNESS-BREAK ATTACK: no divergence found. Spec models ConditionSet._eval_subs (sympy/sets/conditionset.py) restricted to the `isinstance(self.sym, Expr) and old != sym` branch with a Symbol binder. Reference = base_commit 25fbcce5b1a4c7e3956e6062930f4a44ce95a632 WITH patch.diff applied (per instructions); base used only for the unchanged callees the axioms model.\n\nSETUP\n- Two clean git worktrees off sympy_sympy.git at base_commit: one pristine (models base-only callees), one with patch.diff applied via `git apply` (verified the post-patch `else:` block returns `self.func(self.sym, cond, base)` uniformly).\n- Spec region byte-identity: swebench_unified.markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('velvet')) -> True. The frozen region is the 4 requires + `ensures out = evalSubsSpec boundSym condition baseSet old new`.\n\nDIFFERENTIAL EVIDENCE (real patched `_eval_subs` vs. the modeled function `mkSet boundSym (substCond condition old new) (substSet baseSet old new)`)\nOn every input satisfying all four requires, I compared the real callee's return against the spec's rebuild `ConditionSet(csym, ccond.subs(old,new), cbase.subs(old,new))`. Requires were enforced faithfully, including BuildsDefined bundled over EVERY nameable set-building invocation (both shapes: binder-keyed and value-keyed `ConditionSet(o, Contains(o,b), b)`, over the stored condition/base and their substituted images to depth 2, keyed on the binder / oldObj / newObj), matching mapping.md 3.5's enumeration.\n- Probe 1 (curated boundary receivers): 1,524 admitted inputs, 0 violations.\n- Probe 2 (broad fuzz, seed 19495, 1,401 receivers): 61,561 admitted inputs, 495 on the discriminating collapse path (cond.subs -> S.true), 0 violations.\n- Probe 3 (nested-ConditionSet-base receivers, aimed at the ctor's fresh-Dummy arm): 208,464 admitted inputs, 0 violations, 0 nondeterminism.\n- Probe 4 (final wide fuzz: 40 conditions x 34 bases x 18 binders, 40-element `new` pool incl. I/nan/zoo/oo/Float/Function apps, 2,601 receivers): 168,394 admitted inputs, 995 collapse-path, 0 hard violations, 0 cases differing under `==`, and 0 REAL_RAISES.\nTotal ~440K admitted inputs, zero disagreement.\n\nTOO-STRONG (over-restrictive) CHECK -- the actual attack surface, and it holds up\n- REAL_RAISES = 0 across all probes: on every input the three definedness preconditions ADMIT, the real `_eval_subs` returns normally. So the preconditions are sufficient, not merely convenient, and they do not hide a real-behavior case where the spec promises a result the repo lacks. Conversely they are non-vacuous (~440K inputs admitted), so the contract is not narrowed to nothing.\n- Excluded sub-domains are all genuinely UNCHANGED-by-patch arms, not spec drift: (a) the Tuple/compound binder early return (`return self`, conditionset.py:209-212) is excluded by the `Binder` sort; (b) the `old == self.sym` dummy-renaming arm (lines 213-241) is excluded by `require oldObj old != binderObj boundSym`, matching the real guard `old == sym` on `self.args[0]` (SymPy `==` is structural, so it maps onto Lean `!=` exactly); (c) the Expr-but-not-Symbol binder sub-domain is where the real ctor raises ValueError('non-symbol dummy not recognized in condition'). None of these carries patched behavior.\n\nABSTRACTION PROBES THAT COULD HAVE BROKEN FAITHFULNESS (all cleared)\n- `mkSet` must be a FUNCTION of (binder, condition, base). I found `ConditionSet.__new__` IS nondeterministic under `==` on its fresh-Dummy arm (conditionset.py:171-176): four identical calls with a ConditionSet base gave pairwise `==` [True,False,False,False] while `dummy_eq` was True for all. I then confirmed this cannot break the spec inside the modeled branch: no receiver's STORED base_set is ever a ConditionSet (`__new__` always flattens a ConditionSet base, so nesting never survives construction -- measured 0 of 20 candidate receivers). Where I forced the rebuild's base to become a ConditionSet via `Union(FiniteSet(y), inner_cs).subs(...)`, 560 rebuilds gave only 2 `==`-differences and both were `dummy_eq`-True, i.e. the same set up to bound-symbol naming -- exactly the equality mapping.md 2 declares for the bijection. 233 rebuilds landing on a fresh-Dummy binder all matched real == spec.\n- `ConditionSet` has no subclasses (`__subclasses__() == []`), so `self.func` is always `ConditionSet` and the mkSet binding is not under-specified by dispatch.\n\nDISCRIMINATION / NON-VACUITY (spec is not trivially true)\n- scripts/lean_verify.sh Solution.lean -> EXIT 0 (elaborates, no sorry/error).\n- scripts/lean_verify.sh Solution_prepatch.lean -> EXIT 1, `247:27: error: unsolved goals`. The pre-patch impl `mkSetOnValue (newObj new) newBase` (the deleted `ConditionSet(new, Contains(new, base), base)` collapse path) elaborates fine and is rejected by the `ensures` alone -- so the postcondition, not typing, decides the binder question the instance is about (mapping.md 3.3's 'what the sorts must NOT decide').\n- Patch resolves on the real repo: with test_patch applied, sympy/sets/tests/test_conditionset.py = 9 passed, 1 xfailed (F2P test_subs_CondSet passes). Without the gold patch that same test FAILS, confirming the modeled delta is the real behavioral change and that I compared against the correct (post-patch) reference.\n\nCONCLUSION: the modeled function agrees with the real patched callee on every input the spec admits, the preconditions are both sufficient (0 real refusals) and non-vacuous, the excluded arms are patch-unchanged, and the only real abstraction wrinkle (ctor Dummy nondeterminism) is unreachable in the modeled branch and absorbed by the declared dummy_eq equality. No diverging input exists to cite; I could not construct one. Verdict FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 MY OWN MEASUREMENT ON CURRENT BYTES; prior G-PANEL-3 notes in verdict.md NOT inherited.\n\nNO RELAXATION CLAIM: `'relaxed_leakage' in json.load(open('meta.json'))` = False; no RELAXED_LEAKAGE.md anywhere under the instance dir (`ls` of instance root = ears/ instance.json lean/ nagini/ patch.diff velvet/). The only 'relaxed_leakage' string hits in the bundle are inside prior audit prose in meta.json asserting the same absence. So this is judged as an ordinary (non-relaxed) leakage review.\n\nFRESHNESS / SPEC REGION: swebench_unified.markers.same_spec(Solution.lean, Solution_prepatch.lean, backends.get_backend('velvet')) = True. My spec_view sha256 = 07196bc2, which matches meta.json region_hashes.spec_view (07196bc2111c...). NOTE: the pre-existing G-PANEL-3 notes in verdict.md (lines 592-644) claim 'current bytes hash to 9e7ed1a1 / c731ed0f' -- that does NOT match the current spec_view (07196bc2) or the current ledger, so those notes describe superseded bytes (cf. a prose edit voids retained attacks). Everything here is re-derived.\n\nGOLD EDIT (patch.diff, sympy/sets/conditionset.py _eval_subs): removes the special case `cond = ...; base = ...; if cond is S.true: return ConditionSet(new, Contains(new, base), base); return self.func(self.sym, cond, base)` and replaces it with an unconditional `self.func(self.sym, cond, base)` (plus pure-docstring churn: a 'Notes =====' heading removal and a 'and appears'->'appears' typo fix, neither semantic).\n\nDECISIVE LOAD-BEARING TEST (this is the measurement, not a re-assertion): I mechanically stripped EVERY /- ... -/ block comment and every -- line comment except the region markers from both Solution.lean and Solution_prepatch.lean (93-line bare files; verified by grep that no narration survives -- only identifier names). Then `scripts/lean_verify.sh` on each:\n  - atk3_gold_bare.lean  -> VERIFIES (clean, exit 0)\n  - atk3_pre_bare.lean   -> REFUTED: 'unsolved goals ... |- mkSetOnValue (newObj new) (substSet baseSet old new) = mkSet boundSym (substCond condition old new) (substSet baseSet old new)'\nSo NO prose clause anywhere in the spec view is load-bearing for the gold/pre-patch discrimination -- the `ensures out = evalSubsSpec ...` equation plus the axiom signatures do all the work. Prose here is commentary, not the discriminator. (Unstripped controls also run: Solution.lean verifies; Solution_prepatch.lean refuted with the identical goal.)\n\nPER-CANDIDATE SCAN of the spec view (242 lines), strongest candidates and why each stays inside problem_statement:\n1. `axiom mkSetOnValue : Obj -> SetObj -> BuiltSet` (line 150) + its docstring 'the object is bound over the membership test of that very object in the base set -- the shape the problem statement's own transcript displays for Out[75]', with ONE set argument reused as both tested and bound-over set. This is the value-keyed shape `ConditionSet(new, Contains(new, base), base)` that the gold patch deletes. But it is read straight off the PUBLIC transcript: Out[75] literally prints `{1/3 | 1/3 in {2*pi*n + asin(1/3) | n in Z} AND (1/3 in {2*pi*n + asin(1/3) | n in Z})}` -- same base set twice, keyed on the substituted value 1/3, original condition absent. The docstring cites that public line rather than disclosing anything past it. The axiom is unused by evalSubsSpec/impl; it exists so a rival CAN be written, which is the harness's rival-writability requirement, not a hint.\n2. 'the substitution ... must never rename or replace it [the binder] -- even if the substituted condition happens to simplify' (line 206). This is the closest thing to naming the removed branch's trigger (`cond is S.true`). I checked whether it is problem_statement-derivable and it is: Out[74]'s condition is `(y in [-1,1])`; after subs y->Rational(1,3) that condition is manifestly True (1/3 in [-1,1]) and Out[75] shows it VANISHED, replaced by a membership test on 1/3. The public transcript therefore exhibits exactly 'condition simplified away AND the result got re-keyed on the substituted value'. The DESIRED output is also public: Out[78] (`xreplace`) and Out[80] (`simultaneous=True`) both give `{2*pi*n + asin(1/3) | n in Z}`, which is what post-patch `ConditionSet(x, True, ImageSet)` canonicalizes to. And the user's own diagnosis is public: 'It's as if the bound variable x of the ConditionSet were mistaken for a y.'\n3. 'short-circuits and leaves the whole set untouched' (lines 44, 210-211) -- this is the Tuple/compound-binder early-return arm (conditionset.py:209-212), UNCHANGED by the gold patch, describing an excluded domain, not the edit.\n\nNEGATIVE GREPS over the spec view: no hits for S.true / 'is true' / Contains / 'assumptions are ignored' / __new__ / 'belongs to base' / patch / gold / diff / 'the fix' / 'remov' / 'delet' / conditionset.py / any file:line citation. The gold patch's own added comment text ('The condition may have become true due to assumptions on sym. In order for .subs() to be consistent with __new__ we *don't* check if sym actually belongs to base') appears NOWHERE in the spec view. The impl region is elided in the spec view ('implementation elided -- supplied by the consumer'), as is the proof.\n\nMACHINE SCREEN: swebench_unified.leakage.screen(Solution.lean, velvet backend, gold_patch, problem_statement, test_patch) = LeakageReport(hard_failures=[], warnings=[]).\n\nNO FILE ADDRESSES THE REVIEWER: leakage.reviewer_directed() = [] on all nine artifacts (Solution.lean, Solution_prepatch.lean, mapping.md, refinement.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md). Independent grep for auditor|panel|attacker|adversar|'you should'|'please record'|'honest verdict'|'do not submit'|NO-LEAK|'gate FAIL'|reviewer over authored content: hits are only prior audit RECORDS in verdict.md describing their own past runs, and properties.py's use of 'attacker' to name mutation-battery rivals. No file instructs me how to record or which verdict is honest. Nothing to report as a finding on that axis.\n\nOUT OF SCOPE, for the rollup only: meta.json stamps G-EQ, G-PANEL-1 and G-PANEL-2 fails, and verdict.md carries a G-EQ advisory that mapping.md 3.3 / axiom_check.py obligation 7 OVERSTATE mkSet's totality (ConditionSet(x, x>0, FiniteSet(I)) raises TypeError inside the preconditions, so the contract is TOO STRONG on that sliver). A too-strong / under-constraining contract discloses LESS, not more, so neither moves this verdict. My verdict is on leakage only.\n\nCONCLUSION: the spec view discloses nothing about the gold edit beyond the public problem_statement -- the value-keyed rebinding shape and the simplified-condition trigger are both visible in the Out[74]/Out[75]/Out[78]/Out[80] transcript, and with all narration stripped the formal contract still admits gold and refutes the pre-patch impl. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "rederived_at": "2026-08-16T13:06:38+00:00",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-16T12:50:33+00:00",
+      "code_version": "37df3f0cd-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 8 admissible attacks re-run of 8 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 5 | `atk_3.lean`, `atk_4.lean`, `atk_5.lean`, `atk_6.lean`, `atk_8.lean` |\n| does not verify against this specification, so the specification excludes it | 3 | `atk_1.lean`, `atk_2.lean`, `atk_7.lean` |\n\n**Non-vacuity.** The positive control `pos_control.lean` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "properties.py": "eae0eec379634b114c8a3c13397b22d20a2abd9996e46e7b2878a4767ffb113c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-16T13:06:37+00:00",
+      "code_version": "6ff18467c-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "FAITHFULNESS-BREAK ATTACK: no divergence found. Spec models ConditionSet._eval_subs (sympy/sets/conditionset.py) restricted to the `isinstance(self.sym, Expr) and old != sym` branch with a Symbol binder. Reference = base_commit 25fbcce5b1a4c7e3956e6062930f4a44ce95a632 WITH patch.diff applied (per instructions); base used only for the unchanged callees the axioms model.\n\nSETUP\n- Two clean git worktrees off sympy_sympy.git at base_commit: one pristine (models base-only callees), one with patch.diff applied via `git apply` (verified the post-patch `else:` block returns `self.func(self.sym, cond, base)` uniformly).\n- Spec region byte-identity: swebench_unified.markers.same_spec(Solution.lean, Solution_prepatch.lean, get_backend('velvet')) -> True. The frozen region is the 4 requires + `ensures out = evalSubsSpec boundSym condition baseSet old new`.\n\nDIFFERENTIAL EVIDENCE (real patched `_eval_subs` vs. the modeled function `mkSet boundSym (substCond condition old new) (substSet baseSet old new)`)\nOn every input satisfying all four requires, I compared the real callee's return against the spec's rebuild `ConditionSet(csym, ccond.subs(old,new), cbase.subs(old,new))`. Requires were enforced faithfully, including BuildsDefined bundled over EVERY nameable set-building invocation (both shapes: binder-keyed and value-keyed `ConditionSet(o, Contains(o,b), b)`, over the stored condition/base and their substituted images to depth 2, keyed on the binder / oldObj / newObj), matching mapping.md 3.5's enumeration.\n- Probe 1 (curated boundary receivers): 1,524 admitted inputs, 0 violations.\n- Probe 2 (broad fuzz, seed 19495, 1,401 receivers): 61,561 admitted inputs, 495 on the discriminating collapse path (cond.subs -> S.true), 0 violations.\n- Probe 3 (nested-ConditionSet-base receivers, aimed at the ctor's fresh-Dummy arm): 208,464 admitted inputs, 0 violations, 0 nondeterminism.\n- Probe 4 (final wide fuzz: 40 conditions x 34 bases x 18 binders, 40-element `new` pool incl. I/nan/zoo/oo/Float/Function apps, 2,601 receivers): 168,394 admitted inputs, 995 collapse-path, 0 hard violations, 0 cases differing under `==`, and 0 REAL_RAISES.\nTotal ~440K admitted inputs, zero disagreement.\n\nTOO-STRONG (over-restrictive) CHECK -- the actual attack surface, and it holds up\n- REAL_RAISES = 0 across all probes: on every input the three definedness preconditions ADMIT, the real `_eval_subs` returns normally. So the preconditions are sufficient, not merely convenient, and they do not hide a real-behavior case where the spec promises a result the repo lacks. Conversely they are non-vacuous (~440K inputs admitted), so the contract is not narrowed to nothing.\n- Excluded sub-domains are all genuinely UNCHANGED-by-patch arms, not spec drift: (a) the Tuple/compound binder early return (`return self`, conditionset.py:209-212) is excluded by the `Binder` sort; (b) the `old == self.sym` dummy-renaming arm (lines 213-241) is excluded by `require oldObj old != binderObj boundSym`, matching the real guard `old == sym` on `self.args[0]` (SymPy `==` is structural, so it maps onto Lean `!=` exactly); (c) the Expr-but-not-Symbol binder sub-domain is where the real ctor raises ValueError('non-symbol dummy not recognized in condition'). None of these carries patched behavior.\n\nABSTRACTION PROBES THAT COULD HAVE BROKEN FAITHFULNESS (all cleared)\n- `mkSet` must be a FUNCTION of (binder, condition, base). I found `ConditionSet.__new__` IS nondeterministic under `==` on its fresh-Dummy arm (conditionset.py:171-176): four identical calls with a ConditionSet base gave pairwise `==` [True,False,False,False] while `dummy_eq` was True for all. I then confirmed this cannot break the spec inside the modeled branch: no receiver's STORED base_set is ever a ConditionSet (`__new__` always flattens a ConditionSet base, so nesting never survives construction -- measured 0 of 20 candidate receivers). Where I forced the rebuild's base to become a ConditionSet via `Union(FiniteSet(y), inner_cs).subs(...)`, 560 rebuilds gave only 2 `==`-differences and both were `dummy_eq`-True, i.e. the same set up to bound-symbol naming -- exactly the equality mapping.md 2 declares for the bijection. 233 rebuilds landing on a fresh-Dummy binder all matched real == spec.\n- `ConditionSet` has no subclasses (`__subclasses__() == []`), so `self.func` is always `ConditionSet` and the mkSet binding is not under-specified by dispatch.\n\nDISCRIMINATION / NON-VACUITY (spec is not trivially true)\n- scripts/lean_verify.sh Solution.lean -> EXIT 0 (elaborates, no sorry/error).\n- scripts/lean_verify.sh Solution_prepatch.lean -> EXIT 1, `247:27: error: unsolved goals`. The pre-patch impl `mkSetOnValue (newObj new) newBase` (the deleted `ConditionSet(new, Contains(new, base), base)` collapse path) elaborates fine and is rejected by the `ensures` alone -- so the postcondition, not typing, decides the binder question the instance is about (mapping.md 3.3's 'what the sorts must NOT decide').\n- Patch resolves on the real repo: with test_patch applied, sympy/sets/tests/test_conditionset.py = 9 passed, 1 xfailed (F2P test_subs_CondSet passes). Without the gold patch that same test FAILS, confirming the modeled delta is the real behavioral change and that I compared against the correct (post-patch) reference.\n\nCONCLUSION: the modeled function agrees with the real patched callee on every input the spec admits, the preconditions are both sufficient (0 real refusals) and non-vacuous, the excluded arms are patch-unchanged, and the only real abstraction wrinkle (ctor Dummy nondeterminism) is unreachable in the modeled branch and absorbed by the declared dummy_eq equality. No diverging input exists to cite; I could not construct one. Verdict FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `Solution.lean`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-16T12:26:55+00:00",
+      "code_version": "6a2a571ae-dirty",
+      "harness_digest": "8a6ad48bc872",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "MY OWN MEASUREMENT ON CURRENT BYTES; prior G-PANEL-3 notes in verdict.md NOT inherited.\n\nNO RELAXATION CLAIM: `'relaxed_leakage' in json.load(open('meta.json'))` = False; no RELAXED_LEAKAGE.md anywhere under the instance dir (`ls` of instance root = ears/ instance.json lean/ nagini/ patch.diff velvet/). The only 'relaxed_leakage' string hits in the bundle are inside prior audit prose in meta.json asserting the same absence. So this is judged as an ordinary (non-relaxed) leakage review.\n\nFRESHNESS / SPEC REGION: swebench_unified.markers.same_spec(Solution.lean, Solution_prepatch.lean, backends.get_backend('velvet')) = True. My spec_view sha256 = 07196bc2, which matches meta.json region_hashes.spec_view (07196bc2111c...). NOTE: the pre-existing G-PANEL-3 notes in verdict.md (lines 592-644) claim 'current bytes hash to 9e7ed1a1 / c731ed0f' -- that does NOT match the current spec_view (07196bc2) or the current ledger, so those notes describe superseded bytes (cf. a prose edit voids retained attacks). Everything here is re-derived.\n\nGOLD EDIT (patch.diff, sympy/sets/conditionset.py _eval_subs): removes the special case `cond = ...; base = ...; if cond is S.true: return ConditionSet(new, Contains(new, base), base); return self.func(self.sym, cond, base)` and replaces it with an unconditional `self.func(self.sym, cond, base)` (plus pure-docstring churn: a 'Notes =====' heading removal and a 'and appears'->'appears' typo fix, neither semantic).\n\nDECISIVE LOAD-BEARING TEST (this is the measurement, not a re-assertion): I mechanically stripped EVERY /- ... -/ block comment and every -- line comment except the region markers from both Solution.lean and Solution_prepatch.lean (93-line bare files; verified by grep that no narration survives -- only identifier names). Then `scripts/lean_verify.sh` on each:\n  - atk3_gold_bare.lean  -> VERIFIES (clean, exit 0)\n  - atk3_pre_bare.lean   -> REFUTED: 'unsolved goals ... |- mkSetOnValue (newObj new) (substSet baseSet old new) = mkSet boundSym (substCond condition old new) (substSet baseSet old new)'\nSo NO prose clause anywhere in the spec view is load-bearing for the gold/pre-patch discrimination -- the `ensures out = evalSubsSpec ...` equation plus the axiom signatures do all the work. Prose here is commentary, not the discriminator. (Unstripped controls also run: Solution.lean verifies; Solution_prepatch.lean refuted with the identical goal.)\n\nPER-CANDIDATE SCAN of the spec view (242 lines), strongest candidates and why each stays inside problem_statement:\n1. `axiom mkSetOnValue : Obj -> SetObj -> BuiltSet` (line 150) + its docstring 'the object is bound over the membership test of that very object in the base set -- the shape the problem statement's own transcript displays for Out[75]', with ONE set argument reused as both tested and bound-over set. This is the value-keyed shape `ConditionSet(new, Contains(new, base), base)` that the gold patch deletes. But it is read straight off the PUBLIC transcript: Out[75] literally prints `{1/3 | 1/3 in {2*pi*n + asin(1/3) | n in Z} AND (1/3 in {2*pi*n + asin(1/3) | n in Z})}` -- same base set twice, keyed on the substituted value 1/3, original condition absent. The docstring cites that public line rather than disclosing anything past it. The axiom is unused by evalSubsSpec/impl; it exists so a rival CAN be written, which is the harness's rival-writability requirement, not a hint.\n2. 'the substitution ... must never rename or replace it [the binder] -- even if the substituted condition happens to simplify' (line 206). This is the closest thing to naming the removed branch's trigger (`cond is S.true`). I checked whether it is problem_statement-derivable and it is: Out[74]'s condition is `(y in [-1,1])`; after subs y->Rational(1,3) that condition is manifestly True (1/3 in [-1,1]) and Out[75] shows it VANISHED, replaced by a membership test on 1/3. The public transcript therefore exhibits exactly 'condition simplified away AND the result got re-keyed on the substituted value'. The DESIRED output is also public: Out[78] (`xreplace`) and Out[80] (`simultaneous=True`) both give `{2*pi*n + asin(1/3) | n in Z}`, which is what post-patch `ConditionSet(x, True, ImageSet)` canonicalizes to. And the user's own diagnosis is public: 'It's as if the bound variable x of the ConditionSet were mistaken for a y.'\n3. 'short-circuits and leaves the whole set untouched' (lines 44, 210-211) -- this is the Tuple/compound-binder early-return arm (conditionset.py:209-212), UNCHANGED by the gold patch, describing an excluded domain, not the edit.\n\nNEGATIVE GREPS over the spec view: no hits for S.true / 'is true' / Contains / 'assumptions are ignored' / __new__ / 'belongs to base' / patch / gold / diff / 'the fix' / 'remov' / 'delet' / conditionset.py / any file:line citation. The gold patch's own added comment text ('The condition may have become true due to assumptions on sym. In order for .subs() to be consistent with __new__ we *don't* check if sym actually belongs to base') appears NOWHERE in the spec view. The impl region is elided in the spec view ('implementation elided -- supplied by the consumer'), as is the proof.\n\nMACHINE SCREEN: swebench_unified.leakage.screen(Solution.lean, velvet backend, gold_patch, problem_statement, test_patch) = LeakageReport(hard_failures=[], warnings=[]).\n\nNO FILE ADDRESSES THE REVIEWER: leakage.reviewer_directed() = [] on all nine artifacts (Solution.lean, Solution_prepatch.lean, mapping.md, refinement.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md). Independent grep for auditor|panel|attacker|adversar|'you should'|'please record'|'honest verdict'|'do not submit'|NO-LEAK|'gate FAIL'|reviewer over authored content: hits are only prior audit RECORDS in verdict.md describing their own past runs, and properties.py's use of 'attacker' to name mutation-battery rivals. No file instructs me how to record or which verdict is honest. Nothing to report as a finding on that axis.\n\nOUT OF SCOPE, for the rollup only: meta.json stamps G-EQ, G-PANEL-1 and G-PANEL-2 fails, and verdict.md carries a G-EQ advisory that mapping.md 3.3 / axiom_check.py obligation 7 OVERSTATE mkSet's totality (ConditionSet(x, x>0, FiniteSet(I)) raises TypeError inside the preconditions, so the contract is TOO STRONG on that sliver). A too-strong / under-constraining contract discloses LESS, not more, so neither moves this verdict. My verdict is on leakage only.\n\nCONCLUSION: the spec view discloses nothing about the gold edit beyond the public problem_statement -- the value-keyed rebinding shape and the simplified-condition trigger are both visible in the Out[74]/Out[75]/Out[78]/Out[80] transcript, and with all narration stripped the formal contract still admits gold and refutes the pre-patch impl. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `Solution.lean`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T13:40:26+00:00",
+      "code_version": "b302f06fa-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-inline-return",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 7.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-reordered-bindings",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 7.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-gold-satisfiable",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 8.3
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce",
+            "id": "weak-keyed-on-new",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 8.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce",
+            "id": "weak-keyed-on-old",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.5,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce",
+            "id": "weak-keyed-on-binder-value",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.7,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce",
+            "id": "weak-cond-not-substituted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.4,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          },
+          {
+            "expect": "reject",
+            "gold_signature": "Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce",
+            "id": "weak-base-not-substituted",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected (witness refutes the rival)",
+            "wall_s": 6.2,
+            "witness_checked": true,
+            "witness_subject": "the frozen solution"
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 2,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "80a8839e2f2853407dd69656a55fb9c76fd67854bab8fabb76a4eb6fef584e59",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac",
+        "properties.py": "80a8839e2f2853407dd69656a55fb9c76fd67854bab8fabb76a4eb6fef584e59"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-16T12:15:44+00:00",
+      "code_version": "b48e2c13b-dirty",
+      "data": {
+        "attempts": 2,
+        "flaky": true,
+        "resolved": true
+      },
+      "detail": "resolved on attempt 2/3 (flaky: earlier attempt failed or did not complete)",
+      "gate": "G-RESOLVE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "48108902ddb9079a36006163cb519cc230053966c8bb9c8996abf2d527e35f56",
+        "patch.diff": "111f6419e8db82d719a31cf554b293bc219a07be23fe02d4cf1f43923d23fba7"
+      },
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T14:47:08+00:00",
+      "code_version": "7a2700d40-dirty",
+      "data": {
+        "wall_time_s": 4.6
+      },
+      "detail": "verified in 4.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "Solution.lean": "1ec4912f5af6b9aabdd0c6a5029983a681e783b88f95ddd56d21ccd25f2ab0ac"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "sympy__sympy-19495",
+  "modeled_functions": [
+    {
+      "branch_modeled": "isinstance(self.sym, Symbol) and old != self.sym (require oldObj old \u2260 binderObj boundSym, plus the Binder sort), restricted to inputs where both component substitutions are defined (require CondSubDefined / BaseSubDefined) and where the constructor accepts every set-building invocation the model can name (require BuildsDefined); the old == self.sym dummy-rename arm, the compound-Tuple binder early return and the Expr-but-not-Symbol binder sub-domain are UNCHANGED and not modeled",
+      "carrier_type": "SORTED opaque handles: boundSym : Binder (a plain Symbol), condition : Cond, baseSet : SetObj, old : Old, new : New; result: BuiltSet (the produced set, a sort distinct from the component sort SetObj). BOTH modeled callees are PARTIAL \u2014 they raise outside their domain \u2014 and NEITHER one's partiality is exhausted by its sorts, so the domain model has one layer per kind of refusal. Sortally the sorts ARE the domain: an out-of-domain invocation is a type error rather than an unproven one (mapping.md \u00a73.3). Non-sortally there are THREE opaque preconditions: CondSubDefined / BaseSubDefined for the substitution callee (\u00a73.4), and BuildsDefined boundSym condition baseSet old new for the CONSTRUCTOR (\u00a73.5), which tests the condition against the elements of a finite base and so refuses with every slot well-sorted. BuildsDefined is bundled over EVERY set-building invocation the model can name at these arguments, not only the one the ensures returns \u2014 together the two layers are what make an extra result-discarded call to a raising callee either untypeable or provably accepted, instead of invisible to the WP.",
+      "model_symbol": "evalSubsFree",
+      "repo_location": "sympy/sets/conditionset.py:208 (the `old != sym` branch, lines 242-246 pre-patch)",
+      "repo_symbol": "sympy.sets.conditionset.ConditionSet._eval_subs"
+    }
+  ],
+  "pbt_audit": {
+    "agent_verdict": "REPAIRED",
+    "attacks_tried": [
+      {
+        "id": "D1-double-subst-base",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1, `unsolved goals case \u00abensures_1: out = evalSubsSpec ...\u00bb` \u2014 behavioural, not a sort error"
+      },
+      {
+        "id": "D2-valuekeyed-raw-base",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1, unsolved goals on ensures_1"
+      },
+      {
+        "id": "D3-both-components-raw",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1, unsolved goals on ensures_1"
+      },
+      {
+        "id": "D4-double-subst-cond",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1, unsolved goals on ensures_1"
+      },
+      {
+        "id": "D5-valuekeyed-on-old-gold-base",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1, unsolved goals on ensures_1"
+      },
+      {
+        "id": "D8-double-subst-base-gold-cond",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1"
+      },
+      {
+        "id": "D9-valuekeyed-on-new-double-subst-base",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1"
+      },
+      {
+        "id": "D10-gold-rebuild-DISCARDED-then-return-wrong",
+        "kind": "wrong-impl",
+        "outcome": "rejected, exit 1 \u2014 my hardest-aimed probe: checks the ensures constrains the RETURNED value and cannot be satisfied by merely having computed the right one. It cannot."
+      },
+      {
+        "id": "D7-diverge-no-measure",
+        "kind": "wrong-impl-divergence",
+        "outcome": "rejected, exit 1, `Decreasing annotations are required in total correctness semantics` + `Failed to prove assertion without names: WPGen (forIn Lean.Loop.mk ...)`; variant_problems=[] so in scope. Total-semantics obligation is LIVE."
+      },
+      {
+        "id": "V1-measure-CLAIMED-but-not-kept",
+        "kind": "wrong-impl-divergence",
+        "outcome": "rejected BEHAVIOURALLY, exit 1, `unsolved goals case \u00abdecreasing_1: i\u00bb` \u2014 and crucially the MODULE ELABORATES (trivial witness `example : (1:Nat)+1 = 2 := by decide` appended -> exit 0). This falsified the manifest's stated reason for dropping the divergence lane; see notes. Still unshippable: 3 witness shapes all exit 1 on the RIVAL half against an unreduced `forIn Lean.Loop.mk` term."
+      },
+      {
+        "id": "V2-counter-moves-away-from-bound",
+        "kind": "wrong-impl-divergence",
+        "outcome": "rejected, exit 1, same `unsolved goals case \u00abdecreasing_1: i\u00bb`; module elaborates (trivial witness exit 0)"
+      },
+      {
+        "id": "S1-selfcall-return",
+        "kind": "wrong-impl-divergence",
+        "outcome": "rejected, exit 1, `fail to show termination for evalSubsFree ... failed to infer structural recursion`; module does NOT elaborate (trivial witness exit 1), so unwitnessable"
+      },
+      {
+        "id": "S2-selfcall-let-bound",
+        "kind": "wrong-impl-divergence",
+        "outcome": "rejected, exit 1, same; module does not elaborate"
+      },
+      {
+        "id": "E2-bound-result",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES, exit 0"
+      },
+      {
+        "id": "E3-degenerate-if-True-same-value",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES, exit 0"
+      },
+      {
+        "id": "E4-unused-extra-substitution-binding",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES, exit 0"
+      },
+      {
+        "id": "E5-three-let-aliases-of-inputs",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES, exit 0"
+      },
+      {
+        "id": "D6-discarded-valuekeyed-probe-then-gold-return",
+        "kind": "correct-reshape",
+        "outcome": "VERIFIES, exit 0 \u2014 confirms the partiality model is not 'no extra calls allowed'"
+      },
+      {
+        "id": "E1-echo-the-pure-spec-function",
+        "kind": "correct-reshape",
+        "outcome": "apparent rejection (exit 1, `No goals to be solved`) but NOT a spec hole: the frozen tactic script OVER-closes. Confirmed by rebuilding the same impl with the redundant `simp_all` dropped from the elided proof body -> exit 0. Tactic artefact."
+      },
+      {
+        "id": "E6-have-then-echo-spec-function",
+        "kind": "correct-reshape",
+        "outcome": "same `No goals to be solved` over-closing signature as E1; same diagnosis, tactic artefact not spec strength"
+      },
+      {
+        "id": "precondition-joint-satisfiability",
+        "kind": "vacuity-probe",
+        "outcome": "`example` with all four requires as hypotheses concluding `False` -> exit 1, i.e. the guarded domain is NON-EMPTY; no case rests on an unsatisfiable guard"
+      }
+    ],
+    "audited_at": "weakgold",
+    "cases": [
+      {
+        "evidence": "Attack A: diff vs frozen touches ONLY lines strictly inside -- impl-start/-- impl-end; spec regions, method signature, ensures and the `prove_correct evalSubsFree` header byte-identical (variant_problems=[]). Built independently: exit 0. Not a trivial restatement of the frozen impl \u2014 it drops both intermediate `let`s and inlines the two substitutions into the returned rebuild, so the impl's data-flow shape genuinely differs while the value is definitionally the frozen one. Rationale claim (SPEC-TOO-STRONG probe on data-flow shape) is true.",
+        "id": "pos-inline-return",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Statement integrity clean (impl region only, variant_problems=[]). Built independently: exit 0. A second, structurally distinct correct reshape (base-set substitution bound before the condition substitution), so the positive lane is not a single point. Rationale accurate.",
+        "id": "pos-reordered-bindings",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "The admissibility lane IS present (not the systematic 97-cell omission). Built: exit 0. CONTENT-BEARING rather than a duplicate of the shipped build \u2014 it discharges two `have`s inside the elided impl region before the frozen body runs. I verified each `have` carries information by building the FALSE analogue at the same point: existential demanding the value-keyed rebuild -> exit 1 (`Application type mismatch: rfl has type ?m = ?m`); condition slot resolved to raw `condition` -> exit 1 (`unsolved goals`); base slot resolved to raw `baseSet` -> exit 1 (`unsolved goals`). Control `have _bad : False := by simp [evalSubsSpec]` -> exit 1 (`simp made no progress`), so the tactic is not closing arbitrary goals. Separately confirmed the four `require`s are jointly SATISFIABLE (`example` with all four as hypotheses concluding `False` -> exit 1), so PRECOND-TOO-STRONG is genuinely tested rather than resting on an unsatisfiable guard.",
+        "id": "admiss-gold-satisfiable",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Rival OBSERVABLY differs from gold on this carrier: it is `mkSetOnValue (newObj new) (substSet baseSet old new)` vs gold's `mkSet boundSym (substCond ...) (substSet ...)` \u2014 a different opaque constructor axiom at a different sort, not a definitional reshape. Module rejected BEHAVIOURALLY, not by tactic mismatch: `unsolved goals case \u00abensures_1: out = evalSubsSpec ...\u00bb` with residual goal naming the differing slot. Witness rebuilt: rival 0 / gold 1 / probe 1. Forgery pair decisive (see witnesses_rebuilt). Refinement prose (RED on assertions a, c, d; passes b) is consistent with the real test patch, which I read: it does change the Interval(-oo,0) assertion and does add the issue-17341 image-set assertion.",
+        "id": "weak-keyed-on-new",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Distinct wrong binder object from weak-keyed-on-new (`oldObj old`, not `newObj new`), so the binder clause is not demonstrated at a single rename. Rejected behaviourally with a residual goal naming its own slot. Witness rebuilt: rival 0 / gold 1 / probe 1; forgery pair decisive.",
+        "id": "weak-keyed-on-old",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Genuinely orthogonal to the two binder rivals: the binder OBJECT is correct (`binderObj boundSym`) and the constructor's INVOCATION SHAPE is wrong, which is a decision that exists only because the axiom surface names both real shapes. Not definitionally equal to gold \u2014 `mkSetOnValue` is a separate axiom and the set's condition is dropped. Rejected behaviourally. Witness rebuilt: rival 0 / gold 1 / probe 1; forgery pair decisive.",
+        "id": "weak-keyed-on-binder-value",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Only rival attacking the (cond) slot, with binder and base held at gold, so its rejection is unconfounded. Raw `condition` is well-sorted for that slot, so the sorts do not pre-empt it \u2014 the `ensures` is what rejects it, confirmed by the residual goal `mkSet boundSym condition (substSet baseSet old new) = mkSet boundSym (substCond condition old new) (substSet baseSet old new)`. Witness rebuilt: rival 0 / gold 1 / probe 1; forgery pair decisive.",
+        "id": "weak-cond-not-substituted",
+        "verdict": "earned"
+      },
+      {
+        "evidence": "Only rival attacking the (base) slot, binder and cond held at gold. Rejected behaviourally with residual goal naming the base slot. Witness rebuilt: rival 0 / gold 1 / probe 1; forgery pair decisive. Refinement claims it is the NARROWEST (assertions a and d only, surviving both interval collapses) \u2014 consistent with the test patch's structure.",
+        "id": "weak-base-not-substituted",
+        "verdict": "earned"
+      }
+    ],
+    "edited": true,
+    "gate_status_after": "pass",
+    "gate_verdict_after": "SOUND",
+    "history": [
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "family": "A statement integrity",
+            "n": 8,
+            "result": "CLEAN \u2014 for all 8 cases the obligation bytes, axioms/pure regions, pre/post, and everything outside the impl region are byte-identical to the frozen Solution.lean; require=2 / ensures=1 / prove_correct=1 everywhere. No obligation was neutered, weakened, or restated."
+          },
+          {
+            "family": "B witness discrimination re-derived",
+            "n": 5,
+            "result": "all five reject witnesses re-derived from scratch: rival 0 / gold 1 / probe 1. Gold failure shown SEMANTIC by the agreement-claim control (EXIT 0 on gold)."
+          },
+          {
+            "family": "C wrong-vs-merely-different",
+            "n": 5,
+            "result": "for every rival the agreement claim against it fails EXIT 1 with an explicit residual goal naming the differing slot, so all five are observably distinct from the frozen impl on this carrier. No rival is definitionally equal to gold; none is a mere reshape."
+          },
+          {
+            "family": "D SPEC-TOO-WEAK probe (new tuned wrong impls)",
+            "n": 10,
+            "result": "10 new wrong impls built (wrong binder variants, un-substituted components, swapped/duplicated arguments, constant-folded results): ALL rejected, EXIT 1. No wrong impl verified, so no spec hole on this obligation."
+          },
+          {
+            "family": "E SPEC-TOO-STRONG probe (new correct reshapes)",
+            "n": 6,
+            "result": "4 of 6 correct reshapes VERIFY (EXIT 0), so the spec is not over-tight on shape. The two non-verifying reshapes are NOT spec defects and were run down: E3_echo_pure_spec fails only because the frozen tactic script over-closes ('No goals to be solved'), and the follow-up E3b_echo_reproved EXIT 0 proves it verifies when allowed to reprove; E5_uses_precondition_branch and follow-up E5d fail on 'failed to synthesize Decidable (old = boundSym)', a carrier decidability limit on opaque Obj, not a spec restriction. 4 E follow-up builds total."
+          },
+          {
+            "family": "real-callee resolution map (per-assertion)",
+            "n": 6,
+            "result": "the real sympy tree at base_commit, real source surgery, and the real post-patch test parsed by ast: gold GREEN, all 5 rivals RED (dispositions correct) \u2014 but the per-assertion breakdown is what exposed the false refinement prose (see per-case evidence)."
+          },
+          {
+            "family": "observability of the binder slot on the collapse sub-domain",
+            "n": 3,
+            "result": "'binder observable on collapse? False' \u2014 all three binder choices produce the same object when the substituted condition is identically true; three different results off collapse. This is the measurement that falsified the two binder refinements."
+          },
+          {
+            "family": "pass-to-pass measurement",
+            "n": 6,
+            "result": "all 8 P2P tests stay GREEN for every rival, invalidating every original refinement's appeal to pass-to-pass coverage."
+          },
+          {
+            "family": "G coverage reporter",
+            "n": 1,
+            "result": "obl=1 cases=8 (+3/-5) binders=5 ok, findings: []. All five binders are opaque Obj with no transparent literal to move across, so the variation is carried by the by-name signal (each binder is named in the rival/witness that abuses its position) \u2014 checked to be MEANINGFUL: each rival breaks a different, observably-distinguishable decision (three argument positions plus routing), not a cosmetic re-spelling."
+          }
+        ],
+        "audited_at": "a7",
+        "cases": [
+          {
+            "evidence": "Attack A byte-diff: obligation text, axioms/pure/pre/post regions, and everything outside the impl region byte-IDENTICAL to frozen Solution.lean; require=2, ensures=1, prove_correct=1. The impl is a genuine reshape (inline the two lets into the return) that still computes both substitutions and keys on boundSym, so it is a real soundness positive, not a neutered obligation. Gate: verified (19.9s).",
+            "expect": "verify",
+            "id": "pos-inline-return",
+            "kind": "soundness",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Attack A clean (byte-identical obligation and non-impl regions). Reshape = swap the order of the two independent let bindings; result term unchanged. Verified (14.2s). Distinct from pos-inline-return in shape, so the two positives are not duplicates.",
+            "expect": "verify",
+            "id": "pos-reordered-bindings",
+            "kind": "soundness",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Attack A clean. This case carries the non-degeneracy claim (out = evalSubsSpec ... jointly satisfiable under both requires). Corroborated independently: the AGREEMENT claim 'NonDetT.run (evalSubsFree ...) = DivM.res (evalSubsSpec ...)' built against the frozen impl at EXIT 0 (control B_ctrl_gold_agree), so the contract is discharged by a reduction that actually proves the equation rather than by a vacuous or stuck goal. Verified (33.6s).",
+            "expect": "verify",
+            "id": "admiss-gold-satisfiable",
+            "kind": "admissibility",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "DISPOSITION CORRECT, PROSE WAS FALSE. Machine checks: witness vs rival EXIT 0, vs frozen EXIT 1, consistency probe EXIT 1; agreement claim vs this rival EXIT 1 with explicit residual goal 'mkSet new (subst ...) (subst ...) = mkSet boundSym (subst ...) (subst ...)', so the rival is observably distinct from gold on this carrier (Attack C: not merely reshaped). Witness names boundSym and new and fails against three RESHAPED-CORRECT impls (R-series, all EXIT 1), so it tracks wrongness not syntax. DEFECT FOUND in the refinement prose: it claimed this rival is caught on the condition-collapse path, including the newly-added image-set assertion, and cited the pass-to-pass cases. Measured against the real callees at base_commit (per-assertion resolution map built from the real post-patch test parsed with ast): this rival fails ONLY the non-collapsing membership assertion; it fails NEITHER collapse-path assertion, including the image-set one named. observability.py explains why: when the substituted condition becomes identically true the unchanged constructor discards binder and condition, so all three binder choices produce the SAME object there ('binder observable on collapse? False'). prepatch_check.py further shows the refinement conflated this rival with the real pre-fix rebuild: the real pre-fix shape has dummy_eq(img2)=False (caught on collapse) whereas this rival has dummy_eq(img2)=True (not caught there) \u2014 so it is a strictly weaker near-miss, not the pre-fix shape observably. p2p.py: all 8 pass-to-pass tests stay GREEN for this rival, so the pass-to-pass appeal was unsupported. FIX: refinement rewritten to the measured statement (one assertion, the non-collapsing one; no P2P breakage; near-miss weaker than the pre-fix shape) and the misleading inline comment rewritten. Gate after fix: rejected, witness_checked=true (31.7s).",
+            "expect": "reject",
+            "id": "weak-keyed-on-new",
+            "kind": "uniqueness",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "DISPOSITION CORRECT, PROSE WAS FALSE (same defect class as weak-keyed-on-new). Machine checks: witness vs rival EXIT 0, vs frozen EXIT 1, probe EXIT 1; agreement claim vs rival EXIT 1 with residual goal showing 'old' in the binder slot, so observably distinct. X-series confirms this witness is specific to its own argument position (it does not elaborate against the other rivals' bodies). Refinement claimed collapse-path/imageset and pass-to-pass discrimination; measured resolution map shows it fails ONLY the non-collapsing membership assertion, and p2p.py shows all 8 P2P green. FIX: refinement rewritten to measured. Gate after fix: rejected, witness_checked=true (20.8s).",
+            "expect": "reject",
+            "id": "weak-keyed-on-old",
+            "kind": "uniqueness",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "DISPOSITION CORRECT, PROSE OVERCLAIMED. Machine checks: witness vs rival EXIT 0, vs frozen EXIT 1, probe EXIT 1; agreement claim vs rival EXIT 1 (raw condition vs substituted condition in the cond slot) so the rival is genuinely wrong on this carrier, not reshaped. Refined to the real callees it does break the target behaviour (correct disposition). DEFECT: the refinement asserted pass-to-pass breakage; p2p.py measured all 8 P2P tests GREEN. FIX: refinement rewritten to the measured per-assertion set with the P2P claim removed. Gate after fix: rejected, witness_checked=true (18.0s).",
+            "expect": "reject",
+            "id": "weak-cond-not-substituted",
+            "kind": "uniqueness",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "DISPOSITION CORRECT, PROSE OVERCLAIMED. Machine checks: witness vs rival EXIT 0, vs frozen EXIT 1, probe EXIT 1; agreement claim vs rival EXIT 1. This is the one rival the collapse sub-domain does discriminate (collapse returns the base, so a wrong base survives into the result) \u2014 which the original prose did not distinguish from the binder rivals' situation. DEFECT: unsupported pass-to-pass claim (p2p.py: all 8 green). FIX: refinement rewritten to measured, and the module docstring's (binder) paragraph corrected to say the collapse sub-domain discriminates the base position, not the binder. Gate after fix: rejected, witness_checked=true (14.7s).",
+            "expect": "reject",
+            "id": "weak-base-not-substituted",
+            "kind": "uniqueness",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "GAP CLOSED. The four pre-existing rivals each break exactly one argument position while holding the others at gold, which by construction never probes argument ROUTING \u2014 whether two correctly-computed components reach the slots the clause assigns them. Added rival: both substitutions computed correctly, correct binder, the cond and base components exchanged. Vetted BEFORE insertion: refined to the real callees it breaks 4 assertions of the target behaviour where gold breaks 0 (so it is WRONG, not merely reshaped); on this carrier module EXIT 1 (does not verify), witness vs rival EXIT 0, vs frozen EXIT 1, consistency probe EXIT 1, and vs a reshaped-correct impl EXIT 1; variant_problems, witness_problems and witness_scope_problems all empty. Gate: rejected, witness_checked=true (21.7s).",
+            "expect": "reject",
+            "id": "weak-slots-exchanged",
+            "kind": "uniqueness",
+            "verdict": "added-by-audit"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "VERDICT REPAIRED. The recorded SOUND was EARNED on dispositions but HOLLOW IN ITS PROSE, and it left one structural gap.\n\nWhat was genuinely solid: statement integrity (Attack A) is clean on every case; every reject witness discriminates with rival 0 / gold 1 / probe 1; every rival is observably wrong on this carrier, not merely reshaped; no wrong impl verifies (D, 10 probes) and correct reshapes do verify (E, 4 of 6, with both exceptions run down to a tactic artefact and a carrier decidability limit rather than a spec defect). spec_holes is empty and I am confident in that, not merely unable to find one.\n\nThe one thing that looked like a hollow pass and was NOT: every reject case's gold_signature is an `introN` tactic failure, which reads exactly like a tactic mismatch masquerading as a refutation. I did not argue about it \u2014 I built the AGREEMENT claim against the frozen impl and it EXIT 0. So simp genuinely reduces and proves the equation for gold, and the introN residue is the tail of a goal simp had already closed: a real semantic refutation. I also confirmed the consistency probe is live on this cell (a deliberately contradictory hypothesis makes it succeed), so non-forgery is a measured result and not an absence of evidence.\n\nWHAT WAS ACTUALLY WRONG (found only by leaving the carrier and measuring against the real callees): all four reject cases' refinement prose claimed sub-domains and coverage the manifest never demonstrated. The two binder rivals were said to be caught on the condition-collapse path, including a specifically-named newly-added assertion; measured, they are caught ONLY on the ordinary non-collapsing assertion and fail NEITHER collapse-path assertion. The reason is structural and worth recording: on collapse the unchanged constructor discards binder and condition, so all three binder choices yield the SAME object \u2014 the binder slot is unobservable exactly where the prose located its discrimination. Worse, the headline rival was described as the pre-fix shape; the real pre-fix rebuild is caught on collapse (dummy_eq False) while this rival is not (dummy_eq True), so the port had conflated a strictly weaker near-miss with the pre-fix shape. And all four refinements appealed to pass-to-pass coverage; all 8 P2P tests stay green for every rival. None of this is visible to the gate, which is why a recorded SOUND could carry it. I rewrote all four refinements to measured statements, corrected the docstring's (binder) paragraph to say which sub-domain discriminates which position, and fixed the misleading inline comment.\n\nGAP CLOSED: the four rivals each break one slot while holding the rest at gold, so argument ROUTING was structurally unattacked. I added weak-slots-exchanged (both components computed correctly, correct binder, components exchanged), vetted before insertion \u2014 4 broken assertions against the real callees where gold breaks 0, plus module 1 / witness-rival 0 / witness-gold 1 / probe 1 / reshape 1.\n\nHOUSEKEEPING / DISCIPLINE: also repaired the accounting block's stray self-correction (a mid-sentence 'wait: ...' recount) and updated the docstring and nagini->velvet table, which still described a four-rival battery. Only properties.py was edited; Solution.lean, meta.json and instance.json untouched by me (meta.json's mtime change is the gate stamping its own record). All scratch lived under $SCRATCH \u2014 nothing written inside the bundle or the repo, no writing git commands run, and the ported prose was rewritten to stay leak-clean (no gold-patch lines, no patched file/function names, no bug-to-fix narration).\n\nNOTHING LEFT UNEXAMINED: all 8 shipped cases have per-case verdicts above, and all 12 sibling cases/classes have an individual disposition verdict. Two claims I deliberately mark as reasoned-not-run: that the sibling's TRUE-branch binder sub-domain is unattackable here (it follows from the measured collapse-unobservability, but I did not exhaustively search for an alternative enc",
+        "omissions_reviewed": [
+          {
+            "disposition": "RE-EXPRESSED as pos-reordered-bindings",
+            "nagini_case": "pos-build-reorder",
+            "verdict": "correct \u2014 same argument (reordering independent bindings must not change the result), re-sited onto this carrier's two lets."
+          },
+          {
+            "disposition": "RE-EXPRESSED as pos-inline-return",
+            "nagini_case": "pos-rfp-inline",
+            "verdict": "correct \u2014 inlining the bindings into the return is the same soundness probe on this shape."
+          },
+          {
+            "disposition": "RE-AIMED as admiss-gold-satisfiable",
+            "nagini_case": "admiss-rfp-true",
+            "verdict": "ACCEPTED. The sibling's probe is an in-impl Assert over a COND tag; this carrier has neither the tag nor an in-impl Assert facility, so the exact probe has no counterpart. The re-aimed target (joint satisfiability / non-degeneracy) is the residual admissibility risk that does survive here, and I confirmed it is substantive rather than trivial: the agreement claim against gold builds at EXIT 0, and the reject witnesses do not rely on either require, so discrimination does not depend on SymbolicBinder being inhabited."
+          },
+          {
+            "disposition": "PORTED as weak-keyed-on-new",
+            "nagini_case": "weak-rfp-true-keyed-on-new",
+            "verdict": "ported correctly as a case; its PROSE was false and I repaired it. Specifically, the port claimed the velvet rival is the pre-fix shape and is caught on the collapse path; measured, it is a strictly weaker near-miss caught only off collapse. The rival stays (it is genuinely wrong); the claim is now measured."
+          },
+          {
+            "disposition": "MERGED into weak-keyed-on-new",
+            "nagini_case": "weak-rfp-open-keyed-on-new",
+            "verdict": "ACCEPTED as a merge \u2014 the sibling's TRUE/OPEN split is a COND-tag sub-domain that does not exist here (the rebuild is uniform across the branch). But I record that the merge is NOT free: because the binder is unobservable on the collapse sub-domain, the merged case can only ever be caught off collapse, so the sibling's TRUE-branch sub-domain is genuinely unattackable by a binder rival on this carrier rather than merely redundant. Documented in the corrected refinement rather than papered over."
+          },
+          {
+            "disposition": "DROPPED (carrier narrowing)",
+            "nagini_case": "weak-rfp-true-to-empty",
+            "verdict": "AGREE with the drop, on inspection rather than on the port's word. The case attacks the {EMPTY,BASE,SET} kind tag; here the empty/base/set reduction is a property of the UNCHANGED constructor mkSet, an A-reference with no ensures, validated under G-AX (which independently records 2 discriminating collapse witnesses). The changed method's surface only chooses which binder/condition/base to hand mkSet, so there is no empty/base distinction on it to violate. Not an omission of convenience, and not inexpressibility used as an excuse \u2014 the behaviour lives on the callee G-AX checks."
+          },
+          {
+            "disposition": "RE-SITED as weak-keyed-on-old",
+            "nagini_case": "weak-build-open-wrong-sym",
+            "verdict": "correct re-siting (wrong bound symbol becomes a wrong binder in the rebuild's binder slot); prose repaired as above."
+          },
+          {
+            "disposition": "RE-SITED as weak-base-not-substituted",
+            "nagini_case": "weak-build-true-wrong-base",
+            "verdict": "correct re-siting (a different base becomes an un-substituted base in the base slot); prose repaired as above."
+          },
+          {
+            "disposition": "DROPPED (G-AX's lane)",
+            "nagini_case": "ax-ref-build-evalsubs (AXIOM_TESTS probe)",
+            "verdict": "AGREE \u2014 subst/mkSet are A-references declared with no ensures, validated by axiom_check.py under G-AX; there is no consumed-axiom contract to mirror, and this gate ignores AXIOM_TESTS regardless. AXIOM_TESTS = [] is honest."
+          },
+          {
+            "disposition": "VACUOUS here",
+            "nagini_case": "(no sibling) FRAME-MUTATION / permission class",
+            "verdict": "AGREE \u2014 referentially transparent carrier, all five inputs immutable non-mut Obj values, no heap/aliasing/fractional permissions. The sibling itself declared this class N/A."
+          },
+          {
+            "disposition": "VACUOUS here",
+            "nagini_case": "(no sibling) DIVERGENCE / non-termination class",
+            "verdict": "AGREE and NOT re-derived \u2014 per instruction the divergence lane is settled (the corpus-wide termination-semantics finding: a velvet `partial` phenomenon); this bundle is `total` (set_option loom.semantics.termination \"total\") with a straight-line body, so no diverging impl can be written. Not filed as a spec hole."
+          },
+          {
+            "disposition": "N/A in the harmful sense",
+            "nagini_case": "(no sibling) UNGROUNDED-ORACLE ECHO class",
+            "verdict": "AGREE, and I probed it rather than accepting it: evalSubsSpec is a total def over the transparent rebuild structure, so an impl cannot echo it without doing the work. The one echo-shaped reshape I built (E3_echo_pure_spec) fails only on the frozen tactic over-closing and verifies when allowed to reprove (E3b, EXIT 0) \u2014 i.e. the echo is admissible-because-correct, not a hole."
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "case": "weak-keyed-on-new",
+            "consistency_probe_exit": 1,
+            "gold_failure_semantic": true,
+            "note": "gold-side failure is the recorded introN residue; the control agreement-claim build against gold at EXIT 0 proves simp reduces and PROVES the equation for gold, so the residue is a real refutation, not a stuck reduction / missing identifier / type error / timeout.",
+            "witness_vs_gold_exit": 1,
+            "witness_vs_rival_exit": 0
+          },
+          {
+            "case": "weak-keyed-on-old",
+            "consistency_probe_exit": 1,
+            "gold_failure_semantic": true,
+            "witness_vs_gold_exit": 1,
+            "witness_vs_rival_exit": 0
+          },
+          {
+            "case": "weak-cond-not-substituted",
+            "consistency_probe_exit": 1,
+            "gold_failure_semantic": true,
+            "witness_vs_gold_exit": 1,
+            "witness_vs_rival_exit": 0
+          },
+          {
+            "case": "weak-base-not-substituted",
+            "consistency_probe_exit": 1,
+            "gold_failure_semantic": true,
+            "witness_vs_gold_exit": 1,
+            "witness_vs_rival_exit": 0
+          },
+          {
+            "case": "weak-slots-exchanged",
+            "consistency_probe_exit": 1,
+            "gold_failure_semantic": true,
+            "note": "audit-added; module build also EXIT 1 (variant does not verify).",
+            "witness_vs_gold_exit": 1,
+            "witness_vs_rival_exit": 0
+          },
+          {
+            "case": "CONTROL B_ctrl_gold_agree",
+            "exit": 0,
+            "note": "agreement claim 'NonDetT.run (evalSubsFree ...) = DivM.res (evalSubsSpec ...)' against the FROZEN impl: EXIT 0. This is the decisive control that the introN gold_signature is not a hollow tactic mismatch."
+          },
+          {
+            "case": "CONTROL B_forge_probe",
+            "exit": 0,
+            "note": "a deliberately self-contradictory hypothesis makes the consistency probe SUCCEED (=forgery detected), proving the probe is live on this cell rather than vacuously failing."
+          },
+          {
+            "case": "CONTROL R-series (each witness vs reshaped-CORRECT impls)",
+            "exit": 1,
+            "note": "all EXIT 1 \u2014 witnesses track wrongness, not the frozen impl's syntactic shape."
+          },
+          {
+            "case": "CONTROL X-series (each witness vs the OTHER rivals' bodies)",
+            "exit": 1,
+            "note": "each witness is specific to its own argument position."
+          }
+        ],
+        "witnesses_rebuilt": 9
+      },
+      {
+        "agent_verdict": "REPAIRED",
+        "attacks_tried": [
+          {
+            "id": "A_statement_integrity_all_8",
+            "kind": "statement-integrity",
+            "outcome": "CLEAN. For all 8 cases, the module with its impl region excised is byte-identical to the frozen Solution.lean; require=2 / ensures=1 / prove_correct=1 everywhere; method header byte-identical. No obligation neutered, weakened or restated."
+          },
+          {
+            "id": "B_ctrl_agree_gold",
+            "kind": "control-agreement-claim",
+            "outcome": "EXIT 0. `NonDetT.run (evalSubsFree ...) = DivM.res (evalSubsSpec ...)` builds against the frozen impl, so simp genuinely reduces and PROVES the equation for gold \u2014 the introN residue on the witness side is a real refutation, not a stuck reduction."
+          },
+          {
+            "id": "B_probe_liveness",
+            "kind": "control-probe-liveness",
+            "outcome": "EXIT 0. A deliberately contradictory hypothesis pair makes the consistency probe SUCCEED, so the five witnesses' exit-1 probes are a measured non-forgery rather than an absence of evidence."
+          },
+          {
+            "id": "D1_subst_args_swapped_base",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D2_subst_args_swapped_cond",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D3_dup_cond_into_base",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D4_dup_base_into_cond",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D5_constant_default",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1 (returns objDefault)"
+          },
+          {
+            "id": "D6_return_raw_base",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D7_double_subst_cond",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D8_subst_into_binder",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1 (substitution pushed INTO the binder slot)"
+          },
+          {
+            "id": "D9_raw_both",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1"
+          },
+          {
+            "id": "D10_new_and_swapped",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1 (wrong binder + exchanged slots)"
+          },
+          {
+            "id": "D11_subst_whole_set",
+            "kind": "wrong-impl",
+            "outcome": "rejected EXIT 1 (substitution applied to the whole constructed set instead of its components)"
+          },
+          {
+            "id": "E1_lambda_helper",
+            "kind": "correct-reshape",
+            "outcome": "VERIFIES EXIT 0 (lambda-factored substitution helper)"
+          },
+          {
+            "id": "E2_bind_result",
+            "kind": "correct-reshape",
+            "outcome": "VERIFIES EXIT 0"
+          },
+          {
+            "id": "E4_extra_unused",
+            "kind": "correct-reshape",
+            "outcome": "VERIFIES EXIT 0 (extra unused binding)"
+          },
+          {
+            "id": "E5_partial_inline",
+            "kind": "correct-reshape",
+            "outcome": "VERIFIES EXIT 0"
+          },
+          {
+            "id": "E6_nested_let",
+            "kind": "correct-reshape",
+            "outcome": "VERIFIES EXIT 0"
+          },
+          {
+            "id": "E3_echo_pure_spec",
+            "kind": "correct-reshape",
+            "outcome": "EXIT 1 but NOT a spec defect: `return evalSubsSpec boundSym condition baseSet old new` fails with `No goals to be solved`, i.e. the frozen tactic script OVER-closes. Follow-up E3b with the now-redundant simp_all dropped from the elided proof body: EXIT 0. Tactic artefact, not SPEC-TOO-STRONG."
+          },
+          {
+            "id": "X_witness_vs_correct_reshapes_15_builds",
+            "kind": "witness-tracks-wrongness",
+            "outcome": "ALL 15 combinations EXIT 1. Each of the 5 shipped witnesses was built against 3 NEW correct reshapes (lambda helper, nested let, extra unused binding); none elaborates, so the witnesses discriminate WRONGNESS and not the frozen impl's syntactic shape."
+          },
+          {
+            "id": "Fprime_divergence_total_semantics",
+            "kind": "divergence-lane",
+            "outcome": "PROSE DEFECT FOUND AND FIXED; class correctly rejected but unshippable. This bundle is termination \"total\", and the docstring claimed 'a diverging implementation cannot be written' \u2014 FALSE. I wrote two (`while true do i := i + 1` before the correct rebuild; a loop whose counter moves away from its bound); both are REJECTED with `error: Decreasing annotations are required in total correctness semantics` plus residual `Failed to prove assertion without names: WPGen (forIn Lean.Loop.mk ...)`, and both pass variant_problems (in scope). So the termination obligation is genuinely enforced. But the WITNESS half blocks shipping: the diverging module does not elaborate at all, so even a trivially-true witness (`example : (1:Nat)+1 = 2 := by decide`) appended to it fails EXIT 1 for the module's own error \u2014 the gate would record witness-unproven (inconclusive MALFORMED), never a pass. Corpus check: 0 of ~496 velvet total-semantics cells ship a divergence reject case; the canonical disposition (sphinx-doc__sphinx-8265) documents exactly this witness-half blocker. Rewrote the paragraph from 'VACUOUS / cannot be written' to the measured carrier/harness limit with the exact error text."
+          },
+          {
+            "id": "G_coverage_reporter",
+            "kind": "coverage",
+            "outcome": "obl=1 cases=8 (+3/-5) binders=5 ok, 0 findings. Variation checked to be MEANINGFUL rather than two spellings of one point: each rival's agreement-claim residual goal names a DIFFERENT differing slot (binder-as-new, binder-as-old, raw cond, raw base, exchanged routing), so the five reject points are distinguishable decisions, not re-spellings."
+          },
+          {
+            "id": "leak_discipline_sweep",
+            "kind": "hygiene",
+            "outcome": "FIXED a pre-existing leak in this shipping file (G-LEAK does not screen properties.py): three passages quoted the gold rebuild expression verbatim with repo symbol names (self.func/self.sym/condition.subs/base_set.subs). De-narrated to abstract behaviour wording; file now has zero matches for those symbols and for the patched module/method names. Also renamed 'opaque' to 'abstract' in the new impl comment, since `opaque` is a witness/variant banned token."
+          }
+        ],
+        "audited_at": "u4",
+        "cases": [
+          {
+            "evidence": "Attack A re-derived mechanically: with the impl region excised, the module is byte-identical to the frozen Solution.lean (require=2, ensures=1, prove_correct=1). The reshape (drop both lets, build directly in the return) still computes BOTH substitutions and keys on boundSym, so it is a genuine correct reshape rather than a neutered obligation. Gate: verified (3.1s).",
+            "id": "pos-inline-return",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Attack A clean (outside-impl bytes identical; require=2/ensures=1/prove_correct=1). Reshape = the two independent let bindings swapped; distinct in shape from pos-inline-return so the two positives are not one point. Gate: verified (2.5s).",
+            "id": "pos-reordered-bindings",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "DEFECT FOUND AND FIXED. The case's module was `_BASE` VERBATIM, i.e. the frozen impl. That makes it a duplicate of the shipped frozen build: it can only fail if the bundle itself does not verify (G-VERIFY's lane), so it attested NOTHING about admissibility while passing honestly. The sibling django__django-15467 documents this exact shape as a repaired defect. I established a content-bearing probe IS expressible here and is live in both directions (real builds): an existential inhabitant of the obligation at an F2P-shaped point EXIT 0, the same existential demanding the pre-fix binder EXIT 1; slot-wise resolution of the post-image EXIT 0, resolving the condition slot to raw `condition` EXIT 1, resolving the base slot to raw `baseSet` EXIT 1. Landed both `have`s inside the elided impl region ahead of the frozen body (so the spec view and the frozen proof are untouched); shipped module EXIT 0 and its falsified twin EXIT 1. Also measured and now recorded as a bound on the lane: the two `require`s are NOT hypotheses in scope inside the impl region (`by assumption` fails on each, goals `SymbolicBinder boundSym` / `old != boundSym`), so the case states its claim at the obligation level rather than re-deriving the guards; the old rationale's 'under the two requires' wording was loose and is corrected. Gate after fix: verified (2.5s).",
+            "id": "admiss-gold-satisfiable",
+            "verdict": "repaired"
+          },
+          {
+            "evidence": "Attack A clean. Witness rebuilt by me: rival EXIT 0 / gold EXIT 1 / consistency probe EXIT 1. Attack B' FORGERY (mandatory here: gold_signature is an introN tactic failure, not a plain evaluation) \u2014 the flipped-claim build against gold fails with a DIFFERENT error, `No goals to be solved`, whereas the real witness leaves `h : mkSet new (subst ...) (subst ...) != mkSet boundSym (subst ...) (subst ...) |- False`. Gold's exit code therefore tracks the claim: not hollow. Attack C: agreement claim vs this rival EXIT 1 with residual goal `mkSet new ... = mkSet boundSym ...`, so it is observably distinct from gold, not merely reshaped; agreement vs gold EXIT 0. Witness also failed (EXIT 1) against all three of my NEW correct reshapes, so it tracks wrongness not syntax. Prose was already repaired by the prior audit to the measured claim (caught off the collapse path only, binder unobservable on collapse); I did not find a further false claim.",
+            "id": "weak-keyed-on-new",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Attack A clean. Witness: rival EXIT 0 / gold EXIT 1 / probe EXIT 1. B' forgery on gold: `No goals to be solved` vs the real witness's introN + `h : mkSet old ... != mkSet boundSym ... |- False` \u2014 errors differ with the claim, so admissible evidence. Attack C: agreement vs rival EXIT 1, residual goal shows `old` in the binder slot. Witness fails against all 3 new correct reshapes (EXIT 1). A distinct wrong binder value from weak-keyed-on-new, so the binder clause is not demonstrated at a single rename.",
+            "id": "weak-keyed-on-old",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Attack A clean. Witness: rival EXIT 0 / gold EXIT 1 / probe EXIT 1. B' forgery on gold: `No goals to be solved` (claim-sensitive). Attack C: agreement vs rival EXIT 1, residual `mkSet boundSym condition (subst baseSet old new) = mkSet boundSym (subst condition old new) (subst baseSet old new)` \u2014 the raw vs substituted condition, observably wrong. Witness fails against all 3 new correct reshapes. Sole attacker of the (cond) slot with binder and base held at gold, so its rejection is unconfounded.",
+            "id": "weak-cond-not-substituted",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Attack A clean. Witness: rival EXIT 0 / gold EXIT 1 / probe EXIT 1. B' forgery on gold: `No goals to be solved` (claim-sensitive). Attack C: agreement vs rival EXIT 1, residual names the raw `baseSet` in the base slot. Witness fails against all 3 new correct reshapes. Sole attacker of the (base) slot; this is the one position the collapse sub-domain does discriminate, which the prior audit had already corrected in the prose and which I re-read as accurate.",
+            "id": "weak-base-not-substituted",
+            "verdict": "sound"
+          },
+          {
+            "evidence": "Added by the prior audit; independently re-verified. Attack A clean. Witness: rival EXIT 0 / gold EXIT 1 / probe EXIT 1. B' forgery on gold: `No goals to be solved` (claim-sensitive). Attack C: agreement vs rival EXIT 1 with residual `mkSet boundSym (subst baseSet old new) (subst condition old new) = mkSet boundSym (subst condition old new) (subst baseSet old new)`, so the two sides are NOT definitionally equal on this carrier and the case is not vacuous. Witness fails against all 3 new correct reshapes. Genuinely covers argument ROUTING, which no one-position-at-a-time rival can reach.",
+            "id": "weak-slots-exchanged",
+            "verdict": "sound"
+          }
+        ],
+        "edited": true,
+        "gate_status_after": "pass",
+        "gate_verdict_after": "SOUND",
+        "notes": "VERDICT REPAIRED. The recorded SOUND was earned on all five reject dispositions and on witness discrimination, but it carried one content-free positive and one false prose claim about a lane the gate cannot see.\n\nMANDATORY FORGERY TEST (B'), the thing I would not accept on argument: every reject case's gold_signature here is `Tactic introN failed`, which reads exactly like a hollow tactic mismatch. It is not. For each of the five witnesses I built a forgery differing ONLY in what it claims (conclusion's != flipped to =, identical tactic script) against the frozen impl. The real witness fails with introN plus a residual `h : mkSet <wrong> ... != mkSet boundSym ... |- False`; the flipped claim fails with a DIFFERENT error, `No goals to be solved` \u2014 simp had already PROVED agreement for gold. Gold's exit code tracks the claim, so it is admissible evidence. Corroborated by the agreement control (EXIT 0 on gold, EXIT 1 on each of the five rivals with an explicit residual goal naming that rival's slot) and by probe liveness (a contradictory hypothesis pair makes the consistency probe succeed, so the five exit-1 probes are measured non-forgery).\n\nDEFECT 1 (fixed) \u2014 the admissibility lane was content-free. `admiss-gold-satisfiable` shipped `_BASE` VERBATIM: the frozen impl, so the case could only fail if the bundle itself did not verify, which is G-VERIFY's job. It passed honestly and tested nothing, the precise shape sibling django__django-15467 records as a repaired defect. This matters corpus-wide because the admissibility lane is what detects PRECOND-TOO-STRONG. I did not accept 'the carrier is opaque so nothing can be stated': I measured that a content-bearing probe IS expressible and LIVE in three directions, then landed it inside the elided impl region ahead of the frozen body. Shipped module EXIT 0; falsified twin EXIT 1. A bound worth recording: the two `require`s are NOT in scope as hypotheses inside the impl region (`by assumption` fails on each), so the case states its claim at the obligation level, and I corrected the rationale's looser 'under the two requires' wording accordingly.\n\nDEFECT 2 (fixed) \u2014 the divergence paragraph was false. It said the class is VACUOUS because 'a diverging implementation cannot be written'. This bundle is termination \"total\", so per attack F' the correct disposition is the opposite direction, and I wrote two diverging rivals: both are REJECTED with `Decreasing annotations are required in total correctness semantics` + `Failed to prove assertion without names: WPGen (forIn Lean.Loop.mk ...)`, and both pass variant_problems. The termination obligation is genuinely enforced. What blocks SHIPPING the case is the witness half, measured not assumed: the diverging module does not elaborate, so even a trivially-true witness appended to it fails EXIT 1 for the module's own error, and the gate would record witness-unproven (inconclusive MALFORMED), never a pass. So this is neither 'vacuous class' nor 'known hole' but a carrier/harness limit, now written with the exact error text. Corpus context: 0 of ~496 velvet total-semantics cells ship a divergence reject case, and the canonical disposition (sphinx-doc__sphinx-8265) documents this same witness-half blocker \u2014 so this is a systematic harness limit, not a gap unique to this cell.\n\nDEFECT 3 (fixed) \u2014 leak hygiene in a shipping file. properties.py is not screened by G-LEAK, and three passages quoted the gold rebuild expression verbatim with patched repo symbol names. De-narrated to abstract behaviour wording; the file now has zero matches for those symbols and for the patched module/method names.\n\nSPEC STRENGTH: no hole in either direction. 11 new wrong impls beyond the battery (transposed subst arguments in each slot, component duplication both ways, constant objDefault, raw base, double substitution, substitution pushed into the binder, both components raw, wrong-binder-plus-exchange, substitution applied to the whole constructed set) \u2014 ALL rejected. 6",
+        "omissions_reviewed": [
+          {
+            "evidence": "Not an omission: RE-EXPRESSED as pos-reordered-bindings. The sibling's argument (reordering independent bindings must not change the result) re-sites exactly onto this carrier's two independent lets; the sibling's 3-way branch reorder has no counterpart because this carrier's modeled surface is a single uniform rebuild with no branch. Verified EXIT 0.",
+            "nagini_case": "pos-build-reorder",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Not an omission: RE-EXPRESSED as pos-inline-return (inlining the bindings into the return is the same soundness probe on this shape). Verified EXIT 0.",
+            "nagini_case": "pos-rfp-inline",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "FINDING, and I fixed it. The port kept an admissibility case but with `_BASE` verbatim, which is content-free (see the admiss-gold-satisfiable case verdict). The sibling's exact probe (an in-impl Assert over a COND tag) genuinely has no counterpart \u2014 this carrier has no kind/COND tag \u2014 but the ADMISSIBILITY LANE is expressible here and I landed it: two `have`s discharged inside the elided impl region at an F2P-shaped point before the frozen body runs, each shown live by building the corresponding FALSE claim and observing EXIT 1 (pre-fix binder in the existential; cond slot resolved to raw `condition`; base slot resolved to raw `baseSet`). Shipped module EXIT 0, falsified twin EXIT 1.",
+            "nagini_case": "admiss-rfp-true",
+            "verdict": "expressible"
+          },
+          {
+            "evidence": "Not an omission: PORTED as weak-keyed-on-new (the headline binder rival). Re-verified: rival 0 / gold 1 / probe 1, forgery-distinguished, observably distinct from gold. Its prose had been corrected by the prior audit from 'this is the pre-fix shape caught on the collapse path' to the measured 'strictly weaker near-miss caught only off collapse'; I re-read that as accurate, since the binder is genuinely unobservable once the constructor collapses.",
+            "nagini_case": "weak-rfp-true-keyed-on-new",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Merge ACCEPTED. The sibling's TRUE/OPEN split is a COND-tag sub-domain that does not exist on this carrier (the modeled rebuild is uniform across the whole branch), so 'keyed on new' is a single wrong-binder rival here and there is no second sub-domain to attack separately. The merge is not free and the manifest says so: because the binder is unobservable on the collapse sub-domain, a binder rival can only ever be caught off collapse.",
+            "nagini_case": "weak-rfp-open-keyed-on-new",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Drop AGREED on inspection. The case attacks the {EMPTY,BASE,SET} kind tag. That reduction is a property of the UNCHANGED constructor mkSet \u2014 an A-reference carrying NO ensures, validated executably under G-AX (mapping.md 3.2, including the load-bearing collapse witnesses) \u2014 not of the changed method, whose entire modeled surface is choosing WHICH binder/condition/base to hand mkSet. There is no empty/base distinction on the changed method's surface to violate, so no rival can express it. Carrier narrowing, demonstrated, not convenience: I confirmed mkSet has no ensures in the frozen file and that D5/D6 (returning objDefault, returning the raw base) are rejected, i.e. the spec does pin the result to the rebuild rather than leaving the constructor's reduction free.",
+            "nagini_case": "weak-rfp-true-to-empty",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Not an omission: RE-SITED as weak-keyed-on-old. The sibling attacked build's OPEN case minting the set on a fixed wrong constant; here bound-symbol propagation lives in the single rebuild's (binder) position, so the analogue is a wrong binder at a value distinct from the headline's `new`. Re-verified: rival 0 / gold 1 / probe 1, residual goal shows `old` in the binder slot.",
+            "nagini_case": "weak-build-open-wrong-sym",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Not an omission: RE-SITED as weak-base-not-substituted (the base slot carries the un-substituted base). Re-verified: rival 0 / gold 1 / probe 1, residual names raw `baseSet`.",
+            "nagini_case": "weak-build-true-wrong-base",
+            "verdict": "inexpressible"
+          },
+          {
+            "evidence": "Correctly dropped from THIS lane. subst/mkSet are A-references with no asserted ensures, validated by axiom_check.py under G-AX (mapping.md 3.1/3.2); there is no consumed-axiom contract to attack, and the G-PBT gate ignores AXIOM_TESTS regardless. Not a G-PBT omission.",
+            "nagini_case": "ax-ref-build-evalsubs-soundness (AXIOM_TESTS)",
+            "verdict": "inexpressible"
+          }
+        ],
+        "spec_holes": [],
+        "witness_evidence": [
+          {
+            "forgery_error": "error: No goals to be solved  (vs the real witness on gold: \"Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce\" with residual context h : mkSet new (subst condition old new) (subst baseSet old new) != mkSet boundSym (subst condition old new) (subst baseSet old new) |- False) \u2014 the two errors DIFFER, so gold's exit code carries information about the claim",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-keyed-on-new",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "error: No goals to be solved  (real witness on gold: Tactic `introN` failed ... h : mkSet old (subst condition old new) (subst baseSet old new) != mkSet boundSym ... |- False)",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-keyed-on-old",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "error: No goals to be solved  (real witness on gold: Tactic `introN` failed ... h : mkSet boundSym condition (subst baseSet old new) != mkSet boundSym (subst condition old new) (subst baseSet old new) |- False)",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-cond-not-substituted",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "error: No goals to be solved  (real witness on gold: Tactic `introN` failed ... h : mkSet boundSym (subst condition old new) baseSet != mkSet boundSym (subst condition old new) (subst baseSet old new) |- False)",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-base-not-substituted",
+            "probe_exit": 1,
+            "rival_exit": 0
+          },
+          {
+            "forgery_error": "error: No goals to be solved  (real witness on gold: Tactic `introN` failed ... h : mkSet boundSym (subst baseSet old new) (subst condition old new) != mkSet boundSym (subst condition old new) (subst baseSet old new) |- False)",
+            "forgery_exit": 1,
+            "gold_exit": 1,
+            "id": "weak-slots-exchanged",
+            "probe_exit": 1,
+            "rival_exit": 0
+          }
+        ],
+        "witnesses_rebuilt": 5
+      }
+    ],
+    "notes": "SOUND was EARNED on all 8 cases \u2014 every reject rival is observably different from gold on this carrier (different opaque constructor axiom or different handle in a slot, never a definitional reshape), every module rejection is behavioural (`unsolved goals` on `\u00abensures_1: out = evalSubsSpec ...\u00bb` with a residual goal naming the differing slot) rather than a tactic mismatch, and the forgery test clears all five decisively. The `introN` gold_signature shape looks exactly like a hollow tactic mismatch, so I ran the mandatory B\u2032 pair rather than reading it: flipping only the conclusion's \u2260 to = changes gold's error from `introN failed` to `No goals to be solved`, so gold's exit code carries information about the claim. Corroborated by an agreement control (exit 0 gold / exit 1 on all five rivals). 64 builds total. Attack A found nothing: all 8 variants touch only the impl region. Attacks D and E found no spec hole \u2014 13 wrong impls of mine all rejected (including one that performs the exact gold rebuild as a DISCARDED binding and then returns a wrong value, to test the ensures constrains the returned value; it does), and 5 correct reshapes all verified. The two E cases that appear rejected (`return evalSubsSpec ...`, bare and behind a `have`) fail with `No goals to be solved`, which is the frozen script's `simp_all` OVER-closing, not the spec rejecting a faithful shape \u2014 I confirmed by dropping the redundant `simp_all` from the elided proof body and getting exit 0. Not a spec defect, so spec_holes is empty.\n\nWHAT I REPAIRED \u2014 two prose defects, both false claims the gate cannot see, neither affecting any case's outcome:\n\n(1) A FALSE MECHANISM in the divergence-lane disposition. The manifest asserted the class is unshippable because 'the diverging module does not elaborate AT ALL ... there is nothing a better-authored witness can do here: the rival's rejection happens strictly before any witness is reachable.' That is true of the shapes it measured (no-measure loop; self-call) and FALSE of the sibling's own weak-rfp-measure-not-kept shape, which I built: a loop CLAIMING `decreasing i` while incrementing elaborates its module (trivial witness exit 0) and is rejected behaviourally on `unsolved goals case \u00abdecreasing_1: i\u00bb`. So the disposition was resting on a reason that does not hold, and the more interesting fact \u2014 that the termination measure is CHECKED rather than parsed \u2014 was unrecorded. I tried to land the rival: three witness shapes, all exit 1 on the RIVAL half against an unreduced `forIn Lean.Loop.mk` term (the gate's own documented _STUCK_UNIFICATION_TERM class), and witness_reference cannot help because it swaps the gold-side subject. So the class stays a carrier limit \u2014 but now for the true reason, with the four distinguishable shapes separated and every error text recorded.\n\n(2) A STALE SIBLING INVENTORY that concealed a 10-case omission gap. The accounting block claimed 'the sibling battery has 8 SPEC cases ... plus 1 AXIOM_TESTS probe' and enumerated only those 8. Importing the current sibling reports 18 SPEC cases + 1 axiom probe. The 8-case figure was accurate at git 2cb887e7f (the sibling grew 9 -> 12 -> 17 -> 19 case ids across later checkpoints), so the port's completeness claim balanced against a stale denominator and read as complete while 10 cases had never been reviewed \u2014 exactly the failure the omission lane exists to catch. I judged all 10 independently and wrote a per-case disposition for each: 5 divergence cases (all re-expressed and BUILT here, all genuinely rejected, none witnessable \u2014 see omissions_reviewed) and 5 further `build`-internal rivals (all unnameable on this carrier, which has no Result0/kind/listed_base/merged_sym), plus a corrected tally that now balances 2+1+5+6+2+2=18.\n\nI did not touch Solution.lean, meta.json or instance.json. Leak discipline checked on my additions specifically: `git diff | grep '^+'` matches none of the patched filename, the patched function name, or repo call-site iden",
+    "omissions_reviewed": [
+      {
+        "evidence": "Attacks the sibling's {EMPTY,BASE,SET} kind tag. This carrier has no kind tag: the empty/base/set reduction is a property of the opaque UNCHANGED constructor `mkSet` (A-reference validated under G-AX), not of the changed method, which only chooses which binder/condition/base reach it. `Result0`/`kind` are unnameable here, not merely hard to reach.",
+        "nagini_case": "weak-rfp-true-to-empty",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED \u2014 the port's accounting block did not enumerate this case at all (it claimed the sibling had 8 SPEC cases; it has 18). Judged independently: attacks the empty-base collapse inside the sibling's `build` deep-model, keyed on its BASE_EMPTY tag. No `base_kind` tag exists on this carrier; the constructor is opaque. Dropped with the demonstrated reason now written into the manifest.",
+        "nagini_case": "weak-build-drop-empty-base",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. Attacks the member-by-member predicate decision over an explicit finite listing (BASE_LISTED / listed_kind / listed_base). None of those handles is nameable on this carrier \u2014 the constructor is the opaque `mkSet`, whose internal reduction G-AX validates against the real callee.",
+        "nagini_case": "weak-build-listed-ignore-members",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. Attacks the unpacking of a nested set in the base slot (BASE_MERGED / merged_sym). No merge tag or nested-unpack step exists on the changed method's surface here.",
+        "nagini_case": "weak-build-merged-keeps-outer-sym",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. Same mechanism as the previous, on the merged base rather than the merged binder. Unnameable for the same demonstrated reason.",
+        "nagini_case": "weak-build-merged-keeps-outer-base",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. Keys the surviving restricted object on a fixed constant 0 over the LISTED sub-domain. The binder-propagation wrongness it attacks IS covered here (weak-keyed-on-old / weak-keyed-on-new attack exactly that at the rebuild's binder position); what does not re-site is the listed SUB-DOMAIN, which has no tag on this carrier.",
+        "nagini_case": "weak-build-listed-wrong-sym",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED (divergence lane, outside the previous enumeration). I re-expressed it: `return \u2190 evalSubsFree boundSym condition baseSet old new`. In scope (variant_problems=[]) and genuinely REJECTED (exit 1, `fail to show termination for evalSubsFree ... failed to infer structural recursion`). Unshippable because the module does not elaborate at all \u2014 a trivially-true witness appended fails at exit 1 for the same declaration-level reason, so the gate would record witness-unproven (MALFORMED), never a pass.",
+        "nagini_case": "weak-rfp-never-delivers-selfcall",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. Re-expressed as `while true do i := i + 1` before the correct rebuild: in scope, rejected (exit 1, `Decreasing annotations are required in total correctness semantics`). Module fails at the declaration, so no witness is reachable \u2014 witness-unproven, not a pass.",
+        "nagini_case": "weak-rfp-never-delivers-loop",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED, and this is the case that exposed the port's false reason. Re-expressed as `while i \u2265 0` carrying invariant/done_with/`decreasing i` with body `i := i + 1`: in scope, and rejected BEHAVIOURALLY with `unsolved goals case \u00abdecreasing_1: i\u00bb` \u2014 so the measure is VERIFIED, not taken on trust, which is precisely the sibling's own rationale. Unlike the shapes above this module ELABORATES (trivial witness -> exit 0), so the port's claim that 'the rival's rejection happens strictly before any witness is reachable' is FALSE for it. I then tried three witness shapes and all three fail on the RIVAL half (the half that must succeed): the shipped `\u2260 DivM.res` shape and a `= DivM.div` shape both leave an unreduced `NonDetT.run do let _ \u2190 forIn Lean.Loop.mk 0 fun x r => ...` goal, and the conditioned shape fails `Type mismatch: After simplification, term heq has type (NonDetT.run do ... forIn Lean.Loop.mk ...) = DivM.res ... but is expected to have type False`. That is the gate's own documented irreducible-loop-term class (pbt.py _STUCK_UNIFICATION_TERM). witness_reference cannot help: it swaps the GOLD-side subject, and the failing half is the rival's. So: inexpressible, but for the loop-term reason, and the manifest now says so with the error text.",
+        "nagini_case": "weak-rfp-measure-not-kept",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. A guarded self-call: gold on two eagerly-returning paths, non-delivering elsewhere. This signature has no branch structure over which the guard would be meaningful (the modeled behaviour is a single uniform rebuild), and its non-delivering tail is the self-call shape, which fails at the declaration. No separate mechanism here.",
+        "nagini_case": "weak-rfp-partial-then-never-delivers",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "NEWLY SURFACED. Attacks divergence INSIDE the sibling's `build`. On this carrier `build` is the opaque constructor `mkSet` \u2014 an axiom with no impl region for a rival to diverge in \u2014 so there is nothing to write. Its totality against the real callee is G-AX's lane.",
+        "nagini_case": "weak-build-never-delivers",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 re-expressed as pos-reordered-bindings (verified, exit 0).",
+        "nagini_case": "pos-build-reorder",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 re-expressed as pos-inline-return (verified, exit 0).",
+        "nagini_case": "pos-rfp-inline",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 re-aimed as admiss-gold-satisfiable, which I confirmed is content-bearing by building three FALSE analogues at the same point (all exit 1) plus an `Assert(False)`-style control (exit 1). The admissibility lane is present on this cell.",
+        "nagini_case": "admiss-rfp-true",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 ported as weak-keyed-on-new (the headline).",
+        "nagini_case": "weak-rfp-true-keyed-on-new",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 merged into weak-keyed-on-new. The merge is sound: the two sibling cases are TRUE-branch and OPEN-branch sub-domains of a COND tag this carrier does not have, and the rebuild here is uniform across the branch.",
+        "nagini_case": "weak-rfp-open-keyed-on-new",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 re-sited as weak-keyed-on-old.",
+        "nagini_case": "weak-build-open-wrong-sym",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "Not dropped \u2014 re-sited as weak-base-not-substituted.",
+        "nagini_case": "weak-build-true-wrong-base",
+        "verdict": "inexpressible"
+      },
+      {
+        "evidence": "AXIOM_TESTS probe; G-PBT ignores AXIOM_TESTS by design and the claim is about the real Python callee, so it belongs to G-AX (axiom_check.py), not to this lane.",
+        "nagini_case": "ax-ref-build-evalsubs-soundness",
+        "verdict": "inexpressible"
+      }
+    ],
+    "spec_holes": [],
+    "witness_evidence": [
+      {
+        "forgery_error": "No goals to be solved  \u2014 vs the real witness's gold-side `Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce` over context `h : mkSetOnValue (newObj new) (substSet baseSet old new) \u2260 mkSet boundSym (substCond condition old new) (substSet baseSet old new)` / `\u22a2 False`. DIFFERENT errors, so gold's exit code tracks the claim: flipping only the conclusion's \u2260 to = changes the failure mode, meaning `simp` had already PROVED the agreement equation for gold. The same flipped claim built against the RIVAL fails with the introN error instead, so the pair is symmetric in the correct direction. Agreement control `NonDetT.run (evalSubsFree ...) = DivM.res (evalSubsSpec ...)`: exit 0 on gold, exit 1 on this rival.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "weak-keyed-on-new",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "No goals to be solved (vs `Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce` for the real witness on gold). Agreement control on this rival: exit 1.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "weak-keyed-on-old",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "No goals to be solved (vs `Tactic `introN` failed: ...` for the real witness on gold). Agreement control on this rival: exit 1.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "weak-keyed-on-binder-value",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "No goals to be solved (vs `Tactic `introN` failed: ...` for the real witness on gold). Agreement control on this rival: exit 1, residual goal names the raw condition slot.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "weak-cond-not-substituted",
+        "probe_exit": 1,
+        "rival_exit": 0
+      },
+      {
+        "forgery_error": "No goals to be solved (vs `Tactic `introN` failed: ...` over context `h : mkSet boundSym (substCond condition old new) baseSet \u2260 mkSet boundSym (substCond condition old new) (substSet baseSet old new)` / `\u22a2 False`). Agreement control on this rival: exit 1, residual goal `mkSet boundSym (substCond condition old new) baseSet = mkSet boundSym (substCond condition old new) (substSet baseSet old new)`.",
+        "forgery_exit": 1,
+        "gold_exit": 1,
+        "id": "weak-base-not-substituted",
+        "probe_exit": 1,
+        "rival_exit": 0
+      }
+    ],
+    "witnesses_rebuilt": 5
+  },
+  "region_hashes": {
+    "axioms": "57ca214b0145d36706f2ff77fd5b84fa746a86ec6c8e7e17417c86f09e7f0df1",
+    "impl": "cea4c1151800ee5c9cbd07313f7e3ac7bbcfebcf752400ed112d26ae27953839",
+    "pure": "90cb400b679b36fb9aefdd78a670d75dd00ff2cfaad51a1dc30798cbab205202",
+    "spec_view": "07196bc2111c415783b81811349a8cb196d509bb6b8000b7ac9e516b7765c88e"
+  },
+  "repo": "sympy/sympy",
+  "schema_version": 1,
+  "spec_provenance": "cold",
+  "string_modeling": "n/a \u2014 symbolic objects modeled as opaque SORTED handles (Binder / Cond / SetObj / BuiltSet / Obj / Old / New); only which object occupies which constructor slot (the binder choice), which invocation shape is used, and which direction a substitution runs are observed",
+  "version": "1.7"
+}

@@ -1,0 +1,426 @@
+{
+  "additional_change_sites": [],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real Query rendered-SELECT-column count == 1+nfields field-less, == 1 after normalisation; explicit-fields branch fuzzed on the FALSIFYING shapes values('name') (1 non-pk col) and values('id','name') (2 cols) plus values('pk') (1 col) \u2014 rendered count == number of explicit fields and identities are those fields (would falsify a too-strong has_fields=>PSeq(pk_col) reading)",
+      "encoded_property": "has_fields => Result() == explicit_cols (the query's own chosen output columns \u2014 WHATEVER they are, e.g. values('name')=>[name], values('id','name')=>2 cols, NOT forced to the pk); not has_fields => Result() == default_cols (the full default column set, the bug surface). Faithful to the real callee (no exact-pk-sentinel over-claim); weakest contract the proof needs \u2014 after the field-less normalisation add_identity_column sets explicit_cols == PSeq(pk_col), which is what makes the discriminating postcondition provable.",
+      "kind": "A-consumed",
+      "models": "self.rhs.get_group_by_cols() for a Query rhs (BaseExpression.get_group_by_cols, django/db/models/expressions.py:348, expanded by the compiler); UNCHANGED by the patch",
+      "name": "nested_group_by_cols",
+      "provenance": "the rhs grouping-column reader; its contribution to GROUP BY is the SELECT sub-columns the query renders (problem statement's select_fields debug output: [0..6] field-less vs [0] normalised)",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real clear_select_clause leaves has_select_fields False",
+      "encoded_property": "afterwards not q.has_fields; preserves q.pk_col and q.default_cols (touches only the select/mask facet)",
+      "kind": "A-consumed",
+      "models": "Query.clear_select_clause (django/db/models/sql/query.py:1861)",
+      "name": "clear_output_columns",
+      "provenance": "clears self.select and the extra/annotation select masks; afterwards has_select_fields is False",
+      "purity": "@ContractOnly (state-mutating; not @Pure, not used inside Ensures)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real add_fields(['pk']) sets has_select_fields True and the query then renders exactly one SELECT column (the pk)",
+      "encoded_property": "afterwards q.has_fields AND q.explicit_cols == PSeq(q.pk_col) (the chosen output columns become exactly the identity column); preserves q.pk_col and q.default_cols",
+      "kind": "A-consumed",
+      "models": "Query.add_fields(['pk']) (django/db/models/sql/query.py:1893)",
+      "name": "add_identity_column",
+      "provenance": "resolves the pk field name and set_select()s the single column; afterwards has_select_fields is True; mirrors the identical normalisation in In.process_rhs (lookups.py:406-408)",
+      "purity": "@ContractOnly (state-mutating; not @Pure, not used inside Ensures)"
+    }
+  ],
+  "base_commit": "06fd4df41afb5aa1d681b853c3c08d8c688ca3a5",
+  "changed_files": [
+    "django/db/models/lookups.py"
+  ],
+  "deep_model_references": [],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:33:28+00:00",
+      "code_version": "898696377-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: nested_group_by_cols / clear_output_columns / add_identity_column axioms sound against the real Query callees over 55 observations (field-less => 7 cols; normalised => 1 pk col; explicit-fields => exactly the chosen columns: values('pk')=>1, values('name')=>1 non-pk, values('id','name')=>2).",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "ffb846ddb7b0b4a58a59937c98b3df98d1df72b2506af4539283afb5412887de",
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:33:51+00:00",
+      "code_version": "898696377-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100529,
+          "disagreements": 0,
+          "seed": 14351,
+          "shadow": "direct (contract-stripped impl region; @ContractOnly callees delegated to the real Query primitives)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100529, \"disagreements\": 0, \"seed\": 14351, \"shadow\": \"direct (contract-stripped impl region; @ContractOnly callees delegated to the real Query primitives)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "a1179d045e4b85a555507aca896b0ddefde8e7aef4c77b4425f122e457dd03c4",
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T14:06:36+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c",
+        "model_prepatch.py": "791dec4b6528dadd8adf1b7aad945b0bf02cf8a10d5b92466202fa179b4242a6"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-12T08:12:20+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "model": "global.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 8 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "eq: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1_prepatch.py`, `atk_4_echo_fabricate.py`, `atk_5_gratuitous.py`, `atk_6_uncond.py`, `atk_7_offbyone.py`, `atk_8_clearonly.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_2_skipclear.py`, `atk_3_directassign.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T14:07:25+00:00",
+      "code_version": "b8d87ea4e-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c",
+        "model_prepatch.py": "791dec4b6528dadd8adf1b7aad945b0bf02cf8a10d5b92466202fa179b4242a6"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:33:23+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "76db3a43ecb615f134f2d4916cd4f06bd9c690abb96007ccf512d04344d758fd",
+          "impl": "9f47d5da0bed56334afcfdd446a08e4a211cb895ba612b0e6aefa54a9a8e5c63",
+          "invariants": "96e4cda887f0489a87b1fd70c6f14be9b9e1b3e1a4cc787ea375322e240109d4",
+          "post-conditions": "53748b68c198925a6732707022b39576d1fc0ada8377dbc7662549861fc27e74",
+          "pre-conditions": "aeff3174d4b01e449b8b51ab2bf81e0ac6491f599882972916449c6cbf89af47",
+          "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+          "spec_view": "9ef9ec525160521eb460ff4e2c13539cd8db276c992e06c694d08ead05635718"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:33:23+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "d10e4f2cc099cd5dc0b73775089dcb5ab91982316556ac31031a4f50199d1eda",
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:33:24+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:23:34+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "judged": 7,
+        "killed": 7,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 7,
+        "unjudged": []
+      },
+      "detail": "killed 7/7 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-12T08:12:22+00:00",
+      "code_version": "4d427d69-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Faithfulness (spec-too-strong / drift) audit for django__django-14351 nagini bundle. VERDICT: FAITHFUL \u2014 no input where the modeled function disagrees with the real callee.\n\nEvidence:\n1. Model VERIFIES under pinned Nagini (scripts/nagini_verify.sh: 'Verification successful', 16.48s). Since membership_group_by_cols's impl mirrors the gold In.get_group_by_cols op-for-op (refinement.md steps 1-8), gold satisfies every postcondition => spec is NOT too strong for gold.\n2. same-spec on the model itself returns SAME (exit 0): the spec region is exactly the bundle's.\n3. axiom_check.py run AGAINST THE REAL REPO at base_commit 06fd4df4 (django 4.0.dev20210608, PYTHONPATH=$SCRATCH) passes with 55 observations: field-less query => 7 default cols; after clear_select_clause()+add_fields(['pk']) => exactly 1 pk col; explicit shapes values('name')=>1 NON-pk col, values('id','name')=>2 cols, values('pk')=>1 col. This validates all three A-consumed axioms (nested_group_by_cols, clear_output_columns, add_identity_column) against the actual Query callees.\n\nPostcondition-by-postcondition vs gold In.get_group_by_cols (lookups.py, new override):\n- not rhs_is_query => result == lhs_cols: gold returns self.lhs.get_group_by_cols() (no hasattr). Faithful.\n- rhs_is_query & Old(has_fields) => lhs + Old(explicit_cols): gold skips normalisation, extends with the reader's own chosen columns. Correctly GROUNDED in explicit_cols (not over-claimed to pk; axiom_check exercises the falsifying values('name')/values('id','name') shapes that a too-strong has_fields=>PSeq(pk_col) reading would wrongly reject). Faithful, and notably NOT too strong.\n- rhs_is_query & not Old(has_fields) => lhs + PSeq(pk_col): gold normalises (clear+add pk) then reads => exactly 1 pk col (validated rendered select==1). Faithful.\n- produced-by post-state (has_fields & explicit_cols==PSeq(pk_col)) + frame clauses: gold mutates self.rhs ONLY inside the 'if not has_select_fields' guard; untouched otherwise. Exactly gold's write-footprint. Faithful.\n\nThe earlier over-strong revision (has_fields => PSeq(pk_col)) was already corrected to the grounded explicit_cols form; axiom_check actively falsifies the over-claim. No spec clause is stronger than the real behaviour on any Requires-satisfying input. FAITHFUL.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "global.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "Spec view = model.py (bundle.solution_src()). Lexical G-LEAK screen passes (rep.passed=True, no hard failures); meta records G-LEAK=pass, relaxed_leakage=None, no RELAXED_LEAKAGE.md (so no relaxed-deferral applies). Semantic judgment beyond public problem_statement (excluding hints_text): the model.py spec region uses only abstracted symbols (membership_group_by_cols, nested_group_by_cols, clear_output_columns, add_identity_column, NestedQuery, has_fields/explicit_cols/default_cols/pk_col) and contains NONE of the repo-specific gold tokens (get_group_by_cols, clear_select_clause, add_fields(['pk']), has_select_fields, the In lookup, lookups.py). The discriminating behavior it pins \u2014 a field-less nested query contributes EXACTLY ONE column (its identity/pk column) rather than its full default column set, while an already-explicit query is left untouched and contributes its own columns \u2014 is already fully disclosed in the PUBLIC problem_statement, which describes the 'subquery must return only one column' error, the all-columns-vs-one-id contrast between agent__property_groups__in and agent__property_groups__id__in, and even a hack fix collapsing cols to a single column. The produced-by (anti-fabrication) and frame (anti-gratuitous-mutation) postconditions strengthen the spec against echo/mutation rivals but remain abstract behavioral constraints; they do not name gold callees or reveal an implementation path unavailable from the public statement. No spec-view line reveals the gold edit beyond problem_statement.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 8 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Faithfulness (spec-too-strong / drift) audit for django__django-14351 nagini bundle. VERDICT: FAITHFUL \u2014 no input where the modeled function disagrees with the real callee.\n\nEvidence:\n1. Model VERIFIES under pinned Nagini (scripts/nagini_verify.sh: 'Verification successful', 16.48s). Since membership_group_by_cols's impl mirrors the gold In.get_group_by_cols op-for-op (refinement.md steps 1-8), gold satisfies every postcondition => spec is NOT too strong for gold.\n2. same-spec on the model itself returns SAME (exit 0): the spec region is exactly the bundle's.\n3. axiom_check.py run AGAINST THE REAL REPO at base_commit 06fd4df4 (django 4.0.dev20210608, PYTHONPATH=$SCRATCH) passes with 55 observations: field-less query => 7 default cols; after clear_select_clause()+add_fields(['pk']) => exactly 1 pk col; explicit shapes values('name')=>1 NON-pk col, values('id','name')=>2 cols, values('pk')=>1 col. This validates all three A-consumed axioms (nested_group_by_cols, clear_output_columns, add_identity_column) against the actual Query callees.\n\nPostcondition-by-postcondition vs gold In.get_group_by_cols (lookups.py, new override):\n- not rhs_is_query => result == lhs_cols: gold returns self.lhs.get_group_by_cols() (no hasattr). Faithful.\n- rhs_is_query & Old(has_fields) => lhs + Old(explicit_cols): gold skips normalisation, extends with the reader's own chosen columns. Correctly GROUNDED in explicit_cols (not over-claimed to pk; axiom_check exercises the falsifying values('name')/values('id','name') shapes that a too-strong has_fields=>PSeq(pk_col) reading would wrongly reject). Faithful, and notably NOT too strong.\n- rhs_is_query & not Old(has_fields) => lhs + PSeq(pk_col): gold normalises (clear+add pk) then reads => exactly 1 pk col (validated rendered select==1). Faithful.\n- produced-by post-state (has_fields & explicit_cols==PSeq(pk_col)) + frame clauses: gold mutates self.rhs ONLY inside the 'if not has_select_fields' guard; untouched otherwise. Exactly gold's write-footprint. Faithful.\n\nThe earlier over-strong revision (has_fields => PSeq(pk_col)) was already corrected to the grounded explicit_cols form; axiom_check actively falsifies the over-claim. No spec clause is stronger than the real behaviour on any Requires-satisfying input. FAITHFUL.; G-PANEL-3 (leakage): pass \u2014 Spec view = model.py (bundle.solution_src()). Lexical G-LEAK screen passes (rep.passed=True, no hard failures); meta records G-LEAK=pass, relaxed_leakage=None, no RELAXED_LEAKAGE.md (so no relaxed-deferral applies). Semantic judgment beyond public problem_statement (excluding hints_text): the model.py spec region uses only abstracted symbols (membership_group_by_cols, nested_group_by_cols, clear_output_columns, add_identity_column, NestedQuery, has_fields/explicit_cols/default_cols/pk_col) and contains NONE of the repo-specific gold tokens (get_group_by_cols, clear_select_clause, add_fields(['pk']), has_select_fields, the In lookup, lookups.py). The discriminating behavior it pins \u2014 a field-less nested query contributes EXACTLY ONE column (its identity/pk column) rather than its full default column set, while an already-explicit query is left untouched and contributes its own columns \u2014 is already fully disclosed in the PUBLIC problem_statement, which describes the 'subquery must return only one column' error, the all-columns-vs-one-id contrast between agent__property_groups__in and agent__property_groups__id__in, and even a hack fix collapsing cols to a single column. The produced-by (anti-fabrication) and frame (anti-gratuitous-mutation) postconditions strengthen the spec against echo/mutation rivals but remain abstract behavioral constraints; they do not name gold callees or reveal an implementation path unavailable from the public statement. No spec-view line reveals the gold edit beyond problem_statement.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "panel_1: 8 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 8 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 6 | `atk_1_prepatch.py`, `atk_4_echo_fabricate.py`, `atk_5_gratuitous.py`, `atk_6_uncond.py`, `atk_7_offbyone.py`, `atk_8_clearonly.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 2 | `atk_2_skipclear.py`, `atk_3_directassign.py` |\n\n**Non-vacuity.** The positive control `positive_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Faithfulness (spec-too-strong / drift) audit for django__django-14351 nagini bundle. VERDICT: FAITHFUL \u2014 no input where the modeled function disagrees with the real callee.\n\nEvidence:\n1. Model VERIFIES under pinned Nagini (scripts/nagini_verify.sh: 'Verification successful', 16.48s). Since membership_group_by_cols's impl mirrors the gold In.get_group_by_cols op-for-op (refinement.md steps 1-8), gold satisfies every postcondition => spec is NOT too strong for gold.\n2. same-spec on the model itself returns SAME (exit 0): the spec region is exactly the bundle's.\n3. axiom_check.py run AGAINST THE REAL REPO at base_commit 06fd4df4 (django 4.0.dev20210608, PYTHONPATH=$SCRATCH) passes with 55 observations: field-less query => 7 default cols; after clear_select_clause()+add_fields(['pk']) => exactly 1 pk col; explicit shapes values('name')=>1 NON-pk col, values('id','name')=>2 cols, values('pk')=>1 col. This validates all three A-consumed axioms (nested_group_by_cols, clear_output_columns, add_identity_column) against the actual Query callees.\n\nPostcondition-by-postcondition vs gold In.get_group_by_cols (lookups.py, new override):\n- not rhs_is_query => result == lhs_cols: gold returns self.lhs.get_group_by_cols() (no hasattr). Faithful.\n- rhs_is_query & Old(has_fields) => lhs + Old(explicit_cols): gold skips normalisation, extends with the reader's own chosen columns. Correctly GROUNDED in explicit_cols (not over-claimed to pk; axiom_check exercises the falsifying values('name')/values('id','name') shapes that a too-strong has_fields=>PSeq(pk_col) reading would wrongly reject). Faithful, and notably NOT too strong.\n- rhs_is_query & not Old(has_fields) => lhs + PSeq(pk_col): gold normalises (clear+add pk) then reads => exactly 1 pk col (validated rendered select==1). Faithful.\n- produced-by post-state (has_fields & explicit_cols==PSeq(pk_col)) + frame clauses: gold mutates self.rhs ONLY inside the 'if not has_select_fields' guard; untouched otherwise. Exactly gold's write-footprint. Faithful.\n\nThe earlier over-strong revision (has_fields => PSeq(pk_col)) was already corrected to the grounded explicit_cols form; axiom_check actively falsifies the over-claim. No spec clause is stronger than the real behaviour on any Requires-satisfying input. FAITHFUL.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `axiom_check.py`, `refinement.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "global.anthropic.claude-opus-4-8",
+      "note": "Spec view = model.py (bundle.solution_src()). Lexical G-LEAK screen passes (rep.passed=True, no hard failures); meta records G-LEAK=pass, relaxed_leakage=None, no RELAXED_LEAKAGE.md (so no relaxed-deferral applies). Semantic judgment beyond public problem_statement (excluding hints_text): the model.py spec region uses only abstracted symbols (membership_group_by_cols, nested_group_by_cols, clear_output_columns, add_identity_column, NestedQuery, has_fields/explicit_cols/default_cols/pk_col) and contains NONE of the repo-specific gold tokens (get_group_by_cols, clear_select_clause, add_fields(['pk']), has_select_fields, the In lookup, lookups.py).\n\nThe discriminating behavior it pins \u2014 a field-less nested query contributes EXACTLY ONE column (its identity/pk column) rather than its full default column set, while an already-explicit query is left untouched and contributes its own columns \u2014 is already fully disclosed in the PUBLIC problem_statement, which describes the 'subquery must return only one column' error, the all-columns-vs-one-id contrast between agent__property_groups__in and agent__property_groups__id__in, and even a hack fix collapsing cols to a single column.\n\nThe produced-by (anti-fabrication) and frame (anti-gratuitous-mutation) postconditions strengthen the spec against echo/mutation rivals but remain abstract behavioral constraints; they do not name gold callees or reveal an implementation path unavailable from the public statement. No spec-view line reveals the gold edit beyond problem_statement.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, which ships in this bundle, so a reader can start there.",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T16:40:29+00:00",
+      "code_version": "f5ec966db-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-local-reshape",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.0
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-fieldless-shaped",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 26.1
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-lhs-cols",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 40.6
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-rhs-default-cols",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 28.6
+          },
+          {
+            "expect": "reject",
+            "id": "echo-fabricate-pk-no-normalise",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 34.9
+          },
+          {
+            "expect": "reject",
+            "id": "uncond-normalise-explicit-rhs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 27.9
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-drop-lhs-literal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.6
+          },
+          {
+            "expect": "reject",
+            "id": "gratuitous-normalise-explicit-after-result",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 25.3
+          },
+          {
+            "expect": "reject",
+            "id": "gratuitous-normalise-literal-rhs",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 24.4
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 7
+        },
+        "manifest_sha256": "4715954a5b2a03bada8d35750c5ea5e6c67d644836e7b3bb60d53c0ee329a18b",
+        "n_cases": 9,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 9 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c",
+        "properties.py": "4715954a5b2a03bada8d35750c5ea5e6c67d644836e7b3bb60d53c0ee329a18b"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-08-05T11:37:51+00:00",
+      "code_version": "931662cf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:23:54+00:00",
+      "code_version": "44c9f747d-dirty",
+      "data": {
+        "wall_time_s": 19.6
+      },
+      "detail": "verified in 19.6s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "6c5b0864632c6820dc1d8b76352ad94ead98ec9d60dad6292ce763b77a649f6c"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-14351",
+  "modeled_functions": [
+    {
+      "carrier_type": "list of grouping Col objects -> List[int] of opaque column identifiers; the nested-query rhs -> a minimal NestedQuery object (has_fields, default_cols: PSeq[int], explicit_cols: PSeq[int], pk_col); the rhs grouping-column contribution is abstracted as the sequence of SELECT sub-columns it renders (explicit_cols when it has explicit output columns, default_cols otherwise)",
+      "model_symbol": "membership_group_by_cols",
+      "repo_location": "django/db/models/lookups.py (new override on the In lookup, inserted after In.process_rhs at line 408; In class at line 376)",
+      "repo_symbol": "django.db.models.lookups.In.get_group_by_cols",
+      "role": "modeled changed function: the GROUP-BY-columns reader of the IN lookup (a new override; pre-patch In inherited the un-normalising base Lookup.get_group_by_cols at lookups.py:117)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit; verified end-to-end: pre-patch a field-less IN-subquery renders 4 GROUP BY sub-columns, post-patch exactly 1)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition (rhs_is_query and not Old(rhs.has_fields)) => ToSeq(Result()) == ToSeq(lhs_cols) + PSeq(rhs.pk_col) (a field-less subquery appends its full default_cols, not the single pk)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "In.get_group_by_cols field-less subquery normalisation",
+      "reverted_to": "the inherited base Lookup.get_group_by_cols: extends cols with self.rhs.get_group_by_cols() WITHOUT first clearing/adding-pk on a field-less subquery"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "852e8511e396576b1076ee4e5bb1e165787b0f110ed9fa6b88c862605fb8da4d",
+    "impl": "42b7c2a2552f2d2d3341bc7e919164a6a29dfd52b12bd23fed231ba440317e24",
+    "invariants": "96fa9f6a863910d14369a2cc149ce47723e6deabaa7d341ce25258779d39c80b",
+    "post-conditions": "693b8b8c957e1e14463e8f09a2932ebe235ca7ef38fd2ad8e9b373a57b60c3cd",
+    "pre-conditions": "865f126ae1e7886aedd1780136844fdf9eea41f9e6179e844c6a5965223d8c79",
+    "pure": "8948a17a99fa5e5654cdabe8b98c6b5e08519c2d9fad2e5b9af2bb447f98f906",
+    "spec_view": "26ac417383ef0c6edefcc938f2dfa981346c243b1da9896efc90565843913b7e"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "none; columns modeled as opaque int identifiers carried by List[int]/PSeq[int]. The rhs nested query modeled as a minimal mutable NestedQuery (has_fields: bool, default_cols: PSeq[int], explicit_cols: PSeq[int], pk_col: int).",
+  "version": "4.0"
+}

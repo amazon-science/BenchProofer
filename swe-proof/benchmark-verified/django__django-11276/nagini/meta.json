@@ -1,0 +1,415 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "kind-A callee replacement; modeled by the entity_decode axiom and the escape/decode round-trip postcondition clauses; soundness via G-AX",
+      "repo_location": "django/utils/html.py:262-269 (removed), 295/332/334 (call sites)",
+      "repo_symbol": "django.utils.html.urlize.unescape -> html.unescape"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real html.unescape on all 6 tokens + round-trip witnesses",
+      "encoded_property": "inverts the six relied-on entity tokens: &amp;->&, &lt;-><, &gt;->>, &quot;->\\\", &#x27;->', &#39;->' (weakest sufficient contract; not the full HTML5 decoder)",
+      "models": "html.unescape (CPython stdlib)",
+      "name": "entity_decode",
+      "provenance": "Lib/html/__init__.py unescape(): _charref.sub(_replace_charref, s), HTML5 rules; docs.python.org/3/library/html.html#html.unescape",
+      "purity": "@Pure @ContractOnly (used inside Ensures)"
+    }
+  ],
+  "base_commit": "28d5262fa3315690395f04e3619ed554dbaf725b",
+  "changed_files": [
+    "django/utils/html.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): asserts escaped_seq == real html.escape on 23 boundary + 20000 fuzz inputs",
+      "encoded_property": "escaped_seq(s): per-code-point substitution & -> &amp;, < -> &lt;, > -> &gt;, \\\" -> &quot;, ' -> &#x27; (U+0027 -> PSeq(38,35,120,50,55,59)), else identity; ampersand-first so emitted '&' are not re-escaped",
+      "kind": "A-reference",
+      "models": "html.escape (CPython stdlib, quote=True default)",
+      "name": "escaped_seq",
+      "provenance": "Lib/html/__init__.py escape(): .replace chain, '&' first, ' -> &#x27;; docs.python.org/3/library/html.html#html.escape",
+      "role": "deep model (pure region) of the changed escape operation; NOT a consumed axiom \u2014 there is no escape_html @ContractOnly axiom"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T15:06:56+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: escaped_seq deep model (== html.escape) + entity_decode axiom sound on 23 boundary + 20000 fuzz escape inputs and 6 decode tokens",
+      "gate": "G-AX",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "38bf92e73f3f7a1035e9a8060356e46f6cc94b6cb172acefcb7cb93f83f6e155",
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T15:07:02+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100226,
+          "disagreements": 0,
+          "seed": 11276,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100226, \"disagreements\": 0, \"seed\": 11276, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "56a80c6773539c5132102a0032e9774ce9bfe65fdb7b4a88259311cc2469c17d",
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T15:27:34+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d",
+        "model_prepatch.py": "3300acfc8554900192651808b1569f43626f235626f2e227b8551a9caff9fd03"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-13T11:36:09+00:00",
+      "code_version": "225c97759-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-4-8",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 6 attacks re-run, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "eq: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk1.py`, `atk2.py`, `atk3.py`, `atk5.py`, `atk6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk4.py` |\n\n**Non-vacuity.** The positive control `pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T15:28:38+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d",
+        "model_prepatch.py": "3300acfc8554900192651808b1569f43626f235626f2e227b8551a9caff9fd03"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T15:06:46+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "b3bfef12c156fd50afe57ac572244739678595d8adf8e4044ebc5d00e1194216",
+          "impl": "7b1a75243a9b529cec4f8283339f2b39b3a50bdb3dd7c3f243e94ccdf4a7a7d0",
+          "invariants": "b026baa05bbb465dfd0df65a0d86849c0818e73ef2f090f2ddb145f4b32e202a",
+          "post-conditions": "d6f8b054a30f0b6b3fe9eb8f52b19e09f1773dec405633725371c0cae612d667",
+          "pre-conditions": "1088426c959f1c2d4a45dcdcd8c018ac29e4ee7c4616c99ea242e8e1d410c16e",
+          "pure": "8f87b86bc567cb65c3b452fc702a770bbe287ceae77ad003e6f175d98c13239f",
+          "spec_view": "6778ea0357a5cfe2152fc14ed234056618f0a613a4c5e6455f9c03abf67e1518"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T15:06:47+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "faadb71ec89a3c1afca54e572e3e4297ca0453c5844ef6ee68507e7126644ddc",
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T15:06:48+00:00",
+      "code_version": "42c4c3437-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-16T06:59:13+00:00",
+      "code_version": "99bc34e91-dirty",
+      "data": {
+        "judged": 20,
+        "killed": 20,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 20,
+        "unjudged": []
+      },
+      "detail": "killed 20/20 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "d6ce22ea0483",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-13T11:36:10+00:00",
+      "code_version": "225c97759-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "Spec region byte-identical (same-spec verified via nagini_verify pass on frozen bundle model.py). Faithfulness of the two modeled callees confirmed by independent differential execution against the real stdlib: (1) deep model escaped_seq/entity vs REAL html.escape(quote=True) \u2014 exhaustive over every Unicode code point 0..0x10FFFF (excluding surrogates) plus 200,000 multi-char fuzz strings across the full range => 0 divergences; the per-code-point substitution (&->&amp;, <->&lt;, >->&gt;, \"->&quot;, '->&#x27;, else identity), ampersand-first, exactly equals html.escape. (2) entity_decode axiom is @Pure @ContractOnly with implications for only the six emitted/legacy tokens (&amp;,&lt;,&gt;,&quot;,&#x27;,&#39;), i.e. a WEAKEST contract that cannot be too strong; all six match REAL html.unescape. No modeled function disagrees with the real repo callee on any input. model.py verifies in 13s. G-AX independently passes. NOTE: the recorded G-EQ=fail is a spec-TOO-WEAK verify-not-correct verdict (role 1 concern), not a faithfulness/drift/too-strong defect \u2014 orthogonal to this gate.",
+            "gate": "G-PANEL-2",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-4-8",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "G-LEAK lexical screen passes clean (leakage.screen: hard_failures=[], passed=True). Verified semantically against problem_statement ONLY (not hints_text).\n\nGold patch touches django/utils/html.py at two sites: (A) escape() body `mark_safe(str(text).translate(_html_escapes))` -> `mark_safe(html.escape(str(text)))`, dropping the local _html_escapes dict (' -> &#39;); (B) urlize's local `unescape` helper replaced by `html.unescape`. Changed def/class symbols: {escape, unescape, trim_url, trim_punctuation, is_email_simple}.\n\nSpec-view leakage checks all clear:\n- No gold-diff line reproduced: 'unescape', 'html.py', 'translate', '_html_escapes', 'mark_safe' are all ABSENT from the spec view.\n- No patched file path / module path present.\n- No patched repo symbol echoed in a localizing spec-view identifier: model uses abstracted names (escape_codepoints, entity_decode, escaped_seq, entity, seq_*). None embeds 'unescape'/'escape'(as def)/'trim_*'.\n- No bug/fix/patch narration in comments/docstrings.\n\nThe single discriminating behavioural fact \u2014 apostrophe U+0027 -> `&#x27;` rather than `&#39;` \u2014 is EXPLICITLY PUBLIC in the problem_statement ('html.escape() converts ' to &#x27 rather than &#39'). Stating it in the spec is not a leak.\n\nThe site-B round-trip clause (spec view line 12/21: 'community entity decoder used when re-deriving a raw URL' / 'the urlize decoder') is NOT in the problem_statement, but it is expressed as an abstract BEHAVIOURAL invariant over an axiomatized callee (entity_decode), not as the edit: it quotes no diff line, names no file, and 'urlize' is a general Django feature name, not a patched def/class symbol the leak policy screens. It describes the required inverse property, not 'replace urlize's local unescape with stdlib html.unescape'. This does not reconstruct the gold edit beyond the public problem statement.\n\nConclusion: the spec view reveals a faithful behavioural specification whose only gold-discriminating content is already public; nothing localizes or reproduces the edit.",
+            "gate": "G-PANEL-3",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 6 attacks re-run, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 Spec region byte-identical (same-spec verified via nagini_verify pass on frozen bundle model.py). Faithfulness of the two modeled callees confirmed by independent differential execution against the real stdlib: (1) deep model escaped_seq/entity vs REAL html.escape(quote=True) \u2014 exhaustive over every Unicode code point 0..0x10FFFF (excluding surrogates) plus 200,000 multi-char fuzz strings across the full range => 0 divergences; the per-code-point substitution (&->&amp;, <->&lt;, >->&gt;, \"->&quot;, '->&#x27;, else identity), ampersand-first, exactly equals html.escape. (2) entity_decode axiom is @Pure @ContractOnly with implications for only the six emitted/legacy tokens (&amp;,&lt;,&gt;,&quot;,&#x27;,&#39;), i.e. a WEAKEST contract that cannot be too strong; all six match REAL html.unescape. No modeled function disagrees with the real repo callee on any input. model.py verifies in 13s. G-AX independently passes. NOTE: the recorded G-EQ=fail is a spec-TOO-WEAK verify-not-correct verdict (role 1 concern), not a faithfulness/drift/too-strong defect \u2014 orthogonal to this gate.; G-PANEL-3 (leakage): pass \u2014 G-LEAK lexical screen passes clean (leakage.screen: hard_failures=[], passed=True). Verified semantically against problem_statement ONLY (not hints_text).\n\nGold patch touches django/utils/html.py at two sites: (A) escape() body `mark_safe(str(text).translate(_html_escapes))` -> `mark_safe(html.escape(str(text)))`, dropping the local _html_escapes dict (' -> &#39;); (B) urlize's local `unescape` helper replaced by `html.unescape`. Changed def/class symbols: {escape, unescape, trim_url, trim_punctuation, is_email_simple}.\n\nSpec-view leakage checks all clear:\n- No gold-diff line reproduced: 'unescape', 'html.py', 'translate', '_html_escapes', 'mark_safe' are all ABSENT from the spec view.\n- No patched file path / module path present.\n- No patched repo symbol echoed in a localizing spec-view identifier: model uses abstracted names (escape_codepoints, entity_decode, escaped_seq, entity, seq_*). None embeds 'unescape'/'escape'(as def)/'trim_*'.\n- No bug/fix/patch narration in comments/docstrings.\n\nThe single discriminating behavioural fact \u2014 apostrophe U+0027 -> `&#x27;` rather than `&#39;` \u2014 is EXPLICITLY PUBLIC in the problem_statement ('html.escape() converts ' to &#x27 rather than &#39'). Stating it in the spec is not a leak.\n\nThe site-B round-trip clause (spec view line 12/21: 'community entity decoder used when re-deriving a raw URL' / 'the urlize decoder') is NOT in the problem_statement, but it is expressed as an abstract BEHAVIOURAL invariant over an axiomatized callee (entity_decode), not as the edit: it quotes no diff line, names no file, and 'urlize' is a general Django feature name, not a patched def/class symbol the leak policy screens. It describes the required inverse property, not 'replace urlize's local unescape with stdlib html.unescape'. This does not reconstruct the gold edit beyond the public problem statement.\n\nConclusion: the spec view reveals a faithful behavioural specification whose only gold-discriminating content is already public; nothing localizes or reproduces the edit.",
+      "gate": "G-PANEL",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "panel_1: 6 attacks re-run, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 6 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 5 | `atk1.py`, `atk2.py`, `atk3.py`, `atk5.py`, `atk6.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 1 | `atk4.py` |\n\n**Non-vacuity.** The positive control `pc.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "Spec region byte-identical (same-spec verified via nagini_verify pass on frozen bundle model.py). Faithfulness of the two modeled callees confirmed by independent differential execution against the real stdlib: (1) deep model escaped_seq/entity vs REAL html.escape(quote=True) \u2014 exhaustive over every Unicode code point 0..0x10FFFF (excluding surrogates) plus 200,000 multi-char fuzz strings across the full range => 0 divergences; the per-code-point substitution (&->&amp;, <->&lt;, >->&gt;, \"->&quot;, '->&#x27;, else identity), ampersand-first, exactly equals html.escape. (2) entity_decode axiom is @Pure @ContractOnly with implications for only the six emitted/legacy tokens (&amp;,&lt;,&gt;,&quot;,&#x27;,&#39;), i.e. a WEAKEST contract that cannot be too strong; all six match REAL html.unescape. No modeled function disagrees with the real repo callee on any input. model.py verifies in 13s. G-AX independently passes. NOTE: the recorded G-EQ=fail is a spec-TOO-WEAK verify-not-correct verdict (role 1 concern), not a faithfulness/drift/too-strong defect \u2014 orthogonal to this gate.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, which ships in this bundle, so a reader can start there.\n",
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "model": "us.anthropic.claude-opus-4-8",
+      "note": "G-LEAK lexical screen passes clean (leakage.screen: hard_failures=[], passed=True). Verified semantically against problem_statement ONLY (not hints_text).\n\nGold patch touches django/utils/html.py at two sites: (A) escape() body `mark_safe(str(text).translate(_html_escapes))` -> `mark_safe(html.escape(str(text)))`, dropping the local _html_escapes dict (' -> &#39;); (B) urlize's local `unescape` helper replaced by `html.unescape`. Changed def/class symbols: {escape, unescape, trim_url, trim_punctuation, is_email_simple}.\n\nSpec-view leakage checks all clear:\n- No gold-diff line reproduced: 'unescape', 'html.py', 'translate', '_html_escapes', 'mark_safe' are all ABSENT from the spec view.\n- No patched file path / module path present.\n- No patched repo symbol echoed in a localizing spec-view identifier: model uses abstracted names (escape_codepoints, entity_decode, escaped_seq, entity, seq_*). None embeds 'unescape'/'escape'(as def)/'trim_*'.\n- No bug/fix/patch narration in comments/docstrings.\n\nThe single discriminating behavioural fact \u2014 apostrophe U+0027 -> `&#x27;` rather than `&#39;` \u2014 is EXPLICITLY PUBLIC in the problem_statement ('html.escape() converts ' to &#x27 rather than &#39'). Stating it in the spec is not a leak.\n\nThe site-B round-trip clause (spec view line 12/21: 'community entity decoder used when re-deriving a raw URL' / 'the urlize decoder') is NOT in the problem_statement, but it is expressed as an abstract BEHAVIOURAL invariant over an axiomatized callee (entity_decode), not as the edit: it quotes no diff line, names no file, and 'urlize' is a general Django feature name, not a patched def/class symbol the leak policy screens. It describes the required inverse property, not 'replace urlize's local unescape with stdlib html.unescape'. This does not reconstruct the gold edit beyond the public problem statement.\n\nConclusion: the spec view reveals a faithful behavioural specification whose only gold-discriminating content is already public; nothing localizes or reproduces the edit.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view).\n",
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T12:59:17+00:00",
+      "code_version": "6ff18467c-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-control-reordered",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.6
+          },
+          {
+            "expect": "verify",
+            "id": "pos-control-seg-local",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 29.4
+          },
+          {
+            "expect": "verify",
+            "id": "echo-attempt-honest",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 30.7
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-significant-input",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 31.7
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mutate-text",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 31.1
+          },
+          {
+            "expect": "reject",
+            "id": "partial-domain-apos-first",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 35.6
+          },
+          {
+            "expect": "reject",
+            "id": "rival-apos-decimal",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.3
+          },
+          {
+            "expect": "reject",
+            "id": "rival-drop-quot",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 29.7
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 3,
+          "uniqueness": 4
+        },
+        "manifest_sha256": "72bef6ae1d567a036db630bf069848838c648b70370e7f8dc645b48879fad526",
+        "n_cases": 8,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 8 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d",
+        "properties.py": "72bef6ae1d567a036db630bf069848838c648b70370e7f8dc645b48879fad526"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T09:13:31+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-16T15:26:59+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "wall_time_s": 36.4
+      },
+      "detail": "verified in 36.4s",
+      "gate": "G-VERIFY",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "fa68c210d28b30eb755e06b8844bfbd7e0371b8848e08704225bcf728ddfa12d"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-11276",
+  "modeled_functions": [
+    {
+      "carrier_type": "str -> List[int] of Unicode code points; specification over PSeq[int]",
+      "model_symbol": "escape_codepoints",
+      "repo_location": "django/utils/html.py:37",
+      "repo_symbol": "django.utils.html.escape",
+      "role": "modeled changed function (HTML escaper); single contracted+implemented function (markers are module-level singletons)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition ToSeq(Result()) == escaped_seq(ToSeq(text)) (loop invariant on the apostrophe branch)",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "escape() apostrophe mapping",
+      "reverted_to": "old str.translate(_html_escapes) with ' -> &#39; ([38,35,51,57,59])"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "b3bfef12c156fd50afe57ac572244739678595d8adf8e4044ebc5d00e1194216",
+    "impl": "4066f9c3d6afbe93b7a6fee9ab5c14fc770bca46b16a9c46403b117f89f75846",
+    "invariants": "1e3a7917855a4e8218eb036629375f57ae9ae3411adbac4b73532fdafbba5a47",
+    "post-conditions": "d6f8b054a30f0b6b3fe9eb8f52b19e09f1773dec405633725371c0cae612d667",
+    "pre-conditions": "d75f888b35d28b6f2ebe9ea87021e4c2701cd886194f04fba50734f2856db78b",
+    "pure": "8f87b86bc567cb65c3b452fc702a770bbe287ceae77ad003e6f175d98c13239f",
+    "spec_view": "0977a18f656226a325dc94d107174751837ac4adc1af6ebd715d261b1cda43e4"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "List[int] of Unicode code points; specification carried by PSeq[int] via ToSeq; escape proven by a backward per-code-point fold (front-recursive escaped_seq gives a single unfold per step)",
+  "version": "3.0"
+}

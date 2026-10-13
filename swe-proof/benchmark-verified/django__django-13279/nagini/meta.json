@@ -1,0 +1,450 @@
+{
+  "additional_change_sites": [
+    {
+      "handling": "deep model: the legacy framing built inline in serialize's legacy branch as Frame(FMT_LEGACY, keyed_digest(payload), payload); fidelity validated by axiom_check.py (_legacy_decode(legacy_frame(d)) == d)",
+      "repo_location": "django/contrib/sessions/backends/base.py (added at the decode/_legacy_decode region)",
+      "repo_symbol": "django.contrib.sessions.backends.base.SessionBase._legacy_encode (added by the patch)"
+    },
+    {
+      "handling": "deep model legacy_read(tag, mac, payload); fidelity validated by axiom_check.py (G-AX) via the real round trip",
+      "repo_location": "django/contrib/sessions/backends/base.py:124-141",
+      "repo_symbol": "django.contrib.sessions.backends.base.SessionBase._legacy_decode (unchanged; the round-trip target)"
+    }
+  ],
+  "axioms": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real _hash deterministic and ':'-free over boundary samples",
+      "encoded_property": "deterministic function of its argument (equal payloads -> equal digests, implicit in @Pure); weakest sufficient contract Ensures(True). Relied-on side fact (handled by the structured Frame carrier, checked by G-AX): the hex digest contains no b':' separator",
+      "models": "SessionBase._hash -> salted_hmac(key_salt, value).hexdigest()",
+      "name": "keyed_digest",
+      "provenance": "base.py:104-107; django/utils/crypto.py salted_hmac",
+      "purity": "@Pure @ContractOnly (used inside Ensures via legacy_read)"
+    },
+    {
+      "checked_by": "axiom_check.py (G-AX): real signing.dumps output fed to _legacy_decode never returns the original record (raises or {}) on 2010 records",
+      "encoded_property": "its output is a modern frame, not a legacy frame: Result().tag == FMT_MODERN, so the legacy reader never recovers the payload from it (weakest sufficient contract; no internal structure claimed)",
+      "models": "signing.dumps(session_dict, salt=..., serializer=..., compress=True)",
+      "name": "modern_serialize",
+      "provenance": "base.py:111-114; django/core/signing.py:93",
+      "purity": "@ContractOnly (NOT @Pure; called only in the impl, never inside an Ensures)"
+    }
+  ],
+  "base_commit": "6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d",
+  "changed_files": [
+    "django/contrib/sessions/backends/base.py"
+  ],
+  "deep_model_references": [
+    {
+      "checked_by": "axiom_check.py (G-AX): real _legacy_decode(legacy_frame(d)) == d on 2010 boundary+fuzz records, plus the F2P sha1 encode->legacy_decode identity",
+      "encoded_property": "legacy_read(tag,mac,payload): accept iff tag==FMT_LEGACY and mac==keyed_digest(payload), return payload, else empty record; the legacy branch builds Frame(FMT_LEGACY, keyed_digest(payload), payload) so the round trip closes",
+      "kind": "deep model (NOT a consumed axiom)",
+      "models": "SessionBase._legacy_decode / _legacy_encode (Django, base.py)",
+      "name": "legacy_read / legacy-framing branch of serialize",
+      "provenance": "base.py:124-141 (_legacy_decode: b64decode, split(b':',1), constant_time_compare(hash, self._hash(serialized)), else {}); _legacy_encode: b64encode(self._hash(serialized).encode()+b':'+serialized)",
+      "role": "deep model of the legacy framing and reader; the changed behaviour (regime branch) is modeled deeply, not behind an axiom about the function under change"
+    }
+  ],
+  "float_encoding": null,
+  "gates": {
+    "G-AX": {
+      "checked_at": "2026-08-16T11:50:25+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "apply_gold": false,
+        "exit": 0
+      },
+      "detail": "G-AX OK: keyed_digest deterministic + ':'-free; modern frame not legacy ({} read-back) on 2010 records; legacy round trip identity AND modern (signing.loads) round trip identity on the same 2010 records; F2P branch not present on this tree (skipped)",
+      "gate": "G-AX",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "axiom_check.py": "024a9ce2d54b6aaf5bae6f9f486ba8bf8c2497d68b7941173b977f653c2b0c0f",
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-CONF": {
+      "checked_at": "2026-08-16T11:50:44+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "exit": 0,
+        "report": {
+          "checked": 100040,
+          "disagreements": 0,
+          "seed": 13279,
+          "shadow": "direct (contract-stripped impl region)"
+        },
+        "shadow_provenance": "direct"
+      },
+      "detail": "{\"checked\": 100040, \"disagreements\": 0, \"seed\": 13279, \"shadow\": \"direct (contract-stripped impl region)\"}",
+      "gate": "G-CONF",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "conformance_check.py": "ffa45fa6e6d6c65be6c43ef48a1f35804626cbfe03472b0bf61e49535de92907",
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-DIFF": {
+      "checked_at": "2026-08-16T13:52:48+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {
+        "variants": {
+          "model_prepatch.py": "verification failed"
+        }
+      },
+      "detail": "model_prepatch.py: verification failed",
+      "gate": "G-DIFF",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49",
+        "model_prepatch.py": "778463fc28ff1bf59c7157e30c18ef629f306b8fe8a75a022e0fb832de535206"
+      },
+      "status": "pass"
+    },
+    "G-EQ": {
+      "checked_at": "2026-08-15T11:53:03+00:00",
+      "code_version": "776e4c465-dirty",
+      "data": {
+        "model": "us.anthropic.claude-opus-5",
+        "recorded": true,
+        "recorded_as": "G-EQ"
+      },
+      "detail": "eq: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies",
+      "gate": "G-EQ",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "eq: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 21 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_14.py`, `atk_15.py`, `atk_19.py`, `atk_20.py`, `atk_0_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 6 | `atk_6.py`, `atk_8.py`, `atk_13.py`, `atk_16.py`, `atk_17.py`, `atk_18.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49",
+        "properties.py": "67fc98b6946ceeb300fdc6fe7246b042dbd33cda874fe1e80d81b882fc020c7e"
+      },
+      "status": "pass"
+    },
+    "G-GOLD": {
+      "checked_at": "2026-08-16T13:53:32+00:00",
+      "code_version": "c1ed2f768-dirty",
+      "data": {},
+      "detail": "gold-faithful impl verifies (model.py); prepatch(es) fail",
+      "gate": "G-GOLD",
+      "harness_digest": "987dad713899",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49",
+        "model_prepatch.py": "778463fc28ff1bf59c7157e30c18ef629f306b8fe8a75a022e0fb832de535206"
+      },
+      "status": "pass"
+    },
+    "G-HYGIENE": {
+      "checked_at": "2026-08-16T11:50:19+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "region_hashes": {
+          "axioms": "abf5c268ee722ab5ac3e1dfa774a67031faf8b1918813af7f4c4f020215e78dd",
+          "impl": "d0157646819130e72620b9eff6ab34ee394b6b85df3eca84269a583403f6aafc",
+          "post-conditions": "bb0604012b4168a21154d79dda3ae39c2d8a3c1a55ea770df8be9540a30eeca3",
+          "pre-conditions": "a12adeea99d0466f77f1ecd877e48872c68ebd155314ff3f43b5dafc53874152",
+          "pure": "7e1261f0ca04c8a2edb7b9f889f803136adeb0773615b6b3f33d75a40a14a151",
+          "spec_view": "30d3b7428170903335013efb56f905d0b0e80367542b7279f2f095206ecd5594"
+        }
+      },
+      "detail": "imports/markers/regions clean",
+      "gate": "G-HYGIENE",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-INTEGRITY": {
+      "checked_at": "2026-08-16T11:50:20+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {},
+      "detail": "instance.json byte-identical; additions-only",
+      "gate": "G-INTEGRITY",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "instance.json": "7573aa9c855d3e783b5e1f36bb82260098737aae6b3eb6926bdb07ddab110dc4",
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-LEAK": {
+      "checked_at": "2026-08-16T11:50:20+00:00",
+      "code_version": "5b2e8dd8a-dirty",
+      "data": {
+        "failures": []
+      },
+      "detail": "spec view clean",
+      "gate": "G-LEAK",
+      "harness_digest": "8a6ad48bc872",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-MUT": {
+      "checked_at": "2026-08-18T05:15:18+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "judged": 1,
+        "killed": 1,
+        "survivors": [],
+        "threshold": 0.8,
+        "total": 1,
+        "unjudged": []
+      },
+      "detail": "killed 1/1 (100%)",
+      "gate": "G-MUT",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-PANEL": {
+      "checked_at": "2026-08-15T11:53:04+00:00",
+      "code_version": "776e4c465-dirty",
+      "data": {
+        "roles": {
+          "G-PANEL-1": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-1"
+            },
+            "detail": "panel_1: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies",
+            "gate": "G-PANEL-1",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-2": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-2"
+            },
+            "detail": "REFERENCE SETUP. Base worktree: git worktree from repos/django_django.git at base_commit 6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d ->. Per instructions the modelled function's reference is that tree with the gold patch APPLIED, so I copied it to  and applied the gold patch (extracted from data/swe_bench_verified/test.jsonl; 'Applied patch ... cleanly'). Confirmed the patched tree has the regime branch (inspect.getsource(encode) contains DEFAULT_HASHING_ALGORITHM) and the base tree does not. Execution env: docker swebench/sweb.eval.x86_64.django_1776_django-13195 (py3.6, django 3.2 deps) with the worktree bind-mounted read-only on PYTHONPATH. No bundle file modified; all work in /tmp.\n\nNOTE ON BUNDLE FILES: patch.diff is NOT present in the bundle dir (meta.json carries only the string 'gold patch verbatim (applies cleanly at base_commit)'). I therefore reconstructed the gold patch from the SWE-bench Verified dataset and confirmed it applies cleanly at base_commit and matches the hunks quoted verbatim in refinement.md section A. Bundle-completeness bookkeeping only, not a spec defect.\n\nSPEC-REGION INTEGRITY. markers.region_hashes(model.py, nagini backend) computes axioms=abf5c268ee72..., pure=7e1261f0ca04..., pre-conditions=a12adeea99d0..., post-conditions=bb0604012b41..., impl=d015764681913..., spec_view=30d3b7428170.... These match meta.json gates['G-HYGIENE'].data.region_hashes EXACTLY (all six). The top-level meta['region_hashes'] block carries a DIFFERENT (stale) set (axioms=1f2e56a3..., pure=62126b5e..., post=afea9e27..., pre=a628205e..., spec_view=ffbe6f05...; only impl agrees) -- a bookkeeping inconsistency inside meta.json, not evidence of spec tampering, since the gate-recorded hashes reproduce bit-for-bit from the shipped model.py.\n\nPOSITIVE CONTROL. scripts/nagini_verify.sh on the shipped model.py: 'Verification successful' (23.84s, exit 0). The spec is live and the gold-faithful impl closes it.\n\nATTACK 1 -- octet-layer postcondition differential (the core faithfulness test). I re-implemented the model's alpha (b64decode -> split(b':',1) -> constant_time_compare against the freshly recomputed _hash) and the model's pure region (keyed_digest via the real _hash, empty_payload, legacy_read) at the OCTET layer, deliberately WITHOUT going through serializer().loads, so the comparison is against the model's actual claim rather than a dict-level paraphrase. Ran the real patched encode on 20,010 records (boundary: {}, colon-heavy, ':'*80, base64-shaped values, 5KB values, NUL, emoji/latin-1, empty-string; plus 20,000 seeded fuzz records over str/int/bool/None/list/dict/float values) under BOTH regimes. Results: B2 violations (legacy regime, legacy_read(encode(d)) != payload octets) = 0; modern-tag violations (a real modern wire accepted as a LEGACY frame) = 0; B3 violations (modern regime, modern reader != payload octets) = 0.\n\nATTACK 2 -- WIRE-EXACT legacy arm. Rebuilt the model's legacy frame from its impl region (b64encode(keyed_digest(p) + b':' + p)) and compared byte-for-byte against the real patched encode() output over 25,011 records (including 20KB values, ':'*200, base64-shaped payloads, int/bool/float-keyed dicts). 0 mismatches. The model's legacy arm is not merely round-trip-equivalent to the gold patch, it is wire-identical.\n\nATTACK 3 -- adversarial hunt for a modern wire that IS a legacy frame (would break the clause Result().tag == FMT_MODERN). 20,900 records engineered toward the failure mode: values made of pure base64 alphabet + ':' at every length 0-60, ':'-runs, b64-encoded byte blobs, 'YWJjOmRlZg==' repeats. 0 tag violations, 0 modern round-trip violations, 0 legacy wire-exact violations. Could not construct an input where the real patched encode violates any postcondition clause.\n\nATTACK 4 -- selector abstraction ('sha1' <-> ALGO_LEGACY, every other value <-> ALGO_MODERN). Exercised sha1/sha256/sha512/md5/nosuchalgo on the real patched tree. sha1 -> LEGACY frame, legacy round trip holds. sha256/sha512/md5 -> MODERN frame, modern round trip holds, legacy reader does not recover the record. So the model's two-valued int selector faithfully collapses the real string setting: the 'anything != sha1' arm really is uniform in the observable the spec constrains. ('nosuchalgo' raises InvalidAlgorithm inside salted_hmac before the branch is observable, and is rejected by django's own system check base.py:241 requiring sha1|sha256 -- outside the modelled domain, not a divergence.) Separately confirmed _hash/keyed_digest is INVARIANT under DEFAULT_HASHING_ALGORITHM (identical digest for all four values), so the legacy arm's digest genuinely is a function of the payload alone as the axiom claims -- the selector does not secretly leak into keyed_digest.\n\nATTACK 5 -- gate replication. Ran the bundle's own axiom_check.py and conformance_check.py against MY independently built patched tree (not the recorded environment). G-AX exit 0, and notably it reports 'F2P sha1 encode->legacy_decode identity verified' (the recorded meta run had SKIPPED that branch, 'F2P branch not present on this tree' -- so my run is strictly stronger than the recorded one and still passes). G-CONF exit 0: 100,040 inputs, 0 disagreements, legacy frames wire-exact. Both gates reproduce independently.\n\nATTACK 6 -- G-DIFF sanity (the base tree really does fail). Ran the literal F2P test body (data={'a test key':'a test value'}, sha1 regime, _legacy_decode(encode(data))==data) on the BASE tree: raises binascii.Error 'Incorrect padding' from _legacy_decode's b64decode -- i.e. the pre-patch encode's modern wire is not even a parseable legacy frame. On the patched tree: PASS. The spec's B2 clause is the discriminating one and it is not vacuous.\n\nDISCLOSED SLACK I EXAMINED AND REJECTED AS A DIVERGENCE (recording so the next panel need not redo it):\n(a) empty_payload() <-> {} vs. record-octets <-> payload. mapping.md section 2 maps the real empty session {} to empty_payload() (the length-0 PSeq), while the record {} also serializes to octets b'{}' = [123,125] (length 2). The same real value therefore has two model images, and axiom_check.check_modern_not_legacy carries a matching carve-out ('assert decoded != data or data == {}') that switches OFF the modern-tag check for the empty record. I measured whether that carve-out hides real behavior: over 400 real modern wires for the record {}, _legacy_decode RAISED 400/400 times and returned {} zero times -- so the un-checked case does not occur, and even if it did, under mapping.md's own {} <-> empty_payload() reading the model's legacy_read(modern frame) = empty_payload() would still agree. Harmless documented slack; produces no diverging input on serialize. Worth tightening the carve-out, but it is not a faithfulness break.\n(b) legacy_read on payloads outside the serializer image. The model's precondition admits ANY List[int], and for e.g. p=b'', b'not json', b'{' the model's legacy_read returns p while the real _legacy_decode's serializer().loads raises and yields {} (octets b'{}'). This is a domain WIDENING (the model quantifies over more payloads than encode can ever receive, since encode always serializes a dict), which makes the spec stronger, not weaker, and gold still verifies. Confirmed the real reachable domain is clean: for JSON-valued payloads b'[1,2]', b'\"str\"', b'null', b'123', b'{}' the model and the real reader AGREE at the octet layer. Not a divergence on the modelled function.\n(c) modern_digest purity vs. the timestamp. mapping.md claims modern_digest is a pure function of the carried payload with the timestamp 'folded into the invertible frame wrapper'. I measured that the real signature is NOT payload-pure: two encodes of the same record 1.2s apart give different signatures (vOnkLfPr... vs D54fD6vp...) because TimestampSigner signs value+':'+timestamp. This is an explicitly disclosed R-refinement, and what the proof actually consumes -- the composite modern_read(modern_serialize(p)) == p -- held for BOTH wires and across all 45k+ records above. So the folding is sound for the consumed obligation; the mapping's wording overstates purity but the spec does not depend on more than the composite round trip.\n(d) dict-level vs octet-level identity on key-collision records ({1:'a','1':'b'}, {True:'x','true':'y'}, {1.0:'p','1.0':'q'}, {None:'p','null':'q'}, {2:'a','2':'b','02':'c'}). These fail dict-level round trip in the REAL repo under BOTH regimes identically (JSON coerces non-string keys, so the record is lossy before encode is ever called). At the model's octet layer -- which is what the spec constrains -- they round-trip perfectly (verified in Attack 1/2, 0 violations). The loss lives in the serializer identity layer that mapping.md folds out and that the patch does not touch, and it is regime-symmetric, so it cannot separate the model from the patched callee.\n\nCONCLUSION. Across ~66,000 real-execution inputs against the patched reference (20,010 octet-layer + 25,011 wire-exact + 20,900 adversarial), plus both bundle gates re-run independently on my own build, I found NO input on which the modelled serialize disagrees with the real patched SessionBase.encode on any clause the spec asserts. The legacy arm is wire-identical to the gold patch, the modern arm's tag and round-trip clauses hold universally, the int selector faithfully abstracts the real string setting, and the changed operation (the regime branch) is modelled deeply rather than hidden behind an axiom about the function under change. The three items of abstraction slack I found (a-c) are disclosed in mapping.md and each is either unreachable or does not affect the consumed obligation; none yields a diverging input. Verdict FAITHFUL -- no diverging_input to cite. Recommended non-blocking follow-ups: drop the 'or data == {}' carve-out in axiom_check.check_modern_not_legacy (measured unnecessary), reconcile the stale top-level meta['region_hashes'] with the G-HYGIENE block, ship patch.diff in the bundle, and soften mapping.md's 'pure deterministic function of the carried payload' claim for modern_digest to the composite round-trip property the proof actually uses.",
+            "gate": "G-PANEL-2",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          },
+          "G-PANEL-3": {
+            "checked_at": "",
+            "code_version": "",
+            "data": {
+              "model": "us.anthropic.claude-opus-5",
+              "recorded": true,
+              "recorded_as": "G-PANEL-3"
+            },
+            "detail": "LEAKAGE / gold-reconstruction audit of nagini django__django-13279 (spec view = swebench_unified.markers.spec_view of model.py; judged against the SOLVER-VISIBLE problem_statement only, hints_text ignored). No `relaxed_leakage` flag in meta.json and no RELAXED_LEAKAGE.md in the bundle, so this is a plain leakage judgement with no relaxation to re-derive.\n\nWHAT I RAN (my own measurements, not the bundle's stamps):\n1. Mechanical screen re-run on the CURRENT model.py: `leakage.screen(model.py, get_backend('nagini'), row['patch'], row['problem_statement'], test_patch=...)` against the frozen row in data/swe_bench_verified/test.jsonl -> passed=True, hard_failures=[], warnings=[]. L1 (no gold-diff line reproduced, no diff markers), L2 (no patched path/module: 'django/contrib/sessions/backends/base.py' and its dotted form absent), symbol-collision and narration checks all clean; _NARRATION_RE over every spec-view line -> 0 hits.\n2. Symbol-collision check by hand: patch-touched distinctive def names are {legacy_encode, decode, hash}; underscore-stripped, none is embedded in ANY spec-view identifier (spec ids are FMT_LEGACY/FMT_MODERN/ALGO_LEGACY/ALGO_MODERN/Frame/serialize/keyed_digest/modern_digest/legacy_read/modern_read/modern_serialize/empty_payload/tag/mac/payload/algorithm). In particular the ADDED helper `_legacy_encode` is nowhere in the view -- the spec names only `serialize` (the channel) and the two readers. Grep of the view for sha1/DEFAULT_HASHING_ALGORITHM/settings/signing/base64/b64/hmac/dumps/loads/session/_legacy_encode: 0 hits each.\n3. Load-bearing (discriminator) test with the pinned verifier, in /tmp only: `scripts/nagini_verify.sh model.py` -> exit 0 (\"Verification successful\", 15.3s); `scripts/nagini_verify.sh model_prepatch.py` -> exit 1, failing on exactly `Implies(algorithm == ALGO_LEGACY, legacy_read(Result().tag, Result().mac, Result().payload) == ToSeq(payload))`. markers.same_spec(model.py, model_prepatch.py, nagini) -> True, so the twin differs only in the impl region (only the 3 legacy-branch lines). The legacy-regime round-trip clause is therefore the load-bearing clause, and it is the one I checked hardest for leakage.\n\nWHY THE LOAD-BEARING CLAUSE IS NOT A LEAK: the public problem_statement itself states the discriminator verbatim -- \"setting DEFAULT_HASHING_ALGORITHM to 'sha1' is not enough\" and \"We could use the legacy encode() when DEFAULT_HASHING_ALGORITHM == 'sha1'\". The spec's \"a configuration flag selects the compatibility regime; in the legacy regime the serializer MUST emit a frame the legacy reader can read back\" is a de-identified paraphrase of that public sentence, strictly less specific than it (no 'sha1', no flag name, no settings access). The legacy FRAME SHAPE (\"carries a keyed digest of the payload alongside the payload\") is independently derivable from public repo code at base_commit: I read django/contrib/sessions/backends/base.py at 6e9c5ee88 in a /tmp worktree and `_legacy_decode` is already present pre-patch (base64 -> split(b':',1) -> _hash compare -> serializer().loads), so inverting it yields the legacy encoder without seeing the gold edit. The spec view omits even that much (no base64, no b':' separator -- it uses a structured Frame carrier instead). The modern-regime clauses (tag==FMT_MODERN, modern_read round trip) describe the UNCHANGED branch's pre-existing behaviour, verified by the pre-patch twin also satisfying them; they localize nothing.\n\nAncillary observations (recorded, not leakage findings, and outside this gate's scope):\n(a) meta.json region_hashes are STALE: I recomputed markers.region_hashes on the current model.py and only 'impl' matches meta; the full stamped set matches the model.py at commit cfa32f6f7 (spec_view has since gained modern_digest/modern_read, the MustTerminate obligations, and reworded docstring/comments). The bundle's own G-LEAK stamp (\"spec view clean\") therefore describes an earlier spec view than the shipped one -- which is precisely why I re-ran the screen on the current bytes rather than inheriting it; my re-run passes on the shipped model.py.\n(b) leakage.reviewer_directed over every bundle file (model.py, model_prepatch.py, refinement.md, mapping.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md, pbt_result.json) -> [] for all. No file in the bundle addresses the panel, instructs how to record, or asserts which verdict is honest.\n\nConclusion: nothing in the spec view narrows the solver's search beyond what the public problem_statement plus the pre-patch repo already give. NO-LEAKAGE.",
+            "gate": "G-PANEL-3",
+            "harness_digest": "",
+            "mode": "strict",
+            "status": "pass"
+          }
+        }
+      },
+      "detail": "G-PANEL-1 (spec-too-weak): pass \u2014 panel_1: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies; G-PANEL-2 (faithfulness): pass \u2014 REFERENCE SETUP. Base worktree: git worktree from repos/django_django.git at base_commit 6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d ->. Per instructions the modelled function's reference is that tree with the gold patch APPLIED, so I copied it to  and applied the gold patch (extracted from data/swe_bench_verified/test.jsonl; 'Applied patch ... cleanly'). Confirmed the patched tree has the regime branch (inspect.getsource(encode) contains DEFAULT_HASHING_ALGORITHM) and the base tree does not. Execution env: docker swebench/sweb.eval.x86_64.django_1776_django-13195 (py3.6, django 3.2 deps) with the worktree bind-mounted read-only on PYTHONPATH. No bundle file modified; all work in /tmp.\n\nNOTE ON BUNDLE FILES: patch.diff is NOT present in the bundle dir (meta.json carries only the string 'gold patch verbatim (applies cleanly at base_commit)'). I therefore reconstructed the gold patch from the SWE-bench Verified dataset and confirmed it applies cleanly at base_commit and matches the hunks quoted verbatim in refinement.md section A. Bundle-completeness bookkeeping only, not a spec defect.\n\nSPEC-REGION INTEGRITY. markers.region_hashes(model.py, nagini backend) computes axioms=abf5c268ee72..., pure=7e1261f0ca04..., pre-conditions=a12adeea99d0..., post-conditions=bb0604012b41..., impl=d015764681913..., spec_view=30d3b7428170.... These match meta.json gates['G-HYGIENE'].data.region_hashes EXACTLY (all six). The top-level meta['region_hashes'] block carries a DIFFERENT (stale) set (axioms=1f2e56a3..., pure=62126b5e..., post=afea9e27..., pre=a628205e..., spec_view=ffbe6f05...; only impl agrees) -- a bookkeeping inconsistency inside meta.json, not evidence of spec tampering, since the gate-recorded hashes reproduce bit-for-bit from the shipped model.py.\n\nPOSITIVE CONTROL. scripts/nagini_verify.sh on the shipped model.py: 'Verification successful' (23.84s, exit 0). The spec is live and the gold-faithful impl closes it.\n\nATTACK 1 -- octet-layer postcondition differential (the core faithfulness test). I re-implemented the model's alpha (b64decode -> split(b':',1) -> constant_time_compare against the freshly recomputed _hash) and the model's pure region (keyed_digest via the real _hash, empty_payload, legacy_read) at the OCTET layer, deliberately WITHOUT going through serializer().loads, so the comparison is against the model's actual claim rather than a dict-level paraphrase. Ran the real patched encode on 20,010 records (boundary: {}, colon-heavy, ':'*80, base64-shaped values, 5KB values, NUL, emoji/latin-1, empty-string; plus 20,000 seeded fuzz records over str/int/bool/None/list/dict/float values) under BOTH regimes. Results: B2 violations (legacy regime, legacy_read(encode(d)) != payload octets) = 0; modern-tag violations (a real modern wire accepted as a LEGACY frame) = 0; B3 violations (modern regime, modern reader != payload octets) = 0.\n\nATTACK 2 -- WIRE-EXACT legacy arm. Rebuilt the model's legacy frame from its impl region (b64encode(keyed_digest(p) + b':' + p)) and compared byte-for-byte against the real patched encode() output over 25,011 records (including 20KB values, ':'*200, base64-shaped payloads, int/bool/float-keyed dicts). 0 mismatches. The model's legacy arm is not merely round-trip-equivalent to the gold patch, it is wire-identical.\n\nATTACK 3 -- adversarial hunt for a modern wire that IS a legacy frame (would break the clause Result().tag == FMT_MODERN). 20,900 records engineered toward the failure mode: values made of pure base64 alphabet + ':' at every length 0-60, ':'-runs, b64-encoded byte blobs, 'YWJjOmRlZg==' repeats. 0 tag violations, 0 modern round-trip violations, 0 legacy wire-exact violations. Could not construct an input where the real patched encode violates any postcondition clause.\n\nATTACK 4 -- selector abstraction ('sha1' <-> ALGO_LEGACY, every other value <-> ALGO_MODERN). Exercised sha1/sha256/sha512/md5/nosuchalgo on the real patched tree. sha1 -> LEGACY frame, legacy round trip holds. sha256/sha512/md5 -> MODERN frame, modern round trip holds, legacy reader does not recover the record. So the model's two-valued int selector faithfully collapses the real string setting: the 'anything != sha1' arm really is uniform in the observable the spec constrains. ('nosuchalgo' raises InvalidAlgorithm inside salted_hmac before the branch is observable, and is rejected by django's own system check base.py:241 requiring sha1|sha256 -- outside the modelled domain, not a divergence.) Separately confirmed _hash/keyed_digest is INVARIANT under DEFAULT_HASHING_ALGORITHM (identical digest for all four values), so the legacy arm's digest genuinely is a function of the payload alone as the axiom claims -- the selector does not secretly leak into keyed_digest.\n\nATTACK 5 -- gate replication. Ran the bundle's own axiom_check.py and conformance_check.py against MY independently built patched tree (not the recorded environment). G-AX exit 0, and notably it reports 'F2P sha1 encode->legacy_decode identity verified' (the recorded meta run had SKIPPED that branch, 'F2P branch not present on this tree' -- so my run is strictly stronger than the recorded one and still passes). G-CONF exit 0: 100,040 inputs, 0 disagreements, legacy frames wire-exact. Both gates reproduce independently.\n\nATTACK 6 -- G-DIFF sanity (the base tree really does fail). Ran the literal F2P test body (data={'a test key':'a test value'}, sha1 regime, _legacy_decode(encode(data))==data) on the BASE tree: raises binascii.Error 'Incorrect padding' from _legacy_decode's b64decode -- i.e. the pre-patch encode's modern wire is not even a parseable legacy frame. On the patched tree: PASS. The spec's B2 clause is the discriminating one and it is not vacuous.\n\nDISCLOSED SLACK I EXAMINED AND REJECTED AS A DIVERGENCE (recording so the next panel need not redo it):\n(a) empty_payload() <-> {} vs. record-octets <-> payload. mapping.md section 2 maps the real empty session {} to empty_payload() (the length-0 PSeq), while the record {} also serializes to octets b'{}' = [123,125] (length 2). The same real value therefore has two model images, and axiom_check.check_modern_not_legacy carries a matching carve-out ('assert decoded != data or data == {}') that switches OFF the modern-tag check for the empty record. I measured whether that carve-out hides real behavior: over 400 real modern wires for the record {}, _legacy_decode RAISED 400/400 times and returned {} zero times -- so the un-checked case does not occur, and even if it did, under mapping.md's own {} <-> empty_payload() reading the model's legacy_read(modern frame) = empty_payload() would still agree. Harmless documented slack; produces no diverging input on serialize. Worth tightening the carve-out, but it is not a faithfulness break.\n(b) legacy_read on payloads outside the serializer image. The model's precondition admits ANY List[int], and for e.g. p=b'', b'not json', b'{' the model's legacy_read returns p while the real _legacy_decode's serializer().loads raises and yields {} (octets b'{}'). This is a domain WIDENING (the model quantifies over more payloads than encode can ever receive, since encode always serializes a dict), which makes the spec stronger, not weaker, and gold still verifies. Confirmed the real reachable domain is clean: for JSON-valued payloads b'[1,2]', b'\"str\"', b'null', b'123', b'{}' the model and the real reader AGREE at the octet layer. Not a divergence on the modelled function.\n(c) modern_digest purity vs. the timestamp. mapping.md claims modern_digest is a pure function of the carried payload with the timestamp 'folded into the invertible frame wrapper'. I measured that the real signature is NOT payload-pure: two encodes of the same record 1.2s apart give different signatures (vOnkLfPr... vs D54fD6vp...) because TimestampSigner signs value+':'+timestamp. This is an explicitly disclosed R-refinement, and what the proof actually consumes -- the composite modern_read(modern_serialize(p)) == p -- held for BOTH wires and across all 45k+ records above. So the folding is sound for the consumed obligation; the mapping's wording overstates purity but the spec does not depend on more than the composite round trip.\n(d) dict-level vs octet-level identity on key-collision records ({1:'a','1':'b'}, {True:'x','true':'y'}, {1.0:'p','1.0':'q'}, {None:'p','null':'q'}, {2:'a','2':'b','02':'c'}). These fail dict-level round trip in the REAL repo under BOTH regimes identically (JSON coerces non-string keys, so the record is lossy before encode is ever called). At the model's octet layer -- which is what the spec constrains -- they round-trip perfectly (verified in Attack 1/2, 0 violations). The loss lives in the serializer identity layer that mapping.md folds out and that the patch does not touch, and it is regime-symmetric, so it cannot separate the model from the patched callee.\n\nCONCLUSION. Across ~66,000 real-execution inputs against the patched reference (20,010 octet-layer + 25,011 wire-exact + 20,900 adversarial), plus both bundle gates re-run independently on my own build, I found NO input on which the modelled serialize disagrees with the real patched SessionBase.encode on any clause the spec asserts. The legacy arm is wire-identical to the gold patch, the modern arm's tag and round-trip clauses hold universally, the int selector faithfully abstracts the real string setting, and the changed operation (the regime branch) is modelled deeply rather than hidden behind an axiom about the function under change. The three items of abstraction slack I found (a-c) are disclosed in mapping.md and each is either unreachable or does not affect the consumed obligation; none yields a diverging input. Verdict FAITHFUL -- no diverging_input to cite. Recommended non-blocking follow-ups: drop the 'or data == {}' carve-out in axiom_check.check_modern_not_legacy (measured unnecessary), reconcile the stale top-level meta['region_hashes'] with the G-HYGIENE block, ship patch.diff in the bundle, and soften mapping.md's 'pure deterministic function of the carried payload' claim for modern_digest to the composite round-trip property the proof actually uses.; G-PANEL-3 (leakage): pass \u2014 LEAKAGE / gold-reconstruction audit of nagini django__django-13279 (spec view = swebench_unified.markers.spec_view of model.py; judged against the SOLVER-VISIBLE problem_statement only, hints_text ignored). No `relaxed_leakage` flag in meta.json and no RELAXED_LEAKAGE.md in the bundle, so this is a plain leakage judgement with no relaxation to re-derive.\n\nWHAT I RAN (my own measurements, not the bundle's stamps):\n1. Mechanical screen re-run on the CURRENT model.py: `leakage.screen(model.py, get_backend('nagini'), row['patch'], row['problem_statement'], test_patch=...)` against the frozen row in data/swe_bench_verified/test.jsonl -> passed=True, hard_failures=[], warnings=[]. L1 (no gold-diff line reproduced, no diff markers), L2 (no patched path/module: 'django/contrib/sessions/backends/base.py' and its dotted form absent), symbol-collision and narration checks all clean; _NARRATION_RE over every spec-view line -> 0 hits.\n2. Symbol-collision check by hand: patch-touched distinctive def names are {legacy_encode, decode, hash}; underscore-stripped, none is embedded in ANY spec-view identifier (spec ids are FMT_LEGACY/FMT_MODERN/ALGO_LEGACY/ALGO_MODERN/Frame/serialize/keyed_digest/modern_digest/legacy_read/modern_read/modern_serialize/empty_payload/tag/mac/payload/algorithm). In particular the ADDED helper `_legacy_encode` is nowhere in the view -- the spec names only `serialize` (the channel) and the two readers. Grep of the view for sha1/DEFAULT_HASHING_ALGORITHM/settings/signing/base64/b64/hmac/dumps/loads/session/_legacy_encode: 0 hits each.\n3. Load-bearing (discriminator) test with the pinned verifier, in /tmp only: `scripts/nagini_verify.sh model.py` -> exit 0 (\"Verification successful\", 15.3s); `scripts/nagini_verify.sh model_prepatch.py` -> exit 1, failing on exactly `Implies(algorithm == ALGO_LEGACY, legacy_read(Result().tag, Result().mac, Result().payload) == ToSeq(payload))`. markers.same_spec(model.py, model_prepatch.py, nagini) -> True, so the twin differs only in the impl region (only the 3 legacy-branch lines). The legacy-regime round-trip clause is therefore the load-bearing clause, and it is the one I checked hardest for leakage.\n\nWHY THE LOAD-BEARING CLAUSE IS NOT A LEAK: the public problem_statement itself states the discriminator verbatim -- \"setting DEFAULT_HASHING_ALGORITHM to 'sha1' is not enough\" and \"We could use the legacy encode() when DEFAULT_HASHING_ALGORITHM == 'sha1'\". The spec's \"a configuration flag selects the compatibility regime; in the legacy regime the serializer MUST emit a frame the legacy reader can read back\" is a de-identified paraphrase of that public sentence, strictly less specific than it (no 'sha1', no flag name, no settings access). The legacy FRAME SHAPE (\"carries a keyed digest of the payload alongside the payload\") is independently derivable from public repo code at base_commit: I read django/contrib/sessions/backends/base.py at 6e9c5ee88 in a /tmp worktree and `_legacy_decode` is already present pre-patch (base64 -> split(b':',1) -> _hash compare -> serializer().loads), so inverting it yields the legacy encoder without seeing the gold edit. The spec view omits even that much (no base64, no b':' separator -- it uses a structured Frame carrier instead). The modern-regime clauses (tag==FMT_MODERN, modern_read round trip) describe the UNCHANGED branch's pre-existing behaviour, verified by the pre-patch twin also satisfying them; they localize nothing.\n\nAncillary observations (recorded, not leakage findings, and outside this gate's scope):\n(a) meta.json region_hashes are STALE: I recomputed markers.region_hashes on the current model.py and only 'impl' matches meta; the full stamped set matches the model.py at commit cfa32f6f7 (spec_view has since gained modern_digest/modern_read, the MustTerminate obligations, and reworded docstring/comments). The bundle's own G-LEAK stamp (\"spec view clean\") therefore describes an earlier spec view than the shipped one -- which is precisely why I re-ran the screen on the current bytes rather than inheriting it; my re-run passes on the shipped model.py.\n(b) leakage.reviewer_directed over every bundle file (model.py, model_prepatch.py, refinement.md, mapping.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md, pbt_result.json) -> [] for all. No file in the bundle addresses the panel, instructs how to record, or asserts which verdict is honest.\n\nConclusion: nothing in the spec view narrows the solver's search beyond what the public problem_statement plus the pre-patch repo already give. NO-LEAKAGE.",
+      "gate": "G-PANEL",
+      "harness_digest": "ad2cf9d8b9c3",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49",
+        "properties.py": "67fc98b6946ceeb300fdc6fe7246b042dbd33cda874fe1e80d81b882fc020c7e"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-1": {
+      "agent_verdict": "SOUND",
+      "checked_at": "2026-08-15T11:53:03+00:00",
+      "code_version": "776e4c465",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "panel_1: 21 admissible attacks re-run of 21 submitted, none breaks the spec; positive control verifies\n\n**What was measured.** The harness re-ran 21 candidate wrong implementations submitted against this specification, recording for each whether it verifies and, where it does, whether its patch resolves the instance. An attack that verifies without resolving would be a counterexample to `verify => correct`; the graded outcomes were:\n\n| re-run outcome | attacks | source |\n| --- | ---: | --- |\n| does not verify against this specification, so the specification excludes it | 15 | `atk_1.py`, `atk_2.py`, `atk_3.py`, `atk_4.py`, `atk_5.py`, `atk_7.py`, `atk_9.py`, `atk_10.py`, `atk_11.py`, `atk_12.py`, `atk_14.py`, `atk_15.py`, `atk_19.py`, `atk_20.py`, `atk_0_prepatch.py` |\n| verifies, and its patch resolves the instance, so it is a correct implementation and not a counterexample | 6 | `atk_6.py`, `atk_8.py`, `atk_13.py`, `atk_16.py`, `atk_17.py`, `atk_18.py` |\n\n**Non-vacuity.** The positive control `pos_control.py` verifies, so the specification is satisfiable by a correct implementation and the outcomes above are not an artifact of a spec nothing can satisfy. The bug this instance fixes is re-encoded as one of the attacks above, so the specification is checked to exclude the original defect and not merely to admit the fix.\n",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49",
+        "properties.py": "67fc98b6946ceeb300fdc6fe7246b042dbd33cda874fe1e80d81b882fc020c7e"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-2": {
+      "agent_verdict": "FAITHFUL",
+      "checked_at": "2026-08-15T10:54:38+00:00",
+      "code_version": "6204d33a2-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "REFERENCE SETUP. Base worktree: git worktree from repos/django_django.git at base_commit 6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d ->. Per instructions the modelled function's reference is that tree with the gold patch APPLIED, so I copied it to  and applied the gold patch (extracted from data/swe_bench_verified/test.jsonl; 'Applied patch ... cleanly'). Confirmed the patched tree has the regime branch (inspect.getsource(encode) contains DEFAULT_HASHING_ALGORITHM) and the base tree does not. Execution env: docker swebench/sweb.eval.x86_64.django_1776_django-13195 (py3.6, django 3.2 deps) with the worktree bind-mounted read-only on PYTHONPATH. No bundle file modified; all work in /tmp.\n\nNOTE ON BUNDLE FILES: patch.diff is NOT present in the bundle dir (meta.json carries only the string 'gold patch verbatim (applies cleanly at base_commit)'). I therefore reconstructed the gold patch from the SWE-bench Verified dataset and confirmed it applies cleanly at base_commit and matches the hunks quoted verbatim in refinement.md section A. Bundle-completeness bookkeeping only, not a spec defect.\n\nSPEC-REGION INTEGRITY. markers.region_hashes(model.py, nagini backend) computes axioms=abf5c268ee72..., pure=7e1261f0ca04..., pre-conditions=a12adeea99d0..., post-conditions=bb0604012b41..., impl=d015764681913..., spec_view=30d3b7428170.... These match meta.json gates['G-HYGIENE'].data.region_hashes EXACTLY (all six). The top-level meta['region_hashes'] block carries a DIFFERENT (stale) set (axioms=1f2e56a3..., pure=62126b5e..., post=afea9e27..., pre=a628205e..., spec_view=ffbe6f05...; only impl agrees) -- a bookkeeping inconsistency inside meta.json, not evidence of spec tampering, since the gate-recorded hashes reproduce bit-for-bit from the shipped model.py.\n\nPOSITIVE CONTROL. scripts/nagini_verify.sh on the shipped model.py: 'Verification successful' (23.84s, exit 0). The spec is live and the gold-faithful impl closes it.\n\nATTACK 1 -- octet-layer postcondition differential (the core faithfulness test). I re-implemented the model's alpha (b64decode -> split(b':',1) -> constant_time_compare against the freshly recomputed _hash) and the model's pure region (keyed_digest via the real _hash, empty_payload, legacy_read) at the OCTET layer, deliberately WITHOUT going through serializer().loads, so the comparison is against the model's actual claim rather than a dict-level paraphrase. Ran the real patched encode on 20,010 records (boundary: {}, colon-heavy, ':'*80, base64-shaped values, 5KB values, NUL, emoji/latin-1, empty-string; plus 20,000 seeded fuzz records over str/int/bool/None/list/dict/float values) under BOTH regimes. Results: B2 violations (legacy regime, legacy_read(encode(d)) != payload octets) = 0; modern-tag violations (a real modern wire accepted as a LEGACY frame) = 0; B3 violations (modern regime, modern reader != payload octets) = 0.\n\nATTACK 2 -- WIRE-EXACT legacy arm. Rebuilt the model's legacy frame from its impl region (b64encode(keyed_digest(p) + b':' + p)) and compared byte-for-byte against the real patched encode() output over 25,011 records (including 20KB values, ':'*200, base64-shaped payloads, int/bool/float-keyed dicts). 0 mismatches. The model's legacy arm is not merely round-trip-equivalent to the gold patch, it is wire-identical.\n\nATTACK 3 -- adversarial hunt for a modern wire that IS a legacy frame (would break the clause Result().tag == FMT_MODERN). 20,900 records engineered toward the failure mode: values made of pure base64 alphabet + ':' at every length 0-60, ':'-runs, b64-encoded byte blobs, 'YWJjOmRlZg==' repeats. 0 tag violations, 0 modern round-trip violations, 0 legacy wire-exact violations. Could not construct an input where the real patched encode violates any postcondition clause.\n\nATTACK 4 -- selector abstraction ('sha1' <-> ALGO_LEGACY, every other value <-> ALGO_MODERN). Exercised sha1/sha256/sha512/md5/nosuchalgo on the real patched tree. sha1 -> LEGACY frame, legacy round trip holds. sha256/sha512/md5 -> MODERN frame, modern round trip holds, legacy reader does not recover the record. So the model's two-valued int selector faithfully collapses the real string setting: the 'anything != sha1' arm really is uniform in the observable the spec constrains. ('nosuchalgo' raises InvalidAlgorithm inside salted_hmac before the branch is observable, and is rejected by django's own system check base.py:241 requiring sha1|sha256 -- outside the modelled domain, not a divergence.) Separately confirmed _hash/keyed_digest is INVARIANT under DEFAULT_HASHING_ALGORITHM (identical digest for all four values), so the legacy arm's digest genuinely is a function of the payload alone as the axiom claims -- the selector does not secretly leak into keyed_digest.\n\nATTACK 5 -- gate replication. Ran the bundle's own axiom_check.py and conformance_check.py against MY independently built patched tree (not the recorded environment). G-AX exit 0, and notably it reports 'F2P sha1 encode->legacy_decode identity verified' (the recorded meta run had SKIPPED that branch, 'F2P branch not present on this tree' -- so my run is strictly stronger than the recorded one and still passes). G-CONF exit 0: 100,040 inputs, 0 disagreements, legacy frames wire-exact. Both gates reproduce independently.\n\nATTACK 6 -- G-DIFF sanity (the base tree really does fail). Ran the literal F2P test body (data={'a test key':'a test value'}, sha1 regime, _legacy_decode(encode(data))==data) on the BASE tree: raises binascii.Error 'Incorrect padding' from _legacy_decode's b64decode -- i.e. the pre-patch encode's modern wire is not even a parseable legacy frame. On the patched tree: PASS. The spec's B2 clause is the discriminating one and it is not vacuous.\n\nDISCLOSED SLACK I EXAMINED AND REJECTED AS A DIVERGENCE (recording so the next panel need not redo it):\n\n(a) empty_payload() <-> {} vs. record-octets <-> payload. mapping.md section 2 maps the real empty session {} to empty_payload() (the length-0 PSeq), while the record {} also serializes to octets b'{}' = [123,125] (length 2). The same real value therefore has two model images, and axiom_check.check_modern_not_legacy carries a matching carve-out ('assert decoded != data or data == {}') that switches OFF the modern-tag check for the empty record. I measured whether that carve-out hides real behavior: over 400 real modern wires for the record {}, _legacy_decode RAISED 400/400 times and returned {} zero times -- so the un-checked case does not occur, and even if it did, under mapping.md's own {} <-> empty_payload() reading the model's legacy_read(modern frame) = empty_payload() would still agree. Harmless documented slack; produces no diverging input on serialize. Worth tightening the carve-out, but it is not a faithfulness break.\n\n(b) legacy_read on payloads outside the serializer image. The model's precondition admits ANY List[int], and for e.g. p=b'', b'not json', b'{' the model's legacy_read returns p while the real _legacy_decode's serializer().loads raises and yields {} (octets b'{}'). This is a domain WIDENING (the model quantifies over more payloads than encode can ever receive, since encode always serializes a dict), which makes the spec stronger, not weaker, and gold still verifies. Confirmed the real reachable domain is clean: for JSON-valued payloads b'[1,2]', b'\"str\"', b'null', b'123', b'{}' the model and the real reader AGREE at the octet layer. Not a divergence on the modelled function.\n\n(c) modern_digest purity vs. the timestamp. mapping.md claims modern_digest is a pure function of the carried payload with the timestamp 'folded into the invertible frame wrapper'. I measured that the real signature is NOT payload-pure: two encodes of the same record 1.2s apart give different signatures (vOnkLfPr... vs D54fD6vp...) because TimestampSigner signs value+':'+timestamp. This is an explicitly disclosed R-refinement, and what the proof actually consumes -- the composite modern_read(modern_serialize(p)) == p -- held for BOTH wires and across all 45k+ records above. So the folding is sound for the consumed obligation; the mapping's wording overstates purity but the spec does not depend on more than the composite round trip.\n\n(d) dict-level vs octet-level identity on key-collision records ({1:'a','1':'b'}, {True:'x','true':'y'}, {1.0:'p','1.0':'q'}, {None:'p','null':'q'}, {2:'a','2':'b','02':'c'}). These fail dict-level round trip in the REAL repo under BOTH regimes identically (JSON coerces non-string keys, so the record is lossy before encode is ever called). At the model's octet layer -- which is what the spec constrains -- they round-trip perfectly (verified in Attack 1/2, 0 violations). The loss lives in the serializer identity layer that mapping.md folds out and that the patch does not touch, and it is regime-symmetric, so it cannot separate the model from the patched callee.\n\nCONCLUSION. Across ~66,000 real-execution inputs against the patched reference (20,010 octet-layer + 25,011 wire-exact + 20,900 adversarial), plus both bundle gates re-run independently on my own build, I found NO input on which the modelled serialize disagrees with the real patched SessionBase.encode on any clause the spec asserts. The legacy arm is wire-identical to the gold patch, the modern arm's tag and round-trip clauses hold universally, the int selector faithfully abstracts the real string setting, and the changed operation (the regime branch) is modelled deeply rather than hidden behind an axiom about the function under change.\n\nThe three items of abstraction slack I found (a-c) are disclosed in mapping.md and each is either unreachable or does not affect the consumed obligation; none yields a diverging input. Verdict FAITHFUL -- no diverging_input to cite. Recommended non-blocking follow-ups: drop the 'or data == {}' carve-out in axiom_check.check_modern_not_legacy (measured unnecessary), reconcile the stale top-level meta['region_hashes'] with the G-HYGIENE block, ship patch.diff in the bundle, and soften mapping.md's 'pure deterministic function of the carried payload' claim for modern_digest to the composite round-trip property the proof actually uses.\n\n**What was measured.** This role asks whether the specification still describes the function it stands in for -- whether the abstract model diverges from that function on an input the function accepts, and whether the specification has been strengthened past it so that a correct implementation would be excluded. The reviewer recorded FAITHFUL. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical checks over the same artifact are recorded separately and re-runnable from the bundle: G-CONF `pass` (the conformance battery over the modelled function); G-AX `pass` (the axiom battery). The account names `model.py`, `conformance_check.py`, `axiom_check.py`, `mapping.md`, all of which ship in this bundle, so a reader can start there.\n",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-PANEL-3": {
+      "agent_verdict": "NO-LEAKAGE",
+      "checked_at": "2026-08-15T10:24:04+00:00",
+      "code_version": "c8d01bdd1-dirty",
+      "harness_digest": "ad2cf9d8b9c3",
+      "model": "us.anthropic.claude-opus-5",
+      "note": "LEAKAGE / gold-reconstruction audit of nagini django__django-13279 (spec view = swebench_unified.markers.spec_view of model.py; judged against the SOLVER-VISIBLE problem_statement only, hints_text ignored). No `relaxed_leakage` flag in meta.json and no RELAXED_LEAKAGE.md in the bundle, so this is a plain leakage judgement with no relaxation to re-derive.\n\nWHAT I RAN (my own measurements, not the bundle's stamps):\n1. Mechanical screen re-run on the CURRENT model.py: `leakage.screen(model.py, get_backend('nagini'), row['patch'], row['problem_statement'], test_patch=...)` against the frozen row in data/swe_bench_verified/test.jsonl -> passed=True, hard_failures=[], warnings=[]. L1 (no gold-diff line reproduced, no diff markers), L2 (no patched path/module: 'django/contrib/sessions/backends/base.py' and its dotted form absent), symbol-collision and narration checks all clean; _NARRATION_RE over every spec-view line -> 0 hits.\n2. Symbol-collision check by hand: patch-touched distinctive def names are {legacy_encode, decode, hash}; underscore-stripped, none is embedded in ANY spec-view identifier (spec ids are FMT_LEGACY/FMT_MODERN/ALGO_LEGACY/ALGO_MODERN/Frame/serialize/keyed_digest/modern_digest/legacy_read/modern_read/modern_serialize/empty_payload/tag/mac/payload/algorithm). In particular the ADDED helper `_legacy_encode` is nowhere in the view -- the spec names only `serialize` (the channel) and the two readers. Grep of the view for sha1/DEFAULT_HASHING_ALGORITHM/settings/signing/base64/b64/hmac/dumps/loads/session/_legacy_encode: 0 hits each.\n3. Load-bearing (discriminator) test with the pinned verifier, in /tmp only: `scripts/nagini_verify.sh model.py` -> exit 0 (\"Verification successful\", 15.3s); `scripts/nagini_verify.sh model_prepatch.py` -> exit 1, failing on exactly `Implies(algorithm == ALGO_LEGACY, legacy_read(Result().tag, Result().mac, Result().payload) == ToSeq(payload))`. markers.same_spec(model.py, model_prepatch.py, nagini) -> True, so the twin differs only in the impl region (only the 3 legacy-branch lines). The legacy-regime round-trip clause is therefore the load-bearing clause, and it is the one I checked hardest for leakage.\n\nWHY THE LOAD-BEARING CLAUSE IS NOT A LEAK: the public problem_statement itself states the discriminator verbatim -- \"setting DEFAULT_HASHING_ALGORITHM to 'sha1' is not enough\" and \"We could use the legacy encode() when DEFAULT_HASHING_ALGORITHM == 'sha1'\". The spec's \"a configuration flag selects the compatibility regime; in the legacy regime the serializer MUST emit a frame the legacy reader can read back\" is a de-identified paraphrase of that public sentence, strictly less specific than it (no 'sha1', no flag name, no settings access).\n\nThe legacy FRAME SHAPE (\"carries a keyed digest of the payload alongside the payload\") is independently derivable from public repo code at base_commit: I read django/contrib/sessions/backends/base.py at 6e9c5ee88 in a /tmp worktree and `_legacy_decode` is already present pre-patch (base64 -> split(b':',1) -> _hash compare -> serializer().loads), so inverting it yields the legacy encoder without seeing the gold edit. The spec view omits even that much (no base64, no b':' separator -- it uses a structured Frame carrier instead). The modern-regime clauses (tag==FMT_MODERN, modern_read round trip) describe the UNCHANGED branch's pre-existing behaviour, verified by the pre-patch twin also satisfying them; they localize nothing.\n\nAncillary observations (recorded, not leakage findings, and outside this gate's scope):\n(a) meta.json region_hashes are STALE: I recomputed markers.region_hashes on the current model.py and only 'impl' matches meta; the full stamped set matches the model.py at commit cfa32f6f7 (spec_view has since gained modern_digest/modern_read, the MustTerminate obligations, and reworded docstring/comments). The bundle's own G-LEAK stamp (\"spec view clean\") therefore describes an earlier spec view than the shipped one -- which is precisely why I re-ran the screen on the current bytes rather than inheriting it; my re-run passes on the shipped model.py.\n(b) leakage.reviewer_directed over every bundle file (model.py, model_prepatch.py, refinement.md, mapping.md, meta.json, axiom_check.py, conformance_check.py, properties.py, verdict.md, pbt_result.json) -> [] for all. No file in the bundle addresses the panel, instructs how to record, or asserts which verdict is honest.\n\nConclusion: nothing in the spec view narrows the solver's search beyond what the public problem_statement plus the pre-patch repo already give. NO-LEAKAGE.\n\n**What was measured.** This role asks whether the consumer-facing spec view discloses the reference edit -- whether a solver reading only the specification could reconstruct the fix instead of deriving it from the public problem statement. The reviewer recorded NO-LEAKAGE. It is a judgment and not a machine re-run: unlike the two mechanized roles, nothing is submitted to the verifier for it and no candidate implementation is graded, so the recorded status is that judgment and the account above is the evidence for it rather than a summary of a measurement made elsewhere.\n\n**How far this record can be re-checked.** This role records no per-attack table because nothing was re-run for it, so the account above is the whole of its evidence and this is the part of the cell whose verdict is prose by construction. The mechanical check over the same artifact is recorded separately and re-runnable from the bundle: G-LEAK `pass` (the mechanical leakage screen over the same spec view). The account names `model.py`, `properties.py`, `conformance_check.py`, `axiom_check.py`, all of which ship in this bundle, so a reader can start there.",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    },
+    "G-PBT": {
+      "checked_at": "2026-08-16T15:26:36+00:00",
+      "code_version": "dbf18e9a0-dirty",
+      "data": {
+        "cases": [
+          {
+            "expect": "verify",
+            "id": "pos-reorder",
+            "kind": "soundness",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 39.5
+          },
+          {
+            "expect": "verify",
+            "id": "admiss-reads",
+            "kind": "admissibility",
+            "ok": true,
+            "outcome": "verified",
+            "wall_s": 40.4
+          },
+          {
+            "expect": "reject",
+            "id": "frame-mut-write",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 32.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-prepatch",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 39.7
+          },
+          {
+            "expect": "reject",
+            "id": "weak-legacy-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 41.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-legacy-modern-tag",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 42.5
+          },
+          {
+            "expect": "reject",
+            "id": "weak-modern-empty",
+            "kind": "uniqueness",
+            "ok": true,
+            "outcome": "rejected",
+            "wall_s": 43.9
+          }
+        ],
+        "lanes": {
+          "admissibility": 1,
+          "soundness": 1,
+          "uniqueness": 5
+        },
+        "manifest_sha256": "67fc98b6946ceeb300fdc6fe7246b042dbd33cda874fe1e80d81b882fc020c7e",
+        "n_cases": 7,
+        "n_failed": 0,
+        "verdict": "SOUND"
+      },
+      "detail": "SOUND: 7 spec case(s) behaved as expected",
+      "gate": "G-PBT",
+      "harness_digest": "19ce245da3af",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49",
+        "properties.py": "67fc98b6946ceeb300fdc6fe7246b042dbd33cda874fe1e80d81b882fc020c7e"
+      },
+      "status": "pass"
+    },
+    "G-RESOLVE": {
+      "checked_at": "2026-07-29T11:44:55+00:00",
+      "code_version": "68bc6b2bf-dirty",
+      "data": {
+        "attempts": 1,
+        "flaky": false,
+        "resolved": true
+      },
+      "detail": "resolved",
+      "gate": "G-RESOLVE",
+      "mode": "strict",
+      "status": "pass"
+    },
+    "G-VERIFY": {
+      "checked_at": "2026-08-18T05:15:31+00:00",
+      "code_version": "97629af48-dirty",
+      "data": {
+        "wall_time_s": 12.1
+      },
+      "detail": "verified in 12.1s",
+      "gate": "G-VERIFY",
+      "harness_digest": "7915e75e3dd0",
+      "mode": "strict",
+      "sources": {
+        "model.py": "cd57a387769f607315bb1b031759c2c86523adcea507ffab1e278a86cce72e49"
+      },
+      "status": "pass"
+    }
+  },
+  "instance_id": "django__django-13279",
+  "modeled_functions": [
+    {
+      "carrier_type": "session_dict(dict, serialized to bytes) -> List[int] payload over PSeq[int]; DEFAULT_HASHING_ALGORITHM(str) -> int selector (ALGO_LEGACY/ALGO_MODERN); encoded str -> Frame{tag,mac,payload}",
+      "model_symbol": "serialize",
+      "repo_location": "django/contrib/sessions/backends/base.py:109",
+      "repo_symbol": "django.contrib.sessions.backends.base.SessionBase.encode",
+      "role": "modeled changed function (the serializer that gained a compatibility-regime branch routing the legacy regime through the legacy framing)"
+    }
+  ],
+  "patch_diff": "gold patch verbatim (applies cleanly at base_commit)",
+  "prepatch_models": [
+    {
+      "fails_on": "postcondition Implies(algorithm == ALGO_LEGACY, legacy_read(Result().tag, Result().mac, Result().payload) == ToSeq(payload)) -- a modern-tagged frame reads back as the empty record, not the payload",
+      "file": "model_prepatch.py",
+      "fixed_behavior": "encode() regime branch (legacy regime must emit a legacy frame)",
+      "reverted_to": "pre-patch: encode unconditionally returns the modern frame (return signing.dumps(...)) regardless of the regime selector"
+    }
+  ],
+  "region_hashes": {
+    "axioms": "1f2e56a32e4bd5356619b4b087b4ecfd561b2f359ed3f1414c83a0f254d02b07",
+    "impl": "d0157646819130e72620b9eff6ab34ee394b6b85df3eca84269a583403f6aafc",
+    "post-conditions": "afea9e2708d465cb75afc6295654ec901537547b33947f7379012aacb39d3225",
+    "pre-conditions": "a628205eb33b52f0dbbb54210faac403f9ba9926cfbcd6a5bbcbf40ce7c25cdb",
+    "pure": "62126b5e3cc9edcf7047d3a46350788d9918f35ac55794f26ce0466ae2e6d019",
+    "spec_view": "ffbe6f052e170ac81f4326234bdcc9a4e7bc00e8423a65a5a71505a9bb62e293"
+  },
+  "repo": "django/django",
+  "schema_version": 1,
+  "string_modeling": "session payload (serializer-dumped bytes) as List[int]/PSeq[int]; dict<->bytes serializer round trip and base64/split are unchanged invertible wrappers folded into the carrier; the encoded frame is a minimal Frame{tag,mac,payload} object",
+  "version": "3.2"
+}
