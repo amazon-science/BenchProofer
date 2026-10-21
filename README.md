@@ -273,6 +273,10 @@ swe-proof/       SWE-Proof: the SWE-bench Verified and Pro corpora formalized un
 offline smoke suite, which is exactly what continuous integration runs. See
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
 ## License
 
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.

@@ -175,7 +175,20 @@ commit `v<version>`.
   first three questions a maintainer would have.
 * A question about how something is meant to work: start a discussion, or open an
   issue if you cannot tell whether the behavior is intended.
-* Conduct: this project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+* A security issue: do not open an issue. See
+  [Security issue notifications](#security-issue-notifications).
+* Conduct: this project follows the
+  [Amazon Open Source Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Code of Conduct
+
+This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
+For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
+opensource-codeofconduct@amazon.com with any additional questions or comments.
+
+## Security issue notifications
+
+If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 ## License
 
